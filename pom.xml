@@ -133,6 +133,9 @@
                 <version>3.0</version>
                 <configuration>
                     <header>license-header.txt</header>
+                    <mapping>
+                        <java>SLASHSTAR_STYLE</java>
+                    </mapping>
                     <excludes>
                         <exclude>*</exclude>
                         <exclude>src/test/resources/**</exclude>
