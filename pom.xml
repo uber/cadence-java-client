@@ -5,18 +5,17 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.uber</groupId>
-    <artifactId>cadence-flow-library</artifactId>
-    <version>0.0.1</version>
+    <artifactId>cadence-client</artifactId>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>Java Libraries for Uber Cadence</name>
-    <description>This artifact contains the higher level libraries that can be used in Cadence Service.
-        Based on Flow Framwork for Amazon Simple WorkFlow Service
+    <name>Uber Cadence Java Client</name>
+    <description>Library used to author Cadence workflows and activities in Java.
     </description>
     <url>https://github.com/uber-java/cadence-client</url>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
-            <url>https://aws.amazon.com/apache2.0</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
             <distribution>repo</distribution>
         </license>
     </licenses>
@@ -27,20 +26,26 @@
             <organization>Amazon Web Services</organization>
             <organizationUrl>https://aws.amazon.com</organizationUrl>
             <roles>
+                <role>swf-framework-java-developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>uber</id>
+            <organization>Uber</organization>
+            <organizationUrl>https://uber.com</organizationUrl>
+            <roles>
                 <role>developer</role>
             </roles>
         </developer>
+
     </developers>
     <scm>
-        <url>https://github.com/aws/aws-swf-flow-library.git</url>
+        <url>https://github.com/uber-java/cadence-client.git</url>
     </scm>
     <properties>
         <java.version>1.8</java.version>
-        <spring.version>3.0.7.RELEASE</spring.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <aws.java.sdk.version>1.11.58</aws.java.sdk.version>
-        <freemarker.version>2.3.21</freemarker.version>
     </properties>
 
     <dependencies>
