@@ -142,9 +142,11 @@
                         <exclude>src/main/resources/**</exclude>
                         <exclude>src/main/thrift/**</exclude>
                     </excludes>
+                    <errorMessage>Some files do not have the expected license header. Run "mvn license:format" to add.</errorMessage>
                 </configuration>
                 <executions>
                     <execution>
+                        <phase>compile</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
