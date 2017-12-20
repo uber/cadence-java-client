@@ -14,23 +14,40 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
 
-import java.util.function.Function;
+/**
+ * @see DataConverter
+ * 
+ * @author fateev
+ */
+@SuppressWarnings("serial")
+public class DataConverterException extends RuntimeException {
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
+    private String key;
 
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
+    public DataConverterException() {
+    }
+
+    public DataConverterException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public DataConverterException(String message) {
+        super(message);
+    }
+
+    public DataConverterException(Throwable cause) {
+        super(cause);
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public String getMessage() {
+        return super.getMessage() + " when mapping key \"" + key + "\"";
     }
 }

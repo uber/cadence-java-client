@@ -16,17 +16,16 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.amazonaws.services.simpleworkflow.flow.ActivityExecutionContext;
-import com.amazonaws.services.simpleworkflow.flow.ActivityFailureException;
-import com.amazonaws.services.simpleworkflow.flow.WorkflowExecutionAlreadyStartedException;
-import com.amazonaws.services.simpleworkflow.flow.common.WorkflowExecutionUtils;
-import com.amazonaws.services.simpleworkflow.flow.generic.ActivityImplementation;
-import com.amazonaws.services.simpleworkflow.flow.generic.ActivityImplementationFactory;
-import com.amazonaws.services.simpleworkflow.flow.generic.GenericWorkflowClientExternal;
-import com.amazonaws.services.simpleworkflow.flow.generic.StartWorkflowExecutionParameters;
-import com.amazonaws.services.simpleworkflow.flow.worker.ActivityTypeExecutionOptions;
-import com.amazonaws.services.simpleworkflow.flow.worker.GenericActivityWorker;
-import com.amazonaws.services.simpleworkflow.flow.worker.GenericWorkflowClientExternalImpl;
+import com.uber.cadence.ActivityExecutionContext;
+import com.uber.cadence.ActivityFailureException;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedException;
+import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.generic.ActivityImplementation;
+import com.uber.cadence.generic.ActivityImplementationFactory;
+import com.uber.cadence.generic.StartWorkflowExecutionParameters;
+import com.uber.cadence.worker.ActivityTypeExecutionOptions;
+import com.uber.cadence.worker.GenericActivityWorker;
+import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
@@ -35,7 +34,6 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
@@ -46,9 +44,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.lang.ref.Reference;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.CancellationException;

@@ -14,23 +14,16 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.common;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+public final class FlowConstants {
 
-import java.util.function.Function;
+    public static final int NONE = -1;
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
+    /**
+     * Use task priority 0
+     */
+    //TODO(Cadence): implement task priority
+//    public static final int DEFAULT_TASK_PRIORITY = 0;
 
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
-
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
-    }
 }

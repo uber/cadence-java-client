@@ -16,11 +16,11 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.amazonaws.services.simpleworkflow.flow.worker.AsyncDecisionTaskHandler;
-import com.amazonaws.services.simpleworkflow.flow.worker.AsyncWorkflowFactory;
-import com.amazonaws.services.simpleworkflow.flow.worker.DecisionTaskPoller;
-import com.amazonaws.services.simpleworkflow.flow.worker.GenericWorker;
-import com.amazonaws.services.simpleworkflow.flow.worker.TaskPoller;
+import com.uber.cadence.worker.AsyncDecisionTaskHandler;
+import com.uber.cadence.worker.AsyncWorkflowFactory;
+import com.uber.cadence.worker.DecisionTaskPoller;
+import com.uber.cadence.worker.GenericWorker;
+import com.uber.cadence.worker.TaskPoller;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
 

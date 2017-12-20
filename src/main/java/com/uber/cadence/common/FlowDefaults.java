@@ -14,23 +14,11 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.common;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
-
-import java.util.function.Function;
-
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
-
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
-    }
+public class FlowDefaults {
+    public static final long EXPONENTIAL_RETRY_MAXIMUM_RETRY_INTERVAL_SECONDS =  FlowConstants.NONE;
+    public static final long EXPONENTIAL_RETRY_RETRY_EXPIRATION_SECONDS =  FlowConstants.NONE;
+    public static final double EXPONENTIAL_RETRY_BACKOFF_COEFFICIENT =  2;
+    public static final int EXPONENTIAL_RETRY_MAXIMUM_ATTEMPTS =  FlowConstants.NONE;
 }

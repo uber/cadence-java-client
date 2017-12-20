@@ -14,23 +14,19 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.worker;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+import java.util.function.Consumer;
 
-import java.util.function.Function;
+public class OpenChildWorkflowRequestInfo extends OpenRequestInfo<byte[], String> {
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
+    private final Consumer<String> runIdCallback;
 
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
+    public OpenChildWorkflowRequestInfo(Consumer<String> runIdCallback) {
+        this.runIdCallback = runIdCallback;
     }
 
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public Consumer<String> getRunIdCallback() {
+        return runIdCallback;
     }
 }

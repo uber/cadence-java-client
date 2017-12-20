@@ -14,23 +14,28 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+/**
+ * Exception that is thrown from generic workflow implementation to indicate
+ * that workflow execution should be failed with the given reason and details.
+ */
+@SuppressWarnings("serial")
+public class WorkflowException extends Exception {
 
-import java.util.function.Function;
+    private final byte[] details;
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
+    public WorkflowException(String reason, byte[] details) {
+        super(reason);
+        this.details = details;
     }
 
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public String getReason() {
+        return getMessage();
     }
+
+    public byte[] getDetails() {
+        return details;
+    }
+
 }

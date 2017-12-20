@@ -16,9 +16,9 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.amazonaws.services.simpleworkflow.flow.AsyncDecisionContext;
-import com.amazonaws.services.simpleworkflow.flow.WorkflowException;
-import com.amazonaws.services.simpleworkflow.flow.worker.AsyncWorkflow;
+import com.uber.cadence.AsyncDecisionContext;
+import com.uber.cadence.WorkflowException;
+import com.uber.cadence.worker.AsyncWorkflow;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowType;

@@ -14,23 +14,28 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.worker;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+enum DecisionState {
 
-import java.util.function.Function;
+    CREATED,
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
+    DECISION_SENT,
 
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
+    CANCELED_BEFORE_INITIATED,
+    
+    INITIATED,
 
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
-    }
+    STARTED,
+    
+    CANCELED_AFTER_INITIATED,
+
+    CANCELED_AFTER_STARTED,
+
+    CANCELLATION_DECISION_SENT,
+
+    COMPLETED_AFTER_CANCELLATION_DECISION_SENT,
+
+    COMPLETED
+
 }

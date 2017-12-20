@@ -16,9 +16,9 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.amazonaws.services.simpleworkflow.flow.AsyncDecisionContext;
-import com.amazonaws.services.simpleworkflow.flow.generic.ExecuteActivityParameters;
-import com.amazonaws.services.simpleworkflow.flow.generic.GenericAsyncActivityClient;
+import com.uber.cadence.AsyncDecisionContext;
+import com.uber.cadence.generic.ExecuteActivityParameters;
+import com.uber.cadence.generic.GenericAsyncActivityClient;
 import com.uber.cadence.ActivityType;
 
 import java.util.concurrent.CancellationException;

@@ -14,23 +14,21 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
-
-import java.util.function.Function;
-
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
+@SuppressWarnings("serial")
+public class ChildWorkflowTimedOutException extends ChildWorkflowException {
+    
+    public ChildWorkflowTimedOutException(String message) {
+        super(message);
     }
 
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public ChildWorkflowTimedOutException(String message, Throwable cause) {
+        super(message, cause);
     }
+
+    public ChildWorkflowTimedOutException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
+        super("Time Out", eventId, workflowExecution, workflowType);
+    }
+
 }

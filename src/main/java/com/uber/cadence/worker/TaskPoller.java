@@ -14,23 +14,22 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.worker;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 
-import java.util.function.Function;
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
+public interface TaskPoller {
 
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
+    Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
-    }
+    boolean pollAndProcessSingleTask() throws Exception;
+
+    void shutdown();
+
+    void shutdownNow();
+
+    boolean awaitTermination(long left, TimeUnit milliseconds) throws InterruptedException;
+
 }

@@ -14,23 +14,19 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+/**
+ * Used to access execution context of the currently executed activity. An
+ * implementation might rely on thread local storage. So it is guaranteed to
+ * return current context only in the thread that invoked the activity
+ * implementation. If activity implementation needs to pass its execution
+ * context to other threads it has to do it explicitly.
+ * 
+ * @author fateev
+ */
+public interface ActivityExecutionContextProvider {
 
-import java.util.function.Function;
+    public ActivityExecutionContext getActivityExecutionContext();
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
-
-    @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
-    }
 }

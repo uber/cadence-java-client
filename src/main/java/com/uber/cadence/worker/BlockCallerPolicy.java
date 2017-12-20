@@ -14,23 +14,23 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.worker;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
 
-import java.util.function.Function;
 
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
+class BlockCallerPolicy implements RejectedExecutionHandler {
 
     @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+        try {
+            // block until there's room
+            executor.getQueue().put(r);
+        }
+        catch (InterruptedException e) {
+            throw new RejectedExecutionException("Unexpected InterruptedException", e);
+        }
     }
 }

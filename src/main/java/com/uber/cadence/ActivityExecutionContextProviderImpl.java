@@ -14,23 +14,21 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence;
 
-import com.uber.cadence.worker.AsyncWorkflow;
-import com.uber.cadence.worker.AsyncWorkflowFactory;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.worker.CurrentActivityExecutionContext;
 
-import java.util.function.Function;
-
-public class SyncWorkflowFactory implements AsyncWorkflowFactory {
-    private final Function<WorkflowType, SyncWorkflowDefinition> factory;
-
-    public SyncWorkflowFactory(Function<WorkflowType, SyncWorkflowDefinition> factory) {
-        this.factory = factory;
-    }
+/**
+ * The default implementation of the ActivityExecutionContextProvider. Can be
+ * shared across any number of activity implementation instances.
+ * 
+ * @author fateev
+ */
+public class ActivityExecutionContextProviderImpl implements ActivityExecutionContextProvider {
 
     @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) throws Exception {
-        return new SyncWorkflow(factory);
+    public ActivityExecutionContext getActivityExecutionContext() {
+        return CurrentActivityExecutionContext.get();
     }
+
 }
