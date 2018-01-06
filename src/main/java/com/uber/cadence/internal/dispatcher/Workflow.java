@@ -153,7 +153,7 @@ public class Workflow {
     }
 
     /**
-     * Invokes five argument activity asynchronously.
+     * Invokes six argument activity asynchronously.
      *
      * @param activity The only supported parameter is method reference to a proxy created
      *                 through {@link #newActivityClient(Class)}.
@@ -258,7 +258,7 @@ public class Workflow {
     }
 
     /**
-     * Invokes five argument activity asynchronously.
+     * Invokes six argument activity asynchronously.
      *
      * @param activity The only supported parameter is method reference to a proxy created
      *                 through {@link #newActivityClient(Class)}.
@@ -274,7 +274,28 @@ public class Workflow {
         return executeAsync(() -> activity.apply(arg1, arg2, arg3, arg4, arg5, arg6));
     }
 
-    public static <T> T executeActivity(String name, Class<T> returnType, Object... args) {
+    /**
+     * Execute activity by name.
+     * @param name name of the activity
+     * @param returnType activity return type
+     * @param args list of activity arguments
+     * @param <R> activity return type
+     * @return activity result
+     */
+    public static <R> R executeActivity(String name, Class<R> returnType, Object... args) {
         return WorkflowThreadImpl.currentThread().getDecisionContext().executeActivity(name, args, returnType);
     }
+
+    /**
+     * Execute activity by name asynchronously.
+     * @param name name of the activity
+     * @param returnType activity return type
+     * @param args list of activity arguments
+     * @param <R> activity return type
+     * @return future that contains the activity result
+     */
+    public static <R> WorkflowFuture<R> executeActivityAsync(String name, Class<R> returnType, Object... args) {
+        return WorkflowThreadImpl.currentThread().getDecisionContext().executeActivityAsync(name, args, returnType);
+    }
+
 }
