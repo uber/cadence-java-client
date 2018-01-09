@@ -27,6 +27,10 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
 
 import java.lang.management.ManagementFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 
@@ -38,8 +42,11 @@ public class SyncWorkflowWorker extends GenericWorker {
 
     private DataConverter dataConverter = new JsonDataConverter();
 
+    private ExecutorService threadPool;
+
     public SyncWorkflowWorker() {
         setIdentity(ManagementFactory.getRuntimeMXBean().getName());
+        threadPool = new ThreadPoolExecutor(1, 1000, 10, TimeUnit.SECONDS, new SynchronousQueue<>());
     }
 
     public SyncWorkflowWorker(WorkflowService.Iface service, String domain, String taskListToPoll) {
@@ -57,6 +64,10 @@ public class SyncWorkflowWorker extends GenericWorker {
         this.dataConverter = dataConverter;
     }
 
+    public void setThreadPool(ExecutorService threadPool) {
+        this.threadPool = threadPool;
+    }
+
     @Override
     protected void checkRequredProperties() {
         checkRequiredProperty(factory, "factory");
@@ -70,7 +81,7 @@ public class SyncWorkflowWorker extends GenericWorker {
     @Override
     protected TaskPoller createPoller() {
         DecisionTaskPoller result = new DecisionTaskPoller();
-        AsyncWorkflowFactory workflowFactory = new SyncWorkflowFactory(factory, dataConverter);
+        AsyncWorkflowFactory workflowFactory = new SyncWorkflowFactory(factory, dataConverter, threadPool);
         result.setDecisionTaskHandler(new AsyncDecisionTaskHandler(workflowFactory));
         result.setDomain(getDomain());
         result.setIdentity(getIdentity());
