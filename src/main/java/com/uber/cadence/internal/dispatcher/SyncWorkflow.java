@@ -39,7 +39,7 @@ class SyncWorkflow implements AsyncWorkflow {
     private final Function<WorkflowType, SyncWorkflowDefinition> factory;
     private final DataConverter converter;
     private final ExecutorService threadPool;
-    private WorkflowRunnable runnable;
+    private WorkflowProc runnable;
     private DeterministicRunner runner;
 
     public SyncWorkflow(Function<WorkflowType, SyncWorkflowDefinition> factory, DataConverter converter, ExecutorService threadPool) {
@@ -58,7 +58,7 @@ class SyncWorkflow implements AsyncWorkflow {
                     + event.getEventType());
         }
 
-        runnable = new WorkflowRunnable(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
+        runnable = new WorkflowProc(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
         runner = DeterministicRunner.newRunner(threadPool, syncContext, context.getWorkflowClock()::currentTimeMillis, runnable);
     }
 

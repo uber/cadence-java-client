@@ -54,7 +54,7 @@ public class ActivityInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) {
         SyncDecisionContext decisionContext = WorkflowThreadImpl.currentThread().getDecisionContext();
         // TODO: Add annotation to support overriding activity name.
-        String activityName = FlowHelpers.getActivityName(method);
+        String activityName = FlowHelpers.getSimpleName(method);
         AtomicReference<WorkflowFuture> async = asyncResult.get();
         if (async != null) {
             async.set(decisionContext.executeActivityAsync(activityName, args, method.getReturnType()));

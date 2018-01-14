@@ -22,11 +22,11 @@ import java.util.concurrent.locks.Lock;
 
 public class Workflow {
 
-    public static WorkflowThread newThread(Runnable runnable) {
+    public static WorkflowThread newThread(Functions.Proc runnable) {
         return WorkflowThreadImpl.newThread(runnable);
     }
 
-    public static WorkflowThread newThread(Runnable runnable, String name) {
+    public static WorkflowThread newThread(Functions.Proc runnable, String name) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
