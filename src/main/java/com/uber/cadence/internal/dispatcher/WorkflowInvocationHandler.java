@@ -31,12 +31,37 @@ import com.uber.cadence.generic.StartWorkflowExecutionParameters;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 class WorkflowInvocationHandler implements InvocationHandler {
 
+    private static final ThreadLocal<AtomicReference<WorkflowExternalResult>> asyncResult = new ThreadLocal<>();
     private final GenericWorkflowClientExternal genericClient;
     private final StartWorkflowOptions options;
     private final DataConverter dataConverter;
+
+    public static void initAsyncInvocation() {
+        if (asyncResult.get() != null) {
+            throw new IllegalStateException("already in async invocation");
+        }
+        asyncResult.set(new AtomicReference<>());
+    }
+
+    public static WorkflowExternalResult getAsyncInvocationResult() {
+        try {
+            AtomicReference<WorkflowExternalResult> reference = asyncResult.get();
+            if (reference == null) {
+                throw new IllegalStateException("initAsyncInvocation wasn't called");
+            }
+            WorkflowExternalResult result = reference.get();
+            if (result == null) {
+                throw new IllegalStateException("async result wasn't set");
+            }
+            return result;
+        } finally {
+            asyncResult.remove();
+        }
+    }
 
     WorkflowInvocationHandler(GenericWorkflowClientExternal genericClient, StartWorkflowOptions options, DataConverter dataConverter) {
         this.genericClient = genericClient;
@@ -62,8 +87,18 @@ class WorkflowInvocationHandler implements InvocationHandler {
         // TODO: Wait for result using long poll Cadence API.
         WorkflowService.Iface service = genericClient.getService();
         String domain = genericClient.getDomain();
-        WorkflowExecutionCompletedEventAttributes result =
-                WorkflowExecutionUtils.waitForWorkflowExecutionResult(service, domain, execution, options.getExecutionStartToCloseTimeoutSeconds() + 1);
-        return dataConverter.fromData(result.getResult(), method.getReturnType());
+            WorkflowExternalResult result = new WorkflowExternalResult(
+                    service,
+                    domain,
+                    execution,
+                    options.getExecutionStartToCloseTimeoutSeconds(),
+                    dataConverter,
+                    method.getReturnType());
+        AtomicReference<WorkflowExternalResult> async = asyncResult.get();
+        if (async != null) {
+            async.set(result);
+            return Defaults.defaultValue(method.getReturnType());
+        }
+        return result.getResult();
     }
 }

@@ -46,14 +46,27 @@ public class WorkflowExternal {
      *                 through {@link #newClient(Class, StartWorkflowOptions)}.
      * @return future that contains workflow result or failure
      */
-    public static <R> WorkflowFuture<R> start(Functions.Func<R> workflow) {
-        ActivityInvocationHandler.initAsyncInvocation();
+    public static <R> WorkflowExternalResult<R> executeWorkflow(Functions.Func<R> workflow) {
+        WorkflowInvocationHandler.initAsyncInvocation();
         try {
             workflow.apply();
         } catch (Exception e) {
-            return Workflow.newFailedFuture(e);
+            // TODO: Appropriate exception type.
+            throw new RuntimeException(e);
         } finally {
-            return ActivityInvocationHandler.getAsyncInvocationResult();
+            return WorkflowInvocationHandler.getAsyncInvocationResult();
         }
+    }
+
+    /**
+     * Invokes one argument workflow asynchronously.
+     *
+     * @param workflow The only supported parameter is method reference to a proxy created
+     *                 through {@link #newClient(Class, StartWorkflowOptions)}.
+     * @param arg1     first workflow argument
+     * @return future that contains workflow result or failure
+     */
+    public static <A1, R> WorkflowExternalResult<R> executeWorkflow(Functions.Func1<A1, R> workflow, A1 arg1) {
+        return executeWorkflow(() -> workflow.apply(arg1));
     }
 }
