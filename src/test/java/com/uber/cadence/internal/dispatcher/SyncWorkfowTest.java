@@ -18,18 +18,10 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.JsonDataConverter;
-import com.uber.cadence.SignalWorkflowExecutionRequest;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedException;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.WorkflowType;
-import com.uber.cadence.common.FlowHelpers;
-import com.uber.cadence.common.WorkflowExecutionUtils;
-import com.uber.cadence.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.ActivityWorker;
-import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.ConsoleAppender;
@@ -37,7 +29,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.apache.thrift.TException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -46,11 +37,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -65,6 +52,7 @@ public class SyncWorkfowTest {
     private static final String taskList = "UnitTest";
     private static final DataConverter dataConverter = new JsonDataConverter();
     private static final Log log;
+    private static final int MILLION = 1000000;
 
     static {
         LogManager.resetConfiguration();
@@ -85,11 +73,13 @@ public class SyncWorkfowTest {
 
     }
 
-    private static GenericWorkflowClientExternalImpl clientExternal;
+    //    private static GenericWorkflowClientExternalImpl clientExternal;
     private static WorkflowService.Iface service;
     private static SyncWorkflowWorker workflowWorker;
     private static ActivityWorker activityWorker;
     private static TestActivitiesImpl activities;
+    private static WorkflowExternal clientFactory;
+    private static StartWorkflowOptions startWorkflowOptions;
 
     @BeforeClass
     public static void setUpService() {
@@ -99,9 +89,14 @@ public class SyncWorkfowTest {
         activities = new TestActivitiesImpl();
         activityWorker.addActivityImplementation(activities);
         workflowWorker = new SyncWorkflowWorker(service, domain, taskList);
-        clientExternal = new GenericWorkflowClientExternalImpl(service, domain);
+//        clientExternal = new GenericWorkflowClientExternalImpl(service, domain);
+        clientFactory = new WorkflowExternal(service, domain, dataConverter);
         activityWorker.start();
         workflowWorker.start();
+        startWorkflowOptions = new StartWorkflowOptions();
+        startWorkflowOptions.setExecutionStartToCloseTimeoutSeconds(60);
+        startWorkflowOptions.setTaskStartToCloseTimeoutSeconds(2);
+        startWorkflowOptions.setTaskList(taskList);
     }
 
     @AfterClass
@@ -115,11 +110,11 @@ public class SyncWorkfowTest {
         activities.procResult.clear();
     }
 
-    public interface TestSyncWorkflow {
+    public interface TestWorkflow {
         String execute();
     }
 
-    public static class TestSyncWorkflowImpl implements TestSyncWorkflow {
+    public static class TestSyncWorkflowImpl implements TestWorkflow {
 
         @Override
         public String execute() {
@@ -140,101 +135,91 @@ public class SyncWorkfowTest {
     }
 
     @Test
-    public void testSync() throws InterruptedException, WorkflowExecutionAlreadyStartedException, TimeoutException, NoSuchMethodException {
+    public void testSync() {
         workflowWorker.addWorkflow(TestSyncWorkflowImpl.class);
-        StartWorkflowExecutionParameters startParameters = new StartWorkflowExecutionParameters();
-        startParameters.setExecutionStartToCloseTimeoutSeconds(60);
-        startParameters.setTaskStartToCloseTimeoutSeconds(2);
-        startParameters.setTaskList(taskList);
-        startParameters.setWorkflowId("testSync1");
-        String workflowTypeName = FlowHelpers.getSimpleName(TestSyncWorkflow.class.getMethod("execute"));
-        startParameters.setWorkflowType(new WorkflowType().setName(workflowTypeName));
-        WorkflowExecution started = clientExternal.startWorkflow(startParameters);
-        WorkflowExecutionCompletedEventAttributes result = WorkflowExecutionUtils.waitForWorkflowExecutionResult(service, domain, started, 10);
-        assertEquals("activity10", dataConverter.fromData(result.getResult(), String.class));
+        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        String result = client.execute();
+        assertEquals("activity10", result);
     }
 
-//    @Test
-//    public void testAsync() throws InterruptedException, WorkflowExecutionAlreadyStartedException, TimeoutException {
-//        WorkflowType type = new WorkflowType().setName("testAsync");
-//        definitionMap.put(type, (input) -> {
-//            TestActivities testActivities = Workflow.newActivityClient(TestActivities.class);
-//            try {
-//                assertEquals("activity", Workflow.executeAsync(testActivities::activity).get());
-//                assertEquals("1", Workflow.executeAsync(testActivities::activity1, "1").get());
-//                assertEquals("12", Workflow.executeAsync(testActivities::activity2, "1", 2).get());
-//                assertEquals("123", Workflow.executeAsync(testActivities::activity3, "1", 2, 3).get());
-//                assertEquals("1234", Workflow.executeAsync(testActivities::activity4, "1", 2, 3, 4).get());
-//                assertEquals("12345", Workflow.executeAsync(testActivities::activity5, "1", 2, 3, 4, 5).get());
-//                assertEquals("123456", Workflow.executeAsync(testActivities::activity6, "1", 2, 3, 4, 5, 6).get());
-//
-//                Workflow.executeAsync(testActivities::proc).get();
-//                Workflow.executeAsync(testActivities::proc1, "1").get();
-//                Workflow.executeAsync(testActivities::proc2, "1", 2).get();
-//                Workflow.executeAsync(testActivities::proc3, "1", 2, 3).get();
-//                Workflow.executeAsync(testActivities::proc4, "1", 2, 3, 4).get();
-//                Workflow.executeAsync(testActivities::proc5, "1", 2, 3, 4, 5).get();
-//                Workflow.executeAsync(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            } catch (ExecutionException e) {
-//                throw new RuntimeException(e);
-//            }
-//            return "workflow".getBytes();
-//        });
-//        StartWorkflowExecutionParameters startParameters = new StartWorkflowExecutionParameters();
-//        startParameters.setExecutionStartToCloseTimeoutSeconds(60);
-//        startParameters.setTaskStartToCloseTimeoutSeconds(2);
-//        startParameters.setTaskList(taskList);
-//        startParameters.setInput("input".getBytes());
-//        startParameters.setWorkflowId("workflow1");
-//        startParameters.setWorkflowType(type);
-//        WorkflowExecution started = clientExternal.startWorkflow(startParameters);
-//        WorkflowExecutionCompletedEventAttributes result = WorkflowExecutionUtils.waitForWorkflowExecutionResult(service, domain, started, 10);
-//        assertEquals("workflow", new String(result.getResult()));
-//        assertEquals("proc", activities.procResult.get(0));
-//        assertEquals("1", activities.procResult.get(1));
-//        assertEquals("12", activities.procResult.get(2));
-//        assertEquals("123", activities.procResult.get(3));
-//        assertEquals("1234", activities.procResult.get(4));
-//        assertEquals("12345", activities.procResult.get(5));
-//        assertEquals("123456", activities.procResult.get(6));
-//    }
-//
-//    @Test
-//    public void testTimer() throws InterruptedException, WorkflowExecutionAlreadyStartedException, TimeoutException {
-//        WorkflowType type = new WorkflowType().setName("testTimer");
-//        definitionMap.put(type, (input) -> {
-//            WorkflowFuture<Void> timer1 = Workflow.newTimer(1);
-//            WorkflowFuture<Void> timer2 = Workflow.newTimer(2);
-//
-//            try {
-//                long time = Workflow.currentTimeMillis();
-//                timer1.get();
-//                long slept = Workflow.currentTimeMillis() - time;
-//                assertTrue(slept > 1000);
-//                timer2.get();
-//                slept = Workflow.currentTimeMillis() - time;
-//                assertTrue(slept > 2000);
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            } catch (ExecutionException e) {
-//                throw new RuntimeException(e);
-//            }
-//            return "testTimer".getBytes();
-//        });
-//        StartWorkflowExecutionParameters startParameters = new StartWorkflowExecutionParameters();
-//        startParameters.setExecutionStartToCloseTimeoutSeconds(60);
-//        startParameters.setTaskStartToCloseTimeoutSeconds(2);
-//        startParameters.setTaskList(taskList);
-//        startParameters.setInput("input".getBytes());
-//        startParameters.setWorkflowId("workflow1");
-//        startParameters.setWorkflowType(type);
-//        WorkflowExecution started = clientExternal.startWorkflow(startParameters);
-//        WorkflowExecutionCompletedEventAttributes result = WorkflowExecutionUtils.waitForWorkflowExecutionResult(service, domain, started, 10);
-//        assertEquals("testTimer", new String(result.getResult()));
-//    }
-//
+    public static class TestAsyncActivityWorkflowImpl implements TestWorkflow {
+
+        @Override
+        public String execute() {
+            TestActivities testActivities = Workflow.newActivityClient(TestActivities.class);
+            try {
+                assertEquals("activity", Workflow.executeAsync(testActivities::activity).get());
+                assertEquals("1", Workflow.executeAsync(testActivities::activity1, "1").get());
+                assertEquals("12", Workflow.executeAsync(testActivities::activity2, "1", 2).get());
+                assertEquals("123", Workflow.executeAsync(testActivities::activity3, "1", 2, 3).get());
+                assertEquals("1234", Workflow.executeAsync(testActivities::activity4, "1", 2, 3, 4).get());
+                assertEquals("12345", Workflow.executeAsync(testActivities::activity5, "1", 2, 3, 4, 5).get());
+                assertEquals("123456", Workflow.executeAsync(testActivities::activity6, "1", 2, 3, 4, 5, 6).get());
+
+                Workflow.executeAsync(testActivities::proc).get();
+                Workflow.executeAsync(testActivities::proc1, "1").get();
+                Workflow.executeAsync(testActivities::proc2, "1", 2).get();
+                Workflow.executeAsync(testActivities::proc3, "1", 2, 3).get();
+                Workflow.executeAsync(testActivities::proc4, "1", 2, 3, 4).get();
+                Workflow.executeAsync(testActivities::proc5, "1", 2, 3, 4, 5).get();
+                Workflow.executeAsync(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+            return "workflow";
+        }
+    }
+
+    @Test
+    public void testAsyncActivity() {
+        workflowWorker.addWorkflow(TestAsyncActivityWorkflowImpl.class);
+        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        String result = client.execute();
+        assertEquals("workflow", result);
+
+        assertEquals("proc", activities.procResult.get(0));
+        assertEquals("1", activities.procResult.get(1));
+        assertEquals("12", activities.procResult.get(2));
+        assertEquals("123", activities.procResult.get(3));
+        assertEquals("1234", activities.procResult.get(4));
+        assertEquals("12345", activities.procResult.get(5));
+        assertEquals("123456", activities.procResult.get(6));
+    }
+
+    public static class TestTimerWorkflowImpl implements TestWorkflow {
+
+        @Override
+        public String execute() {
+            WorkflowFuture<Void> timer1 = Workflow.newTimer(1);
+            WorkflowFuture<Void> timer2 = Workflow.newTimer(2);
+
+            try {
+                long time = Workflow.currentTimeMillis();
+                timer1.get();
+                long slept = Workflow.currentTimeMillis() - time;
+                assertTrue(slept > 1000);
+                timer2.get();
+                slept = Workflow.currentTimeMillis() - time;
+                assertTrue(slept > 2000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+            return "testTimer";
+        }
+    }
+
+    @Test
+    public void testTimer() {
+        workflowWorker.addWorkflow(TestTimerWorkflowImpl.class);
+        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        String result = client.execute();
+        assertEquals("testTimer", result);
+    }
+
 //    @Test
 //    public void testSignal() throws InterruptedException, WorkflowExecutionAlreadyStartedException, TimeoutException, TException {
 //        WorkflowType type = new WorkflowType().setName("testSignal");

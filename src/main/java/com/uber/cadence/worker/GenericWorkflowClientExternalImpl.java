@@ -46,6 +46,16 @@ public class GenericWorkflowClientExternalImpl implements GenericWorkflowClientE
     }
 
     @Override
+    public String getDomain() {
+        return domain;
+    }
+
+    @Override
+    public WorkflowService.Iface getService() {
+        return service;
+    }
+
+    @Override
     public WorkflowExecution startWorkflow(StartWorkflowExecutionParameters startParameters) throws WorkflowExecutionAlreadyStartedException{
         StartWorkflowExecutionRequest request = new StartWorkflowExecutionRequest();
         request.setDomain(domain);

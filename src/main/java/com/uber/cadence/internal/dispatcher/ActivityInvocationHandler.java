@@ -25,6 +25,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ActivityInvocationHandler implements InvocationHandler {
 
+    private static final ThreadLocal<AtomicReference<WorkflowFuture>> asyncResult = new ThreadLocal<>();
+
     public static void initAsyncInvocation() {
         if (asyncResult.get() != null) {
             throw new IllegalStateException("already in async invocation");
@@ -47,8 +49,6 @@ public class ActivityInvocationHandler implements InvocationHandler {
             asyncResult.remove();
         }
     }
-
-    private static final ThreadLocal<AtomicReference<WorkflowFuture>> asyncResult = new ThreadLocal<>();
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
