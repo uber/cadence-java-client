@@ -23,6 +23,7 @@ import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
+import com.uber.cadence.internal.dispatcher.WorkflowMethod;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -48,11 +49,25 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
         if (interfaces.isEmpty()) {
             throw new IllegalArgumentException("Workflow must implement at least one interface");
         }
+        boolean hasWorkflowMethod = false;
         for (TypeToken<?> i : interfaces) {
             for (Method method : i.getRawType().getMethods()) {
-                SyncWorkflowDefinition implementation = new POJOWorkflowImplementation(method, workflowImplementationClass);
-                workflows.put(FlowHelpers.getSimpleName(method), implementation);
+                WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+                if (workflowMethod != null) {
+                    SyncWorkflowDefinition implementation = new POJOWorkflowImplementation(method, workflowImplementationClass);
+                    String workflowName = workflowMethod.name();
+                    if (workflowName.isEmpty()) {
+                        workflowName = FlowHelpers.getSimpleName(method);
+                    }
+                    workflows.put(workflowName, implementation);
+                    hasWorkflowMethod = true;
+                }
             }
+            // TODO: Query methods.
+        }
+        if (!hasWorkflowMethod) {
+            throw new IllegalArgumentException("Workflow implementation doesn't implement interface " +
+                    "with method annotated with @WorkflowMethod: " + workflowImplementationClass);
         }
     }
 

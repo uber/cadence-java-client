@@ -21,6 +21,7 @@ import com.uber.cadence.DataConverter;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowException;
+import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.worker.AsyncWorkflow;
 
@@ -52,6 +53,9 @@ class SyncWorkflow implements AsyncWorkflow {
     public void start(HistoryEvent event, AsyncDecisionContext context) {
         WorkflowType workflowType = event.getWorkflowExecutionStartedEventAttributes().getWorkflowType();
         SyncWorkflowDefinition workflow = factory.apply(workflowType);
+        if (workflow == null) {
+            throw new IllegalArgumentException("Unknown workflow type: " + workflowType);
+        }
         SyncDecisionContext syncContext = new SyncDecisionContext(context, converter);
         if (event.getEventType() != EventType.WorkflowExecutionStarted) {
             throw new IllegalArgumentException("first event is not WorkflowExecutionStarted, but "
@@ -114,5 +118,10 @@ class SyncWorkflow implements AsyncWorkflow {
     @Override
     public long getNextWakeUpTime() {
         return runner.getNextWakeUpTime();
+    }
+
+    @Override
+    public byte[] query(WorkflowQuery query) throws Exception {
+        return runnable.query(query.getQueryType(), query.getQueryArgs());
     }
 }

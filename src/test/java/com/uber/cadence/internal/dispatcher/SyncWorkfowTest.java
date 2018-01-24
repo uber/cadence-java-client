@@ -19,7 +19,6 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.JsonDataConverter;
 import com.uber.cadence.StartWorkflowOptions;
-import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.ActivityWorker;
@@ -57,7 +56,6 @@ public class SyncWorkfowTest {
     private static final String taskList = "UnitTest";
     private static final DataConverter dataConverter = new JsonDataConverter();
     private static final Log log;
-    private static final int MILLION = 1000000;
 
     static {
         LogManager.resetConfiguration();
@@ -113,11 +111,17 @@ public class SyncWorkfowTest {
         activities.procResult.clear();
     }
 
-    public interface TestWorkflow {
+    public interface TestWorkflow1 {
+        @WorkflowMethod
         String execute();
     }
 
-    public static class TestSyncWorkflowImpl implements TestWorkflow {
+    public interface TestWorkflow2 {
+        @WorkflowMethod(name="testActivity")
+        String execute();
+    }
+
+    public static class TestSyncWorkflowImpl implements TestWorkflow1 {
 
         @Override
         public String execute() {
@@ -140,12 +144,12 @@ public class SyncWorkfowTest {
     @Test
     public void testSync() {
         workflowWorker.addWorkflow(TestSyncWorkflowImpl.class);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        TestWorkflow1 client = clientFactory.newClient(TestWorkflow1.class, startWorkflowOptions);
         String result = client.execute();
         assertEquals("activity10", result);
     }
 
-    public static class TestAsyncActivityWorkflowImpl implements TestWorkflow {
+    public static class TestAsyncActivityWorkflowImpl implements TestWorkflow1 {
 
         @Override
         public String execute() {
@@ -178,7 +182,7 @@ public class SyncWorkfowTest {
     @Test
     public void testAsyncActivity() {
         workflowWorker.addWorkflow(TestAsyncActivityWorkflowImpl.class);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        TestWorkflow1 client = clientFactory.newClient(TestWorkflow1.class, startWorkflowOptions);
         String result = client.execute();
         assertEquals("workflow", result);
 
@@ -191,7 +195,7 @@ public class SyncWorkfowTest {
         assertEquals("123456", activities.procResult.get(6));
     }
 
-    public static class TestTimerWorkflowImpl implements TestWorkflow {
+    public static class TestTimerWorkflowImpl implements TestWorkflow2 {
 
         @Override
         public String execute() {
@@ -218,12 +222,12 @@ public class SyncWorkfowTest {
     @Test
     public void testTimer() {
         workflowWorker.addWorkflow(TestTimerWorkflowImpl.class);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        TestWorkflow2 client = clientFactory.newClient(TestWorkflow2.class, startWorkflowOptions);
         String result = client.execute();
         assertEquals("testTimer", result);
     }
 
-    public static class TestSignalWorkflowImpl implements TestWorkflow {
+    public static class TestSignalWorkflowImpl implements TestWorkflow2 {
 
         @Override
         public String execute() {
@@ -241,7 +245,7 @@ public class SyncWorkfowTest {
     @Test
     public void testSignal() throws TimeoutException, InterruptedException {
         workflowWorker.addWorkflow(TestSignalWorkflowImpl.class);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        TestWorkflow2 client = clientFactory.newClient(TestWorkflow2.class, startWorkflowOptions);
         WorkflowExternalResult<String> result = WorkflowExternal.executeWorkflow(client::execute);
         result.signal("testSignal", "Hello ");
         result.signal("testSignal", "World!");
@@ -252,7 +256,7 @@ public class SyncWorkfowTest {
     static final AtomicInteger decisionCount = new AtomicInteger();
     static final CompletableFuture<Boolean> sendSignal = new CompletableFuture<>();
 
-    public static class TestSignalDuringLastDecisionWorkflowImpl implements TestWorkflow {
+    public static class TestSignalDuringLastDecisionWorkflowImpl implements TestWorkflow1 {
 
 
         @Override
@@ -280,7 +284,7 @@ public class SyncWorkfowTest {
     @Test
     public void testSignalDuringLastDecision() throws TimeoutException, InterruptedException {
         workflowWorker.addWorkflow(TestSignalDuringLastDecisionWorkflowImpl.class);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, startWorkflowOptions);
+        TestWorkflow1 client = clientFactory.newClient(TestWorkflow1.class, startWorkflowOptions);
         WorkflowExternalResult<String> result = WorkflowExternal.executeWorkflow(client::execute);
         try {
             sendSignal.get(2, TimeUnit.SECONDS);
@@ -293,7 +297,7 @@ public class SyncWorkfowTest {
         assertEquals("Signal Input", result.getResult());
     }
 
-    public static class TestTimerCallbackBlockedWorkflowImpl implements TestWorkflow {
+    public static class TestTimerCallbackBlockedWorkflowImpl implements TestWorkflow1 {
 
 
         @Override
@@ -325,7 +329,7 @@ public class SyncWorkfowTest {
         options.setExecutionStartToCloseTimeoutSeconds(2);
         options.setTaskStartToCloseTimeoutSeconds(1);
         options.setTaskList(taskList);
-        TestWorkflow client = clientFactory.newClient(TestWorkflow.class, options);
+        TestWorkflow1 client = clientFactory.newClient(TestWorkflow1.class, options);
         try {
             client.execute();
             fail("failure expected");

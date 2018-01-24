@@ -16,11 +16,14 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 public class WorkflowExternal {
@@ -34,6 +37,24 @@ public class WorkflowExternal {
     }
 
     public <T> T newClient(Class<T> workflowInterface, StartWorkflowOptions options) {
+        TypeToken<?>.TypeSet interfaces = TypeToken.of(workflowInterface).getTypes().interfaces();
+        if (interfaces.isEmpty()) {
+            throw new IllegalArgumentException("Workflow must implement at least one interface");
+        }
+        boolean hasWorkflowMethod = false;
+        for (TypeToken<?> i : interfaces) {
+            for (Method method : i.getRawType().getMethods()) {
+                WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+                if (workflowMethod != null) {
+                    hasWorkflowMethod = true;
+                }
+            }
+            // TODO: Query methods.
+        }
+        if (!hasWorkflowMethod) {
+            throw new IllegalArgumentException("Workflow interface doesn't have method " +
+                    "annotated with @WorkflowMethod: " + workflowInterface);
+        }
         return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
                 new WorkflowInvocationHandler(genericClient, options, dataConverter));

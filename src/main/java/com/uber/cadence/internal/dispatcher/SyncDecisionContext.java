@@ -37,6 +37,7 @@ public class SyncDecisionContext {
     private final DataConverter converter;
     private final WorkflowTimers timers = new WorkflowTimers();
     private Map<String, WorkflowQueue<byte[]>> signalQueues = new HashMap<>();
+    private Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
 
     public SyncDecisionContext(AsyncDecisionContext context, DataConverter converter) {
         this.context = context;
@@ -132,6 +133,29 @@ public class SyncDecisionContext {
         } catch (InterruptedException e) {
             throw new Error("unexpected", e);
         }
+    }
+
+    public byte[] query(String type, byte[] args) throws Exception {
+        Functions.Func1<byte[], byte[]> callback = queryCallbacks.get(type);
+        if (callback == null) {
+            throw new IllegalArgumentException("Unknown query type: " + type);
+        }
+        return callback.apply(args);
+    }
+
+    public <R> void registerQuery(String queryType, Functions.Func<R> callback) {
+        registerQuery(queryType, (args) -> converter.toData(callback.apply()));
+    }
+
+//    public <R, A> void registerQuery(String queryType, Functions.Func1<R, A> callback) {
+//        registerQuery(queryType, (args) -> {
+//
+//            return converter.toData(callback.apply());
+//        });
+//    }
+
+    public void registerQuery(String queryType, Functions.Func1<byte[], byte[]> callback) {
+        queryCallbacks.put(queryType, callback);
     }
 
     private static class ActivityFutureCancellationHandler implements BiConsumer<WorkflowFuture, Boolean> {

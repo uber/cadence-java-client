@@ -71,9 +71,14 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        // TODO: Add annotation to support overriding workflow name.
-        String workflowName = FlowHelpers.getSimpleName(method);
-
+        WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+        if (workflowMethod == null) {
+            throw new IllegalArgumentException(method.getName() + " is not annotated with @WorkflowMethod");
+        }
+        String workflowName = workflowMethod.name();
+        if (workflowName.isEmpty()) {
+            workflowName = FlowHelpers.getSimpleName(method);
+        }
         StartWorkflowExecutionParameters parameters = new StartWorkflowExecutionParameters();
         parameters.setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds());
         parameters.setTaskList(options.getTaskList());
@@ -87,13 +92,13 @@ class WorkflowInvocationHandler implements InvocationHandler {
         // TODO: Wait for result using long poll Cadence API.
         WorkflowService.Iface service = genericClient.getService();
         String domain = genericClient.getDomain();
-            WorkflowExternalResult result = new WorkflowExternalResult(
-                    service,
-                    domain,
-                    execution,
-                    options.getExecutionStartToCloseTimeoutSeconds(),
-                    dataConverter,
-                    method.getReturnType());
+        WorkflowExternalResult result = new WorkflowExternalResult(
+                service,
+                domain,
+                execution,
+                options.getExecutionStartToCloseTimeoutSeconds(),
+                dataConverter,
+                method.getReturnType());
         AtomicReference<WorkflowExternalResult> async = asyncResult.get();
         if (async != null) {
             async.set(result);

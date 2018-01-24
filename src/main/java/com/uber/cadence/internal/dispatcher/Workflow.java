@@ -59,6 +59,10 @@ public class Workflow {
         return getDecisionContext().getSignalQueue(signalName, signalClass);
     }
 
+    public static <R> void registerQuery(String queryType, Functions.Func<R> callback) {
+        getDecisionContext().registerQuery(queryType, callback);
+    }
+
     /**
      * Note that workflow executes all threads one at a time, ensures that they are interrupted
      * only when blocked on something like Lock or {@link Future#get()} and uses memory barrier to ensure
