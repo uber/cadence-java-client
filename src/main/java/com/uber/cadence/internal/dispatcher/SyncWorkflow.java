@@ -40,7 +40,7 @@ class SyncWorkflow implements AsyncWorkflow {
     private final Function<WorkflowType, SyncWorkflowDefinition> factory;
     private final DataConverter converter;
     private final ExecutorService threadPool;
-    private WorkflowProc runnable;
+    private WorkflowProc workflowProc;
     private DeterministicRunner runner;
 
     public SyncWorkflow(Function<WorkflowType, SyncWorkflowDefinition> factory, DataConverter converter, ExecutorService threadPool) {
@@ -62,13 +62,13 @@ class SyncWorkflow implements AsyncWorkflow {
                     + event.getEventType());
         }
 
-        runnable = new WorkflowProc(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
-        runner = DeterministicRunner.newRunner(threadPool, syncContext, context.getWorkflowClock()::currentTimeMillis, runnable);
+        workflowProc = new WorkflowProc(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
+        runner = DeterministicRunner.newRunner(threadPool, syncContext, context.getWorkflowClock()::currentTimeMillis, workflowProc);
     }
 
     @Override
     public void processSignal(String signalName, byte[] input) {
-        runnable.processSignal(signalName, input);
+        workflowProc.processSignal(signalName, input);
     }
 
     @Override
@@ -82,22 +82,22 @@ class SyncWorkflow implements AsyncWorkflow {
 
     @Override
     public byte[] getOutput() {
-        return runnable.getOutput();
+        return workflowProc.getOutput();
     }
 
     @Override
     public void cancel(CancellationException e) {
-        runnable.cancel(e);
+        workflowProc.cancel(e);
     }
 
     @Override
     public Throwable getFailure() {
-        return runnable.getFailure();
+        return workflowProc.getFailure();
     }
 
     @Override
     public boolean isCancelRequested() {
-        return runnable.isCancelRequested();
+        return workflowProc.isCancelRequested();
     }
 
     @Override
@@ -112,7 +112,7 @@ class SyncWorkflow implements AsyncWorkflow {
 
     @Override
     public void close() {
-        runnable.close();
+        workflowProc.close();
     }
 
     @Override
@@ -122,6 +122,6 @@ class SyncWorkflow implements AsyncWorkflow {
 
     @Override
     public byte[] query(WorkflowQuery query) throws Exception {
-        return runnable.query(query.getQueryType(), query.getQueryArgs());
+        return workflowProc.query(query.getQueryType(), query.getQueryArgs());
     }
 }

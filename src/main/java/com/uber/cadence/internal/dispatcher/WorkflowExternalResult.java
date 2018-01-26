@@ -18,7 +18,6 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
-import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowService;

@@ -21,8 +21,16 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Indicates that the method is a workflow method. Workflow method is executed when workflow is started.
+ * Workflow completes when workflow method returns.
+ * This annotation applies only to workflow interface methods.
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface WorkflowMethod {
+    /**
+     * Name of the workflow type. Default is {short class name}::{method name}
+     */
     String name() default "";
 }
