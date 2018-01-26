@@ -20,13 +20,13 @@ import com.google.common.base.Defaults;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.StartWorkflowOptions;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedException;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
-import com.uber.cadence.common.WorkflowExecutionUtils;
 import com.uber.cadence.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.generic.StartWorkflowExecutionParameters;
+import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -39,6 +39,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     private final GenericWorkflowClientExternal genericClient;
     private final StartWorkflowOptions options;
     private final DataConverter dataConverter;
+    WorkflowExecution execution;
 
     public static void initAsyncInvocation() {
         if (asyncResult.get() != null) {
@@ -63,6 +64,16 @@ class WorkflowInvocationHandler implements InvocationHandler {
         }
     }
 
+    public WorkflowInvocationHandler(GenericWorkflowClientExternalImpl genericClient, WorkflowExecution execution, DataConverter dataConverter) {
+        if (execution == null || execution.getWorkflowId() == null || execution.getWorkflowId().isEmpty()) {
+            throw new IllegalArgumentException("null or empty workflowId");
+        }
+        this.genericClient = genericClient;
+        this.execution = execution;
+        this.options = null;
+        this.dataConverter = dataConverter;
+    }
+
     WorkflowInvocationHandler(GenericWorkflowClientExternal genericClient, StartWorkflowOptions options, DataConverter dataConverter) {
         this.genericClient = genericClient;
         this.options = options;
@@ -71,10 +82,28 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
-        if (workflowMethod == null) {
-            throw new IllegalArgumentException(method.getName() + " is not annotated with @WorkflowMethod");
+        if (execution != null) {
+            throw new IllegalStateException("Already started: " + execution);
         }
+        WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+        QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+        if (workflowMethod != null) {
+            if (queryMethod != null) {
+                throw new IllegalArgumentException(method.getName() + " annotated with both @WorkflowMethod and @QueryMethod");
+            }
+            return startWorkflow(method, workflowMethod, args);
+        }
+        if (queryMethod != null) {
+            return queryWorkflow(method, queryMethod, args);
+        }
+        throw new IllegalArgumentException(method.getName() + " is not annotated with @WorkflowMethod or @QueryMethod");
+    }
+
+    private Object queryWorkflow(Method method, QueryMethod queryMethod, Object[] args) {
+        throw new UnsupportedOperationException("unimplemented");
+    }
+
+    private Object startWorkflow(Method method, WorkflowMethod workflowMethod, Object[] args) throws WorkflowExecutionAlreadyStartedException, java.util.concurrent.TimeoutException, InterruptedException {
         String workflowName = workflowMethod.name();
         if (workflowName.isEmpty()) {
             workflowName = FlowHelpers.getSimpleName(method);
@@ -88,7 +117,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
         byte[] input = dataConverter.toData(args);
         parameters.setInput(input);
         // TODO: Return workflow result or its execution through async.
-        WorkflowExecution execution = genericClient.startWorkflow(parameters);
+        execution = genericClient.startWorkflow(parameters);
         // TODO: Wait for result using long poll Cadence API.
         WorkflowService.Iface service = genericClient.getService();
         String domain = genericClient.getDomain();

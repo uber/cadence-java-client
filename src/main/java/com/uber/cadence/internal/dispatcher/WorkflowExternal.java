@@ -20,9 +20,9 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
@@ -37,28 +37,39 @@ public class WorkflowExternal {
     }
 
     public <T> T newClient(Class<T> workflowInterface, StartWorkflowOptions options) {
-        TypeToken<?>.TypeSet interfaces = TypeToken.of(workflowInterface).getTypes().interfaces();
-        if (interfaces.isEmpty()) {
-            throw new IllegalArgumentException("Workflow must implement at least one interface");
-        }
-        boolean hasWorkflowMethod = false;
-        for (TypeToken<?> i : interfaces) {
-            for (Method method : i.getRawType().getMethods()) {
-                WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
-                if (workflowMethod != null) {
-                    hasWorkflowMethod = true;
-                }
-            }
-            // TODO: Query methods.
-        }
-        if (!hasWorkflowMethod) {
-            throw new IllegalArgumentException("Workflow interface doesn't have method " +
-                    "annotated with @WorkflowMethod: " + workflowInterface);
-        }
+        checkAnnotation(workflowInterface, WorkflowMethod.class);
         return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
                 new WorkflowInvocationHandler(genericClient, options, dataConverter));
     }
+
+    private <T> void checkAnnotation(Class<T> workflowInterface, Class<? extends Annotation>... annotationClasses) {
+        TypeToken<?>.TypeSet interfaces = TypeToken.of(workflowInterface).getTypes().interfaces();
+        if (interfaces.isEmpty()) {
+            throw new IllegalArgumentException("Workflow must implement at least one interface");
+        }
+        for (TypeToken<?> i : interfaces) {
+            for (Method method : i.getRawType().getMethods()) {
+                for (Class<? extends Annotation> annotationClass : annotationClasses) {
+                    Object workflowMethod = method.getAnnotation(annotationClass);
+                    if (workflowMethod != null) {
+                        return;
+                    }
+                }
+            }
+        }
+        throw new IllegalArgumentException("Workflow interface " + workflowInterface.getName() +
+                " doesn't have method annotated with any of " + annotationClasses);
+    }
+
+    public <T> T newClient(Class<T> workflowInterface, String workflowId) {
+        checkAnnotation(workflowInterface, WorkflowMethod.class, QueryMethod.class);
+
+        return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
+                new Class<?>[]{workflowInterface},
+                new WorkflowInvocationHandler(genericClient, workflowId, dataConverter));
+    }
+
 
     /**
      * Starts zero argument workflow.
@@ -71,6 +82,8 @@ public class WorkflowExternal {
         WorkflowInvocationHandler.initAsyncInvocation();
         try {
             workflow.apply();
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             // TODO: Appropriate exception type.
             throw new RuntimeException(e);
@@ -90,4 +103,23 @@ public class WorkflowExternal {
     public static <A1, R> WorkflowExternalResult<R> executeWorkflow(Functions.Func1<A1, R> workflow, A1 arg1) {
         return executeWorkflow(() -> workflow.apply(arg1));
     }
+
+    /**
+     * Perform zero argument query of workflow instance.
+     *
+     * @param workflow The only supported parameter is method reference to a proxy created
+     *                 through {@link #newClient(Class, StartWorkflowOptions)}.
+     * @return future that contains workflow result or failure
+     */
+    public static <R> R queryWorkflow(Functions.Func<R> query) {
+        try {
+            return query.apply();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            // TODO: Appropriate exception type.
+            throw new RuntimeException(e);
+        }
+    }
+
 }
