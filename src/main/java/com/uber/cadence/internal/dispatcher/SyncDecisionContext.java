@@ -146,7 +146,10 @@ public class SyncDecisionContext {
     }
 
     public void registerQuery(String queryType, Functions.Func1<byte[], byte[]> callback) {
-        queryCallbacks.put(queryType, callback);
+        Functions.Func1<byte[], byte[]> previous = queryCallbacks.put(queryType, callback);
+        if (previous != null) {
+            throw new IllegalStateException("Query " + queryType + " is already registered");
+        }
     }
 
     public void registerQuery(Object queryImplementation) {

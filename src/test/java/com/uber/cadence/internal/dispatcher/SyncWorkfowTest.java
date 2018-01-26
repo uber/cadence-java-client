@@ -121,6 +121,14 @@ public class SyncWorkfowTest {
         String execute();
     }
 
+    public interface QueryableWorkflow {
+        @WorkflowMethod
+        String execute();
+
+        @QueryMethod
+        String getState();
+    }
+
     public static class TestSyncWorkflowImpl implements TestWorkflow1 {
 
         @Override
@@ -227,28 +235,40 @@ public class SyncWorkfowTest {
         assertEquals("testTimer", result);
     }
 
-    public static class TestSignalWorkflowImpl implements TestWorkflow2 {
+    public static class TestSignalWorkflowImpl implements QueryableWorkflow {
+
+        String state = "initial";
 
         @Override
         public String execute() {
             try {
                 QueueConsumer<String> signalQueue = Workflow.getSignalQueue("testSignal", String.class);
                 String signal1 = signalQueue.take();
+                state = signal1;
                 String signal2 = signalQueue.take();
+                state = signal2;
                 return (signal1 + signal2);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        @Override
+        public String getState() {
+            return state;
         }
     }
 
     @Test
     public void testSignal() throws TimeoutException, InterruptedException {
         workflowWorker.addWorkflow(TestSignalWorkflowImpl.class);
-        TestWorkflow2 client = clientFactory.newClient(TestWorkflow2.class, startWorkflowOptions);
+        QueryableWorkflow client = clientFactory.newClient(QueryableWorkflow.class, startWorkflowOptions);
         WorkflowExternalResult<String> result = WorkflowExternal.executeWorkflow(client::execute);
+        assertEquals("initial", client.getState());
         result.signal("testSignal", "Hello ");
+        assertEquals("Hello ", client.getState());
         result.signal("testSignal", "World!");
+        assertEquals("World!", client.getState());
         assertEquals("Hello World!", result.getResult());
     }
 

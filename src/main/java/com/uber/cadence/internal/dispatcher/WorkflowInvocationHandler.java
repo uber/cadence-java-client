@@ -25,6 +25,7 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.generic.GenericWorkflowClientExternal;
+import com.uber.cadence.generic.QueryWorkflowParameters;
 import com.uber.cadence.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 
@@ -82,25 +83,38 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if (execution != null) {
-            throw new IllegalStateException("Already started: " + execution);
-        }
         WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
         QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
         if (workflowMethod != null) {
             if (queryMethod != null) {
                 throw new IllegalArgumentException(method.getName() + " annotated with both @WorkflowMethod and @QueryMethod");
             }
+            if (execution != null) {
+                throw new IllegalStateException("Already started: " + execution);
+            }
             return startWorkflow(method, workflowMethod, args);
         }
         if (queryMethod != null) {
+            if (execution == null) {
+                throw new IllegalStateException("Workflow not started yet");
+            }
             return queryWorkflow(method, queryMethod, args);
         }
         throw new IllegalArgumentException(method.getName() + " is not annotated with @WorkflowMethod or @QueryMethod");
     }
 
     private Object queryWorkflow(Method method, QueryMethod queryMethod, Object[] args) {
-        throw new UnsupportedOperationException("unimplemented");
+        String queryType = queryMethod.name();
+        if (queryType.isEmpty()) {
+            queryType = FlowHelpers.getSimpleName(method);
+        }
+        QueryWorkflowParameters p = new QueryWorkflowParameters();
+        p.setInput(dataConverter.toData(args));
+        p.setQueryType(queryType);
+        p.setRunId(execution.getRunId());
+        p.setWorkflowId(execution.getWorkflowId());
+        byte[] queryResult= genericClient.queryWorkflow(p);
+        return dataConverter.fromData(queryResult, method.getReturnType());
     }
 
     private Object startWorkflow(Method method, WorkflowMethod workflowMethod, Object[] args) throws WorkflowExecutionAlreadyStartedException, java.util.concurrent.TimeoutException, InterruptedException {

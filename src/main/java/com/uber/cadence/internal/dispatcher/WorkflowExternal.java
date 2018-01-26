@@ -19,6 +19,7 @@ package com.uber.cadence.internal.dispatcher;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.StartWorkflowOptions;
+import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 
@@ -62,12 +63,12 @@ public class WorkflowExternal {
                 " doesn't have method annotated with any of " + annotationClasses);
     }
 
-    public <T> T newClient(Class<T> workflowInterface, String workflowId) {
+    public <T> T newClient(Class<T> workflowInterface, WorkflowExecution execution) {
         checkAnnotation(workflowInterface, WorkflowMethod.class, QueryMethod.class);
 
         return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
-                new WorkflowInvocationHandler(genericClient, workflowId, dataConverter));
+                new WorkflowInvocationHandler(genericClient, execution, dataConverter));
     }
 
 
@@ -107,8 +108,8 @@ public class WorkflowExternal {
     /**
      * Perform zero argument query of workflow instance.
      *
-     * @param workflow The only supported parameter is method reference to a proxy created
-     *                 through {@link #newClient(Class, StartWorkflowOptions)}.
+     * @param query The only supported parameter is method reference to a proxy created
+     *                 through {@link #newClient(Class, WorkflowExecution)} or {@link #newClient(Class, StartWorkflowOptions)}.
      * @return future that contains workflow result or failure
      */
     public static <R> R queryWorkflow(Functions.Func<R> query) {
@@ -121,5 +122,4 @@ public class WorkflowExternal {
             throw new RuntimeException(e);
         }
     }
-
 }

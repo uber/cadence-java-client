@@ -25,6 +25,6 @@ public interface DynamicWorkflowClientExternal extends WorkflowClientExternal {
 
     void signalWorkflowExecution(String signalName, Object[] arguments);
     
-    <T> T getWorkflowExecutionState(Class<T> returnType) throws Throwable;
+    <T> T queryWorkflowExecution(String queryType, Object[] arguments, Class<T> returnType);
     
 }

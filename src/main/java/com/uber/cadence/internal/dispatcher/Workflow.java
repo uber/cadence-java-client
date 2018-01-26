@@ -59,7 +59,11 @@ public class Workflow {
         return getDecisionContext().getSignalQueue(signalName, signalClass);
     }
 
-    public static <R> void registerQuery(Object queryImplementation) {
+    /**
+     * Register query or queries implementation object. There is no need to register top level workflow implementation
+     * object as it is done implicitly. Only methods annotated with @{@link QueryMethod} are registered.
+     */
+    public static void registerQuery(Object queryImplementation) {
         getDecisionContext().registerQuery(queryImplementation);
     }
 
