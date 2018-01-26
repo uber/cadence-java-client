@@ -21,9 +21,11 @@ import com.uber.cadence.DataConverter;
 import com.uber.cadence.generic.ExecuteActivityParameters;
 import com.uber.cadence.generic.GenericAsyncActivityClient;
 import com.uber.cadence.ActivityType;
+import com.uber.cadence.worker.POJOQueryImplementationFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -143,19 +145,16 @@ public class SyncDecisionContext {
         return callback.apply(args);
     }
 
-    public <R> void registerQuery(String queryType, Functions.Func<R> callback) {
-        registerQuery(queryType, (args) -> converter.toData(callback.apply()));
-    }
-
-//    public <R, A> void registerQuery(String queryType, Functions.Func1<R, A> callback) {
-//        registerQuery(queryType, (args) -> {
-//
-//            return converter.toData(callback.apply());
-//        });
-//    }
-
     public void registerQuery(String queryType, Functions.Func1<byte[], byte[]> callback) {
         queryCallbacks.put(queryType, callback);
+    }
+
+    public void registerQuery(Object queryImplementation) {
+        POJOQueryImplementationFactory queryFactory = new POJOQueryImplementationFactory(converter, queryImplementation);
+        Set<String> queries = queryFactory.getQueryFunctionNames();
+        for (String query: queries) {
+            registerQuery(query, queryFactory.getQueryFunction(query));
+        }
     }
 
     private static class ActivityFutureCancellationHandler implements BiConsumer<WorkflowFuture, Boolean> {

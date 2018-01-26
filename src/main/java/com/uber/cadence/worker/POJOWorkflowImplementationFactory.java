@@ -23,6 +23,7 @@ import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
+import com.uber.cadence.internal.dispatcher.Workflow;
 import com.uber.cadence.internal.dispatcher.WorkflowMethod;
 
 import java.lang.reflect.InvocationTargetException;
@@ -95,6 +96,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
             Object[] args = dataConverter.fromData(input, Object[].class);
             try {
                 Object workflow = workflowImplementationClass.newInstance();
+                Workflow.registerQuery(workflow);
                 Object result = method.invoke(workflow, args);
                 if (method.getReturnType() == Void.TYPE) {
                     return EMPTY_BLOB;
