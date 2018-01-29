@@ -34,8 +34,6 @@ import java.util.TreeMap;
  */
 class WorkflowTimers {
 
-    private static final Log log = LogFactory.getLog(WorkflowTimers.class);
-
     /**
      * Timers that fire at the same time.
      */
@@ -91,9 +89,7 @@ class WorkflowTimers {
         for (Long key : toDelete) {
             timers.remove(key);
         }
-        boolean result = !toDelete.isEmpty();
-        log.debug("fireTimers called return=" + result);
-        return result;
+        return !toDelete.isEmpty();
     }
 
     public long getNextFireTime() {
