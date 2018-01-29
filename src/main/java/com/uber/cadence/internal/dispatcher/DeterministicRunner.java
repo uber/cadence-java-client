@@ -46,6 +46,8 @@ public interface DeterministicRunner {
         return new DeterministicRunnerImpl(threadPool, decisionContext, clock, root);
     }
 
+//    WorkflowThread newBeforeThread(Functions.Proc r, String name);
+
     /**
      * ExecuteUntilAllBlocked executes threads one by one in deterministic order
      * until all of them are completed or blocked.
@@ -81,4 +83,11 @@ public interface DeterministicRunner {
      * 0 means that no time related blockages.
      */
     long getNextWakeUpTime();
+
+    /**
+     * Add new task that is executed every time runUntilAllBlocked is called. The task should not
+     * block thread using yield.
+     * If task returns true it made some progress (for example executed some callbacks) when called.
+     */
+    void newCallbackTask(Functions.Func<Boolean> task, String taskName);
 }

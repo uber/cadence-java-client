@@ -16,11 +16,17 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -31,11 +37,13 @@ import java.util.function.Supplier;
 
 class DeterministicRunnerImpl implements DeterministicRunner {
 
+    private static final Log log = LogFactory.getLog(DeterministicRunnerImpl.class);
+
     private final Lock lock = new ReentrantLock();
     private final ExecutorService threadPool;
     private final SyncDecisionContext decisionContext;
-    private List<WorkflowThreadImpl> threads = new LinkedList<>(); // protected by lock
-    private List<WorkflowThreadImpl> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
+    private LinkedList<DeterministicRunnerCoroutine> threads = new LinkedList<>(); // protected by lock
+    private List<DeterministicRunnerCoroutine> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
     private final Supplier<Long> clock;
     /**
      * Time at which any thread that runs under dispatcher can make progress.
@@ -43,6 +51,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      * 0 means no blocked threads.
      */
     private long nextWakeUpTime;
+    /**
+     * Used to check for failedFutures that contain an error, but never where consumed.
+     * It is to avoid failure swallowing by failedFutures which is very hard to troubleshoot.
+     */
+    private Set<WorkflowFuture> failedFutures = new HashSet<>();
 
     public DeterministicRunnerImpl(Functions.Proc root) {
         this(System::currentTimeMillis, root);
@@ -73,23 +86,16 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public void runUntilAllBlocked() throws Throwable {
         lock.lock();
         try {
-            WorkflowThreadImpl callbackThread = null;
-            if (decisionContext != null) {
-                // Call callbacks from a thread owned by the dispatcher.
-                callbackThread = newThread(decisionContext::fireTimers, "timer callbacks");
-                callbackThread.start();
-                threads.add(callbackThread);
-            }
             Throwable unhandledException = null;
             // Keep repeating until at least one of the threads makes progress.
             boolean progress;
             do {
                 threadsToAdd.clear();
                 progress = false;
-                ListIterator<WorkflowThreadImpl> ci = threads.listIterator();
+                ListIterator<DeterministicRunnerCoroutine> ci = threads.listIterator();
                 nextWakeUpTime = 0;
                 while (ci.hasNext()) {
-                    WorkflowThreadImpl c = ci.next();
+                    DeterministicRunnerCoroutine c = ci.next();
                     progress = c.runUntilBlocked() || progress;
                     if (c.isDone()) {
                         ci.remove();
@@ -110,9 +116,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 }
                 threads.addAll(threadsToAdd);
             } while (progress && !threads.isEmpty());
-            if (callbackThread != null && !callbackThread.isDone()) {
-                throw new IllegalStateException("Callback thread blocked:\n" + callbackThread.getStackTrace());
-            }
             if (nextWakeUpTime < currentTimeMillis()) {
                 nextWakeUpTime = 0;
             }
@@ -135,14 +138,22 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public void close() {
         lock.lock();
         try {
-            for (WorkflowThreadImpl c : threads) {
+            for (DeterministicRunnerCoroutine c : threads) {
                 c.stop();
             }
             threads.clear();
+            for (WorkflowFuture<?> f : failedFutures) {
+                try {
+                    f.get();
+                    throw new Error("unreachable");
+                } catch (ExecutionException e) {
+                    log.warn("Failed WorkflowFuture was never accessed. The ignored exception:", e.getCause());
+                } catch (InterruptedException e) {
+                }
+            }
         } finally {
             lock.unlock();
         }
-
     }
 
     @Override
@@ -180,7 +191,25 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         return result;
     }
 
+    @Override
+    public void newCallbackTask(Functions.Func<Boolean> task, String taskName) {
+        lock.lock();
+        try {
+            threads.add(new CallbackCoroutine(threadPool, this, taskName, task));
+        } finally {
+            lock.unlock();
+        }
+    }
+
     Lock getLock() {
         return lock;
+    }
+
+    public <T> void registerFailedFuture(WorkflowFuture future) {
+        failedFutures.add(future);
+    }
+
+    public <T> void forgetFailedFuture(WorkflowFuture future) {
+        failedFutures.remove(future);
     }
 }
