@@ -52,7 +52,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      */
     private long nextWakeUpTime;
     /**
-     * Used to check for failedFutures that contain an error, but never where consumed.
+     * Used to check for failedFutures that contain an error, but never where accessed.
      * It is to avoid failure swallowing by failedFutures which is very hard to troubleshoot.
      */
     private Set<WorkflowFuture> failedFutures = new HashSet<>();
@@ -60,8 +60,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public DeterministicRunnerImpl(Functions.Proc root) {
         this(System::currentTimeMillis, root);
     }
-
-
+    
     public DeterministicRunnerImpl(Supplier<Long> clock, Functions.Proc root) {
         this(new ThreadPoolExecutor(0, 1000, 1, TimeUnit.MINUTES, new SynchronousQueue<>()),
                 null,
@@ -217,10 +216,16 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         return lock;
     }
 
+    /**
+     * Register a future that had failed but wasn't accessed yet.
+     */
     public <T> void registerFailedFuture(WorkflowFuture future) {
         failedFutures.add(future);
     }
 
+    /**
+     * Forget a failed future as it was accessed.
+     */
     public <T> void forgetFailedFuture(WorkflowFuture future) {
         failedFutures.remove(future);
     }

@@ -46,8 +46,6 @@ public interface DeterministicRunner {
         return new DeterministicRunnerImpl(threadPool, decisionContext, clock, root);
     }
 
-//    WorkflowThread newBeforeThread(Functions.Proc r, String name);
-
     /**
      * ExecuteUntilAllBlocked executes threads one by one in deterministic order
      * until all of them are completed or blocked.
