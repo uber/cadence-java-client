@@ -20,15 +20,19 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.Functions;
+import com.uber.cadence.internal.dispatcher.QueryMethod;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public class POJOQueryImplementationFactory {
+
+    private static final Log log = LogFactory.getLog(POJOQueryImplementationFactory.class);
 
     private static final byte[] EMPTY_BLOB = {};
     private final DataConverter dataConverter;
@@ -43,8 +47,15 @@ public class POJOQueryImplementationFactory {
         }
         for (TypeToken<?> i : interfaces) {
             for (Method method : i.getRawType().getMethods()) {
-                POJOQueryImplementation implementation = new POJOQueryImplementation(method, queryImplementation);
-                queries.put(FlowHelpers.getSimpleName(method), implementation);
+                QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+                if (queryMethod != null) {
+                    POJOQueryImplementation implementation = new POJOQueryImplementation(method, queryImplementation);
+                    String name = queryMethod.name();
+                    if (name.isEmpty()) {
+                        name = FlowHelpers.getSimpleName(method);
+                    }
+                    queries.put(name, implementation);
+                }
             }
         }
     }
@@ -73,6 +84,7 @@ public class POJOQueryImplementationFactory {
             if (method.getReturnType() == Void.TYPE) {
                 return EMPTY_BLOB;
             }
+            log.info("POJO query result=" + result);
             return dataConverter.toData(result);
         }
     }
