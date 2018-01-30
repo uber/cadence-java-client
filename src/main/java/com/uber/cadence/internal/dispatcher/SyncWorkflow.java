@@ -24,8 +24,6 @@ import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.worker.AsyncWorkflow;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
@@ -38,8 +36,6 @@ import java.util.function.Function;
  * TODO: rename AsyncWorkflow to something more reasonable.
  */
 class SyncWorkflow implements AsyncWorkflow {
-
-    private static final Log log = LogFactory.getLog(SyncWorkflow.class);
 
     private final Function<WorkflowType, SyncWorkflowDefinition> factory;
     private final DataConverter converter;
@@ -73,7 +69,6 @@ class SyncWorkflow implements AsyncWorkflow {
 
     @Override
     public void processSignal(String signalName, byte[] input) {
-        log.info("processSignal called for " + signalName);
         String threadName = "\"" + signalName + "\" signal handler";
         runner.newBeforeThread(() ->
         workflowProc.processSignal(signalName, input), threadName);

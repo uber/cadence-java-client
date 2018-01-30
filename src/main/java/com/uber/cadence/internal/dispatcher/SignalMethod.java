@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface SignalMethod {
     /**
-     * Name of the workflow type. Default is {short class name}::{method name}
+     * Name of the signal type. Default is {short class name}::{method name}.
      */
     String name() default "";
 }

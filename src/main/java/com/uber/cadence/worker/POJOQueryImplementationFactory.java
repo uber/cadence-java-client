@@ -21,8 +21,6 @@ import com.uber.cadence.DataConverter;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.Functions;
 import com.uber.cadence.internal.dispatcher.QueryMethod;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -31,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 
 public class POJOQueryImplementationFactory {
-
-    private static final Log log = LogFactory.getLog(POJOQueryImplementationFactory.class);
 
     private static final byte[] EMPTY_BLOB = {};
     private final DataConverter dataConverter;
@@ -72,7 +68,7 @@ public class POJOQueryImplementationFactory {
         private final Method method;
         private final Object activity;
 
-        public POJOQueryImplementation(Method method, Object activity) {
+        POJOQueryImplementation(Method method, Object activity) {
             this.method = method;
             this.activity = activity;
         }
@@ -84,7 +80,6 @@ public class POJOQueryImplementationFactory {
             if (method.getReturnType() == Void.TYPE) {
                 return EMPTY_BLOB;
             }
-            log.info("POJO query result=" + result);
             return dataConverter.toData(result);
         }
     }
