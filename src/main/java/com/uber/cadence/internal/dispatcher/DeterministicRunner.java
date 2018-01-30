@@ -86,8 +86,14 @@ public interface DeterministicRunner {
 
     /**
      * Add new task that is executed every time runUntilAllBlocked is called. The task should not
-     * block thread using yield.
+     * block thread using yield. To be used to execute various callback functions.
      * If task returns true it made some progress (for example executed some callbacks) when called.
      */
     void newCallbackTask(Functions.Func<Boolean> task, String taskName);
+
+    /**
+     * Adds thread before all other threads. To be called before runUntilAllBlocked.
+     * This is used to ensure that some operations (like signal callbacks) are executed before other threads.
+     */
+    WorkflowThread newBeforeThread(Functions.Proc r, String name);
 }
