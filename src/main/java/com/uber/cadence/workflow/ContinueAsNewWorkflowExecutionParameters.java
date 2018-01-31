@@ -21,22 +21,13 @@ import com.uber.cadence.StartWorkflowOptions;
 import java.util.List;
 
 public final class ContinueAsNewWorkflowExecutionParameters {
-    private String workflowTypeVersion;
+
     private int executionStartToCloseTimeoutSeconds;
     private byte[] input;
-    private List<String> tagList;
     private String taskList;
     private int taskStartToCloseTimeoutSeconds;
 
     public ContinueAsNewWorkflowExecutionParameters() {
-    }
-    
-    public String getWorkflowTypeVersion() {
-        return workflowTypeVersion;
-    }
-    
-    public void setWorkflowTypeVersion(String workflowTypeVersion) {
-        this.workflowTypeVersion = workflowTypeVersion;
     }
     
     public int getExecutionStartToCloseTimeoutSeconds() {
@@ -64,19 +55,6 @@ public final class ContinueAsNewWorkflowExecutionParameters {
         this.input = input;
         return this;
     } 
-
-    public List<String> getTagList() {
-        return tagList;
-    }
-    
-    public void setTagList(List<String> tagList) {
-        this.tagList = tagList;
-    }
-    
-    public ContinueAsNewWorkflowExecutionParameters withTagList(List<String> tagList) {
-        this.tagList = tagList;
-        return this;
-    }
 
     public String getTaskList() {
         return taskList;
@@ -118,12 +96,7 @@ public final class ContinueAsNewWorkflowExecutionParameters {
             if (taskStartToCloseTimeoutSeconds != null) {
                 continueAsNewWorkflowExecutionParameters.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
             }
-            
-            List<String> tagList = options.getTagList();
-            if (tagList != null) {
-                continueAsNewWorkflowExecutionParameters.setTagList(tagList);
-            }
-            
+
             String taskList = options.getTaskList();
             if (taskList != null && !taskList.isEmpty()) { 
                 continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
@@ -140,12 +113,7 @@ public final class ContinueAsNewWorkflowExecutionParameters {
             if (taskStartToCloseTimeoutSeconds != null) {
                 continueAsNewWorkflowExecutionParameters.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
             }
-            
-            List<String> tagList = optionsOverride.getTagList();
-            if (tagList != null) {
-                continueAsNewWorkflowExecutionParameters.setTagList(tagList);
-            }
-            
+
             String taskList = optionsOverride.getTaskList();
             if (taskList != null && !taskList.isEmpty()) { 
                 continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
@@ -162,7 +130,6 @@ public final class ContinueAsNewWorkflowExecutionParameters {
         sb.append("Input: " + input + ", ");
         sb.append("ExecutionStartToCloseTimeout: " + executionStartToCloseTimeoutSeconds + ", ");
         sb.append("TaskStartToCloseTimeout: " + taskStartToCloseTimeoutSeconds + ", ");
-        sb.append("TagList: " + tagList + ", ");
         sb.append("TaskList: " + taskList + ", ");
         sb.append("}");
         return sb.toString();
@@ -170,13 +137,10 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     
     public ContinueAsNewWorkflowExecutionParameters clone() {
         ContinueAsNewWorkflowExecutionParameters result = new ContinueAsNewWorkflowExecutionParameters();
-        result.setWorkflowTypeVersion(workflowTypeVersion);
         result.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
         result.setInput(input);
-        result.setTagList(tagList);
         result.setTaskList(taskList);
         result.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
         return result;
     }
-
 }
