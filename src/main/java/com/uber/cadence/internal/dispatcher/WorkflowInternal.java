@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.ActivitySchedulingOptions;
+import com.uber.cadence.workflow.WorkflowFuture;
 
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Future;
@@ -47,15 +48,17 @@ public class WorkflowInternal {
     }
 
     public static <E> WorkflowFuture<E> newFuture() {
-        return new WorkflowFuture<>();
+        return new WorkflowFutureImpl<>();
     }
 
     public static <E> WorkflowFuture<E> newFuture(E value) {
-        return new WorkflowFuture<>(value);
+        WorkflowFuture result = new WorkflowFutureImpl<>();
+        result.complete(value);
+        return result;
     }
 
     public static <E> WorkflowFuture<E> newFailedFuture(Exception failure) {
-        WorkflowFuture<E> result = new WorkflowFuture<>();
+        WorkflowFuture<E> result = new WorkflowFutureImpl<>();
         result.completeExceptionally(failure);
         return result;
     }

@@ -24,6 +24,7 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.ActivityWorker;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowFuture;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.ConsoleAppender;
@@ -355,7 +356,7 @@ public class SyncWorkfowTest {
             WorkflowFuture<Void> timer2 = Workflow.newTimer(1);
 
             try {
-                WorkflowFuture<Void> f = new WorkflowFuture<>();
+                WorkflowFuture<Void> f = Workflow.newFuture();
                 timer1.thenApply((e) -> {
                     timer2.get(); // This is prohibited
                     f.complete(null);

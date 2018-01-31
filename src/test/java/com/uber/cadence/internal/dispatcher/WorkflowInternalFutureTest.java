@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowFuture;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +47,7 @@ public class WorkflowInternalFutureTest {
     @Test
     public void testFailure() throws Throwable {
         DeterministicRunner r = DeterministicRunner.newRunner(() -> {
-            WorkflowFuture<Boolean> f = new WorkflowFuture<>();
+            WorkflowFuture<Boolean> f = Workflow.newFuture();
             trace.add("root begin");
             WorkflowInternal.newThread(() -> f.completeExceptionally(new IllegalArgumentException("foo"))).start();
             WorkflowInternal.newThread(() -> {
@@ -74,14 +76,14 @@ public class WorkflowInternalFutureTest {
     @Test
     public void testCancellation() throws Throwable {
         DeterministicRunner r = DeterministicRunner.newRunner(() -> {
-            WorkflowFuture<Boolean> f = new WorkflowFuture<>((ff, i) -> {
+            WorkflowFuture<Boolean> f = new WorkflowFutureImpl<>((ff, i) -> {
                 ff.completeExceptionally(new CancellationException());
                 trace.add("cancellation handler done");
             });
             trace.add("root begin");
             WorkflowInternal.newThread(() -> {
-                    f.cancel(true);
-                    trace.add("thread1 done");
+                f.cancel(true);
+                trace.add("thread1 done");
             }).start();
             trace.add("root done");
         });
@@ -104,7 +106,7 @@ public class WorkflowInternalFutureTest {
                 null,
                 () -> currentTime,
                 () -> {
-                    WorkflowFuture<String> f = new WorkflowFuture<>();
+                    WorkflowFuture<String> f = Workflow.newFuture();
                     trace.add("root begin");
                     WorkflowInternal.newThread(() -> {
                         trace.add("thread1 begin");
@@ -149,9 +151,9 @@ public class WorkflowInternalFutureTest {
     public void testMultiple() throws Throwable {
         DeterministicRunner r = DeterministicRunner.newRunner(() -> {
             trace.add("root begin");
-            WorkflowFuture<Boolean> f1 = new WorkflowFuture<>();
-            WorkflowFuture<Boolean> f2 = new WorkflowFuture<>();
-            WorkflowFuture<Boolean> f3 = new WorkflowFuture<>();
+            WorkflowFuture<Boolean> f1 = Workflow.newFuture();
+            WorkflowFuture<Boolean> f2 = Workflow.newFuture();
+            WorkflowFuture<Boolean> f3 = Workflow.newFuture();
 
             WorkflowInternal.newThread(
                     () -> {
