@@ -259,6 +259,43 @@ public class DeterministicRunnerTest {
     }
 
     @Test
+    public void testChildExit() throws Throwable {
+        DeterministicRunner d = new DeterministicRunnerImpl(() -> {
+            WorkflowThread thread = Workflow.newThread(() -> {
+                status = "started";
+                try {
+                    WorkflowThreadImpl.yield("reason1",
+                            () -> unblock1
+                    );
+                    status = "after1";
+                    WorkflowThread.exit("exitValue");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                status = "done";
+            });
+            thread.start();
+            try {
+                thread.join();
+                assertEquals("exitValue", thread.getExitValue());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        assertEquals("initial", status);
+        d.runUntilAllBlocked();
+        assertEquals("started", status);
+        assertFalse(d.isDone());
+        unblock1 = true;
+        d.runUntilAllBlocked();
+        assertEquals("after1", status);
+        // Just check that running again doesn't make any progress.
+        d.runUntilAllBlocked();
+        assertEquals("after1", status);
+        assertTrue(d.isDone());
+    }
+
+    @Test
     public void testChildInterrupt() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");

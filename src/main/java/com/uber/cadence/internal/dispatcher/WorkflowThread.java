@@ -46,6 +46,21 @@ public interface WorkflowThread {
         WorkflowThreadImpl.yield(millis, "sleep", () -> false   );
     }
 
+    /**
+     * Return value passed to {@link #exit(Object)} call.
+     * Can be called only in the TERMINATED state.
+     */
+    <R> R getExitValue();
+
+    /**
+     * Terminates this thread, returning value to the parent thread
+     * @param value
+     * @param <R>
+     */
+    static <R> void exit(R value) {
+        WorkflowThreadImpl.currentThread().exit(value);
+    }
+
     static boolean interrupted() {
         return WorkflowThreadImpl.currentThread().resetInterrupted();
     }
