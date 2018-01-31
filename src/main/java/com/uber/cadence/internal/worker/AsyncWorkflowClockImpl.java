@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.AsyncWorkflowClock;
+import com.uber.cadence.internal.AsyncWorkflowClock;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;

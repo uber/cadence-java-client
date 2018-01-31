@@ -21,7 +21,7 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.activity.ActivityExecutionContext;
 import com.uber.cadence.activity.ActivityFailureException;
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.DataConverter;
+import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.generic.ActivityImplementation;
 import com.uber.cadence.internal.generic.ActivityImplementationFactory;

@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.generic;
 
-import com.uber.cadence.StartWorkflowOptions;
+import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.WorkflowType;
 
 public class StartWorkflowExecutionParameters {

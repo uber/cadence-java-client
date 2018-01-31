@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.AsyncDecisionContext;
-import com.uber.cadence.AsyncWorkflowClock;
+import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.AsyncWorkflowClock;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;

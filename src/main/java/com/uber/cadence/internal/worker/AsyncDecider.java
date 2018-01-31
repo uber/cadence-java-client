@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.AsyncDecisionContext;
+import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.EventType;

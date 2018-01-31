@@ -16,10 +16,10 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.ChildWorkflowFailedException;
-import com.uber.cadence.ChildWorkflowTerminatedException;
-import com.uber.cadence.ChildWorkflowTimedOutException;
-import com.uber.cadence.StartChildWorkflowFailedException;
+import com.uber.cadence.internal.ChildWorkflowFailedException;
+import com.uber.cadence.internal.ChildWorkflowTerminatedException;
+import com.uber.cadence.internal.ChildWorkflowTimedOutException;
+import com.uber.cadence.internal.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;

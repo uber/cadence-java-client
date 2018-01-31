@@ -17,9 +17,9 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.ActivitySchedulingOptions;
-import com.uber.cadence.DataConverter;
-import com.uber.cadence.JsonDataConverter;
-import com.uber.cadence.StartWorkflowOptions;
+import com.uber.cadence.internal.DataConverter;
+import com.uber.cadence.internal.JsonDataConverter;
+import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.internal.worker.ActivityWorker;

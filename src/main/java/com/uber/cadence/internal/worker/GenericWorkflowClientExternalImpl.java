@@ -18,7 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedException;
+import com.uber.cadence.internal.WorkflowExecutionAlreadyStartedException;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.generic.QueryWorkflowParameters;

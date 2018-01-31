@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.DataConverter;
-import com.uber.cadence.JsonDataConverter;
+import com.uber.cadence.internal.DataConverter;
+import com.uber.cadence.internal.JsonDataConverter;
 import com.uber.cadence.WorkflowService;
 
 import java.util.concurrent.TimeUnit;

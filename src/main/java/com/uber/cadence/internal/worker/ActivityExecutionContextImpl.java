@@ -17,7 +17,7 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.activity.ActivityExecutionContext;
-import com.uber.cadence.ActivityTask;
+import com.uber.cadence.internal.ActivityTask;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;

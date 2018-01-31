@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.DataConverter;
-import com.uber.cadence.JsonDataConverter;
+import com.uber.cadence.internal.DataConverter;
+import com.uber.cadence.internal.JsonDataConverter;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.worker.AsyncDecisionTaskHandler;
 import com.uber.cadence.internal.worker.AsyncWorkflowFactory;

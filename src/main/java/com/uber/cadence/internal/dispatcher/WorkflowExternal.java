@@ -17,8 +17,8 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.google.common.reflect.TypeToken;
-import com.uber.cadence.DataConverter;
-import com.uber.cadence.StartWorkflowOptions;
+import com.uber.cadence.internal.DataConverter;
+import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;

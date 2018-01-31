@@ -17,8 +17,8 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.ActivitySchedulingOptions;
-import com.uber.cadence.AsyncDecisionContext;
-import com.uber.cadence.DataConverter;
+import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.ActivityType;
