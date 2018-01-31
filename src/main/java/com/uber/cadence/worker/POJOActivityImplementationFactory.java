@@ -23,8 +23,8 @@ import com.uber.cadence.activity.ActivityFailureException;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.internal.common.FlowHelpers;
-import com.uber.cadence.generic.ActivityImplementation;
-import com.uber.cadence.generic.ActivityImplementationFactory;
+import com.uber.cadence.internal.generic.ActivityImplementation;
+import com.uber.cadence.internal.generic.ActivityImplementationFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

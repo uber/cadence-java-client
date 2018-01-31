@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.generic;
+package com.uber.cadence.internal.generic;
 
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowExecution;

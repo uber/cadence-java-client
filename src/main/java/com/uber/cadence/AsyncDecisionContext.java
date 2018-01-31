@@ -16,8 +16,8 @@
  */
 package com.uber.cadence;
 
-import com.uber.cadence.generic.GenericAsyncActivityClient;
-import com.uber.cadence.generic.GenericAsyncWorkflowClient;
+import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
+import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.workflow.WorkflowContext;
 
 /**

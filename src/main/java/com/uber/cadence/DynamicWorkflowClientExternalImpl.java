@@ -16,11 +16,11 @@
  */
 package com.uber.cadence;
 
-import com.uber.cadence.generic.GenericWorkflowClientExternal;
-import com.uber.cadence.generic.QueryWorkflowParameters;
+import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
+import com.uber.cadence.internal.generic.QueryWorkflowParameters;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
-import com.uber.cadence.generic.StartWorkflowExecutionParameters;
-import com.uber.cadence.generic.TerminateWorkflowExecutionParameters;
+import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
+import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
 
 public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientExternal {
 

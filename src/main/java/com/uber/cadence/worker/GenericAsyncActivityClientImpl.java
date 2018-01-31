@@ -18,8 +18,8 @@ package com.uber.cadence.worker;
 
 import com.uber.cadence.ActivityTaskFailedException;
 import com.uber.cadence.ActivityTaskTimedOutException;
-import com.uber.cadence.generic.ExecuteActivityParameters;
-import com.uber.cadence.generic.GenericAsyncActivityClient;
+import com.uber.cadence.internal.generic.ExecuteActivityParameters;
+import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.ActivityTaskCanceledEventAttributes;
 import com.uber.cadence.ActivityTaskCompletedEventAttributes;
 import com.uber.cadence.ActivityTaskFailedEventAttributes;

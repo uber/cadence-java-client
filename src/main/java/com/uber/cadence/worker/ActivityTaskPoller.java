@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.worker;
 
-import com.uber.cadence.generic.ActivityImplementationFactory;
+import com.uber.cadence.internal.generic.ActivityImplementationFactory;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
 import org.apache.commons.logging.Log;
