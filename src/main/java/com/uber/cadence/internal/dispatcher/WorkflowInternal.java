@@ -18,6 +18,7 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.ActivitySchedulingOptions;
 import com.uber.cadence.workflow.WorkflowFuture;
+import com.uber.cadence.workflow.WorkflowQueue;
 
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Future;

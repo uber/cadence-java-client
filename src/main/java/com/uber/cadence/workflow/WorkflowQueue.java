@@ -14,7 +14,10 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.workflow;
+
+import com.uber.cadence.internal.dispatcher.QueueConsumer;
+import com.uber.cadence.internal.dispatcher.QueueProducer;
 
 public interface WorkflowQueue<E> extends QueueConsumer<E>, QueueProducer<E> {
 }

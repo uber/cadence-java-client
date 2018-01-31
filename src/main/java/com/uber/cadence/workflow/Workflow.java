@@ -20,7 +20,6 @@ import com.uber.cadence.ActivitySchedulingOptions;
 import com.uber.cadence.internal.dispatcher.Functions;
 import com.uber.cadence.internal.dispatcher.QueryMethod;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
-import com.uber.cadence.internal.dispatcher.WorkflowQueue;
 import com.uber.cadence.internal.dispatcher.WorkflowThread;
 
 import java.util.concurrent.Future;

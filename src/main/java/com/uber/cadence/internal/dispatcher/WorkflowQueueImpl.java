@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.WorkflowQueue;
+
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
