@@ -23,7 +23,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.worker.AsyncWorkflow;
+import com.uber.cadence.internal.worker.AsyncWorkflow;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;

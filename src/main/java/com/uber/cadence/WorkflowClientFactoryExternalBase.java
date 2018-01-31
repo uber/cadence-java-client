@@ -17,7 +17,7 @@
 package com.uber.cadence;
 
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
-import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
+import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 
 public abstract class WorkflowClientFactoryExternalBase<T> implements WorkflowClientFactoryExternal<T> {
 

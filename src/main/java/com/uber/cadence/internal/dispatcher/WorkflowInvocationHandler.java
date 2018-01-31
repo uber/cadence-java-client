@@ -29,7 +29,7 @@ import com.uber.cadence.internal.generic.QueryWorkflowParameters;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
-import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
+import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.WorkflowMethod;
 

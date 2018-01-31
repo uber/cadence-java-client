@@ -22,7 +22,7 @@ import com.uber.cadence.JsonDataConverter;
 import com.uber.cadence.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
-import com.uber.cadence.worker.ActivityWorker;
+import com.uber.cadence.internal.worker.ActivityWorker;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;

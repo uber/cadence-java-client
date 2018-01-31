@@ -18,7 +18,7 @@ package com.uber.cadence.internal.generic;
 
 import com.uber.cadence.activity.ActivityExecutionContext;
 import com.uber.cadence.activity.ActivityFailureException;
-import com.uber.cadence.worker.ActivityTypeExecutionOptions;
+import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
 
 import java.util.concurrent.CancellationException;
 
