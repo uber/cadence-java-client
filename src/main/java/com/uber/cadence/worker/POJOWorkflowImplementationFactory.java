@@ -22,7 +22,7 @@ import com.uber.cadence.DataConverter;
 import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
-import com.uber.cadence.internal.dispatcher.Functions;
+import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.internal.dispatcher.QueryMethod;
 import com.uber.cadence.internal.dispatcher.SignalMethod;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;

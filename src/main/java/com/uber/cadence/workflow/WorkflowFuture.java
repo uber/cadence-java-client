@@ -16,8 +16,6 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.internal.dispatcher.Functions;
-
 import java.util.concurrent.Future;
 
 public interface WorkflowFuture<T> extends Future<T> {

@@ -23,6 +23,7 @@ import com.uber.cadence.generic.ExecuteActivityParameters;
 import com.uber.cadence.generic.GenericAsyncActivityClient;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.worker.POJOQueryImplementationFactory;
+import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.WorkflowFuture;
 
 import java.util.HashMap;

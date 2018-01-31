@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.Functions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.Functions;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutionException;

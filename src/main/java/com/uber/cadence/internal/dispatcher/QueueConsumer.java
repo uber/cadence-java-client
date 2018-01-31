@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.Functions;
+
 import java.util.concurrent.TimeUnit;
 
 public interface QueueConsumer<E>  {
