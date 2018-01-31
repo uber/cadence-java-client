@@ -26,7 +26,7 @@ import com.uber.cadence.internal.dispatcher.Functions;
 import com.uber.cadence.internal.dispatcher.QueryMethod;
 import com.uber.cadence.internal.dispatcher.SignalMethod;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
-import com.uber.cadence.internal.dispatcher.Workflow;
+import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import com.uber.cadence.internal.dispatcher.WorkflowMethod;
 
 import java.lang.reflect.InvocationTargetException;
@@ -160,7 +160,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 } catch (InstantiationException e) {
                     throw new RuntimeException(e);
                 }
-                Workflow.registerQuery(workflow);
+                WorkflowInternal.registerQuery(workflow);
             }
         }
 

@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 /**
  * Executes code passed to {@link #newRunner(com.uber.cadence.internal.dispatcher.Functions.Proc)}
- * as well as threads created from it using {@link Workflow#newThread(Functions.Proc)} deterministically.
+ * as well as threads created from it using {@link WorkflowInternal#newThread(Functions.Proc)} deterministically.
  * Requires use of provided wrappers for synchronization and notification instead of native ones.
  */
 public interface DeterministicRunner {

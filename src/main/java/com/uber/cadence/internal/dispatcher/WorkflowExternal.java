@@ -39,7 +39,7 @@ public class WorkflowExternal {
 
     public <T> T newClient(Class<T> workflowInterface, StartWorkflowOptions options) {
         checkAnnotation(workflowInterface, WorkflowMethod.class);
-        return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
+        return (T) Proxy.newProxyInstance(WorkflowInternal.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
                 new WorkflowInvocationHandler(genericClient, options, dataConverter));
     }
@@ -66,7 +66,7 @@ public class WorkflowExternal {
     public <T> T newClient(Class<T> workflowInterface, WorkflowExecution execution) {
         checkAnnotation(workflowInterface, WorkflowMethod.class, QueryMethod.class);
 
-        return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
+        return (T) Proxy.newProxyInstance(WorkflowInternal.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
                 new WorkflowInvocationHandler(genericClient, execution, dataConverter));
     }

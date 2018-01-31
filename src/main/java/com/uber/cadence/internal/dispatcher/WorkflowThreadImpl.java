@@ -304,7 +304,7 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
             return unblockCondition.get();
         }
         WorkflowThreadImpl current = WorkflowThreadImpl.currentThread();
-        long blockedUntil = Workflow.currentTimeMillis() + timeoutMillis;
+        long blockedUntil = WorkflowInternal.currentTimeMillis() + timeoutMillis;
         current.setBlockedUntil(blockedUntil);
         YieldWithTimeoutCondition condition = new YieldWithTimeoutCondition(unblockCondition, blockedUntil);
         yield(reason, condition);
@@ -335,7 +335,7 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
             if (result) {
                 return true;
             }
-            timedOut = Workflow.currentTimeMillis() >= blockedUntil;
+            timedOut = WorkflowInternal.currentTimeMillis() >= blockedUntil;
             return timedOut;
         }
     }

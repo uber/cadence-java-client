@@ -20,9 +20,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
-public class WorkflowFutureTest {
+public class WorkflowInternalFutureTest {
 
     @Rule
     public final Tracer trace = new Tracer();
@@ -50,8 +47,8 @@ public class WorkflowFutureTest {
         DeterministicRunner r = DeterministicRunner.newRunner(() -> {
             WorkflowFuture<Boolean> f = new WorkflowFuture<>();
             trace.add("root begin");
-            Workflow.newThread(() -> f.completeExceptionally(new IllegalArgumentException("foo"))).start();
-            Workflow.newThread(() -> {
+            WorkflowInternal.newThread(() -> f.completeExceptionally(new IllegalArgumentException("foo"))).start();
+            WorkflowInternal.newThread(() -> {
                 try {
                     f.get();
                     trace.add("thread1 get success");
@@ -82,7 +79,7 @@ public class WorkflowFutureTest {
                 trace.add("cancellation handler done");
             });
             trace.add("root begin");
-            Workflow.newThread(() -> {
+            WorkflowInternal.newThread(() -> {
                     f.cancel(true);
                     trace.add("thread1 done");
             }).start();
@@ -109,7 +106,7 @@ public class WorkflowFutureTest {
                 () -> {
                     WorkflowFuture<String> f = new WorkflowFuture<>();
                     trace.add("root begin");
-                    Workflow.newThread(() -> {
+                    WorkflowInternal.newThread(() -> {
                         trace.add("thread1 begin");
                         try {
                             assertEquals("bar", f.get(10, TimeUnit.SECONDS));
@@ -156,7 +153,7 @@ public class WorkflowFutureTest {
             WorkflowFuture<Boolean> f2 = new WorkflowFuture<>();
             WorkflowFuture<Boolean> f3 = new WorkflowFuture<>();
 
-            Workflow.newThread(
+            WorkflowInternal.newThread(
                     () -> {
                         trace.add("thread1 begin");
                         try {
@@ -171,7 +168,7 @@ public class WorkflowFutureTest {
                         trace.add("thread1 done");
                     }
             ).start();
-            Workflow.newThread(
+            WorkflowInternal.newThread(
                     () -> {
                         trace.add("thread2 begin");
                         try {

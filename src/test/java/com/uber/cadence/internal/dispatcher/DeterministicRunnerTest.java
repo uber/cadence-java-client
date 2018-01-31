@@ -220,7 +220,7 @@ public class DeterministicRunnerTest {
     @Test
     public void testChild() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
-            WorkflowThread thread = Workflow.newThread(() -> {
+            WorkflowThread thread = WorkflowInternal.newThread(() -> {
                 status = "started";
                 try {
                     WorkflowThreadImpl.yield("reason1",
@@ -262,7 +262,7 @@ public class DeterministicRunnerTest {
     public void testChildInterrupt() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WorkflowThread thread = Workflow.newThread(() -> {
+            WorkflowThread thread = WorkflowInternal.newThread(() -> {
                 trace.add("child started");
                 try {
                     WorkflowThreadImpl.yield("reason1",
@@ -326,7 +326,7 @@ public class DeterministicRunnerTest {
                 () -> {
                     trace.add("root started");
 
-                    WorkflowThread thread = Workflow.newThread(() -> {
+                    WorkflowThread thread = WorkflowInternal.newThread(() -> {
                         trace.add("child started");
                         try {
                             WorkflowThreadImpl.yield("blockForever",
@@ -389,7 +389,7 @@ public class DeterministicRunnerTest {
                 trace.add("child " + depth + " done");
                 return;
             }
-            WorkflowThread thread = Workflow.newThread(new TestChildTreeRunnable(depth + 1));
+            WorkflowThread thread = WorkflowInternal.newThread(new TestChildTreeRunnable(depth + 1));
             thread.start();
             try {
                 WorkflowThreadImpl.yield("reason1",

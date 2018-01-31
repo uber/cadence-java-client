@@ -14,47 +14,47 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.workflow;
 
 import com.uber.cadence.ActivitySchedulingOptions;
+import com.uber.cadence.internal.dispatcher.Functions;
+import com.uber.cadence.internal.dispatcher.QueryMethod;
+import com.uber.cadence.internal.dispatcher.WorkflowFuture;
+import com.uber.cadence.internal.dispatcher.WorkflowInternal;
+import com.uber.cadence.internal.dispatcher.WorkflowQueue;
+import com.uber.cadence.internal.dispatcher.WorkflowThread;
 
-import java.lang.reflect.Proxy;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
 
 public class Workflow {
 
     public static WorkflowThread newThread(Functions.Proc runnable) {
-        return WorkflowThreadImpl.newThread(runnable);
+        return WorkflowInternal.newThread(runnable);
     }
 
     public static WorkflowThread newThread(Functions.Proc runnable, String name) {
-        if (name == null) {
-            throw new NullPointerException("name cannot be null");
-        }
-        return WorkflowThreadImpl.newThread(runnable, name);
+        return WorkflowInternal.newThread(runnable, name);
     }
 
     public static WorkflowFuture<Void> newTimer(long delaySeconds) {
-        return getDecisionContext().newTimer(delaySeconds);
+        return WorkflowInternal.newTimer(delaySeconds);
     }
 
     public static <E> WorkflowQueue<E> newQueue(int capacity) {
-        return new WorkflowQueueImpl<E>(capacity);
+        return WorkflowInternal.newQueue(capacity);
     }
 
     public static <E> WorkflowFuture<E> newFuture() {
-        return new WorkflowFuture<>();
+        return WorkflowInternal.newFuture();
     }
 
     public static <E> WorkflowFuture<E> newFuture(E value) {
-        return new WorkflowFuture<>(value);
+        return WorkflowInternal.newFuture(value);
     }
 
     public static <E> WorkflowFuture<E> newFailedFuture(Exception failure) {
-        WorkflowFuture<E> result = new WorkflowFuture<>();
-        result.completeExceptionally(failure);
-        return result;
+        return WorkflowInternal.newFailedFuture(failure);
     }
 
     /**
@@ -62,7 +62,7 @@ public class Workflow {
      * object as it is done implicitly. Only methods annotated with @{@link QueryMethod} are registered.
      */
     public static void registerQuery(Object queryImplementation) {
-        getDecisionContext().registerQuery(queryImplementation);
+        WorkflowInternal.registerQuery(queryImplementation);
     }
 
     /**
@@ -74,14 +74,14 @@ public class Workflow {
      * @return Lock implementation that can be used inside a workflow code.
      */
     public static Lock newReentrantLock() {
-        return new LockImpl();
+        return WorkflowInternal.newReentrantLock();
     }
 
     /**
      * Should be used to get current time instead of {@link System#currentTimeMillis()}
      */
     public static long currentTimeMillis() {
-        return WorkflowThreadImpl.currentThread().getRunner().currentTimeMillis();
+        return WorkflowInternal.currentTimeMillis();
     }
 
     /**
@@ -90,9 +90,7 @@ public class Workflow {
      * @param activityInterface interface type implemented by activities
      */
     public static <T> T newActivityClient(Class<T> activityInterface, ActivitySchedulingOptions options) {
-        return (T) Proxy.newProxyInstance(Workflow.class.getClassLoader(),
-                new Class<?>[]{activityInterface},
-                new ActivityInvocationHandler(options));
+        return WorkflowInternal.newActivityClient(activityInterface, options);
     }
 
     /**
@@ -103,14 +101,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <R> WorkflowFuture<R> async(Functions.Func<R> activity) {
-        ActivityInvocationHandler.initAsyncInvocation();
-        try {
-            activity.apply();
-        } catch (Exception e) {
-            return Workflow.newFailedFuture(e);
-        } finally {
-            return ActivityInvocationHandler.getAsyncInvocationResult();
-        }
+        return WorkflowInternal.async(activity);
     }
 
     /**
@@ -122,7 +113,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, R> WorkflowFuture<R> async(Functions.Func1<A1, R> activity, A1 arg1) {
-        return async(() -> activity.apply(arg1));
+        return WorkflowInternal.async(activity, arg1);
     }
 
     /**
@@ -135,7 +126,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, R> WorkflowFuture<R> async(Functions.Func2<A1, A2, R> activity, A1 arg1, A2 arg2) {
-        return async(() -> activity.apply(arg1, arg2));
+        return WorkflowInternal.async(activity, arg1, arg2);
     }
 
     /**
@@ -149,7 +140,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, R> WorkflowFuture<R> async(Functions.Func3<A1, A2, A3, R> activity, A1 arg1, A2 arg2, A3 arg3) {
-        return async(() -> activity.apply(arg1, arg2, arg3));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3);
     }
 
     /**
@@ -164,7 +155,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4, R> WorkflowFuture<R> async(Functions.Func4<A1, A2, A3, A4, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4);
     }
 
     /**
@@ -180,7 +171,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4, A5, R> WorkflowFuture<R> async(Functions.Func5<A1, A2, A3, A4, A5, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4, arg5));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5);
     }
 
     /**
@@ -197,7 +188,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4, A5, A6, R> WorkflowFuture<R> async(Functions.Func6<A1, A2, A3, A4, A5, A6, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
     /**
@@ -208,14 +199,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static WorkflowFuture<Void> async(Functions.Proc activity) {
-        ActivityInvocationHandler.initAsyncInvocation();
-        try {
-            activity.apply();
-        } catch (Exception e) {
-            return Workflow.newFailedFuture(e);
-        } finally {
-            return ActivityInvocationHandler.getAsyncInvocationResult();
-        }
+        return WorkflowInternal.async(activity);
     }
 
     /**
@@ -240,7 +224,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2> WorkflowFuture<Void> async(Functions.Proc2<A1, A2> activity, A1 arg1, A2 arg2) {
-        return async(() -> activity.apply(arg1, arg2));
+        return WorkflowInternal.async(activity, arg1, arg2);
     }
 
     /**
@@ -254,7 +238,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3> WorkflowFuture<Void> async(Functions.Proc3<A1, A2, A3> activity, A1 arg1, A2 arg2, A3 arg3) {
-        return async(() -> activity.apply(arg1, arg2, arg3));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3);
     }
 
     /**
@@ -269,7 +253,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4> WorkflowFuture<Void> async(Functions.Proc4<A1, A2, A3, A4> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4);
     }
 
     /**
@@ -285,7 +269,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4, A5> WorkflowFuture<Void> async(Functions.Proc5<A1, A2, A3, A4, A5> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4, arg5));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5);
     }
 
     /**
@@ -302,7 +286,7 @@ public class Workflow {
      * @return future that contains activity result or failure
      */
     public static <A1, A2, A3, A4, A5, A6> WorkflowFuture<Void> async(Functions.Proc6<A1, A2, A3, A4, A5, A6> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
-        return async(() -> activity.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+        return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
     /**
@@ -315,11 +299,7 @@ public class Workflow {
      * @return activity result
      */
     public static <R> R executeActivity(String name, ActivitySchedulingOptions options, Class<R> returnType, Object... args) {
-        return getDecisionContext().executeActivity(name, options, args, returnType);
-    }
-
-    private static SyncDecisionContext getDecisionContext() {
-        return WorkflowThreadImpl.currentThread().getDecisionContext();
+        return WorkflowInternal.executeActivity(name, options, returnType, args);
     }
 
     /**
@@ -332,7 +312,6 @@ public class Workflow {
      * @return future that contains the activity result
      */
     public static <R> WorkflowFuture<R> executeActivityAsync(String name, ActivitySchedulingOptions options, Class<R> returnType, Object... args) {
-        return getDecisionContext().executeActivityAsync(name, options, args, returnType);
+        return WorkflowInternal.executeActivityAsync(name, options, returnType, args);
     }
-
 }
