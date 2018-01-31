@@ -23,7 +23,7 @@ import com.uber.cadence.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.generic.GenericAsyncWorkflowClient;
-import com.uber.cadence.generic.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;

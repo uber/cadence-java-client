@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.workflow;
 
+import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.StartWorkflowOptions;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     private byte[] input;
     private String taskList;
     private int taskStartToCloseTimeoutSeconds;
+    private ChildPolicy childPolicy;
 
     public ContinueAsNewWorkflowExecutionParameters() {
     }
@@ -43,6 +45,11 @@ public final class ContinueAsNewWorkflowExecutionParameters {
         return this;
     }
 
+    public ContinueAsNewWorkflowExecutionParameters withInput(byte[] input) {
+        this.input = input;
+        return this;
+    }
+
     public byte[] getInput() {
         return input;
     }
@@ -50,11 +57,6 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     public void setInput(byte[] input) {
         this.input = input;
     }
-    
-    public ContinueAsNewWorkflowExecutionParameters withInput(byte[] input) {
-        this.input = input;
-        return this;
-    } 
 
     public String getTaskList() {
         return taskList;
@@ -76,7 +78,20 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     public void setTaskStartToCloseTimeoutSeconds(int taskStartToCloseTimeoutSeconds) {
         this.taskStartToCloseTimeoutSeconds = taskStartToCloseTimeoutSeconds;
     }
-    
+
+    public ChildPolicy getChildPolicy() {
+        return childPolicy;
+    }
+
+    public void setChildPolicy(ChildPolicy childPolicy) {
+        this.childPolicy = childPolicy;
+    }
+
+    public ContinueAsNewWorkflowExecutionParameters withChildPolicy(ChildPolicy childPolicy) {
+        this.childPolicy = childPolicy;
+        return this;
+    }
+
     public ContinueAsNewWorkflowExecutionParameters withTaskStartToCloseTimeoutSeconds(int taskStartToCloseTimeoutSeconds) {
         this.taskStartToCloseTimeoutSeconds = taskStartToCloseTimeoutSeconds;
         return this;
@@ -101,6 +116,11 @@ public final class ContinueAsNewWorkflowExecutionParameters {
             if (taskList != null && !taskList.isEmpty()) { 
                 continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
             }
+
+            ChildPolicy childPolicy = options.getChildPolicy();
+            if (childPolicy != null) {
+                continueAsNewWorkflowExecutionParameters.setChildPolicy(childPolicy);
+            }
         }
         
         if (optionsOverride != null) {    
@@ -118,6 +138,12 @@ public final class ContinueAsNewWorkflowExecutionParameters {
             if (taskList != null && !taskList.isEmpty()) { 
                 continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
             }
+
+            ChildPolicy childPolicy = optionsOverride.getChildPolicy();
+            if (childPolicy != null) {
+                continueAsNewWorkflowExecutionParameters.setChildPolicy(childPolicy);
+            }
+
         }
         
         return continueAsNewWorkflowExecutionParameters;
