@@ -14,13 +14,13 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.generic;
+package com.uber.cadence.workflow;
 
 import com.uber.cadence.StartWorkflowOptions;
 
 import java.util.List;
 
-public class ContinueAsNewWorkflowExecutionParameters {
+public final class ContinueAsNewWorkflowExecutionParameters {
     private String workflowTypeVersion;
     private int executionStartToCloseTimeoutSeconds;
     private byte[] input;

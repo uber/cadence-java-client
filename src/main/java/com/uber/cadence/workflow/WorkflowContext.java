@@ -16,8 +16,6 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.generic.ContinueAsNewWorkflowExecutionParameters;
-
 public interface WorkflowContext {
 
     com.uber.cadence.WorkflowExecution getWorkflowExecution();

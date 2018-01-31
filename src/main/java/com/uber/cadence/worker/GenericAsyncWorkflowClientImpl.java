@@ -21,7 +21,7 @@ import com.uber.cadence.ChildWorkflowTerminatedException;
 import com.uber.cadence.ChildWorkflowTimedOutException;
 import com.uber.cadence.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.WorkflowContext;
-import com.uber.cadence.generic.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.generic.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.ChildPolicy;
