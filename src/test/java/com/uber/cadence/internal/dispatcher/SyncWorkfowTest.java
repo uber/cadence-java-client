@@ -28,6 +28,7 @@ import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowFuture;
 import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.ConsoleAppender;

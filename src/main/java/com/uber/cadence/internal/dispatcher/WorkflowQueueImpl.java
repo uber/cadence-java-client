@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.QueueConsumer;
 import com.uber.cadence.workflow.WorkflowQueue;
 
 import java.util.LinkedList;

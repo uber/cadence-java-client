@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class SyncDecisionContext {
+class SyncDecisionContext {
     private final AsyncDecisionContext context;
     private final GenericAsyncActivityClient activityClient;
     private final DataConverter converter;

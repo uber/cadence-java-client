@@ -21,15 +21,17 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.WorkflowFuture;
 import com.uber.cadence.workflow.WorkflowQueue;
+import com.uber.cadence.workflow.WorkflowThread;
 
 import java.lang.reflect.Proxy;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Supplier;
 
 /**
  * Never reference directly. It is public only because Java doesn't have internal package support.
  */
-public class WorkflowInternal {
+public final class WorkflowInternal {
 
     public static WorkflowThread newThread(Functions.Proc runnable) {
         return WorkflowThreadInternal.newThread(runnable);
@@ -344,4 +346,22 @@ public class WorkflowInternal {
         return getDecisionContext().executeActivityAsync(name, options, args, returnType);
     }
 
+    public static WorkflowThread currentThread() {
+        return WorkflowThreadInternal.currentThreadInternal();
+    }
+
+    public static boolean currentThreadResetInterrupted() {
+        return WorkflowThreadInternal.currentThreadInternal().resetInterrupted();
+    }
+
+    public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+        return WorkflowThreadInternal.yield(timeoutMillis, reason, unblockCondition);
+    }
+
+    /**
+     * Prohibit instantiation
+     */
+    private WorkflowInternal() {
+
+    }
 }

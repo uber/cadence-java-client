@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.WorkflowThread;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,7 +27,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
+class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.
@@ -116,14 +117,6 @@ public class WorkflowThreadInternal implements WorkflowThread, DeterministicRunn
             throw new IllegalStateException("Called from non running coroutine thread");
         }
         return result;
-    }
-
-    public static WorkflowThread currentThread() {
-        return currentThreadInternal();
-    }
-
-    public static boolean currentThreadResetInterrupted() {
-        return currentThreadInternal().resetInterrupted();
     }
 
     WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Functions.Proc runnable) {
@@ -311,7 +304,7 @@ public class WorkflowThreadInternal implements WorkflowThread, DeterministicRunn
      *
      * @return false if timed out.
      */
-    public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
         if (timeoutMillis == 0) {
             return unblockCondition.get();
         }

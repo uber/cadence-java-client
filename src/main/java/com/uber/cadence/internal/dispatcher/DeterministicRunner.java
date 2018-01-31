@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.WorkflowThread;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
@@ -26,7 +27,7 @@ import java.util.function.Supplier;
  * as well as threads created from it using {@link WorkflowInternal#newThread(Functions.Proc)} deterministically.
  * Requires use of provided wrappers for synchronization and notification instead of native ones.
  */
-public interface DeterministicRunner {
+interface DeterministicRunner {
 
     static DeterministicRunner newRunner(Functions.Proc root) {
         return new DeterministicRunnerImpl(root);

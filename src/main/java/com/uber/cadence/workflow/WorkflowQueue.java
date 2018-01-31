@@ -16,8 +16,5 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.internal.dispatcher.QueueConsumer;
-import com.uber.cadence.internal.dispatcher.QueueProducer;
-
 public interface WorkflowQueue<E> extends QueueConsumer<E>, QueueProducer<E> {
 }

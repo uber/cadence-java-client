@@ -25,7 +25,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ActivityInvocationHandler implements InvocationHandler {
+class ActivityInvocationHandler implements InvocationHandler {
 
     private static final ThreadLocal<AtomicReference<WorkflowFuture>> asyncResult = new ThreadLocal<>();
     private final ActivitySchedulingOptions options;

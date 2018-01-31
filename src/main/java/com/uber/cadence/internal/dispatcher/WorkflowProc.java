@@ -21,7 +21,7 @@ import com.uber.cadence.workflow.Functions;
 
 import java.util.concurrent.CancellationException;
 
-public class WorkflowProc implements Functions.Proc {
+class WorkflowProc implements Functions.Proc {
     private final SyncDecisionContext context;
     private final SyncWorkflowDefinition workflow;
     private final WorkflowExecutionStartedEventAttributes attributes;

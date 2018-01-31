@@ -17,7 +17,6 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
-import com.uber.cadence.internal.dispatcher.WorkflowThread;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;

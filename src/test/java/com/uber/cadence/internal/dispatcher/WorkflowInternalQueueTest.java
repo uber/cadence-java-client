@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.WorkflowQueue;
+import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
