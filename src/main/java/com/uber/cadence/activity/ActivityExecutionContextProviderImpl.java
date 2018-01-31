@@ -14,9 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence;
-
-import com.uber.cadence.worker.CurrentActivityExecutionContext;
+package com.uber.cadence.activity;
 
 /**
  * The default implementation of the ActivityExecutionContextProvider. Can be

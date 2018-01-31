@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence;
+package com.uber.cadence.activity;
 
 /**
  * Used to access execution context of the currently executed activity. An
