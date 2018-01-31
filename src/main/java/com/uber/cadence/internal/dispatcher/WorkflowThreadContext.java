@@ -249,19 +249,6 @@ class WorkflowThreadContext {
         runUntilBlocked();
     }
 
-    /**
-     * Exits current running thread that owns this context, while destroy is called from other thread.
-     */
-    public void exit() {
-        lock.lock();
-        try {
-            destroyRequested = true;
-        } finally {
-            lock.unlock();
-        }
-        throw new DestroyWorkflowThreadError();
-    }
-
     public void interrupt() {
         lock.lock();
         try {

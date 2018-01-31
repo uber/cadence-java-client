@@ -96,7 +96,6 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
     private final RunnableWrapper task;
     private Thread thread;
     private Future<?> taskFuture;
-    private Object exitValue;
 
     /**
      * If not 0 then thread is blocked on a sleep (or on an operation with a timeout).
@@ -169,14 +168,6 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
 
     public SyncDecisionContext getDecisionContext() {
         return runner.getDecisionContext();
-    }
-
-    @Override
-    public <R> R getExitValue() {
-        if (getState() != Thread.State.TERMINATED) {
-            throw new IllegalStateException("Not in TERMINATED state: " + getState());
-        }
-        return (R) exitValue;
     }
 
     @Override
@@ -275,11 +266,6 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
             throw new Error("Unexpected failure stopping coroutine", e);
         }
     }
-
-    public void exit(Object exitValue) {
-        this.exitValue = exitValue;
-        context.exit();
-}
 
     /**
      * @return stack trace of the coroutine thread
