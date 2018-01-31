@@ -39,15 +39,15 @@ public interface WorkflowThread {
     Thread.State getState();
 
     static WorkflowThread currentThread() {
-        return WorkflowThreadImpl.currentThread();
+        return WorkflowThreadInternal.currentThread();
     }
 
     static void sleep(long millis) throws InterruptedException {
-        WorkflowThreadImpl.yield(millis, "sleep", () -> false   );
+        WorkflowThreadInternal.yield(millis, "sleep", () -> false   );
     }
 
     static boolean interrupted() {
-        return WorkflowThreadImpl.currentThread().resetInterrupted();
+        return WorkflowThreadInternal.currentThreadResetInterrupted();
     }
 
     String getStackTrace();

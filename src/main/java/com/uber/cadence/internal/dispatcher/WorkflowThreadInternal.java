@@ -24,7 +24,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine {
+public class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.
@@ -50,7 +50,7 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
             thread = Thread.currentThread();
             originalName = thread.getName();
             thread.setName(name);
-            currentThreadThreadLocal.set(WorkflowThreadImpl.this);
+            currentThreadThreadLocal.set(WorkflowThreadInternal.this);
             try {
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
@@ -88,7 +88,7 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
         }
     }
 
-    static final ThreadLocal<WorkflowThreadImpl> currentThreadThreadLocal = new ThreadLocal<>();
+    static final ThreadLocal<WorkflowThreadInternal> currentThreadThreadLocal = new ThreadLocal<>();
 
     private final ExecutorService threadPool;
     private final WorkflowThreadContext context;
@@ -104,8 +104,8 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
      */
     private long blockedUntil;
 
-    static WorkflowThreadImpl currentThread() {
-        WorkflowThreadImpl result = currentThreadThreadLocal.get();
+    static WorkflowThreadInternal currentThreadInternal() {
+        WorkflowThreadInternal result = currentThreadThreadLocal.get();
         if (result == null) {
             throw new IllegalStateException("Called from non workflow or workflow callback thread");
         }
@@ -116,7 +116,15 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
         return result;
     }
 
-    public WorkflowThreadImpl(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Functions.Proc runnable) {
+    public static WorkflowThread currentThread() {
+        return currentThreadInternal();
+    }
+
+    public static boolean currentThreadResetInterrupted() {
+        return currentThreadInternal().resetInterrupted();
+    }
+
+    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Functions.Proc runnable) {
         this.threadPool = threadPool;
         this.runner = runner;
         this.context = new WorkflowThreadContext(runner.getLock());
@@ -127,18 +135,20 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
         this.task = new RunnableWrapper(context, name, runnable);
     }
 
-    public static WorkflowThread newThread(Functions.Proc runnable) {
-        return currentThread().getRunner().newThread(runnable);
+    static WorkflowThread newThread(Functions.Proc runnable) {
+        return currentThreadInternal().getRunner().newThread(runnable);
     }
 
-    public static WorkflowThread newThread(Functions.Proc runnable, String name) {
-        return currentThread().getRunner().newThread(runnable, name);
+    static WorkflowThread newThread(Functions.Proc runnable, String name) {
+        return currentThreadInternal().getRunner().newThread(runnable, name);
     }
 
+    @Override
     public void interrupt() {
         context.interrupt();
     }
 
+    @Override
     public boolean isInterrupted() {
         return context.isInterrupted();
     }
@@ -172,13 +182,13 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
 
     @Override
     public void join() throws InterruptedException {
-        WorkflowThreadImpl.yield("WorkflowThread.join", () -> isDone());
+        WorkflowThreadInternal.yield("WorkflowThread.join", () -> isDone());
     }
 
     // TODO: Timeout support
     @Override
     public void join(long millis) throws InterruptedException {
-        WorkflowThreadImpl.yield(millis, "WorkflowThread.join", () -> isDone());
+        WorkflowThreadInternal.yield(millis, "WorkflowThread.join", () -> isDone());
     }
 
     public boolean isAlive() {
@@ -291,7 +301,7 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
      * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
      */
     static void yield(String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
-        WorkflowThreadImpl.currentThread().getContext().yield(reason, unblockCondition);
+        WorkflowThreadInternal.currentThreadInternal().getContext().yield(reason, unblockCondition);
     }
 
     /**
@@ -299,11 +309,11 @@ class WorkflowThreadImpl implements WorkflowThread, DeterministicRunnerCoroutine
      *
      * @return false if timed out.
      */
-    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+    public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
         if (timeoutMillis == 0) {
             return unblockCondition.get();
         }
-        WorkflowThreadImpl current = WorkflowThreadImpl.currentThread();
+        WorkflowThreadInternal current = WorkflowThreadInternal.currentThreadInternal();
         long blockedUntil = WorkflowInternal.currentTimeMillis() + timeoutMillis;
         current.setBlockedUntil(blockedUntil);
         YieldWithTimeoutCondition condition = new YieldWithTimeoutCondition(unblockCondition, blockedUntil);

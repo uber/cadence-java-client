@@ -30,7 +30,7 @@ class LockImpl implements Lock {
         boolean interrupted = false;
         do {
             try {
-                WorkflowThreadImpl.yield("lock", () -> tryLock());
+                WorkflowThreadInternal.yield("lock", () -> tryLock());
             } catch (InterruptedException e) {
                 interrupted = true;
             }
@@ -39,7 +39,7 @@ class LockImpl implements Lock {
 
     @Override
     public void lockInterruptibly() throws InterruptedException {
-        WorkflowThreadImpl.yield("lockInterruptibly", () -> tryLock());
+        WorkflowThreadInternal.yield("lockInterruptibly", () -> tryLock());
     }
 
     @Override
@@ -54,7 +54,7 @@ class LockImpl implements Lock {
 
     @Override
     public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
-        return WorkflowThreadImpl.yield(unit.toMillis(time), "tryLock", () -> tryLock());
+        return WorkflowThreadInternal.yield(unit.toMillis(time), "tryLock", () -> tryLock());
     }
 
     @Override

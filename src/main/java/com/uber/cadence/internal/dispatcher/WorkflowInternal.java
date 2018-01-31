@@ -30,14 +30,14 @@ import java.util.concurrent.locks.Lock;
 public class WorkflowInternal {
 
     public static WorkflowThread newThread(Functions.Proc runnable) {
-        return WorkflowThreadImpl.newThread(runnable);
+        return WorkflowThreadInternal.newThread(runnable);
     }
 
     public static WorkflowThread newThread(Functions.Proc runnable, String name) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
-        return WorkflowThreadImpl.newThread(runnable, name);
+        return WorkflowThreadInternal.newThread(runnable, name);
     }
 
     public static WorkflowFuture<Void> newTimer(long delaySeconds) {
@@ -88,7 +88,7 @@ public class WorkflowInternal {
      * Should be used to get current time instead of {@link System#currentTimeMillis()}
      */
     public static long currentTimeMillis() {
-        return WorkflowThreadImpl.currentThread().getRunner().currentTimeMillis();
+        return WorkflowThreadInternal.currentThreadInternal().getRunner().currentTimeMillis();
     }
 
     /**
@@ -326,7 +326,7 @@ public class WorkflowInternal {
     }
 
     private static SyncDecisionContext getDecisionContext() {
-        return WorkflowThreadImpl.currentThread().getDecisionContext();
+        return WorkflowThreadInternal.currentThreadInternal().getDecisionContext();
     }
 
     /**

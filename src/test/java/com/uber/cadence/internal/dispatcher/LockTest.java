@@ -71,7 +71,7 @@ public class LockTest {
                         lock.lock();
                         trace.add("thread1 lock");
                         try {
-                            WorkflowThreadImpl.yield("thread1", () -> unblock1);
+                            WorkflowThreadInternal.yield("thread1", () -> unblock1);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -82,7 +82,7 @@ public class LockTest {
             WorkflowInternal.newThread(
                     () -> {
                         try {
-                            WorkflowThreadImpl.yield("thread2", () -> unblock2);
+                            WorkflowThreadInternal.yield("thread2", () -> unblock2);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }

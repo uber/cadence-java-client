@@ -53,7 +53,7 @@ final class WorkflowFutureImpl<T> implements WorkflowFuture<T> {
     }
 
     public WorkflowFutureImpl(BiConsumer<WorkflowFuture<T>, Boolean> cancellationHandler) {
-        runner = WorkflowThreadImpl.currentThread().getRunner();
+        runner = WorkflowThreadInternal.currentThreadInternal().getRunner();
         this.cancellationHandler = cancellationHandler;
     }
 
@@ -86,7 +86,7 @@ final class WorkflowFutureImpl<T> implements WorkflowFuture<T> {
     @Override
     public T get() throws InterruptedException, ExecutionException {
         if (!completed) {
-            WorkflowThreadImpl.yield("Feature.get", () -> completed);
+            WorkflowThreadInternal.yield("Feature.get", () -> completed);
         }
         if (failure != null) {
             unregisterWithRunner();
@@ -98,7 +98,7 @@ final class WorkflowFutureImpl<T> implements WorkflowFuture<T> {
     @Override
     public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         if (!completed) {
-            WorkflowThreadImpl.yield(unit.toMillis(timeout), "Feature.get", () -> completed);
+            WorkflowThreadInternal.yield(unit.toMillis(timeout), "Feature.get", () -> completed);
         }
         if (!completed) {
             throw new TimeoutException();
