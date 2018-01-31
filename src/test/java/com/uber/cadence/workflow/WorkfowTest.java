@@ -14,21 +14,17 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.workflow;
 
-import com.uber.cadence.workflow.ActivitySchedulingOptions;
+import com.uber.cadence.internal.dispatcher.SyncWorkflowWorker;
+import com.uber.cadence.internal.dispatcher.WorkflowExternal;
+import com.uber.cadence.internal.dispatcher.WorkflowExternalResult;
 import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.JsonDataConverter;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.internal.worker.ActivityWorker;
-import com.uber.cadence.workflow.QueryMethod;
-import com.uber.cadence.workflow.SignalMethod;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowFuture;
-import com.uber.cadence.workflow.WorkflowMethod;
-import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.ConsoleAppender;
@@ -53,7 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
 
-public class SyncWorkfowTest {
+public class WorkfowTest {
 
     // TODO: Make this configuratble instead of always using local instance.
     private static final String host = "127.0.0.1";
@@ -79,7 +75,7 @@ public class SyncWorkfowTest {
         root.setLevel(Level.DEBUG);
 
         Logger.getLogger("io.netty").setLevel(Level.INFO);
-        log = LogFactory.getLog(SyncWorkfowTest.class);
+        log = LogFactory.getLog(WorkfowTest.class);
 
     }
 
