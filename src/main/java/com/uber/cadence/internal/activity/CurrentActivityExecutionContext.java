@@ -16,16 +16,13 @@
  */
 package com.uber.cadence.internal.activity;
 
-import com.uber.cadence.activity.ActivityExecutionContext;
-
 /**
  * Thread local store of the context object passed to an activity
- * implementation. Avoid using this class directly. Use
- * {@link com.uber.cadence.activity.Activity#getContext()} instead.
- * 
+ * implementation. Avoid using this class directly.
+ *
  * @author fateev
  */
-class CurrentActivityExecutionContext {
+public class CurrentActivityExecutionContext {
 
     private final static ThreadLocal<ActivityExecutionContext> CURRENT = new ThreadLocal<ActivityExecutionContext>();
 

@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.activity;
+package com.uber.cadence.internal.activity;
 
 import com.uber.cadence.internal.ActivityTask;
 import com.uber.cadence.internal.generic.ActivityImplementation;
@@ -50,7 +50,7 @@ public interface ActivityExecutionContext {
     /**
      * Use to notify Simple Workflow that activity execution is alive.
      * 
-     * @param details
+     * @param args
      *            In case of activity timeout details are returned as a field of
      *            the exception thrown.
      * @throws CancellationException
@@ -58,7 +58,7 @@ public interface ActivityExecutionContext {
      *             workflow.Should be rethrown from activity implementation to
      *             indicate successful cancellation.
      */
-    void recordActivityHeartbeat(byte[] details)
+    void recordActivityHeartbeat(Object... args)
             throws CancellationException;
 
     /**
