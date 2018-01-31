@@ -16,7 +16,7 @@
  */
 package com.uber.cadence;
 
-import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import org.apache.thrift.TException;
 
 import java.util.concurrent.CancellationException;

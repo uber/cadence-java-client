@@ -18,7 +18,7 @@ package com.uber.cadence.worker;
 
 import com.uber.cadence.activity.ActivityExecutionContext;
 import com.uber.cadence.activity.ActivityFailureException;
-import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.generic.ActivityImplementation;
 import com.uber.cadence.generic.ActivityImplementationFactory;
 import com.uber.cadence.ActivityType;

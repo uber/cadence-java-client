@@ -21,7 +21,7 @@ import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import org.apache.thrift.TException;
 
 import java.util.concurrent.TimeoutException;

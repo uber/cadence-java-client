@@ -23,7 +23,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedException;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.common.FlowHelpers;
+import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.generic.QueryWorkflowParameters;
 import com.uber.cadence.workflow.QueryMethod;

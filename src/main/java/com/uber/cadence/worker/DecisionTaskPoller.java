@@ -17,7 +17,7 @@
 package com.uber.cadence.worker;
 
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;

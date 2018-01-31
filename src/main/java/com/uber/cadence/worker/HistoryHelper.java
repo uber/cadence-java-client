@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.worker;
 
-import com.uber.cadence.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;

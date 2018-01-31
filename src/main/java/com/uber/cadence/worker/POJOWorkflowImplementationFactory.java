@@ -21,7 +21,7 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
 import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.common.FlowHelpers;
+import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;

@@ -17,7 +17,7 @@
 package com.uber.cadence.worker;
 
 import com.uber.cadence.WorkerBase;
-import com.uber.cadence.common.FlowConstants;
+import com.uber.cadence.internal.common.FlowConstants;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.InternalServiceError;

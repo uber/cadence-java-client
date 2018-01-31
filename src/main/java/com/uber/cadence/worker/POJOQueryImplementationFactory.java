@@ -18,7 +18,7 @@ package com.uber.cadence.worker;
 
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.DataConverter;
-import com.uber.cadence.common.FlowHelpers;
+import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 
