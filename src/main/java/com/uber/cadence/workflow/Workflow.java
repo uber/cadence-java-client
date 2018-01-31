@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.ActivitySchedulingOptions;
 import com.uber.cadence.internal.dispatcher.Functions;
 import com.uber.cadence.internal.dispatcher.QueryMethod;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
@@ -25,7 +24,7 @@ import com.uber.cadence.internal.dispatcher.WorkflowThread;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.Lock;
 
-public class Workflow {
+public final class Workflow {
 
     public static WorkflowThread newThread(Functions.Proc runnable) {
         return WorkflowInternal.newThread(runnable);
@@ -311,5 +310,11 @@ public class Workflow {
      */
     public static <R> WorkflowFuture<R> executeActivityAsync(String name, ActivitySchedulingOptions options, Class<R> returnType, Object... args) {
         return WorkflowInternal.executeActivityAsync(name, options, returnType, args);
+    }
+
+    /**
+     * Prohibit instantiation.
+     */
+    private Workflow() {
     }
 }
