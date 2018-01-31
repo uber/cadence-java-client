@@ -23,6 +23,8 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.QueryMethod;
+import com.uber.cadence.workflow.WorkflowMethod;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;

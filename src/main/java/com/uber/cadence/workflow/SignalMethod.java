@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.dispatcher;
+package com.uber.cadence.workflow;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -22,15 +22,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Indicates that the method is a workflow method. Workflow method is executed when workflow is started.
- * Workflow completes when workflow method returns.
+ * Indicates that the method is a signal handler method. Signal method is executed when workflow receives signal.
  * This annotation applies only to workflow interface methods.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface WorkflowMethod {
+public @interface SignalMethod {
     /**
-     * Name of the workflow type. Default is {short class name}::{method name}
+     * Name of the signal type. Default is {short class name}::{method name}.
      */
     String name() default "";
 }

@@ -23,11 +23,11 @@ import com.uber.cadence.WorkflowException;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.FlowHelpers;
 import com.uber.cadence.workflow.Functions;
-import com.uber.cadence.internal.dispatcher.QueryMethod;
-import com.uber.cadence.internal.dispatcher.SignalMethod;
+import com.uber.cadence.workflow.QueryMethod;
+import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
-import com.uber.cadence.internal.dispatcher.WorkflowMethod;
+import com.uber.cadence.workflow.WorkflowMethod;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

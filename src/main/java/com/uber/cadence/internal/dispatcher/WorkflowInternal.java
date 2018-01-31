@@ -18,6 +18,7 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.ActivitySchedulingOptions;
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.WorkflowFuture;
 import com.uber.cadence.workflow.WorkflowQueue;
 

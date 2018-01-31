@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.internal.dispatcher.QueryMethod;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import com.uber.cadence.internal.dispatcher.WorkflowThread;
 
