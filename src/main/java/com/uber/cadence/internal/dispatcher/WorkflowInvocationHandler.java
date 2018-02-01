@@ -160,7 +160,11 @@ public class WorkflowInvocationHandler implements InvocationHandler {
         parameters.setTaskList(options.getTaskList());
         parameters.setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
         parameters.setWorkflowType(new WorkflowType().setName(workflowName));
-        parameters.setWorkflowId(UUID.randomUUID().toString()); // TODO: specifying id.
+        if (options.getWorkflowId() == null) {
+            parameters.setWorkflowId(UUID.randomUUID().toString());
+        } else {
+            parameters.setWorkflowId(options.getWorkflowId());
+        }
         byte[] input = dataConverter.toData(args);
         parameters.setInput(input);
         // TODO: Return workflow result or its execution through async.
