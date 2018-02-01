@@ -39,10 +39,18 @@ import java.util.Map;
 public class POJOActivityImplementationFactory extends ActivityImplementationFactory {
 
     private static final byte[] EMPTY_BLOB = {};
-    private final DataConverter dataConverter;
+    private DataConverter dataConverter;
     private final Map<String, ActivityImplementation> activities = Collections.synchronizedMap(new HashMap<>());
 
     public POJOActivityImplementationFactory(DataConverter dataConverter) {
+        this.dataConverter = dataConverter;
+    }
+
+    public DataConverter getDataConverter() {
+        return dataConverter;
+    }
+
+    public void setDataConverter(DataConverter dataConverter) {
         this.dataConverter = dataConverter;
     }
 
@@ -81,6 +89,7 @@ public class POJOActivityImplementationFactory extends ActivityImplementationFac
             this.method = method;
             this.activity = activity;
         }
+
 
         /**
          * TODO: Annotation that contains the execution options.
