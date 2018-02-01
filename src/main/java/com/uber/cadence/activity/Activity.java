@@ -22,11 +22,15 @@ import com.uber.cadence.internal.activity.ActivityInternal;
 
 import java.util.concurrent.CancellationException;
 
+/**
+ * Use this method from within activity implementation to get information about activity task
+ * and heartbeat.
+ */
 public final class Activity {
 
     /**
      * @return task token that is required to report task completion when
-     *         manual activity completion is used.
+     * manual activity completion is used.
      */
     public static byte[] getTaskToken() {
         return ActivityInternal.getContext().getTaskToken();
@@ -47,24 +51,22 @@ public final class Activity {
     }
 
     /**
-     * Use to notify Simple Workflow that activity execution is alive.
+     * Use to notify Cadence service that activity execution is alive.
      *
-     * @param args
-     *            In case of activity timeout details are returned as a field of
-     *            the exception thrown.
-     * @throws CancellationException
-     *             Indicates that activity cancellation was requested by the
-     *             workflow.Should be rethrown from activity implementation to
-     *             indicate successful cancellation.
+     * @param args In case of activity timeout details are returned as a field of
+     *             the exception thrown.
+     * @throws CancellationException Indicates that activity cancellation was requested by the
+     *                               workflow.Should be rethrown from activity implementation to
+     *                               indicate successful cancellation.
      */
-    public static void recordActivityHeartbeat(Object... args)
+    public static void heartbeat(Object... args)
             throws CancellationException {
         ActivityInternal.recordActivityHeartbeat(args);
     }
 
     /**
      * @return an instance of the Simple Workflow Java client that is the same
-     *         used by the invoked activity worker.
+     * used by the invoked activity worker.
      */
     public static WorkflowService.Iface getService() {
         return ActivityInternal.getContext().getService();
@@ -78,6 +80,5 @@ public final class Activity {
      * Prohibit instantiation
      */
     private Activity() {
-
     }
 }
