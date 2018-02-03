@@ -19,24 +19,10 @@ package com.uber.cadence.internal.common;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
-import com.uber.cadence.ActivityType;
-import com.uber.cadence.Decision;
-import com.uber.cadence.DescribeWorkflowExecutionRequest;
-import com.uber.cadence.DescribeWorkflowExecutionResponse;
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.TaskList;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCloseStatus;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
-import com.uber.cadence.WorkflowExecutionInfo;
+import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.internal.worker.ExponentialRetryParameters;
+import com.uber.cadence.internal.worker.SynchronousRetrier;
 import org.apache.thrift.TException;
 
 import java.io.PrintWriter;
@@ -57,6 +43,17 @@ import java.util.concurrent.TimeoutException;
  * @author fateev
  */
 public class WorkflowExecutionUtils {
+
+    private static SynchronousRetrier<TException> getInstanceCloseEventRetryer;
+
+    static {
+        ExponentialRetryParameters retryParameters = new ExponentialRetryParameters();
+        retryParameters.setBackoffCoefficient(2);
+        retryParameters.setInitialInterval(500);
+        // Exceptions to NOT retry.
+        getInstanceCloseEventRetryer = new SynchronousRetrier<>(retryParameters,
+                BadRequestError.class, EntityNotExistsError.class);
+    }
 
     /**
      * Blocks until workflow instance completes and returns its result. Useful
@@ -122,29 +119,26 @@ public class WorkflowExecutionUtils {
         throw new RuntimeException("Workflow end state is not completed: " + prettyPrintHistoryEvent(closeEvent));
     }
 
+    /**
+     * Returns an instance closing event, potentially waiting for workflow to complete.
+     */
     public static HistoryEvent getInstanceCloseEvent(Iface service, String domain,
                                                      WorkflowExecution workflowExecution) {
 
-        // TODO: Uncomment as soon as describe is added by Cadence
-        WorkflowExecutionInfo executionInfo = describeWorkflowInstance(service, domain, workflowExecution);
-        if (executionInfo == null || !executionInfo.isSetCloseStatus()) {
-            return null;
-        }
-
-        Iterator<HistoryEvent> events = getHistory(service, domain, workflowExecution);
-        return getInstanceCloseEvent(events);
-    }
-
-    public static HistoryEvent getInstanceCloseEvent(Iterator<HistoryEvent> events) {
-        HistoryEvent result = null;
-        while (events.hasNext()) {
-            HistoryEvent event = events.next();
-            if (isWorkflowExecutionCompletedEvent(event)) {
-                result = event;
-                break;
+        GetWorkflowExecutionHistoryRequest r = new GetWorkflowExecutionHistoryRequest();
+        r.setDomain(domain);
+        r.setExecution(workflowExecution);
+        r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
+        GetWorkflowExecutionHistoryResponse response;
+        do {
+            try {
+                response = getInstanceCloseEventRetryer.
+                        retryWithResult(() -> service.GetWorkflowExecutionHistory(r));
+            } catch (TException e) {
+                throw new RuntimeException(e);
             }
-        }
-        return result;
+        } while (response.getHistory() == null);
+        return response.getHistory().getEvents().get(0);
     }
 
     public static boolean isWorkflowExecutionCompletedEvent(HistoryEvent event) {
