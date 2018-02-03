@@ -17,6 +17,7 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.client.CadenceClient;
+import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.WorkflowExternalResult;
 import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.JsonDataConverter;
@@ -92,7 +93,7 @@ public class WorkfowTest {
         worker = new Worker(service, domain, taskList, null);
         activities = new TestActivitiesImpl();
         worker.addActivities(activities);
-        cadenceClient = new CadenceClient(service, domain, dataConverter);
+        cadenceClient = CadenceClient.newClient(service, domain);
         worker.start();
         newStartWorkflowOptions();
         activitySchedulingOptions = new ActivitySchedulingOptions();
@@ -171,7 +172,7 @@ public class WorkfowTest {
     @Test
     public void testSync() {
         worker.addWorkflowType(TestSyncWorkflowImpl.class);
-        TestWorkflow1 client = cadenceClient.newWorkflowClient(TestWorkflow1.class, newStartWorkflowOptions());
+        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("activity10", result);
     }
@@ -209,7 +210,7 @@ public class WorkfowTest {
     @Test
     public void testAsyncActivity() {
         worker.addWorkflowType(TestAsyncActivityWorkflowImpl.class);
-        TestWorkflow1 client = cadenceClient.newWorkflowClient(TestWorkflow1.class, newStartWorkflowOptions());
+        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("workflow", result);
 
@@ -249,7 +250,7 @@ public class WorkfowTest {
     @Test
     public void testTimer() {
         worker.addWorkflowType(TestTimerWorkflowImpl.class);
-        TestWorkflow2 client = cadenceClient.newWorkflowClient(TestWorkflow2.class, newStartWorkflowOptions());
+        TestWorkflow2 client = cadenceClient.newWorkflowStub(TestWorkflow2.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("testTimer", result);
     }
@@ -291,9 +292,9 @@ public class WorkfowTest {
     @Test
     public void testSignal() throws TimeoutException, InterruptedException {
         worker.addWorkflowType(TestSignalWorkflowImpl.class);
-        QueryableWorkflow client = cadenceClient.newWorkflowClient(QueryableWorkflow.class, newStartWorkflowOptions());
+        QueryableWorkflow client = cadenceClient.newWorkflowStub(QueryableWorkflow.class, newStartWorkflowOptions());
         // To execute workflow client.execute() would do. But we want to start workflow and immediately return.
-        WorkflowExternalResult<String> result = CadenceClient.executeWorkflow(client::execute);
+        WorkflowExternalResult<String> result = CadenceClient.asyncStart(client::execute);
         assertEquals("initial", client.getState());
         client.signal("Hello ");
         assertEquals("Hello ", client.getState());
@@ -336,8 +337,8 @@ public class WorkfowTest {
         worker.addWorkflowType(TestSignalDuringLastDecisionWorkflowImpl.class);
         StartWorkflowOptions options = newStartWorkflowOptions();
         options.setWorkflowId("testSignalDuringLastDecision-" + UUID.randomUUID().toString());
-        TestWorkflowSignaled client = cadenceClient.newWorkflowClient(TestWorkflowSignaled.class, options);
-        WorkflowExternalResult<String> result = CadenceClient.executeWorkflow(client::execute);
+        TestWorkflowSignaled client = cadenceClient.newWorkflowStub(TestWorkflowSignaled.class, options);
+        WorkflowExternalResult<String> result = CadenceClient.asyncStart(client::execute);
         try {
             sendSignal.get(2, TimeUnit.SECONDS);
             client.signal1("Signal Input");
@@ -384,7 +385,7 @@ public class WorkfowTest {
         options.setExecutionStartToCloseTimeoutSeconds(2);
         options.setTaskStartToCloseTimeoutSeconds(1);
         options.setTaskList(taskList);
-        TestWorkflow1 client = cadenceClient.newWorkflowClient(TestWorkflow1.class, options);
+        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, options);
         try {
             client.execute();
             fail("failure expected");
