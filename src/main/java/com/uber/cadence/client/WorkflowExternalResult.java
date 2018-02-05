@@ -18,6 +18,7 @@ package com.uber.cadence.client;
 
 import com.uber.cadence.WorkflowExecution;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface WorkflowExternalResult<R> {
@@ -25,5 +26,10 @@ public interface WorkflowExternalResult<R> {
 
     <G> void signal(String name, G input);
 
-    R getResult() throws TimeoutException, InterruptedException;
+    /**
+     * The same as getResult without timeout.
+     */
+    R getResult() throws InterruptedException;
+
+    R getResult(long timeout, TimeUnit unit) throws TimeoutException, InterruptedException;
 }

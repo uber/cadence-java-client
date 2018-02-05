@@ -88,13 +88,9 @@ public final class CadenceClientInternal implements CadenceClient {
         WorkflowInvocationHandler.initAsyncInvocation();
         try {
             workflow.apply();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            // TODO: Appropriate exception type.
-            throw new RuntimeException(e);
-        } finally {
             return WorkflowInvocationHandler.getAsyncInvocationResult();
+        } catch (Exception e) {
+            return new FailedWorkflowExternalResult<>(e);
         }
     }
 

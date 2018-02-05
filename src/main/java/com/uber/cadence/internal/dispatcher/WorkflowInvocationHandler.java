@@ -37,6 +37,7 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 class WorkflowInvocationHandler implements InvocationHandler {
@@ -62,7 +63,8 @@ class WorkflowInvocationHandler implements InvocationHandler {
             }
             WorkflowExternalResult result = reference.get();
             if (result == null) {
-                throw new IllegalStateException("asyncStart result wasn't set");
+                throw new IllegalStateException("Only methods of a stub created through CadenceClient.newWorkflowStub " +
+                        "can be used as a parameter to the asyncStart.");
             }
             return result;
         } finally {
@@ -190,6 +192,6 @@ class WorkflowInvocationHandler implements InvocationHandler {
             async.set(result);
             return Defaults.defaultValue(method.getReturnType());
         }
-        return result.getResult();
+        return result.getResult(options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
     }
 }

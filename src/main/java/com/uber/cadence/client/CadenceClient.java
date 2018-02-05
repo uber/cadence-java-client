@@ -33,14 +33,17 @@ public interface CadenceClient {
     }
 
     /**
-     * Creates workflow client proxy that can be used to start a workflow.
+     * Creates workflow client proxy that can be used to start a single workflow.
+     * The first call must be to a method annotated with @WorkflowMethod.
      * After workflow is started it can be also used to send signals or queries to it.
+     * IMPORTANT! Stub is per workflow instance. So new stub should be created for each new one.
      */
     <T> T newWorkflowStub(Class<T> workflowInterface, StartWorkflowOptions options);
 
     /**
-     * Creates workflow client proxy for a known execution. U
-     * se it to send signals or queries to a running workflow.
+     * Creates workflow client proxy for a known execution.
+     * Use it to send signals or queries to a running workflow.
+     * Do not call methods annotated with @WorkflowMethod.
      */
     <T> T newWorkflowStub(Class<T> workflowInterface, WorkflowExecution execution);
 
