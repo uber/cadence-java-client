@@ -23,6 +23,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import org.apache.thrift.TException;
 
 import java.lang.reflect.Type;
@@ -33,20 +34,17 @@ final class WorkflowExternalResultImpl<R> implements WorkflowExternalResult<R> {
     private final WorkflowService.Iface service;
     private final String domain;
     private final WorkflowExecution execution;
-    private final int executionStartToCloseTimeoutSeconds;
     private final DataConverter dataConverter;
     private final Class<R> returnType;
 
     public WorkflowExternalResultImpl(WorkflowService.Iface service,
                                       String domain,
                                       WorkflowExecution execution,
-                                      int executionStartToCloseTimeoutSeconds,
                                       DataConverter dataConverter,
                                       Class<R> returnType) {
         this.service = service;
         this.domain = domain;
         this.execution = execution;
-        this.executionStartToCloseTimeoutSeconds = executionStartToCloseTimeoutSeconds;
         this.dataConverter = dataConverter;
         this.returnType = returnType;
     }
@@ -80,7 +78,7 @@ final class WorkflowExternalResultImpl<R> implements WorkflowExternalResult<R> {
     }
 
     @Override
-    public R getResult(long timeout, TimeUnit unit) throws TimeoutException, InterruptedException {
+    public R getResult(long timeout, TimeUnit unit) throws TimeoutException {
         WorkflowExecutionCompletedEventAttributes result =
                 WorkflowExecutionUtils.getWorkflowExecutionResult(service, domain, execution, timeout, unit);
         byte[] resultValue = result.getResult();
