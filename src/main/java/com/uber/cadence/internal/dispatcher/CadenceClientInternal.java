@@ -94,27 +94,7 @@ public final class CadenceClientInternal implements CadenceClient {
     public UntypedWorkflowStub newUntypedWorkflowStub(String workflowType, WorkflowExecution execution) {
         return new UntypedWorkflowStubImpl(genericClient, dataConverter, workflowType, execution);
     }
-
-
-    public <R> WorkflowExternalResult<R> asyncStart(String workflow, StartWorkflowOptions options, Class<R> returnType, Object[] args) {
-        StartWorkflowExecutionParameters startParameters = new StartWorkflowExecutionParameters();
-        startParameters.setWorkflowType(new WorkflowType().setName(workflow));
-        startParameters.setInput(dataConverter.toData(args));
-        startParameters.setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds());
-        startParameters.setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
-        startParameters.setWorkflowId(options.getWorkflowId());
-        try {
-            WorkflowExecution started = genericClient.startWorkflow(startParameters);
-            return new WorkflowExternalResultImpl<>(
-                    genericClient.getService(),
-                    genericClient.getDomain(),
-                    started,
-                    dataConverter, returnType);
-        } catch (Exception e) {
-            return new FailedWorkflowExternalResult<>(e);
-        }
-    }
-
+    
     public static WorkflowExternalResult<Void> asyncStart(Functions.Proc workflow) {
         WorkflowInvocationHandler.initAsyncInvocation();
         try {
