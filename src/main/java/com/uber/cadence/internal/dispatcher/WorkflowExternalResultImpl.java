@@ -16,17 +16,15 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.client.WorkflowExternalResult;
-import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.client.WorkflowExternalResult;
+import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
-import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import org.apache.thrift.TException;
 
-import java.lang.reflect.Type;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -69,7 +67,7 @@ final class WorkflowExternalResultImpl<R> implements WorkflowExternalResult<R> {
     }
 
     @Override
-    public R getResult() throws InterruptedException {
+    public R getResult() {
         try {
             return getResult(0, TimeUnit.MICROSECONDS);
         } catch (TimeoutException e) {
