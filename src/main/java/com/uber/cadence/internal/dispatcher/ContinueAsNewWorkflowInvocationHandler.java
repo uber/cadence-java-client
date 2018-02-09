@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
@@ -28,10 +29,12 @@ class ContinueAsNewWorkflowInvocationHandler implements InvocationHandler {
 
     private final ContinueAsNewWorkflowExecutionParameters parameters;
     private final SyncDecisionContext decisionContext;
+    private final DataConverter dataConverter;
 
     public ContinueAsNewWorkflowInvocationHandler(ContinueAsNewWorkflowExecutionParameters parameters, SyncDecisionContext decisionContext) {
-        this.parameters = parameters;
+        this.parameters = parameters == null ? new ContinueAsNewWorkflowExecutionParameters() : parameters;
         this.decisionContext = decisionContext;
+        this.dataConverter = decisionContext.getDataConverter();
     }
 
     @Override
@@ -47,6 +50,7 @@ class ContinueAsNewWorkflowInvocationHandler implements InvocationHandler {
         if (workflowMethod == null) {
                 throw new IllegalStateException("ContinueAsNew Stub supports only calls to methods annotated with @WorkflowMethod");
         }
+        parameters.setInput(dataConverter.toData(args));
         decisionContext.continueAsNewOnCompletion(parameters);
         WorkflowThreadInternal.exit(null);
         return null;

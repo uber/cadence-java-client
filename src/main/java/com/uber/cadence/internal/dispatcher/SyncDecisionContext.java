@@ -148,6 +148,10 @@ class SyncDecisionContext {
         context.getWorkflowClient().continueAsNewOnCompletion(parameters);
     }
 
+    public DataConverter getDataConverter() {
+        return converter;
+    }
+
     private static class ActivityFutureCancellationHandler<T> implements BiConsumer<WorkflowFuture<T>, Boolean> {
         private Consumer<Throwable> cancellationCallback;
 

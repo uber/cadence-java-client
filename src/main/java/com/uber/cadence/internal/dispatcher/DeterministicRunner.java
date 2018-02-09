@@ -64,7 +64,7 @@ interface DeterministicRunner {
     boolean isDone();
 
     /**
-     * @return exit value passed to WorkflowThreadInternal.exit(). Used by "continue as new" feature.
+     * @return exit value passed to WorkflowThreadInternal.exit().
      */
     <R> R getExitValue();
 

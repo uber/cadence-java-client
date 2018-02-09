@@ -48,6 +48,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private LinkedList<DeterministicRunnerCoroutine> threads = new LinkedList<>(); // protected by lock
     private List<DeterministicRunnerCoroutine> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
     private final Supplier<Long> clock;
+    private boolean closed;
+
     /**
      * Time at which any thread that runs under dispatcher can make progress.
      * For example when {@link WorkflowThread#sleep(long)} expires.
@@ -89,6 +91,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public void runUntilAllBlocked() throws Throwable {
         lock.lock();
         try {
+            lock.lock();
+            try {
+                if (closed) {
+                    throw new IllegalStateException("closed");
+                }
+            } finally {
+                lock.unlock();
+            }
             Throwable unhandledException = null;
             // Keep repeating until at least one of the threads makes progress.
             boolean progress;
@@ -131,7 +141,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public boolean isDone() {
         lock.lock();
         try {
-            return threads.isEmpty();
+            return closed || threads.isEmpty();
         } finally {
             lock.unlock();
         }
@@ -145,6 +155,9 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public void close() {
         lock.lock();
+        if (closed) {
+            return;
+        }
         try {
             for (DeterministicRunnerCoroutine c : threads) {
                 c.stop();
@@ -160,6 +173,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 }
             }
         } finally {
+            closed = true;
             lock.unlock();
         }
     }
@@ -190,10 +204,26 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     public WorkflowThreadInternal newThread(Functions.Proc r) {
+        lock.lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException("closed");
+            }
+        } finally {
+            lock.unlock();
+        }
         return newThread(r, null);
     }
 
     public WorkflowThreadInternal newThread(Functions.Proc r, String name) {
+        lock.lock();
+        try {
+            if (closed) {
+                throw new IllegalStateException("closed");
+            }
+        } finally {
+            lock.unlock();
+        }
         WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, r);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
@@ -202,6 +232,9 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public void newCallbackTask(Functions.Func<Boolean> task, String taskName) {
         lock.lock();
+        if (closed) {
+            throw new IllegalStateException("closed");
+        }
         try {
             threads.add(new CallbackCoroutine(threadPool, this, taskName, task));
         } finally {
