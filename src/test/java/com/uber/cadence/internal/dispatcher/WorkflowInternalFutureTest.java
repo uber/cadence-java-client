@@ -326,5 +326,4 @@ public class WorkflowInternalFutureTest {
         };
         trace.setExpected(expected);
     }
-
 }
