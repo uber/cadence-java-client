@@ -387,4 +387,8 @@ public final class WorkflowInternal {
     public static <U> WorkflowFuture<List<U>> futureAllOf(Collection<WorkflowFuture<U>> futures) {
         return new AllOfFuture(futures);
     }
+
+    public static WorkflowFuture<Void> futureAllOf(WorkflowFuture<?>... futures) {
+        return new AllOfFuture(futures);
+    }
 }

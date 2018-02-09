@@ -35,40 +35,54 @@ class AllOfFuture<G> implements WorkflowFuture<List<G>> {
 
     private int notReadyCount;
 
+    public AllOfFuture(WorkflowFuture<G>[] futures) {
+        // Using array to initialize it to the desired size with nulls.
+        result = (G[])new Object[futures.length];
+        int index = 0;
+        for (WorkflowFuture<G> f : futures) {
+            addFuture(index, f);
+            index++;
+        }
+    }
+
     public AllOfFuture(Collection<WorkflowFuture<G>> futures) {
         // Using array to initialize it to the desired size with nulls.
         result = (G[])new Object[futures.size()];
         int index = 0;
         for (WorkflowFuture<G> f : futures) {
-            if (f.isDone()) {
-                try {
-                    result[index] = f.get();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                notReadyCount++;
-                final int i = index;
-                f.handle((r, e) -> {
-                    if (notReadyCount == 0) {
-                        throw new Exception("Unexpected 0 count");
-                    }
-                    if (impl.isDone()) {
-                        return null;
-                    }
-                    if (e != null) {
-                        impl.completeExceptionally(e);
-                    }
-                    result[i] =  r;
-                    if (--notReadyCount == 0) {
-                        impl.complete(Arrays.asList(result));
-                    }
-                    return null;
-                });
-            }
+            addFuture(index, f);
             index++;
+        }
+    }
+
+    private void addFuture(int index, WorkflowFuture<G> f) {
+        if (f.isDone()) {
+            try {
+                result[index] = f.get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            notReadyCount++;
+            final int i = index;
+            f.handle((r, e) -> {
+                if (notReadyCount == 0) {
+                    throw new Exception("Unexpected 0 count");
+                }
+                if (impl.isDone()) {
+                    return null;
+                }
+                if (e != null) {
+                    impl.completeExceptionally(e);
+                }
+                result[i] =  r;
+                if (--notReadyCount == 0) {
+                    impl.complete(Arrays.asList(result));
+                }
+                return null;
+            });
         }
     }
 

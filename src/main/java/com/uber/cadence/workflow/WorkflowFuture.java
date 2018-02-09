@@ -35,4 +35,8 @@ public interface WorkflowFuture<T> extends Future<T> {
     static <U> WorkflowFuture<List<U>> allOf(Collection<WorkflowFuture<U>> futures) {
         return WorkflowInternal.futureAllOf(futures);
     }
+
+    static WorkflowFuture<Void> allOf(WorkflowFuture<?>... futures) {
+        return WorkflowInternal.futureAllOf(futures);
+    }
 }
