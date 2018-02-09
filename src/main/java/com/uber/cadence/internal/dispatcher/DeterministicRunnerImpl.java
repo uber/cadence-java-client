@@ -59,11 +59,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      * It is to avoid failure swallowing by failedFutures which is very hard to troubleshoot.
      */
     private Set<WorkflowFuture> failedFutures = new HashSet<>();
+    private Object exitValue;
 
     public DeterministicRunnerImpl(Functions.Proc root) {
         this(System::currentTimeMillis, root);
     }
-    
+
     public DeterministicRunnerImpl(Supplier<Long> clock, Functions.Proc root) {
         this(new ThreadPoolExecutor(0, 1000, 1, TimeUnit.MINUTES, new SynchronousQueue<>()),
                 null,
@@ -134,6 +135,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
+    }
+
+    @Override
+    public <R> R getExitValue() {
+        return (R) exitValue;
     }
 
     @Override
@@ -232,5 +238,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      */
     public <T> void forgetFailedFuture(WorkflowFuture future) {
         failedFutures.remove(future);
+    }
+
+    <R> void exit(R value) {
+        this.exitValue = value;
+        close();
     }
 }

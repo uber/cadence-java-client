@@ -84,7 +84,7 @@ public final class Workflow {
      * @param activityInterface interface type implemented by activities
      */
     public static <T> T newActivityClient(Class<T> activityInterface, ActivitySchedulingOptions options) {
-        return WorkflowInternal.newActivityClient(activityInterface, options);
+        return WorkflowInternal.newActivityStub(activityInterface, options);
     }
 
     /**

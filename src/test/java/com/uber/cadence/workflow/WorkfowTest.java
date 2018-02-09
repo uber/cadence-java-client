@@ -347,6 +347,7 @@ public class WorkfowTest {
         WorkflowExternalResult<String> result = CadenceClient.asyncStart(client::execute);
         assertEquals("initial", client.getState());
         client.mySignal("Hello ");
+        Thread.sleep(200);
         assertEquals("Hello ", client.getState());
         client.mySignal("World!");
         assertEquals("World!", client.getState());
@@ -354,7 +355,7 @@ public class WorkfowTest {
     }
 
     @Test
-    public void testSignalUntyped() throws TimeoutException, InterruptedException {
+    public void testSignalUntyped() throws InterruptedException {
         worker.addWorkflowType(TestSignalWorkflowImpl.class);
         String workflowType = QueryableWorkflow.class.getSimpleName() + "::execute";
         UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub(workflowType, newStartWorkflowOptions());
