@@ -344,7 +344,7 @@ class AsyncDecider {
 //            // Throwing from here drops decision task which is OK as it is rescheduled after its StartToClose timeout.
 //            if (e.getErrorType() == ErrorType.Client && !"ThrottlingException".equals(e.getErrorCode())) {
 //                if (log.isErrorEnabled()) {
-//                    log.error("Failing workflow " + workflowContext.getWorkflowExecution(), e);
+//                    log.error("Failing workflow " + workflowContext.__getWorkflowExecution(), e);
 //                }
 //                decisionsHelper.failWorkflowDueToUnexpectedError(e);
 //            }

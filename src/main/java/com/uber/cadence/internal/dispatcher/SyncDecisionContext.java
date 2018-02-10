@@ -16,15 +16,21 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.ActivitySchedulingOptions;
+import com.uber.cadence.ActivityType;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.DataConverter;
+import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
-import com.uber.cadence.ActivityType;
+import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
+import com.uber.cadence.workflow.ActivitySchedulingOptions;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.workflow.WorkflowFuture;
 
@@ -41,6 +47,7 @@ import java.util.function.Consumer;
 class SyncDecisionContext {
     private final AsyncDecisionContext context;
     private final GenericAsyncActivityClient activityClient;
+    private final GenericAsyncWorkflowClient workflowClient;
     private final DataConverter converter;
     private final WorkflowTimers timers = new WorkflowTimers();
     private Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
@@ -48,6 +55,7 @@ class SyncDecisionContext {
     public SyncDecisionContext(AsyncDecisionContext context, DataConverter converter) {
         this.context = context;
         activityClient = context.getActivityClient();
+        workflowClient = context.getWorkflowClient();
         this.converter = converter;
     }
 
@@ -100,6 +108,39 @@ class SyncDecisionContext {
                     }
                 });
         cancellationHandler.setCancellationCallback(cancellationCallback);
+        return result;
+    }
+
+    // TODO: Child workflow cancellation
+
+    /**
+     * @param executionResult future that is set bu this method when child workflow is started.
+     */
+    public WorkflowFuture<byte[]> executeChildWorkflowAsync(
+            String name, StartWorkflowOptions options, byte[] input, WorkflowFuture<WorkflowExecution> executionResult) {
+//        ActivityFutureCancellationHandler cancellationHandler = new ActivityFutureCancellationHandler<>();
+//        WorkflowFuture<byte[]> result = new WorkflowFutureImpl<>(cancellationHandler);
+        StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters();
+        parameters.withWorkflowType(new WorkflowType().setName(name)).
+                withInput(input).
+                withTaskList(options.getTaskList()).
+                withExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds()).
+                withTaskList(options.getTaskList()).
+                withWorkflowId(options.getWorkflowId()).
+                withTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
+
+        WorkflowFuture<byte[]> result = Workflow.newFuture();
+        Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
+                (execution) -> executionResult.complete(execution),
+                (output, failure) -> {
+                    if (failure != null) {
+                        // TODO: Make sure that only Exceptions are passed into the callback.
+                        result.completeExceptionally((Exception) failure);
+                    } else {
+                        result.complete(output);
+                    }
+                });
+//        cancellationHandler.setCancellationCallback(cancellationCallback);
         return result;
     }
 
