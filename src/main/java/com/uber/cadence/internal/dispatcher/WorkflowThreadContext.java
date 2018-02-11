@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
@@ -48,14 +49,14 @@ class WorkflowThreadContext {
         this.evaluationCondition = lock.newCondition();
     }
 
-    public void initialYield() throws InterruptedException {
+    public void initialYield() throws CancellationException {
         if (getStatus() != Status.CREATED) {
             throw new IllegalStateException("not in CREATED but in " + getStatus() + " state");
         }
         yield("created", () -> true);
     }
 
-    public void yield(String reason, Supplier<Boolean> unblockFunction) throws InterruptedException {
+    public void yield(String reason, Supplier<Boolean> unblockFunction) throws CancellationException {
         if (unblockFunction == null) {
             throw new IllegalArgumentException("null unblockFunction");
         }
@@ -63,13 +64,16 @@ class WorkflowThreadContext {
         lock.lock();
         try {
             // TODO: Verify that calling unblockFunction under the lock is a sane thing to do.
-            while (!inRunUntilBlocked || throwInterrupted() || !unblockFunction.get()) {
+            while (!inRunUntilBlocked || throwCancellation() || !unblockFunction.get()) {
                 status = Status.YIELDED;
                 runCondition.signal();
                 yieldCondition.await();
                 mayBeEvaluate(reason);
                 yieldReason = reason;
             }
+        } catch (InterruptedException e) {
+            // Throwing Error in workflow code aborts decision without failing workflow.
+            throw new Error("Unexpected interrupt", e);
         } finally {
             setStatus(Status.RUNNING);
             remainedBlocked = false;
@@ -85,10 +89,10 @@ class WorkflowThreadContext {
      * @return true just to be able to use in the while expression.
      * @throws InterruptedException if interrupted is true
      */
-    private boolean throwInterrupted() throws InterruptedException {
+    private boolean throwCancellation() throws CancellationException {
         if (interrupted) {
             interrupted = false;
-            throw new InterruptedException();
+            throw new CancellationException();
         }
         return false;
     }

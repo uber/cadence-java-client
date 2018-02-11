@@ -17,7 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
-import com.uber.cadence.workflow.WorkflowFuture;
+import com.uber.cadence.workflow.WFuture;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,7 +29,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -61,20 +60,20 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      * Used to check for failedFutures that contain an error, but never where accessed.
      * It is to avoid failure swallowing by failedFutures which is very hard to troubleshoot.
      */
-    private Set<WorkflowFuture> failedFutures = new HashSet<>();
+    private Set<WFuture> failedFutures = new HashSet<>();
     private Object exitValue;
 
-    public DeterministicRunnerImpl(Functions.Proc root) {
+    DeterministicRunnerImpl(Functions.Proc root) {
         this(System::currentTimeMillis, root);
     }
 
-    public DeterministicRunnerImpl(Supplier<Long> clock, Functions.Proc root) {
+    DeterministicRunnerImpl(Supplier<Long> clock, Functions.Proc root) {
         this(new ThreadPoolExecutor(0, 1000, 1, TimeUnit.MINUTES, new SynchronousQueue<>()),
                 null,
                 clock, root);
     }
 
-    public DeterministicRunnerImpl(ExecutorService threadPool, SyncDecisionContext decisionContext, Supplier<Long> clock, Functions.Proc root) {
+    DeterministicRunnerImpl(ExecutorService threadPool, SyncDecisionContext decisionContext, Supplier<Long> clock, Functions.Proc root) {
         this.threadPool = threadPool;
         this.decisionContext = decisionContext;
         this.clock = clock;
@@ -164,13 +163,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 c.stop();
             }
             threads.clear();
-            for (WorkflowFuture<?> f : failedFutures) {
+            for (WFuture<?> f : failedFutures) {
                 try {
                     f.get();
                     throw new Error("unreachable");
-                } catch (ExecutionException e) {
-                    log.warn("Failed WorkflowFuture was never accessed. The ignored exception:", e.getCause());
-                } catch (InterruptedException e) {
+                } catch (RuntimeException e) {
+                    log.warn("Failed WFuture was never accessed. The ignored exception:", e.getCause());
                 }
             }
         } finally {
@@ -278,14 +276,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     /**
      * Register a future that had failed but wasn't accessed yet.
      */
-    public <T> void registerFailedFuture(WorkflowFuture future) {
+    public void registerFailedFuture(WFuture future) {
         failedFutures.add(future);
     }
 
     /**
      * Forget a failed future as it was accessed.
      */
-    public <T> void forgetFailedFuture(WorkflowFuture future) {
+    public void forgetFailedFuture(WFuture future) {
         failedFutures.remove(future);
     }
 

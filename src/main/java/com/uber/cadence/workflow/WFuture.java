@@ -14,34 +14,11 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.workflow;
 
-import java.util.function.BiConsumer;
+public interface WFuture<V> extends RFuture<V> {
 
-class OpenRequestInfo<T, C> {
+    boolean complete(V value);
 
-    BiConsumer<T, RuntimeException> completionHandle;
-
-    final C userContext;
-
-    OpenRequestInfo() {
-        userContext = null;
-    }
-
-    OpenRequestInfo(C userContext) {
-        this.userContext = userContext;
-    }
-
-    BiConsumer<T, RuntimeException> getCompletionCallback() {
-        return completionHandle;
-    }
-
-    void setCompletionHandle(BiConsumer<T, RuntimeException> context) {
-        this.completionHandle = context;
-    }
-
-    C getUserContext() {
-        return userContext;
-    }
-
+    boolean completeExceptionally(RuntimeException value);
 }

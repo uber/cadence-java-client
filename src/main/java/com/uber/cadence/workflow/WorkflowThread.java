@@ -18,15 +18,16 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 public interface WorkflowThread {
 
     void start();
 
-    void join() throws InterruptedException;
+    void join() throws CancellationException;
 
-    void join(long millis) throws InterruptedException;
+    void join(long millis) throws CancellationException;
 
     void interrupt();
 

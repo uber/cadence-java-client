@@ -21,6 +21,7 @@ import com.uber.cadence.workflow.WorkflowThread;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -180,13 +181,13 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     }
 
     @Override
-    public void join() throws InterruptedException {
+    public void join() throws CancellationException {
         WorkflowThreadInternal.yield("WorkflowThread.join", () -> isDone());
     }
 
     // TODO: Timeout support
     @Override
-    public void join(long millis) throws InterruptedException {
+    public void join(long millis) throws CancellationException {
         WorkflowThreadInternal.yield(millis, "WorkflowThread.join", () -> isDone());
     }
 
@@ -332,7 +333,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @throws InterruptedException       if thread was interrupted.
      * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
      */
-    static void yield(String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+    static void yield(String reason, Supplier<Boolean> unblockCondition) throws CancellationException, DestroyWorkflowThreadError {
         WorkflowThreadInternal.currentThreadInternal().getContext().yield(reason, unblockCondition);
     }
 
@@ -341,7 +342,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      *
      * @return false if timed out.
      */
-    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws CancellationException, DestroyWorkflowThreadError {
         if (timeoutMillis == 0) {
             return unblockCondition.get();
         }

@@ -58,5 +58,5 @@ public interface AsyncWorkflow {
      * Called after all history is replayed and workflow cannot make any progress if decision task is a query.
      * @param query
      */
-    byte[] query(WorkflowQuery query) throws Exception;
+    byte[] query(WorkflowQuery query);
 }

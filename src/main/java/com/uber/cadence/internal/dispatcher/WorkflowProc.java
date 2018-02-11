@@ -40,7 +40,7 @@ class WorkflowProc implements Functions.Proc {
     }
 
     @Override
-    public void apply() throws Exception {
+    public void apply() {
         output = workflow.execute(attributes.getInput());
         done = true;
     }
@@ -72,7 +72,7 @@ class WorkflowProc implements Functions.Proc {
         workflow.processSignal(signalName, input);
     }
 
-    public byte[] query(String type, byte[] args) throws Exception {
+    public byte[] query(String type, byte[] args) {
         return context.query(type, args);
     }
 }

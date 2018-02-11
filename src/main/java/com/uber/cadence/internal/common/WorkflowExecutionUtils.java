@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
+import com.uber.cadence.error.CheckedExceptionWrapper;
 import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.internal.worker.SynchronousRetrier;
 import org.apache.thrift.TException;
@@ -34,7 +35,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -139,10 +139,9 @@ public class WorkflowExecutionUtils {
             r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
             r.setNextPageToken(pageToken);
             try {
-                response = getInstanceCloseEventRetryer.
-                        retryWithResult(() -> service.GetWorkflowExecutionHistory(r));
+                response = getInstanceCloseEventRetryer.retryWithResult(() -> service.GetWorkflowExecutionHistory(r));
             } catch (TException e) {
-                throw new RuntimeException(e);
+                throw CheckedExceptionWrapper.wrap(e);
             }
             if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
                 throw new TimeoutException("WorkflowId=" + workflowExecution.getWorkflowId() +

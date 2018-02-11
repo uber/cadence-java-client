@@ -20,8 +20,6 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowExternalResult;
-import com.uber.cadence.internal.DataConverter;
-import com.uber.cadence.internal.JsonDataConverter;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
@@ -58,7 +56,6 @@ public class WorkflowTest {
     private static final String serviceName = "cadence-frontend";
     private static final String domain = "UnitTest";
     private static final String taskList = "UnitTest";
-    private static final DataConverter dataConverter = new JsonDataConverter();
     private static final Log log;
 
     static {
@@ -223,27 +220,21 @@ public class WorkflowTest {
         @Override
         public String execute() {
             TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, activitySchedulingOptions);
-            try {
-                assertEquals("activity", Workflow.async(testActivities::activity).get());
-                assertEquals("1", Workflow.async(testActivities::activity1, "1").get());
-                assertEquals("12", Workflow.async(testActivities::activity2, "1", 2).get());
-                assertEquals("123", Workflow.async(testActivities::activity3, "1", 2, 3).get());
-                assertEquals("1234", Workflow.async(testActivities::activity4, "1", 2, 3, 4).get());
-                assertEquals("12345", Workflow.async(testActivities::activity5, "1", 2, 3, 4, 5).get());
-                assertEquals("123456", Workflow.async(testActivities::activity6, "1", 2, 3, 4, 5, 6).get());
+            assertEquals("activity", Workflow.async(testActivities::activity).get());
+            assertEquals("1", Workflow.async(testActivities::activity1, "1").get());
+            assertEquals("12", Workflow.async(testActivities::activity2, "1", 2).get());
+            assertEquals("123", Workflow.async(testActivities::activity3, "1", 2, 3).get());
+            assertEquals("1234", Workflow.async(testActivities::activity4, "1", 2, 3, 4).get());
+            assertEquals("12345", Workflow.async(testActivities::activity5, "1", 2, 3, 4, 5).get());
+            assertEquals("123456", Workflow.async(testActivities::activity6, "1", 2, 3, 4, 5, 6).get());
 
-                Workflow.async(testActivities::proc).get();
-                Workflow.async(testActivities::proc1, "1").get();
-                Workflow.async(testActivities::proc2, "1", 2).get();
-                Workflow.async(testActivities::proc3, "1", 2, 3).get();
-                Workflow.async(testActivities::proc4, "1", 2, 3, 4).get();
-                Workflow.async(testActivities::proc5, "1", 2, 3, 4, 5).get();
-                Workflow.async(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            Workflow.async(testActivities::proc).get();
+            Workflow.async(testActivities::proc1, "1").get();
+            Workflow.async(testActivities::proc2, "1", 2).get();
+            Workflow.async(testActivities::proc3, "1", 2, 3).get();
+            Workflow.async(testActivities::proc4, "1", 2, 3, 4).get();
+            Workflow.async(testActivities::proc5, "1", 2, 3, 4, 5).get();
+            Workflow.async(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
             return "workflow";
         }
     }
@@ -309,22 +300,16 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WorkflowFuture<Void> timer1 = Workflow.newTimer(1);
-            WorkflowFuture<Void> timer2 = Workflow.newTimer(2);
+            WFuture<Void> timer1 = Workflow.newTimer(1);
+            WFuture<Void> timer2 = Workflow.newTimer(2);
 
-            try {
-                long time = Workflow.currentTimeMillis();
-                timer1.get();
-                long slept = Workflow.currentTimeMillis() - time;
-                assertTrue(slept > 1000);
-                timer2.get();
-                slept = Workflow.currentTimeMillis() - time;
-                assertTrue(slept > 2000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            long time = Workflow.currentTimeMillis();
+            timer1.get();
+            long slept = Workflow.currentTimeMillis() - time;
+            assertTrue(slept > 1000);
+            timer2.get();
+            slept = Workflow.currentTimeMillis() - time;
+            assertTrue(slept > 2000);
             return "testTimer";
         }
     }
@@ -341,17 +326,11 @@ public class WorkflowTest {
 
         String state = "initial";
         List<String> signals = new ArrayList<>();
-        WorkflowFuture future = Workflow.newFuture();
+        WFuture future = Workflow.newFuture();
 
         @Override
         public String execute() {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            future.get();
             return signals.get(0) + signals.get(1);
         }
 
@@ -460,22 +439,16 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WorkflowFuture<Void> timer1 = Workflow.newTimer(0);
-            WorkflowFuture<Void> timer2 = Workflow.newTimer(1);
+            WFuture<Void> timer1 = Workflow.newTimer(0);
+            WFuture<Void> timer2 = Workflow.newTimer(1);
 
-            try {
-                WorkflowFuture<Void> f = Workflow.newFuture();
-                timer1.thenApply((e) -> {
-                    timer2.get(); // This is prohibited
-                    f.complete(null);
-                    return null;
-                }).get();
-                f.get();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            WFuture<Void> f = Workflow.newFuture();
+            timer1.thenApply((e) -> {
+                timer2.get(); // This is prohibited
+                f.complete(null);
+                return null;
+            }).get();
+            f.get();
             return "testTimerBlocked";
         }
     }
@@ -523,16 +496,10 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WorkflowFuture<String> r1 = Workflow.async(child1::execute, "Hello ");
+            WFuture<String> r1 = Workflow.async(child1::execute, "Hello ");
             String r2 = child2.execute("World!");
-            try {
-                assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
-                return r1.get() + r2;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
+            return r1.get() + r2;
         }
     }
 

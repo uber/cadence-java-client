@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.WorkflowFuture;
+import com.uber.cadence.workflow.WFuture;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,9 +37,9 @@ class WorkflowTimers {
      */
     private static class Timers {
 
-        private final Set<WorkflowFuture<Void>> results = new HashSet<>();
+        private final Set<WFuture<Void>> results = new HashSet<>();
 
-        public void addTimer(WorkflowFuture<Void> result) {
+        public void addTimer(WFuture<Void> result) {
             results.add(result);
             // Remove timer on cancellation
             result.handle((r, failure) -> {
@@ -52,7 +52,7 @@ class WorkflowTimers {
         }
 
         public void fire() {
-            for (WorkflowFuture<Void> t : results) {
+            for (WFuture<Void> t : results) {
                 t.complete(null);
             }
         }
@@ -63,7 +63,7 @@ class WorkflowTimers {
      */
     private final SortedMap<Long, Timers> timers = new TreeMap<>();
 
-    public void addTimer(long fireTime, WorkflowFuture<Void> result) {
+    public void addTimer(long fireTime, WFuture<Void> result) {
         Timers t = timers.get(fireTime);
         if (t == null) {
             t = new Timers();

@@ -20,11 +20,13 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -65,17 +67,13 @@ public class DeterministicRunnerTest {
     public void testYield() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             status = "started";
-            try {
-                WorkflowThreadInternal.yield("reason1",
-                        () -> unblock1
-                );
-                status = "after1";
-                WorkflowThreadInternal.yield("reason2",
-                        () -> unblock2
-                );
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            WorkflowThreadInternal.yield("reason1",
+                    () -> unblock1
+            );
+            status = "after1";
+            WorkflowThreadInternal.yield("reason2",
+                    () -> unblock2
+            );
             status = "done";
         });
         assertEquals("initial", status);
@@ -140,13 +138,9 @@ public class DeterministicRunnerTest {
     public void testRootFailure() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             status = "started";
-            try {
-                WorkflowThreadInternal.yield("reason1",
-                        () -> unblock1
-                );
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            WorkflowThreadInternal.yield("reason1",
+                    () -> unblock1
+            );
             throw new RuntimeException("simulated");
         });
         assertEquals("initial", status);
@@ -166,23 +160,19 @@ public class DeterministicRunnerTest {
     public void testDispatcherStop() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             status = "started";
+            WorkflowThreadInternal.yield("reason1",
+                    () -> unblock1
+            );
+            status = "after1";
             try {
-                WorkflowThreadInternal.yield("reason1",
-                        () -> unblock1
+                WorkflowThreadInternal.yield("reason2",
+                        () -> unblock2
                 );
-                status = "after1";
-                try {
-                    WorkflowThreadInternal.yield("reason2",
-                            () -> unblock2
-                    );
-                } catch (DestroyWorkflowThreadError e) {
-                    failure = e;
-                    throw e;
-                }
-                status = "done";
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+            } catch (DestroyWorkflowThreadError e) {
+                failure = e;
+                throw e;
             }
+            status = "done";
         });
         assertEquals("initial", status);
         d.runUntilAllBlocked();
@@ -239,6 +229,7 @@ public class DeterministicRunnerTest {
     }
 
     @Test
+    @Ignore // TODO: Until Cancellaton is done.
     public void testRootSelfInterrupt() throws Throwable {
         status = "initial";
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
@@ -248,7 +239,7 @@ public class DeterministicRunnerTest {
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1
                 );
-            } catch (InterruptedException e) {
+            } catch (CancellationException e) {
                 if (WorkflowThread.interrupted()) {
                     status = "still interrupted";
                 } else {
@@ -266,25 +257,17 @@ public class DeterministicRunnerTest {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             WorkflowThread thread = WorkflowInternal.newThread(() -> {
                 status = "started";
-                try {
-                    WorkflowThreadInternal.yield("reason1",
-                            () -> unblock1
-                    );
-                    status = "after1";
-                    WorkflowThreadInternal.yield("reason2",
-                            () -> unblock2
-                    );
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                WorkflowThreadInternal.yield("reason1",
+                        () -> unblock1
+                );
+                status = "after1";
+                WorkflowThreadInternal.yield("reason2",
+                        () -> unblock2
+                );
                 status = "done";
             });
             thread.start();
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            thread.join();
         });
         assertEquals("initial", status);
         d.runUntilAllBlocked();
@@ -303,6 +286,7 @@ public class DeterministicRunnerTest {
     }
 
     @Test
+    @Ignore
     public void testChildInterrupt() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
@@ -316,7 +300,7 @@ public class DeterministicRunnerTest {
                     WorkflowThreadInternal.yield("reason2",
                             () -> unblock2
                     );
-                } catch (InterruptedException e) {
+                } catch (CancellationException e) {
                     // Set to false when exception was thrown.
                     assertFalse(Thread.currentThread().isInterrupted());
                     trace.add("child interrupted");
@@ -324,20 +308,16 @@ public class DeterministicRunnerTest {
                 trace.add("child done");
             });
             thread.start();
-            try {
-                trace.add("root blocked");
-                WorkflowThreadInternal.yield("rootReason1",
-                        () -> unblockRoot
-                );
-                assertFalse(thread.isInterrupted());
-                thread.interrupt();
-                assertTrue(thread.isInterrupted());
-                trace.add("root waiting for join");
-                thread.join();
-                trace.add("root done");
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            trace.add("root blocked");
+            WorkflowThreadInternal.yield("rootReason1",
+                    () -> unblockRoot
+            );
+            assertFalse(thread.isInterrupted());
+            thread.interrupt();
+            assertTrue(thread.isInterrupted());
+            trace.add("root waiting for join");
+            thread.join();
+            trace.add("root done");
         });
 
         d.runUntilAllBlocked();
@@ -372,21 +352,13 @@ public class DeterministicRunnerTest {
 
                     WorkflowThread thread = WorkflowInternal.newThread(() -> {
                         trace.add("child started");
-                        try {
-                            WorkflowThreadInternal.yield("blockForever",
-                                    () -> false
-                            );
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }
+                        WorkflowThreadInternal.yield("blockForever",
+                                () -> false
+                        );
                         trace.add("child done");
                     });
                     thread.start();
-                    try {
-                        thread.join(60000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                    thread.join(60000);
                     trace.add("root done");
                 });
         currentTime = 1000;
@@ -435,18 +407,10 @@ public class DeterministicRunnerTest {
             }
             WorkflowThread thread = WorkflowInternal.newThread(new TestChildTreeRunnable(depth + 1));
             thread.start();
-            try {
-                WorkflowThreadInternal.yield("reason1",
-                        () -> unblock1
-                );
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            WorkflowThreadInternal.yield("reason1",
+                    () -> unblock1
+            );
+            thread.join();
             trace.add("child " + depth + " done");
         }
     }
