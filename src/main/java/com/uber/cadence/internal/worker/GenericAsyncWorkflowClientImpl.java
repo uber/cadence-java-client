@@ -97,25 +97,41 @@ class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
         if (workflowId == null) {
             workflowId = generateUniqueId();
         }
+        if (parameters.getDomain() == null) {
+            // Could be removed as soon as server allows null for domain.
+            attributes.setDomain(workflowContext.getDomain());
+        } else {
+            attributes.setDomain(parameters.getDomain());
+        }
         attributes.setWorkflowId(workflowId);
         attributes.setInput(parameters.getInput());
-        attributes.setExecutionStartToCloseTimeoutSeconds(parameters.getExecutionStartToCloseTimeoutSeconds());
-        attributes.setTaskStartToCloseTimeoutSeconds(parameters.getTaskStartToCloseTimeoutSeconds());
-//        attributes.setTaskPriority(FlowHelpers.taskPriorityToString(parameters.getTaskPriority()));
-//        List<String> tagList = parameters.getTagList();
-//        if (tagList != null) {
-//            attributes.setTagList(tagList);
-//        }
-        ChildPolicy childPolicy = parameters.getChildPolicy();
-        if (childPolicy != null) {
-            attributes.setChildPolicy(childPolicy);
+        if (parameters.getExecutionStartToCloseTimeoutSeconds() == 0) {
+            // TODO: Substract time passed since the parent start
+            attributes.setExecutionStartToCloseTimeoutSeconds(workflowContext.getExecutionStartToCloseTimeoutSeconds());
+        } else {
+            attributes.setExecutionStartToCloseTimeoutSeconds(parameters.getExecutionStartToCloseTimeoutSeconds());
+        }
+        if (parameters.getTaskStartToCloseTimeoutSeconds() == 0) {
+            attributes.setTaskStartToCloseTimeoutSeconds(workflowContext.getDecisionTaskTimeoutSeconds());
+        } else {
+            attributes.setTaskStartToCloseTimeoutSeconds(parameters.getTaskStartToCloseTimeoutSeconds());
+        }
+        if (parameters.getChildPolicy() == null) {
+            // TODO: Child policy from a parent as soon as it is available in the WorkflowExecutionStarted event
+            // Or when server accepts null
+//            attributes.setChildPolicy(workflowContext.getChildPolicy());
+            attributes.setChildPolicy(ChildPolicy.TERMINATE);
+        } else {
+            attributes.setChildPolicy(parameters.getChildPolicy());
         }
         String taskList = parameters.getTaskList();
+        TaskList tl = new TaskList();
         if (taskList != null && !taskList.isEmpty()) {
-            TaskList tl = new TaskList();
             tl.setName(taskList);
-            attributes.setTaskList(tl);
+        } else {
+            tl.setName(workflowContext.getTaskList());
         }
+        attributes.setTaskList(tl);
         decisions.startChildWorkflowExecution(attributes);
         final OpenChildWorkflowRequestInfo context = new OpenChildWorkflowRequestInfo(executionCallback);
         context.setCompletionHandle(callback);
@@ -125,8 +141,7 @@ class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
 
     @Override
     public Consumer<Throwable> startChildWorkflow(String workflow, byte[] input, BiConsumer<byte[], Throwable> callback) {
-        return startChildWorkflow(workflow, input, (s) -> {
-        }, callback);
+        return startChildWorkflow(workflow, input, (s) -> {}, callback);
     }
 
     @Override

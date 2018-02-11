@@ -91,7 +91,7 @@ public class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
     private Object executeChildWorkflow(Method method, Object[] args) {
         String workflowName = FlowHelpers.getSimpleName(method);
         byte[] input = dataConverter.toData(args);
-        WorkflowFuture<byte[]> encodedResult = decisionContext.executeChildWorkflowAsync(
+        WorkflowFuture<byte[]> encodedResult = decisionContext.executeChildWorkflow(
                 workflowName, options, input, execution);
         WorkflowFuture result = encodedResult.thenApply(
                 (encoded) -> dataConverter.fromData(encoded, method.getReturnType()));

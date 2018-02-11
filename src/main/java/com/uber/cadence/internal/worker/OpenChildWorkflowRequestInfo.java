@@ -20,7 +20,7 @@ import com.uber.cadence.WorkflowExecution;
 
 import java.util.function.Consumer;
 
-public class OpenChildWorkflowRequestInfo extends OpenRequestInfo<byte[], String> {
+class OpenChildWorkflowRequestInfo extends OpenRequestInfo<byte[], String> {
 
     private final Consumer<WorkflowExecution> executionCallback;
 

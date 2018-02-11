@@ -20,8 +20,9 @@ import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowType;
 
-// TODO: Unify Parameters and Options and do not expose input to Workflow.newChildWorkflowStub.
 public final class StartChildWorkflowExecutionParameters implements Cloneable {
+
+    private String domain;
 
     private String control;
 
@@ -39,7 +40,12 @@ public final class StartChildWorkflowExecutionParameters implements Cloneable {
 
     private ChildPolicy childPolicy;
 
-    public StartChildWorkflowExecutionParameters() {
+    public String getDomain() {
+        return domain;
+    }
+
+    public void setDomain(String domain) {
+        this.domain = domain;
     }
 
     public String getControl() {

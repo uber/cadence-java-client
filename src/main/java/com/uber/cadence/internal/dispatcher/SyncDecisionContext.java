@@ -116,19 +116,21 @@ class SyncDecisionContext {
     /**
      * @param executionResult future that is set bu this method when child workflow is started.
      */
-    public WorkflowFuture<byte[]> executeChildWorkflowAsync(
+    public WorkflowFuture<byte[]> executeChildWorkflow(
             String name, StartWorkflowOptions options, byte[] input, WorkflowFuture<WorkflowExecution> executionResult) {
 //        ActivityFutureCancellationHandler cancellationHandler = new ActivityFutureCancellationHandler<>();
 //        WorkflowFuture<byte[]> result = new WorkflowFutureImpl<>(cancellationHandler);
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters();
-        parameters.withWorkflowType(new WorkflowType().setName(name)).
-                withInput(input).
-                withTaskList(options.getTaskList()).
-                withExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds()).
-                withTaskList(options.getTaskList()).
-                withWorkflowId(options.getWorkflowId()).
-                withTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
-
+        parameters.withWorkflowType(new WorkflowType().setName(name)).withInput(input);
+        if (options != null) {
+            parameters.withTaskList(options.getTaskList()).withWorkflowId(options.getWorkflowId());
+            if (options.getExecutionStartToCloseTimeoutSeconds() != null) {
+                parameters.setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds());
+            }
+            if (options.getTaskStartToCloseTimeoutSeconds() != null) {
+                parameters.setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
+            }
+        }
         WorkflowFuture<byte[]> result = Workflow.newFuture();
         Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
                 (execution) -> executionResult.complete(execution),
