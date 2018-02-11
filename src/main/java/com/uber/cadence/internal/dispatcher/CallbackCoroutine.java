@@ -60,13 +60,6 @@ class CallbackCoroutine implements DeterministicRunnerCoroutine {
             return name;
         }
 
-        public StackTraceElement[] getStackTrace() {
-            if (thread != null) {
-                return thread.getStackTrace();
-            }
-            return new StackTraceElement[0];
-        }
-
         public void setName(String name) {
             this.name = name;
             if (thread != null) {

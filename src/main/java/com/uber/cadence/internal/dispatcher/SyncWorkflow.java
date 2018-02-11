@@ -106,11 +106,6 @@ class SyncWorkflow implements AsyncWorkflow {
     }
 
     @Override
-    public String getAsynchronousThreadDump() {
-        throw new UnsupportedOperationException("not implemented yet");
-    }
-
-    @Override
     public byte[] getWorkflowState() throws WorkflowException {
         throw new UnsupportedOperationException("not supported by Cadence, use query instead");
     }

@@ -362,30 +362,14 @@ class AsyncDecider {
 //        }
         catch (Throwable e) {
             if (log.isErrorEnabled()) {
-                log.error("Failing decision due to unexpected problem: " + workflowContext.getWorkflowExecution(), e);
+                log.warn("Failing decision due to unexpected problem: " + workflowContext.getWorkflowExecution(), e);
             }
             throw e;
-//            decisionsHelper.failWorkflowDueToUnexpectedError(e);
         } finally {
             if (query != null) {
                 query.apply();
             }
             workflow.close();
-        }
-    }
-
-    public String getAsynchronousThreadDumpAsString() {
-        checkAsynchronousThreadDumpState();
-        return workflow.getAsynchronousThreadDump();
-    }
-
-    private void checkAsynchronousThreadDumpState() {
-        if (workflow == null) {
-            throw new IllegalStateException("workflow hasn't started yet");
-        }
-        if (decisionsHelper.isWorkflowFailed()) {
-            throw new IllegalStateException("Cannot get AsynchronousThreadDump of a failed workflow",
-                    decisionsHelper.getWorkflowFailureCause());
         }
     }
 
