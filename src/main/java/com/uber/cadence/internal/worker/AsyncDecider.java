@@ -284,7 +284,7 @@ class AsyncDecider {
         assert (event.getEventType() == EventType.WorkflowExecutionSignaled);
         final WorkflowExecutionSignaledEventAttributes signalAttributes = event.getWorkflowExecutionSignaledEventAttributes();
         if (completed) {
-            throw new IllegalStateException("Signal received after workflow is closed. TODO: Change signal handling from callback to a queue to fix the issue.");
+            throw new IllegalStateException("Signal received after workflow is closed.");
         }
         this.workflow.processSignal(signalAttributes.getSignalName(), signalAttributes.getInput());
     }
@@ -293,7 +293,6 @@ class AsyncDecider {
         decisionsHelper.handleDecisionCompletion(event.getDecisionTaskCompletedEventAttributes());
     }
 
-    // TODO: Simplify as Cadence reorders concurrent decisions on the server.
     public void decide() throws Throwable {
         decideImpl(null);
     }
