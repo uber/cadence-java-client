@@ -160,4 +160,8 @@ class CallbackCoroutine implements DeterministicRunnerCoroutine {
     public void stop() {
         stopped = true;
     }
+
+    @Override
+    public void addStackTrace(StringBuilder result) {
+    }
 }

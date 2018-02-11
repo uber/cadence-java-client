@@ -48,11 +48,6 @@ public class AsyncDecisionTaskHandler extends DecisionTaskHandler {
     public Object handleDecisionTask(DecisionTaskWithHistoryIterator decisionTaskIterator) throws Exception {
         HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
         AsyncDecider decider = createDecider(historyHelper);
-        try {
-            decider.decide();
-        } catch (Throwable e) {
-            throw new Error("Add support for fail decision", e);
-        }
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         if (decisionTask.isSetQuery()) {
             RespondQueryTaskCompletedRequest queryCompletedRequest = new RespondQueryTaskCompletedRequest();
@@ -61,7 +56,7 @@ public class AsyncDecisionTaskHandler extends DecisionTaskHandler {
                 byte[] queryResult = decider.query(decisionTask.getQuery());
                 queryCompletedRequest.setQueryResult(queryResult);
                 queryCompletedRequest.setCompletedType(QueryTaskCompletedType.COMPLETED);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // TODO: Appropriate exception serialization.
                 StringWriter sw = new StringWriter();
                 PrintWriter pw = new PrintWriter(sw);
@@ -71,6 +66,11 @@ public class AsyncDecisionTaskHandler extends DecisionTaskHandler {
             }
             return queryCompletedRequest;
         } else {
+            try {
+                decider.decide();
+            } catch (Throwable e) {
+                throw new Error("Add support for fail decision", e);
+            }
             DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
             List<Decision> decisions = decisionsHelper.getDecisions();
             byte[] context = decisionsHelper.getWorkflowContextDataToReturn();

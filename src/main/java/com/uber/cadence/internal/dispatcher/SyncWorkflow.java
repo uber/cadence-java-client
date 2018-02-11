@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.google.common.base.Charsets;
+import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.EventType;
@@ -127,6 +129,9 @@ class SyncWorkflow implements AsyncWorkflow {
 
     @Override
     public byte[] query(WorkflowQuery query) throws Exception {
+        if (CadenceClient.QUERY_TYPE_STACK_TRCE.equals(query.getQueryType())) {
+            return converter.toData(runner.stackTrace());
+        }
         return workflowProc.query(query.getQueryType(), query.getQueryArgs());
     }
 }

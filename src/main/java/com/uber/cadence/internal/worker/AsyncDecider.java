@@ -25,6 +25,7 @@ import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.workflow.Functions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 class AsyncDecider {
 
@@ -293,6 +295,10 @@ class AsyncDecider {
 
     // TODO: Simplify as Cadence reorders concurrent decisions on the server.
     public void decide() throws Throwable {
+        decideImpl(null);
+    }
+
+    private void decideImpl(Functions.Proc query) throws Throwable {
         try {
             long lastNonReplayedEventId = historyHelper.getLastNonReplayEventId();
             // Buffer events until the next DecisionTaskStarted and then process them
@@ -305,7 +311,9 @@ class AsyncDecider {
                     EventType eventType = event.getEventType();
                     if (eventType == EventType.DecisionTaskCompleted) {
                         decisionsHelper.setWorkflowContextData(event.getDecisionTaskCompletedEventAttributes().getExecutionContext());
-                    } else if (eventType == EventType.DecisionTaskStarted) {
+                    } else if (eventType == EventType.DecisionTaskStarted || !eventsIterator.hasNext()) {
+                        // Above check for the end of history is to support queries that get histories
+                        // without DecisionTaskStarted being the last event.
                         decisionsHelper.handleDecisionTaskStartedEvent();
 
                         if (!eventsIterator.isNextDecisionFailed()) {
@@ -359,6 +367,9 @@ class AsyncDecider {
             throw e;
 //            decisionsHelper.failWorkflowDueToUnexpectedError(e);
         } finally {
+            if (query != null) {
+                query.apply();
+            }
             workflow.close();
         }
     }
@@ -382,7 +393,9 @@ class AsyncDecider {
         return decisionsHelper;
     }
 
-    public byte[] query(WorkflowQuery query) throws Exception {
-        return workflow.query(query);
+    public byte[] query(WorkflowQuery query) throws Throwable {
+        AtomicReference<byte[]> result = new AtomicReference<>();
+        decideImpl(() -> result.set(workflow.query(query)));
+        return result.get();
     }
 }
