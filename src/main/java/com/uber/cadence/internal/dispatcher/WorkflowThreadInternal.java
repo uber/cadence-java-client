@@ -16,8 +16,9 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.WorkflowThread;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -29,6 +30,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
+
+    private static final Log log = LogFactory.getLog(WorkflowThreadInternal.class);
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.
@@ -60,6 +63,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
                 context.initialYield();
+                log.debug(String.format("Workflow thread \"%s\" run started", name));
                 cancellationScope.run();
             } catch (DestroyWorkflowThreadError e) {
                 if (!context.isDestroyRequested()) {
@@ -67,14 +71,31 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 }
             } catch (Error e) {
                 // Error aborts decision, not fail a workflow.
+                if (log.isDebugEnabled()) {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw, true);
+                    e.printStackTrace(pw);
+                    String stackTrace = sw.getBuffer().toString();
+                    log.debug(String.format("Workflow thread \"%s\" run failed with Error:\n%s", name, stackTrace));
+                }
                 throw e;
+            } catch (CancellationException e) {
+                log.debug(String.format("Workflow thread \"%s\" run cancelled", name));
             } catch (Throwable e) {
+                if (log.isDebugEnabled()) {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw, true);
+                    e.printStackTrace(pw);
+                    String stackTrace = sw.getBuffer().toString();
+                    log.debug(String.format("Workflow thread \"%s\" run failed with unhandled exception:\n%s", name, stackTrace));
+                }
                 context.setUnhandledException(e);
             } finally {
                 context.setStatus(Status.DONE);
                 thread.setName(originalName);
                 thread = null;
                 currentThreadThreadLocal.set(null);
+                log.debug(String.format("Workflow thread \"%s\" run completed", name));
             }
         }
 
@@ -133,6 +154,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         if (name == null) {
             name = "workflow-" + super.hashCode();
         }
+        log.debug(String.format("Workflow thread \"%s\" created", name));
         this.task = new RunnableWrapper(context, name, runnable);
     }
 
@@ -156,11 +178,13 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
 
     @Override
     public void cancel() {
+        log.debug(String.format("Workflow thread \"%s\" cancel called", getName()));
         task.cancellationScope.cancel();
     }
 
     @Override
     public void cancel(String reason) {
+        log.debug(String.format("Workflow thread \"%s cancel called with \"%s\" reason", getName(), reason));
         task.cancellationScope.cancel(reason);
     }
 
@@ -188,6 +212,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         if (context.getStatus() != Status.CREATED) {
             throw new IllegalThreadStateException("already started");
         }
+        log.debug(String.format("Workflow thread \"%s\" started", getName()));
         taskFuture = threadPool.submit(task);
     }
 

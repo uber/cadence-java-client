@@ -62,6 +62,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      */
     private Set<WFuture> failedFutures = new HashSet<>();
     private Object exitValue;
+    private WorkflowThreadInternal rootWorkflowThread;
 
     DeterministicRunnerImpl(Runnable root) {
         this(System::currentTimeMillis, root);
@@ -78,9 +79,9 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         this.decisionContext = decisionContext;
         this.clock = clock;
         // TODO: workflow instance specific thread name
-        WorkflowThreadInternal rootWorkflowThreadImpl = new WorkflowThreadInternal(threadPool, this, WORKFLOW_ROOT_THREAD_NAME, root);
-        threads.add(rootWorkflowThreadImpl);
-        rootWorkflowThreadImpl.start();
+        rootWorkflowThread = new WorkflowThreadInternal(threadPool, this, WORKFLOW_ROOT_THREAD_NAME, root);
+        threads.add(rootWorkflowThread);
+        rootWorkflowThread.start();
     }
 
     public SyncDecisionContext getDecisionContext() {
@@ -150,6 +151,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public <R> R getExitValue() {
         return (R) exitValue;
+    }
+
+    @Override
+    public void cancel(String reason) {
+        rootWorkflowThread.cancel(reason);
     }
 
     @Override

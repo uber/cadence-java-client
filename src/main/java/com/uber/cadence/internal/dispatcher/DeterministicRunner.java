@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.WorkflowThread;
 
@@ -68,6 +69,12 @@ interface DeterministicRunner {
     <R> R getExitValue();
 
     /**
+     * Request cancellation of the computation. Calls {@link CancellationScope#cancel(String)} on the
+     * root scope that wraps the root Runnable.
+     */
+    void cancel(String reason);
+
+    /**
      * * Destroys all threads by throwing {@link DestroyWorkflowThreadError} without waiting for their completion
      */
     void close();
@@ -98,7 +105,7 @@ interface DeterministicRunner {
 
     /**
      * Adds already started thread before all other threads. To be called before runUntilAllBlocked.
-     * This is used to ensure that some operations (like signal callbacks) are executed before other threads.
+     * This is used to ensure that some operations (like signal callbacks) are executed before all other threads.
      */
     WorkflowThread newBeforeThread(Runnable r, String name);
 }

@@ -91,7 +91,7 @@ class WorkflowThreadContext {
     private boolean mayBeThrowCancellation() {
         CancellationScopeImpl current = CancellationScopeImpl.current();
         if (current != null && current.isCancelRequested()) {
-            throw new CancellationException();
+            throw new CancellationException(current.getCancellationReason());
         }
         return false;
     }

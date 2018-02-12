@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
@@ -228,27 +230,135 @@ public class DeterministicRunnerTest {
     }
 
     @Test
-    @Ignore // TODO: Until Cancellaton is done.
-    public void testRootSelfInterrupt() throws Throwable {
-        status = "initial";
+    public void testRootCancellation() throws Throwable {
+        trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
-            status = "started";
-            WorkflowThread.currentThread().cancel();
+            trace.add("root started");
             try {
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1
                 );
+                throw new RuntimeException("unreachable");
             } catch (CancellationException e) {
                 if (WorkflowThread.currentThread().isCancelRequested()) {
-                    status = "still cancelled";
+                    trace.add("still cancelled1: " + e.getMessage());
                 } else {
-                    status = "cancelled";
+                    trace.add("cancelled");
                 }
             }
+            try {
+                trace.add("second yield");
+                WorkflowThreadInternal.yield("reason1",
+                        () -> unblock1
+                );
+                throw new RuntimeException("unreachable");
+            } catch (CancellationException e) {
+                if (WorkflowThread.currentThread().isCancelRequested()) {
+                    trace.add("still cancelled2: " + e.getMessage());
+                } else {
+                    trace.add("cancelled");
+                }
+            }
+            trace.add("root done");
         });
         d.runUntilAllBlocked();
+        assertFalse(d.isDone());
+        d.cancel("I just feel like it");
+        d.runUntilAllBlocked();
         assertTrue(d.isDone());
-        assertEquals("camce;;ed", status);
+        String[] expected = new String[]{
+                "init",
+                "root started",
+                "still cancelled1: I just feel like it",
+                "second yield",
+                "still cancelled2: I just feel like it",
+                "root done",
+        };
+        assertTrace(expected, trace);
+    }
+
+
+    @Test
+    public void testExplicitCancellation() throws Throwable {
+        trace.add("init");
+        DeterministicRunner d = new DeterministicRunnerImpl(() -> {
+            trace.add("root started");
+            WorkflowThread thread1 = WorkflowInternal.newThread(() -> {
+                try {
+                    WorkflowThreadInternal.yield("reason1",
+                            () -> unblock1
+                    );
+                    throw new RuntimeException("unreachable");
+                } catch (CancellationException e) {
+                    if (WorkflowThread.currentThread().isCancelRequested()) {
+                        trace.add("still cancelled1: " + e.getMessage());
+                    } else {
+                        trace.add("cancelled");
+                    }
+                }
+            });
+            thread1.start();
+            thread1.cancel("from root");
+            thread1.join();
+            trace.add("root done");
+        });
+        d.runUntilAllBlocked();
+        assertTrue(d.stackTrace(), d.isDone());
+        String[] expected = new String[]{
+                "init",
+                "root started",
+                "still cancelled1: from root",
+                "root done",
+        };
+        assertTrace(expected, trace);
+    }
+
+    @Test
+    public void testDisconnectedCancellation() throws Throwable {
+        trace.add("init");
+        DeterministicRunner d = new DeterministicRunnerImpl(() -> {
+            trace.add("root started");
+            WorkflowThread thread1 = WorkflowInternal.newThread(() -> {
+                trace.add("thread started");
+                try {
+                    WorkflowThreadInternal.yield("reason1",
+                            () -> unblock1
+                    );
+                    trace.add("yield done");
+                } catch (CancellationException e) {
+                    if (WorkflowThread.currentThread().isCancelRequested()) {
+                        trace.add("still cancelled1: " + e.getMessage());
+                    } else {
+                        trace.add("cancelled");
+                    }
+                }
+            });
+            thread1.setIgnoreParentCancellation(true);
+            thread1.start();
+            try {
+                thread1.join();
+            } catch (CancellationException e) {
+                trace.add("join cancelled");
+            }
+            trace.add("root done");
+        });
+        d.runUntilAllBlocked();
+        assertFalse(trace.toString(), d.isDone());
+        d.cancel("I just feel like it");
+        d.runUntilAllBlocked();
+        assertFalse(d.isDone());
+        unblock1 = true;
+        d.runUntilAllBlocked();
+        assertTrue(d.isDone());
+        String[] expected = new String[]{
+                "init",
+                "root started",
+                "thread started",
+                "join cancelled",
+                "root done",
+                "yield done",
+        };
+        assertTrace(expected, trace);
     }
 
     @Test

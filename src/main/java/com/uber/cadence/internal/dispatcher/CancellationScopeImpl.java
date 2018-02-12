@@ -111,7 +111,7 @@ class CancellationScopeImpl implements CancellationScope {
 
     @Override
     public void cancel(String reason) {
-        cancel();
+        cancelRequested = true;
         this.reason = reason;
         for (CancellationScopeImpl child : children) {
             child.cancel(reason);
