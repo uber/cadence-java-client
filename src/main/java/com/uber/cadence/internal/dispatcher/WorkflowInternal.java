@@ -19,6 +19,7 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.workflow.ActivitySchedulingOptions;
+import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
@@ -30,8 +31,6 @@ import com.uber.cadence.workflow.WorkflowThread;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 
 /**
@@ -39,11 +38,11 @@ import java.util.function.Supplier;
  */
 public final class WorkflowInternal {
 
-    public static WorkflowThread newThread(Functions.Proc runnable) {
+    public static WorkflowThread newThread(Runnable runnable) {
         return WorkflowThreadInternal.newThread(runnable);
     }
 
-    public static WorkflowThread newThread(Functions.Proc runnable, String name) {
+    public static WorkflowThread newThread(Runnable runnable, String name) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
@@ -369,19 +368,12 @@ public final class WorkflowInternal {
         return WorkflowThreadInternal.currentThreadInternal();
     }
 
-    public static boolean currentThreadResetInterrupted() {
-        return WorkflowThreadInternal.currentThreadInternal().resetInterrupted();
+    public static boolean currentThreadResetCanceled() {
+        return WorkflowThreadInternal.currentThreadInternal().resetCanceled();
     }
 
     public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
         return WorkflowThreadInternal.yield(timeoutMillis, reason, unblockCondition);
-    }
-
-    /**
-     * Prohibit instantiation
-     */
-    private WorkflowInternal() {
-
     }
 
     public static WorkflowContext getContext() {
@@ -394,5 +386,17 @@ public final class WorkflowInternal {
 
     public static WFuture<Void> futureAllOf(WFuture<?>... futures) {
         return new AllOfFuture(futures);
+    }
+
+    public static CancellationScope newCancellationScope(Runnable runnable) {
+        CancellationScopeImpl result = new  CancellationScopeImpl(runnable);
+        result.run();
+        return result;
+    }
+
+    /**
+     * Prohibit instantiation
+     */
+    private WorkflowInternal() {
     }
 }

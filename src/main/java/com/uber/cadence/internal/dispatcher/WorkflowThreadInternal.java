@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.WorkflowThread;
 
 import java.io.PrintWriter;
@@ -36,17 +36,18 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     class RunnableWrapper implements Runnable {
 
         private final WorkflowThreadContext context;
-        private final Functions.Proc r;
         private String originalName;
         private String name;
+        private CancellationScopeImpl cancellationScope;
 
-        RunnableWrapper(WorkflowThreadContext context, String name, Functions.Proc r) {
+        RunnableWrapper(WorkflowThreadContext context, String name,
+                        Runnable runnable) {
             this.context = context;
             this.name = name;
-            this.r = r;
             if (context.getStatus() != Status.CREATED) {
                 throw new IllegalStateException("context not in CREATED state");
             }
+            cancellationScope = new CancellationScopeImpl(runnable);
         }
 
         @Override
@@ -59,9 +60,9 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
                 context.initialYield();
-                r.apply();
+                cancellationScope.run();
             } catch (DestroyWorkflowThreadError e) {
-                if (!context.destroyRequested()) {
+                if (!context.isDestroyRequested()) {
                     context.setUnhandledException(e);
                 }
             } catch (Error e) {
@@ -81,7 +82,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             return name;
         }
 
-        public StackTraceElement[] getStackTrace() {
+        StackTraceElement[] getStackTrace() {
             if (thread != null) {
                 return thread.getStackTrace();
             }
@@ -96,7 +97,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         }
     }
 
-    static final ThreadLocal<WorkflowThreadInternal> currentThreadThreadLocal = new ThreadLocal<>();
+    private static final ThreadLocal<WorkflowThreadInternal> currentThreadThreadLocal = new ThreadLocal<>();
 
     private final ExecutorService threadPool;
     private final WorkflowThreadContext context;
@@ -124,7 +125,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         return result;
     }
 
-    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Functions.Proc runnable) {
+    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Runnable runnable) {
         this.threadPool = threadPool;
         this.runner = runner;
         this.context = new WorkflowThreadContext(runner.getLock());
@@ -135,30 +136,52 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         this.task = new RunnableWrapper(context, name, runnable);
     }
 
-    static WorkflowThread newThread(Functions.Proc runnable) {
+    static WorkflowThread newThread(Runnable runnable) {
         return currentThreadInternal().getRunner().newThread(runnable);
     }
 
-    static WorkflowThread newThread(Functions.Proc runnable, String name) {
+    static WorkflowThread newThread(Runnable runnable, String name) {
         return currentThreadInternal().getRunner().newThread(runnable, name);
     }
 
     @Override
-    public void interrupt() {
-        context.interrupt();
+    public void setIgnoreParentCancellation(boolean flag) {
+        task.cancellationScope.setIgnoreParentCancellation(flag);
     }
 
     @Override
-    public boolean isInterrupted() {
-        return context.isInterrupted();
+    public boolean isIgnoreParentCancellation() {
+        return task.cancellationScope.isIgnoreParentCancellation();
     }
 
-    public boolean resetInterrupted() {
-        return context.resetInterrupted();
+    @Override
+    public void cancel() {
+        task.cancellationScope.cancel();
     }
 
-    public boolean isDestroyRequested() {
-        return context.destroyRequested();
+    @Override
+    public void cancel(String reason) {
+        task.cancellationScope.cancel(reason);
+    }
+
+    @Override
+    public String getCancellationReason() {
+        return task.cancellationScope.getCancellationReason();
+    }
+
+    @Override
+    public boolean isCancelRequested() {
+        return task.cancellationScope.isCancelRequested();
+    }
+
+    @Override
+    public boolean isDone(boolean skipChildren) {
+        return task.cancellationScope.isDone(skipChildren);
+    }
+
+    @Override
+    public boolean resetCanceled() {
+        return task.cancellationScope.resetCanceled();
     }
 
     public void start() {
@@ -182,17 +205,13 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
 
     @Override
     public void join() throws CancellationException {
-        WorkflowThreadInternal.yield("WorkflowThread.join", () -> isDone());
+        WorkflowThreadInternal.yield("WorkflowThread.join", this::isDone);
     }
 
     // TODO: Timeout support
     @Override
     public void join(long millis) throws CancellationException {
-        WorkflowThreadInternal.yield(millis, "WorkflowThread.join", () -> isDone());
-    }
-
-    public boolean isAlive() {
-        return !isDone();
+        WorkflowThreadInternal.yield(millis, "WorkflowThread.join", this::isDone);
     }
 
     public void setName(String name) {
@@ -212,7 +231,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         return blockedUntil;
     }
 
-    public void setBlockedUntil(long blockedUntil) {
+    private void setBlockedUntil(long blockedUntil) {
         this.blockedUntil = blockedUntil;
     }
 
@@ -225,8 +244,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             // Thread is not yet started
             return false;
         }
-        boolean result = context.runUntilBlocked();
-        return result;
+        return context.runUntilBlocked();
     }
 
     public boolean isDone() {
@@ -284,7 +302,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
 
     @Override
     public void addStackTrace(StringBuilder result) {
-        result.append(getName() + ": (BLOCKED on " + getContext().getYieldReason() + ")\n");
+        result.append(getName()).append(": (BLOCKED on ").append(getContext().getYieldReason()).append(")\n");
         // These numbers might change if implementation changes.
         int omitTop = 5;
         int omitBottom = 7;
@@ -330,7 +348,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      *
      * @param reason           reason for blocking
      * @param unblockCondition condition that should return true to indicate that thread should unblock.
-     * @throws InterruptedException       if thread was interrupted.
+     * @throws CancellationException      if thread (or current cancellation scope was cancelled).
      * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
      */
     static void yield(String reason, Supplier<Boolean> unblockCondition) throws CancellationException, DestroyWorkflowThreadError {
@@ -360,12 +378,12 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         private final long blockedUntil;
         private boolean timedOut;
 
-        public YieldWithTimeoutCondition(Supplier<Boolean> unblockCondition, long blockedUntil) {
+        YieldWithTimeoutCondition(Supplier<Boolean> unblockCondition, long blockedUntil) {
             this.unblockCondition = unblockCondition;
             this.blockedUntil = blockedUntil;
         }
 
-        public boolean isTimedOut() {
+        boolean isTimedOut() {
             return timedOut;
         }
 

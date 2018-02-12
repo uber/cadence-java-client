@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
@@ -234,22 +233,22 @@ public class DeterministicRunnerTest {
         status = "initial";
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             status = "started";
-            WorkflowThread.currentThread().interrupt();
+            WorkflowThread.currentThread().cancel();
             try {
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1
                 );
             } catch (CancellationException e) {
-                if (WorkflowThread.interrupted()) {
-                    status = "still interrupted";
+                if (WorkflowThread.currentThread().isCancelRequested()) {
+                    status = "still cancelled";
                 } else {
-                    status = "interrupted";
+                    status = "cancelled";
                 }
             }
         });
         d.runUntilAllBlocked();
         assertTrue(d.isDone());
-        assertEquals("interrupted", status);
+        assertEquals("camce;;ed", status);
     }
 
     @Test
@@ -312,9 +311,9 @@ public class DeterministicRunnerTest {
             WorkflowThreadInternal.yield("rootReason1",
                     () -> unblockRoot
             );
-            assertFalse(thread.isInterrupted());
-            thread.interrupt();
-            assertTrue(thread.isInterrupted());
+            assertFalse(thread.isCancelRequested());
+            thread.cancel();
+            assertTrue(thread.isCancelRequested());
             trace.add("root waiting for join");
             thread.join();
             trace.add("root done");
@@ -385,13 +384,13 @@ public class DeterministicRunnerTest {
         d.close();
     }
 
-    void assertTrace(String[] expected, List<String> trace) {
+    private void assertTrace(String[] expected, List<String> trace) {
         assertEquals(Arrays.asList(expected), trace);
     }
 
     private static final int CHILDREN = 10;
 
-    private class TestChildTreeRunnable implements Functions.Proc {
+    private class TestChildTreeRunnable implements Runnable {
         final int depth;
 
         private TestChildTreeRunnable(int depth) {
@@ -399,7 +398,7 @@ public class DeterministicRunnerTest {
         }
 
         @Override
-        public void apply() {
+        public void run() {
             trace.add("child " + depth + " started");
             if (depth >= CHILDREN) {
                 trace.add("child " + depth + " done");

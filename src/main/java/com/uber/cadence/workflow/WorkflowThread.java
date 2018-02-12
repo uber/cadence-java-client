@@ -21,7 +21,7 @@ import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
-public interface WorkflowThread {
+public interface WorkflowThread extends CancellationScope {
 
     void start();
 
@@ -29,19 +29,11 @@ public interface WorkflowThread {
 
     void join(long millis) throws CancellationException;
 
-    void interrupt();
-
-    boolean isInterrupted();
-
-    boolean isAlive();
-
     void setName(String name);
 
     String getName();
 
     long getId();
-
-    Thread.State getState();
 
     static WorkflowThread currentThread() {
         return WorkflowInternal.currentThread();
@@ -53,10 +45,6 @@ public interface WorkflowThread {
 
     static void sleep(long millis) throws InterruptedException {
         WorkflowInternal.yield(millis, "sleep", () -> false   );
-    }
-
-    static boolean interrupted() {
-        return WorkflowInternal.currentThreadResetInterrupted();
     }
 
     String getStackTrace();

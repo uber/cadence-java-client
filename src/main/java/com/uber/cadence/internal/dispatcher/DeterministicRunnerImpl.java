@@ -63,17 +63,17 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private Set<WFuture> failedFutures = new HashSet<>();
     private Object exitValue;
 
-    DeterministicRunnerImpl(Functions.Proc root) {
+    DeterministicRunnerImpl(Runnable root) {
         this(System::currentTimeMillis, root);
     }
 
-    DeterministicRunnerImpl(Supplier<Long> clock, Functions.Proc root) {
+    DeterministicRunnerImpl(Supplier<Long> clock, Runnable root) {
         this(new ThreadPoolExecutor(0, 1000, 1, TimeUnit.MINUTES, new SynchronousQueue<>()),
                 null,
                 clock, root);
     }
 
-    DeterministicRunnerImpl(ExecutorService threadPool, SyncDecisionContext decisionContext, Supplier<Long> clock, Functions.Proc root) {
+    DeterministicRunnerImpl(ExecutorService threadPool, SyncDecisionContext decisionContext, Supplier<Long> clock, Runnable root) {
         this.threadPool = threadPool;
         this.decisionContext = decisionContext;
         this.clock = clock;
@@ -217,7 +217,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         return nextWakeUpTime;
     }
 
-    public WorkflowThreadInternal newThread(Functions.Proc r) {
+    public WorkflowThreadInternal newThread(Runnable runnable) {
         lock.lock();
         try {
             if (closed) {
@@ -226,10 +226,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
-        return newThread(r, null);
+        return newThread(runnable, null);
     }
 
-    public WorkflowThreadInternal newThread(Functions.Proc r, String name) {
+    public WorkflowThreadInternal newThread(Runnable runnable, String name) {
         lock.lock();
         try {
             if (closed) {
@@ -238,7 +238,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
-        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, r);
+        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, runnable);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
     }
@@ -257,7 +257,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public WorkflowThread newBeforeThread(Functions.Proc r, String name) {
+    public WorkflowThread newBeforeThread(Runnable r, String name) {
         WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, r);
         result.start();
         lock.lock();

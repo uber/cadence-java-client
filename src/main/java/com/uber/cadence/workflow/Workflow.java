@@ -72,12 +72,16 @@ public final class Workflow {
         return WorkflowInternal.getContext();
     }
 
-    public static WorkflowThread newThread(Functions.Proc runnable) {
+    public static WorkflowThread newThread(Runnable runnable) {
         return WorkflowInternal.newThread(runnable);
     }
 
-    public static WorkflowThread newThread(Functions.Proc runnable, String name) {
+    public static WorkflowThread newThread(Runnable runnable, String name) {
         return WorkflowInternal.newThread(runnable, name);
+    }
+
+    public static <R> CancellationScope newCancellationScope(Runnable runnable) {
+        return WorkflowInternal.newCancellationScope( runnable);
     }
 
     public static WFuture<Void> newTimer(long delaySeconds) {
