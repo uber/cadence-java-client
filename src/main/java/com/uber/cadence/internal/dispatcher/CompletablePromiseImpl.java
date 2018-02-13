@@ -138,22 +138,22 @@ import java.util.concurrent.TimeoutException;
 
     public <U> CompletablePromiseImpl<U> handle(Functions.Func2<? super V, RuntimeException, ? extends U> fn) {
         // TODO: Cancellation handler
-        CompletablePromiseImpl<Object> resultpromise = new CompletablePromiseImpl<>();
+        CompletablePromiseImpl<Object> resultPromise = new CompletablePromiseImpl<>();
         if (completed) {
-            invokeHandler(fn, resultpromise);
+            invokeHandler(fn, resultPromise);
             unregisterWithRunner();
         } else {
-            handlers.add(new Handler(resultpromise, fn));
+            handlers.add(new Handler(resultPromise, fn));
         }
-        return (CompletablePromiseImpl<U>) resultpromise;
+        return (CompletablePromiseImpl<U>) resultPromise;
     }
 
-    private void invokeHandler(Functions.Func2 fn, CompletablePromiseImpl<Object> resultpromise) {
+    private void invokeHandler(Functions.Func2 fn, CompletablePromiseImpl<Object> resultPromise) {
         try {
             Object result = fn.apply(value, failure);
-            resultpromise.complete(result);
+            resultPromise.complete(result);
         } catch (RuntimeException e) {
-            resultpromise.completeExceptionally(e);
+            resultPromise.completeExceptionally(e);
         }
     }
 
