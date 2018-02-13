@@ -52,8 +52,8 @@ public class WorkflowInternalFutureTest {
         DeterministicRunner r = DeterministicRunner.newRunner(() -> {
             WFuture<Boolean> f = Workflow.newFuture();
             trace.add("root begin");
-            WorkflowInternal.newThread(() -> f.completeExceptionally(new IllegalArgumentException("foo"))).start();
-            WorkflowInternal.newThread(() -> {
+            WorkflowInternal.newThread(false, () -> f.completeExceptionally(new IllegalArgumentException("foo"))).start();
+            WorkflowInternal.newThread(false, () -> {
                 try {
                     f.get();
                     trace.add("thread1 get success");
@@ -109,7 +109,7 @@ public class WorkflowInternalFutureTest {
                 () -> {
                     WFuture<String> f = Workflow.newFuture();
                     trace.add("root begin");
-                    WorkflowInternal.newThread(() -> {
+                    WorkflowInternal.newThread(false, () -> {
                         trace.add("thread1 begin");
                         try {
                             assertEquals("bar", f.get(10, TimeUnit.SECONDS));
@@ -156,7 +156,7 @@ public class WorkflowInternalFutureTest {
             WFuture<Boolean> f2 = Workflow.newFuture();
             WFuture<Boolean> f3 = Workflow.newFuture();
 
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread1 begin");
                         assertTrue(f1.get());
@@ -165,7 +165,7 @@ public class WorkflowInternalFutureTest {
                         trace.add("thread1 done");
                     }
             ).start();
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread2 begin");
                         assertTrue(f2.get());
@@ -204,21 +204,21 @@ public class WorkflowInternalFutureTest {
             WFuture<String> f2 = Workflow.newFuture();
             WFuture<String> f3 = Workflow.newFuture();
 
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread1 begin");
                         f1.complete("value1");
                         trace.add("thread1 done");
                     }
             ).start();
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread3 begin");
                         f3.complete("value3");
                         trace.add("thread3 done");
                     }
             ).start();
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread2 begin");
                         f2.complete("value2");
@@ -261,21 +261,21 @@ public class WorkflowInternalFutureTest {
             WFuture<Integer> f2 = Workflow.newFuture();
             WFuture<Boolean> f3 = Workflow.newFuture();
 
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread1 begin");
                         f1.complete("value1");
                         trace.add("thread1 done");
                     }
             ).start();
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread3 begin");
                         f3.complete(true);
                         trace.add("thread3 done");
                     }
             ).start();
-            WorkflowInternal.newThread(
+            WorkflowInternal.newThread(false,
                     () -> {
                         trace.add("thread2 begin");
                         f2.complete(111);

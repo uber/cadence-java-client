@@ -38,15 +38,15 @@ import java.util.function.Supplier;
  */
 public final class WorkflowInternal {
 
-    public static WorkflowThread newThread(Runnable runnable) {
-        return WorkflowThreadInternal.newThread(runnable);
+    public static WorkflowThread newThread(boolean ignoreParentCancellation, Runnable runnable) {
+        return WorkflowThreadInternal.newThread(runnable, ignoreParentCancellation);
     }
 
-    public static WorkflowThread newThread(Runnable runnable, String name) {
+    public static WorkflowThread newThread(boolean ignoreParentCancellation, String name, Runnable runnable) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
-        return WorkflowThreadInternal.newThread(runnable, name);
+        return WorkflowThreadInternal.newThread(runnable, ignoreParentCancellation, name);
     }
 
     public static WFuture<Void> newTimer(long delaySeconds) {
@@ -372,7 +372,7 @@ public final class WorkflowInternal {
         return WorkflowThreadInternal.currentThreadInternal().resetCanceled();
     }
 
-    public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws InterruptedException, DestroyWorkflowThreadError {
+    public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
         return WorkflowThreadInternal.yield(timeoutMillis, reason, unblockCondition);
     }
 
@@ -389,8 +389,7 @@ public final class WorkflowInternal {
     }
 
     public static CancellationScope newCancellationScope(boolean detached, Runnable runnable) {
-        CancellationScopeImpl result = new  CancellationScopeImpl(runnable);
-        result.setIgnoreParentCancellation(true);
+        CancellationScopeImpl result = new  CancellationScopeImpl(detached, runnable);
         result.run();
         return result;
     }

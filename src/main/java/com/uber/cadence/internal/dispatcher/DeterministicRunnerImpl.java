@@ -79,7 +79,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         this.decisionContext = decisionContext;
         this.clock = clock;
         // TODO: workflow instance specific thread name
-        rootWorkflowThread = new WorkflowThreadInternal(threadPool, this, WORKFLOW_ROOT_THREAD_NAME, root);
+        rootWorkflowThread = new WorkflowThreadInternal(threadPool, this, WORKFLOW_ROOT_THREAD_NAME, true, root);
         threads.add(rootWorkflowThread);
         rootWorkflowThread.start();
     }
@@ -223,7 +223,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         return nextWakeUpTime;
     }
 
-    public WorkflowThreadInternal newThread(Runnable runnable) {
+    public WorkflowThreadInternal newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
         lock.lock();
         try {
             if (closed) {
@@ -232,19 +232,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
-        return newThread(runnable, null);
-    }
-
-    public WorkflowThreadInternal newThread(Runnable runnable, String name) {
-        lock.lock();
-        try {
-            if (closed) {
-                throw new IllegalStateException("closed");
-            }
-        } finally {
-            lock.unlock();
-        }
-        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, runnable);
+        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, ignoreParentCancellation, runnable);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
     }
@@ -263,8 +251,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public WorkflowThread newBeforeThread(Runnable r, String name) {
-        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, r);
+    public WorkflowThread newBeforeThread(String name, Runnable r) {
+        WorkflowThreadInternal result = new WorkflowThreadInternal(threadPool, this, name, false, r);
         result.start();
         lock.lock();
         try {

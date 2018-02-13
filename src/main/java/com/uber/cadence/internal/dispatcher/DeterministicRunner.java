@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 
 /**
  * Executes code passed to {@link #newRunner(Runnable)}
- * as well as threads created from it using {@link WorkflowInternal#newThread(Runnable)} deterministically.
+ * as well as threads created from it using {@link WorkflowInternal#newThread(boolean, Runnable)} deterministically.
  * Requires use of provided wrappers for synchronization and notification instead of native ones.
  */
 interface DeterministicRunner {
@@ -107,5 +107,5 @@ interface DeterministicRunner {
      * Adds already started thread before all other threads. To be called before runUntilAllBlocked.
      * This is used to ensure that some operations (like signal callbacks) are executed before all other threads.
      */
-    WorkflowThread newBeforeThread(Runnable r, String name);
+    WorkflowThread newBeforeThread(String name, Runnable r);
 }

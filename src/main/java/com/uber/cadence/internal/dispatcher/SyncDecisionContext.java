@@ -138,6 +138,12 @@ class SyncDecisionContext {
         WFuture<Void> timer = Workflow.newFuture();
         long fireTime = context.getWorkflowClock().currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         timers.addTimer(fireTime, timer);
+        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
+        {
+            timers.removeTimer(fireTime, timer);
+            timer.completeExceptionally(new CancellationException(reason));
+            return null;
+        });
         return timer;
     }
 

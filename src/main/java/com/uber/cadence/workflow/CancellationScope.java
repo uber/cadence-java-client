@@ -18,14 +18,14 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
+import java.util.concurrent.CancellationException;
+
 public interface CancellationScope {
 
     /**
      * When set to false parent thread cancellation causes this one to get cancelled automatically.
      * When set to true only call to {@link #cancel()} leads to this scope cancellation.
      */
-    void setIgnoreParentCancellation(boolean flag);
-
     boolean isIgnoreParentCancellation();
 
     /**
@@ -68,5 +68,15 @@ public interface CancellationScope {
 
     static CancellationScope current() {
         return WorkflowInternal.currentCancellationScope();
+    }
+
+    /**
+     * Throws {@link java.util.concurrent.CancellationException} if scope is cancelled.
+     * Noop if not cancelled.
+     */
+    static void throwCancelled() throws CancellationException {
+        if (current().isCancelRequested()) {
+            throw new CancellationException();
+        }
     }
 }

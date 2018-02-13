@@ -60,20 +60,23 @@ class CancellationScopeImpl implements CancellationScope {
     private boolean cancelRequested;
     private String reason;
 
-    CancellationScopeImpl(Runnable runnable) {
+    CancellationScopeImpl(boolean ignoreParentCancellation, Runnable runnable) {
+        this.ignoreParentCancellation = ignoreParentCancellation;
         this.runnable = runnable;
         setParent(current());
     }
 
     private void setParent(CancellationScopeImpl parent) {
         if (parent == null) {
-            setIgnoreParentCancellation(true);
+            ignoreParentCancellation = true;
             return;
         }
-        this.parent = parent;
-        parent.addChild(this);
-        if (parent.isCancelRequested()) {
-            cancel(parent.getCancellationReason());
+        if (!ignoreParentCancellation) {
+            this.parent = parent;
+            parent.addChild(this);
+            if (parent.isCancelRequested()) {
+                cancel(parent.getCancellationReason());
+            }
         }
     }
 
@@ -83,18 +86,6 @@ class CancellationScopeImpl implements CancellationScope {
             runnable.run();
         } finally {
             popCurrent(this);
-        }
-    }
-
-    @Override
-    public void setIgnoreParentCancellation(boolean flag) {
-        if (flag) {
-            ignoreParentCancellation = true;
-            if (parent != null) {
-                parent.removeChild(this);
-            }
-        } else {
-            parent.addChild(this);
         }
     }
 
@@ -164,9 +155,7 @@ class CancellationScopeImpl implements CancellationScope {
     }
 
     private void addChild(CancellationScopeImpl scope) {
-        if (!children.add(scope)) {
-            throw new Error("Already a child");
-        }
+        children.add(scope);
     }
 
     private void removeChild(CancellationScopeImpl scope) {

@@ -18,7 +18,6 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.WFuture;
-import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
@@ -102,13 +101,9 @@ public class DeterministicRunnerTest {
                 () -> currentTime, // clock override
                 () -> {
                     status = "started";
-                    try {
-                        WorkflowThread.sleep(60000);
-                        status = "afterSleep1";
-                        WorkflowThread.sleep(60000);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
+                    WorkflowThread.sleep(60000);
+                    status = "afterSleep1";
+                    WorkflowThread.sleep(60000);
                     status = "done";
                 });
         currentTime = 1000;
@@ -192,14 +187,14 @@ public class DeterministicRunnerTest {
     public void testDispatcherExit() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WorkflowThread thread1 = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread1 = WorkflowInternal.newThread(false, () -> {
                 trace.add("child1 started");
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1
                 );
                 trace.add("child1 done");
             });
-            WorkflowThread thread2 = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread2 = WorkflowInternal.newThread(false, () -> {
                 trace.add("child2 started");
                 WorkflowThreadInternal.yield("reason2",
                         () -> unblock2
@@ -264,7 +259,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WorkflowThread thread1 = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread1 = WorkflowInternal.newThread(false, () -> {
                 trace.add("thread started");
                 WFuture<String> cancellation = CancellationScope.current().getCancellationRequest();
                 WorkflowThreadInternal.yield("reason1",
@@ -296,14 +291,13 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WorkflowThread thread1 = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread1 = WorkflowInternal.newThread(true, () -> {
                 trace.add("thread started");
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1 || CancellationScope.current().isCancelRequested()
                 );
                 trace.add("yield done");
             });
-            thread1.setIgnoreParentCancellation(true);
             thread1.start();
             try {
                 thread1.join();
@@ -339,7 +333,7 @@ public class DeterministicRunnerTest {
     @Test
     public void testChild() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
-            WorkflowThread thread = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread = WorkflowInternal.newThread(false, () -> {
                 status = "started";
                 WorkflowThreadInternal.yield("reason1",
                         () -> unblock1
@@ -374,7 +368,7 @@ public class DeterministicRunnerTest {
     public void testChildInterrupt() throws Throwable {
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WorkflowThread thread = WorkflowInternal.newThread(() -> {
+            WorkflowThread thread = WorkflowInternal.newThread(false, () -> {
                 trace.add("child started");
                 try {
                     WorkflowThreadInternal.yield("reason1",
@@ -434,7 +428,7 @@ public class DeterministicRunnerTest {
                 () -> {
                     trace.add("root started");
 
-                    WorkflowThread thread = WorkflowInternal.newThread(() -> {
+                    WorkflowThread thread = WorkflowInternal.newThread(false, () -> {
                         trace.add("child started");
                         WorkflowThreadInternal.yield("blockForever",
                                 () -> false
@@ -489,7 +483,8 @@ public class DeterministicRunnerTest {
                 trace.add("child " + depth + " done");
                 return;
             }
-            WorkflowThread thread = WorkflowInternal.newThread(new TestChildTreeRunnable(depth + 1));
+            WorkflowThread thread = WorkflowInternal.newThread(false,
+                    new TestChildTreeRunnable(depth + 1));
             thread.start();
             WorkflowThreadInternal.yield("reason1",
                     () -> unblock1

@@ -44,14 +44,14 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         private String name;
         private CancellationScopeImpl cancellationScope;
 
-        RunnableWrapper(WorkflowThreadContext context, String name,
+        RunnableWrapper(WorkflowThreadContext context, String name, boolean ignoreParentCancellation,
                         Runnable runnable) {
             this.context = context;
             this.name = name;
+            cancellationScope = new CancellationScopeImpl(ignoreParentCancellation, runnable);
             if (context.getStatus() != Status.CREATED) {
                 throw new IllegalStateException("context not in CREATED state");
             }
-            cancellationScope = new CancellationScopeImpl(runnable);
         }
 
         @Override
@@ -147,7 +147,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         return result;
     }
 
-    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, Runnable runnable) {
+    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, boolean ignoreParentCancellation, Runnable runnable) {
         this.threadPool = threadPool;
         this.runner = runner;
         this.context = new WorkflowThreadContext(runner.getLock());
@@ -156,20 +156,15 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             name = "workflow-" + super.hashCode();
         }
         log.debug(String.format("Workflow thread \"%s\" created", name));
-        this.task = new RunnableWrapper(context, name, runnable);
+        this.task = new RunnableWrapper(context, name, ignoreParentCancellation, runnable);
     }
 
-    static WorkflowThread newThread(Runnable runnable) {
-        return currentThreadInternal().getRunner().newThread(runnable);
+    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation) {
+        return newThread(runnable, ignoreParentCancellation, null);
     }
 
-    static WorkflowThread newThread(Runnable runnable, String name) {
-        return currentThreadInternal().getRunner().newThread(runnable, name);
-    }
-
-    @Override
-    public void setIgnoreParentCancellation(boolean flag) {
-        task.cancellationScope.setIgnoreParentCancellation(flag);
+    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
+        return currentThreadInternal().getRunner().newThread(runnable, ignoreParentCancellation, name);
     }
 
     @Override

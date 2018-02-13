@@ -56,6 +56,10 @@ class WorkflowTimers {
                 t.complete(null);
             }
         }
+
+        public void remove(WFuture<Void> result) {
+            results.remove(result);
+        }
     }
 
     /**
@@ -70,6 +74,14 @@ class WorkflowTimers {
             timers.put(fireTime, t);
         }
         t.addTimer(result);
+    }
+
+    public void removeTimer(long fireTime, WFuture<Void> result) {
+        Timers t = timers.get(fireTime);
+        if (t == null) {
+            throw new Error("Unknown timer");
+        }
+        t.remove(result);
     }
 
     /**

@@ -23,10 +23,8 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.DataConverter;
-import com.uber.cadence.internal.WorkflowException;
 import com.uber.cadence.internal.worker.AsyncWorkflow;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
@@ -71,8 +69,7 @@ class SyncWorkflow implements AsyncWorkflow {
     @Override
     public void processSignal(String signalName, byte[] input) {
         String threadName = "\"" + signalName + "\" signal handler";
-        runner.newBeforeThread(() ->
-        workflowProc.processSignal(signalName, input), threadName);
+        runner.newBeforeThread(threadName, () -> workflowProc.processSignal(signalName, input));
     }
 
     @Override

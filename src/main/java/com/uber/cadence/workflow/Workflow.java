@@ -24,6 +24,7 @@ import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
 public final class Workflow {
@@ -73,11 +74,19 @@ public final class Workflow {
     }
 
     public static WorkflowThread newThread(Runnable runnable) {
-        return WorkflowInternal.newThread(runnable);
+        return WorkflowInternal.newThread(false, runnable);
     }
 
-    public static WorkflowThread newThread(Runnable runnable, String name) {
-        return WorkflowInternal.newThread(runnable, name);
+    public static WorkflowThread newThread(String name, Runnable runnable) {
+        return WorkflowInternal.newThread(false, name, runnable);
+    }
+
+    public static WorkflowThread newDetachedThread(Runnable runnable) {
+        return WorkflowInternal.newThread(true, runnable);
+    }
+
+    public static WorkflowThread newDetachedThread(String name, Runnable runnable) {
+        return WorkflowInternal.newThread(true, name, runnable);
     }
 
     public static <R> CancellationScope newCancellationScope(Runnable runnable) {
@@ -88,8 +97,26 @@ public final class Workflow {
         return WorkflowInternal.newCancellationScope(true, runnable);
     }
 
+    /**
+     * Create new timer.
+     *
+     * @return feature that becomes ready when at least specified number of seconds passes.
+     * Future is failed with {@link java.util.concurrent.CancellationException}ion if enclosing scope is cancelled.
+     */
     public static WFuture<Void> newTimer(long delaySeconds) {
         return WorkflowInternal.newTimer(delaySeconds);
+    }
+
+    /**
+     * Create new timer. Note that time resolution is in seconds.
+     * So all partial values are rounded up to the nearest second.
+     *
+     * @return feature that becomes ready when at least specified number of seconds passes.
+     * Future is failed with {@link java.util.concurrent.CancellationException} if enclosing scope is cancelled.
+     */
+    public static WFuture<Void> newTimer(long time, TimeUnit unit) {
+        long milliseconds = (long) Math.ceil(unit.toMillis(time) / 1000000f);
+        return WorkflowInternal.newTimer(TimeUnit.MILLISECONDS.toSeconds(milliseconds));
     }
 
     public static <E> WorkflowQueue<E> newQueue(int capacity) {
