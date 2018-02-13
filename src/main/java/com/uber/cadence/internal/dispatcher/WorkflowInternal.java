@@ -50,7 +50,7 @@ public final class WorkflowInternal {
         return WorkflowThreadInternal.newThread(runnable, ignoreParentCancellation, name);
     }
 
-    public static CompletablePromise<Void> newTimer(long delaySeconds) {
+    public static Promise<Void> newTimer(long delaySeconds) {
         return getDecisionContext().newTimer(delaySeconds);
     }
 
@@ -107,7 +107,7 @@ public final class WorkflowInternal {
                 new ChildWorkflowInvocationHandler(options, getDecisionContext()));
     }
 
-    public static CompletablePromise<WorkflowExecution> getWorkflowExecution(Object workflowStub) {
+    public static Promise<WorkflowExecution> getWorkflowExecution(Object workflowStub) {
         if (workflowStub instanceof WorkflowStub) {
             return ((WorkflowStub) workflowStub).__getWorkflowExecution();
         }

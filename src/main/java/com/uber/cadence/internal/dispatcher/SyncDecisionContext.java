@@ -100,7 +100,7 @@ class SyncDecisionContext {
     /**
      * @param executionResult promise that is set bu this method when child workflow is started.
      */
-    public CompletablePromise<byte[]> executeChildWorkflow(
+    public Promise<byte[]> executeChildWorkflow(
             String name, StartWorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters();
         parameters.withWorkflowType(new WorkflowType().setName(name)).withInput(input);
@@ -131,7 +131,7 @@ class SyncDecisionContext {
         return result;
     }
 
-    public CompletablePromise<Void> newTimer(long delaySeconds) {
+    public Promise<Void> newTimer(long delaySeconds) {
         CompletablePromise<Void> timer = Workflow.newCompletablePromise();
         long fireTime = context.getWorkflowClock().currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         timers.addTimer(fireTime, timer);

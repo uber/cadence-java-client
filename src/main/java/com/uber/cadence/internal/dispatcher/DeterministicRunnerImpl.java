@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -60,7 +60,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      * Used to check for failedPromises that contain an error, but never where accessed.
      * It is to avoid failure swallowing by failedPromises which is very hard to troubleshoot.
      */
-    private Set<CompletablePromise> failedPromises = new HashSet<>();
+    private Set<Promise> failedPromises = new HashSet<>();
     private Object exitValue;
     private WorkflowThreadInternal rootWorkflowThread;
 
@@ -169,7 +169,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 c.stop();
             }
             threads.clear();
-            for (CompletablePromise<?> f : failedPromises) {
+            for (Promise<?> f : failedPromises) {
+                if (!f.isCompleted()) {
+                    throw new Error("expected failed");
+                }
                 try {
                     f.get();
                     throw new Error("unreachable");
@@ -270,14 +273,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     /**
      * Register a promise that had failed but wasn't accessed yet.
      */
-    public void registerFailedPromise(CompletablePromise promise) {
+    public void registerFailedPromise(Promise promise) {
         failedPromises.add(promise);
     }
 
     /**
      * Forget a failed promise as it was accessed.
      */
-    public void forgetFailedPromise(CompletablePromise promise) {
+    public void forgetFailedPromise(Promise promise) {
         failedPromises.remove(promise);
     }
 
