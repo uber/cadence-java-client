@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
- class CompletablePromiseImpl<V> implements CompletablePromise<V> {
+class CompletablePromiseImpl<V> implements CompletablePromise<V> {
 
     private static class Handler {
         final CompletablePromiseImpl<Object> result;
@@ -127,7 +127,7 @@ import java.util.concurrent.TimeoutException;
         return true;
     }
 
-    public <U> CompletablePromiseImpl<U> thenApply(Functions.Func1<? super V, ? extends U> fn) {
+    public <U> Promise<U> thenApply(Functions.Func1<? super V, ? extends U> fn) {
         return handle((r, e) -> {
             if (e != null) {
                 throw e;
@@ -136,7 +136,7 @@ import java.util.concurrent.TimeoutException;
         });
     }
 
-    public <U> CompletablePromiseImpl<U> handle(Functions.Func2<? super V, RuntimeException, ? extends U> fn) {
+    public <U> Promise<U> handle(Functions.Func2<? super V, RuntimeException, ? extends U> fn) {
         // TODO: Cancellation handler
         CompletablePromiseImpl<Object> resultPromise = new CompletablePromiseImpl<>();
         if (completed) {
@@ -145,7 +145,7 @@ import java.util.concurrent.TimeoutException;
         } else {
             handlers.add(new Handler(resultPromise, fn));
         }
-        return (CompletablePromiseImpl<U>) resultPromise;
+        return (Promise<U>) resultPromise;
     }
 
     private void invokeHandler(Functions.Func2 fn, CompletablePromiseImpl<Object> resultPromise) {
