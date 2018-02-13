@@ -388,8 +388,9 @@ public final class WorkflowInternal {
         return new AllOfFuture(futures);
     }
 
-    public static CancellationScope newCancellationScope(Runnable runnable) {
+    public static CancellationScope newCancellationScope(boolean detached, Runnable runnable) {
         CancellationScopeImpl result = new  CancellationScopeImpl(runnable);
+        result.setIgnoreParentCancellation(true);
         result.run();
         return result;
     }

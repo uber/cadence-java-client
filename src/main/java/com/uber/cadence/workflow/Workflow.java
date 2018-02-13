@@ -81,7 +81,11 @@ public final class Workflow {
     }
 
     public static <R> CancellationScope newCancellationScope(Runnable runnable) {
-        return WorkflowInternal.newCancellationScope( runnable);
+        return WorkflowInternal.newCancellationScope(false, runnable);
+    }
+
+    public static CancellationScope newDetachedCancellationScope(Runnable runnable) {
+        return WorkflowInternal.newCancellationScope(true, runnable);
     }
 
     public static WFuture<Void> newTimer(long delaySeconds) {
