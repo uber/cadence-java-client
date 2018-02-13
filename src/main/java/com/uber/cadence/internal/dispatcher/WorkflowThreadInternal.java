@@ -66,6 +66,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 context.initialYield();
                 log.debug(String.format("Workflow thread \"%s\" run started", name));
                 cancellationScope.run();
+                log.debug(String.format("Workflow thread \"%s\" run completed", name));
             } catch (DestroyWorkflowThreadError e) {
                 if (!context.isDestroyRequested()) {
                     context.setUnhandledException(e);
@@ -96,7 +97,6 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 thread.setName(originalName);
                 thread = null;
                 currentThreadThreadLocal.set(null);
-                log.debug(String.format("Workflow thread \"%s\" run completed", name));
             }
         }
 
