@@ -260,17 +260,10 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            WFuture<String> var = Workflow.newFuture();
+            WFuture<Void> var = Workflow.newFuture();
             CancellationScope scope = WorkflowInternal.newCancellationScope(false, () -> {
                 trace.add("scope started");
-                newTimer(300).handle((v, failure) -> {
-                    if (failure != null) {
-                        var.completeExceptionally(failure);
-                    } else {
-                        var.complete("varValue");
-                    }
-                    return null;
-                });
+                var.completeFrom(newTimer(300));
                 trace.add("scope done");
             });
             trace.add("root before cancel");

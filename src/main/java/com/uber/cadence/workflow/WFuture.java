@@ -21,4 +21,26 @@ public interface WFuture<V> extends RFuture<V> {
     boolean complete(V value);
 
     boolean completeExceptionally(RuntimeException value);
+
+    /**
+     * Completes or completes exceptionally this future from the source future when it becomes completed.
+     * <pre><code>
+     * destination.completeFrom(source);
+     * </code></pre>
+     * Is shortcut to:
+     * <pre><code>
+     * source.handle((value, failure) -> {
+     *    if (failure != null) {
+     *       destination.completeExceptionally(failure);
+     *    } else {
+     *       destination.complete(value);
+     *    }
+     *    return null;
+     * }
+     * </code></pre>
+     *
+     * @param source future that is being watched.
+     * @return
+     */
+    boolean completeFrom(RFuture<V> source);
 }

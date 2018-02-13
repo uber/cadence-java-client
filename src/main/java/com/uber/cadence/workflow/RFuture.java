@@ -157,7 +157,6 @@ public interface RFuture<V> {
 
     <U> WFuture<U> handle(Functions.Func2<? super V, RuntimeException, ? extends U> fn);
 
-
     static <U> WFuture<List<U>> allOf(Collection<WFuture<U>> futures) {
         return WorkflowInternal.futureAllOf(futures);
     }

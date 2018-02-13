@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.RFuture;
 import com.uber.cadence.workflow.WFuture;
 import com.uber.cadence.workflow.Workflow;
 
@@ -86,6 +87,11 @@ class AllOfFuture<G> implements WFuture<List<G>> {
     @Override
     public boolean completeExceptionally(RuntimeException value) {
         return impl.completeExceptionally(value);
+    }
+
+    @Override
+    public boolean completeFrom(RFuture<List<G>> source) {
+        return impl.completeFrom(source);
     }
 
     @Override

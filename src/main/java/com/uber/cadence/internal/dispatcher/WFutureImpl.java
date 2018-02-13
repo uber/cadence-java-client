@@ -17,6 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.RFuture;
 import com.uber.cadence.workflow.WFuture;
 
 import java.util.ArrayList;
@@ -107,6 +108,22 @@ final class WFutureImpl<V> implements WFuture<V> {
             runner.registerFailedFuture(this); // To ensure that failure is not ignored
             registeredWithRunner = true;
         }
+        return true;
+    }
+
+    @Override
+    public boolean completeFrom(RFuture<V> source) {
+        if (completed) {
+            return false;
+        }
+        source.handle((value, failure) -> {
+            if (failure != null) {
+                this.completeExceptionally(failure);
+            } else {
+                this.complete(value);
+            }
+            return null;
+        });
         return true;
     }
 

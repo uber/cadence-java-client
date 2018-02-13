@@ -120,7 +120,6 @@ class SyncDecisionContext {
                 executionResult::complete,
                 (output, failure) -> {
                     if (failure != null) {
-                        // TODO: Make sure that only Exceptions are passed into the callback.
                         result.completeExceptionally(failure);
                     } else {
                         result.complete(output);
