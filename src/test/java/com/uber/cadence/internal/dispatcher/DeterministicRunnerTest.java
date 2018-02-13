@@ -17,7 +17,9 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.RFuture;
 import com.uber.cadence.workflow.WFuture;
+import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
@@ -253,9 +255,66 @@ public class DeterministicRunnerTest {
         assertTrace(expected, trace);
     }
 
+    @Test
+    public void testExplicitScopeCancellationb() throws Throwable {
+        trace.add("init");
+        DeterministicRunner d = new DeterministicRunnerImpl(() -> {
+            trace.add("root started");
+            WFuture<String> var = Workflow.newFuture();
+            CancellationScope scope = WorkflowInternal.newCancellationScope(false, () -> {
+                trace.add("scope started");
+                newTimer(300).handle((v, failure) -> {
+                    if (failure != null) {
+                        var.completeExceptionally(failure);
+                    } else {
+                        var.complete("varValue");
+                    }
+                    return null;
+                });
+                trace.add("scope done");
+            });
+            trace.add("root before cancel");
+            scope.cancel("from root");
+            try {
+                var.get();
+                trace.add("after get");
+            } catch (CancellationException e) {
+                trace.add("scope cancelled");
+            }
+            trace.add("root done");
+        });
+        d.runUntilAllBlocked();
+        assertTrue(trace.toString(), d.isDone());
+        String[] expected = new String[]{
+                "init",
+                "root started",
+                "scope started",
+                "scope done",
+                "root before cancel",
+                "timer cancelled",
+                "scope cancelled",
+                "root done",
+        };
+        assertTrace(expected, trace);
+    }
+
+    private RFuture<Void> newTimer(int milliseconds) {
+        WFuture<Void> result = Workflow.newFuture();
+        Workflow.newThread(() -> {
+            try {
+                WorkflowThread.sleep(milliseconds);
+                result.complete(null);
+                trace.add("timer fired");
+            } catch (CancellationException e) {
+                trace.add("timer cancelled");
+                result.completeExceptionally(e);
+            }
+        }).start();
+        return result;
+    }
 
     @Test
-    public void testExplicitCancellation() throws Throwable {
+    public void testExplicitThreadCancellation() throws Throwable {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");

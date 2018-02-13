@@ -185,9 +185,9 @@ public class WorkflowTest {
         WorkflowExternalResult<String> workflowResult = client.execute(String.class);
         client.cancel();
         try {
-            String result = workflowResult.getResult();
+            workflowResult.getResult();
             fail("unreachable");
-        } catch (CancellationException e) {
+        } catch (CancellationException ignored) {
         }
     }
 
@@ -199,23 +199,17 @@ public class WorkflowTest {
             try {
                 testActivities.activityWithDelay(100000);
             } catch (CancellationException e) {
-                Workflow.newDetachedCancellationScope(() -> {
-                    assertEquals("a1", testActivities.activity1("a1"));
-                });
+                Workflow.newDetachedCancellationScope(() -> assertEquals("a1", testActivities.activity1("a1")));
             }
             try {
                 WorkflowThread.sleep(1, TimeUnit.HOURS);
             } catch (CancellationException e) {
-                Workflow.newDetachedCancellationScope(() -> {
-                    assertEquals("a12", testActivities.activity2("a1", 2));
-                });
+                Workflow.newDetachedCancellationScope(() -> assertEquals("a12", testActivities.activity2("a1", 2)));
             }
             try {
                 Workflow.newTimer(1, TimeUnit.HOURS).get();
             } catch (CancellationException e) {
-                Workflow.newDetachedCancellationScope(() -> {
-                    assertEquals("a123", testActivities.activity3("a1", 2, 3));
-                });
+                Workflow.newDetachedCancellationScope(() -> assertEquals("a123", testActivities.activity3("a1", 2, 3)));
             }
             return "result";
         }
@@ -229,9 +223,9 @@ public class WorkflowTest {
         WorkflowExternalResult<String> workflowResult = client.execute(String.class);
         client.cancel();
         try {
-            String result = workflowResult.getResult();
+            workflowResult.getResult();
             fail("unreachable");
-        } catch (CancellationException e) {
+        } catch (CancellationException ignored) {
         }
         activitiesImpl.assertInvocations("activityWithDelay", "activity1", "activity2", "activity3");
     }
@@ -347,8 +341,8 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WFuture<Void> timer1 = Workflow.newTimer(1);
-            WFuture<Void> timer2 = Workflow.newTimer(2);
+            RFuture<Void> timer1 = Workflow.newTimer( 1);
+            RFuture<Void> timer2 = Workflow.newTimer(2);
 
             long time = Workflow.currentTimeMillis();
             timer1.get();
@@ -484,9 +478,7 @@ public class WorkflowTest {
         try {
             sendSignal.get(2, TimeUnit.SECONDS);
             client.signal1("Signal Input");
-        } catch (TimeoutException e) {
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
+        } catch (TimeoutException | ExecutionException e) {
             throw new RuntimeException(e);
         }
         assertEquals("Signal Input", result.getResult());
@@ -497,8 +489,8 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WFuture<Void> timer1 = Workflow.newTimer(0);
-            WFuture<Void> timer2 = Workflow.newTimer(1);
+            RFuture<Void> timer1 = Workflow.newTimer(0);
+            RFuture<Void> timer2 = Workflow.newTimer(1);
 
             WFuture<Void> f = Workflow.newFuture();
             timer1.thenApply((e) -> {
@@ -554,7 +546,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            WFuture<String> r1 = Workflow.async(child1::execute, "Hello ");
+            RFuture<String> r1 = Workflow.async(child1::execute, "Hello ");
             String r2 = child2.execute("World!");
             assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
             return r1.get() + r2;
@@ -617,10 +609,10 @@ public class WorkflowTest {
     }
 
     private static class TestActivitiesImpl implements TestActivities {
-        public List<String> invocations = Collections.synchronizedList(new ArrayList<>());
-        public List<String> procResult = Collections.synchronizedList(new ArrayList<>());
+        List<String> invocations = Collections.synchronizedList(new ArrayList<>());
+        List<String> procResult = Collections.synchronizedList(new ArrayList<>());
 
-        public void assertInvocations(String... expected) {
+        void assertInvocations(String... expected) {
             assertEquals(Arrays.asList(expected), invocations);
         }
 
@@ -755,7 +747,7 @@ public class WorkflowTest {
     }
 
     public static class TestMultiargsWorkflowsImpl implements TestMultiargsWorkflows {
-        public static List<String> procResult = Collections.synchronizedList(new ArrayList<>());
+        static List<String> procResult = Collections.synchronizedList(new ArrayList<>());
 
         public String func() {
             return "func";
