@@ -19,8 +19,10 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.client.CadenceClient;
+import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowExternalResult;
+import com.uber.cadence.internal.JsonDataConverter;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
@@ -84,6 +86,7 @@ public class WorkflowTest {
     private static Worker worker;
     private static TestActivitiesImpl activitiesImpl;
     private static CadenceClient cadenceClient;
+    private static CadenceClient cadenceClientWithOptions;
     private static ActivitySchedulingOptions activitySchedulingOptions;
 
     @BeforeClass
@@ -94,6 +97,9 @@ public class WorkflowTest {
         activitiesImpl = new TestActivitiesImpl();
         worker.addActivitiesImplementation(activitiesImpl);
         cadenceClient = CadenceClient.newClient(service, domain);
+        CadenceClientOptions clientOptions = new CadenceClientOptions();
+        clientOptions.setDataConverter(new JsonDataConverter());
+        cadenceClientWithOptions = CadenceClient.newClient(service, domain, clientOptions);
         worker.start();
         newStartWorkflowOptions();
         activitySchedulingOptions = new ActivitySchedulingOptions();
@@ -308,7 +314,7 @@ public class WorkflowTest {
         assertEquals("func", CadenceClient.asyncStart(stub::func).getResult());
         stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         assertEquals("1", CadenceClient.asyncStart(stub::func1, "1").getResult());
-        stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
+        stub = cadenceClientWithOptions.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         assertEquals("12", CadenceClient.asyncStart(stub::func2, "1", 2).getResult());
         stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         assertEquals("123", CadenceClient.asyncStart(stub::func3, "1", 2, 3).getResult());
@@ -319,7 +325,7 @@ public class WorkflowTest {
         stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         assertEquals("123456", CadenceClient.asyncStart(stub::func6, "1", 2, 3, 4, 5, 6).getResult());
 
-        stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
+        stub = cadenceClientWithOptions.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         CadenceClient.asyncStart(stub::proc).getResult();
         stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         CadenceClient.asyncStart(stub::proc1, "1").getResult();
@@ -416,6 +422,9 @@ public class WorkflowTest {
         assertEquals("initial", client.getState());
         client.mySignal("Hello ");
         Thread.sleep(200);
+
+        // Test client created using WorkflowExecution
+        client = cadenceClient.newWorkflowStub(QueryableWorkflow.class, result.getExecution());
         assertEquals("Hello ", client.getState());
 
         // Test query through replay by a local worker.
