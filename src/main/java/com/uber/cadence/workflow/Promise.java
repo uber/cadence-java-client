@@ -132,4 +132,22 @@ public interface Promise<V> {
     static Promise<Void> allOf(Promise<?>... promises) {
         return WorkflowInternal.promiseAllOf(promises);
     }
+
+    /**
+     * Returns Promise that becomes completed when all arguments a completed.
+     * Completion value is the value of the first completed Promise.
+     * A single promise failure causes resulting promise to deliver the failure immediately.
+     */
+    static Promise<Object> anyOf(Iterable<Promise<?>> promises) {
+        return WorkflowInternal.promiseAnyOf(promises);
+    }
+
+    /**
+     * Returns Promise that becomes completed when all arguments a completed.
+     * Completion value is the value of the first completed Promise.
+     * A single promise failure causes resulting promise to deliver the failure immediately.
+     */
+    static Promise<Object> anyOf(Promise<?>... promises) {
+        return WorkflowInternal.promiseAnyOf(promises);
+    }
 }
