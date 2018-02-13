@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
-import com.uber.cadence.workflow.WFuture;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -57,10 +57,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
      */
     private long nextWakeUpTime;
     /**
-     * Used to check for failedFutures that contain an error, but never where accessed.
-     * It is to avoid failure swallowing by failedFutures which is very hard to troubleshoot.
+     * Used to check for failedPromises that contain an error, but never where accessed.
+     * It is to avoid failure swallowing by failedPromises which is very hard to troubleshoot.
      */
-    private Set<WFuture> failedFutures = new HashSet<>();
+    private Set<CompletablePromise> failedPromises = new HashSet<>();
     private Object exitValue;
     private WorkflowThreadInternal rootWorkflowThread;
 
@@ -169,12 +169,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 c.stop();
             }
             threads.clear();
-            for (WFuture<?> f : failedFutures) {
+            for (CompletablePromise<?> f : failedPromises) {
                 try {
                     f.get();
                     throw new Error("unreachable");
                 } catch (RuntimeException e) {
-                    log.warn("Failed WFuture was never accessed. The ignored exception:", e.getCause());
+                    log.warn("Failed CompletablePromise was never accessed. The ignored exception:", e.getCause());
                 }
             }
         } finally {
@@ -268,17 +268,17 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     /**
-     * Register a future that had failed but wasn't accessed yet.
+     * Register a promise that had failed but wasn't accessed yet.
      */
-    public void registerFailedFuture(WFuture future) {
-        failedFutures.add(future);
+    public void registerFailedPromise(CompletablePromise promise) {
+        failedPromises.add(promise);
     }
 
     /**
-     * Forget a failed future as it was accessed.
+     * Forget a failed promise as it was accessed.
      */
-    public void forgetFailedFuture(WFuture future) {
-        failedFutures.remove(future);
+    public void forgetFailedPromise(CompletablePromise promise) {
+        failedPromises.remove(promise);
     }
 
     <R> void exit(R value) {
