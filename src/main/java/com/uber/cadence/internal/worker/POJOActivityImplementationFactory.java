@@ -21,6 +21,7 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.internal.DataConverter;
 import com.uber.cadence.internal.activity.ActivityExecutionContext;
 import com.uber.cadence.internal.activity.CurrentActivityExecutionContext;
@@ -28,6 +29,7 @@ import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.generic.ActivityFailureException;
 import com.uber.cadence.internal.generic.ActivityImplementation;
 import com.uber.cadence.internal.generic.ActivityImplementationFactory;
+import com.uber.cadence.workflow.QueryMethod;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -95,19 +97,25 @@ public class POJOActivityImplementationFactory implements ActivityImplementation
     private class POJOActivityImplementation implements ActivityImplementation {
         private final Method method;
         private final Object activity;
+        private boolean doNotCompleteOnReturn;
 
         public POJOActivityImplementation(Method method, Object activity) {
             this.method = method;
+            DoNotCompleteOnReturn queryMethod = method.getAnnotation(DoNotCompleteOnReturn.class);
+            if (queryMethod != null) {
+                doNotCompleteOnReturn = true;
+            }
             this.activity = activity;
         }
-
 
         /**
          * TODO: Annotation that contains the execution options.
          */
         @Override
         public ActivityTypeExecutionOptions getExecutionOptions() {
-            return new ActivityTypeExecutionOptions();
+            ActivityTypeExecutionOptions result = new ActivityTypeExecutionOptions();
+            result.setDoNotCompleteOnReturn(doNotCompleteOnReturn);
+            return result;
         }
 
         @Override
@@ -118,7 +126,7 @@ public class POJOActivityImplementationFactory implements ActivityImplementation
             CurrentActivityExecutionContext.set(context);
             try {
                 Object result = method.invoke(activity, args);
-                if (method.getReturnType() == Void.TYPE) {
+                if (doNotCompleteOnReturn || method.getReturnType() == Void.TYPE) {
                     return EMPTY_BLOB;
                 }
                 return dataConverter.toData(result);
