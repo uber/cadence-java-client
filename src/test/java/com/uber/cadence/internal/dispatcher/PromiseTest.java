@@ -510,5 +510,4 @@ public class PromiseTest {
         };
         trace.setExpected(expected);
     }
-
 }
