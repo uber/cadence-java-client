@@ -14,40 +14,6 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-/*
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
-/*
- *
- *
- *
- *
- *
- * Written by Doug Lea with assistance from members of JCP JSR-166
- * Expert Group and released to the public domain, as explained at
- * http://creativecommons.org/publicdomain/zero/1.0/
- */
 
 package com.uber.cadence.workflow;
 
@@ -131,6 +97,7 @@ public interface Promise<V> {
     /**
      * Returns Promise that becomes completed when all promises in the collection are completed.
      * A single promise failure causes resulting promise to deliver the failure immediately.
+     *
      * @param promises promises to wait for.
      * @return Promise that contains a list of results of all promises in the same order.
      */

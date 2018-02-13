@@ -22,11 +22,15 @@ package com.uber.cadence.workflow;
 public interface CompletablePromise<V> extends Promise<V> {
 
     /**
-     * Complete this Promise with a value if not yet done.
+     * Completes this Promise with a value if not yet done.
      * @return true if wasn't already completed.
      */
     boolean complete(V value);
 
+    /**
+     * Completes this Promise with a an exception if not yet done.
+     * @return true if wasn't already completed.
+     */
     boolean completeExceptionally(RuntimeException value);
 
     /**

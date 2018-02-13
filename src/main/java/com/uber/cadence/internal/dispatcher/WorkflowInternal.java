@@ -128,7 +128,7 @@ public final class WorkflowInternal {
     /**
      * Invokes zero argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @return promise that contains activity result or failure
      */
@@ -146,7 +146,7 @@ public final class WorkflowInternal {
     /**
      * Invokes one argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @return promise that contains activity result or failure
@@ -158,7 +158,7 @@ public final class WorkflowInternal {
     /**
      * Invokes two argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -171,7 +171,7 @@ public final class WorkflowInternal {
     /**
      * Invokes three argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -185,7 +185,7 @@ public final class WorkflowInternal {
     /**
      * Invokes four argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -200,7 +200,7 @@ public final class WorkflowInternal {
     /**
      * Invokes five argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -216,7 +216,7 @@ public final class WorkflowInternal {
     /**
      * Invokes six argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -233,7 +233,7 @@ public final class WorkflowInternal {
     /**
      * Invokes zero argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @return promise that contains activity result or failure
      */
@@ -251,7 +251,7 @@ public final class WorkflowInternal {
     /**
      * Invokes one argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @return promise that contains activity result or failure
@@ -263,7 +263,7 @@ public final class WorkflowInternal {
     /**
      * Invokes two argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -276,7 +276,7 @@ public final class WorkflowInternal {
     /**
      * Invokes three argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -290,7 +290,7 @@ public final class WorkflowInternal {
     /**
      * Invokes four argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -305,7 +305,7 @@ public final class WorkflowInternal {
     /**
      * Invokes five argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument
@@ -321,7 +321,7 @@ public final class WorkflowInternal {
     /**
      * Invokes six argument activity asynchronously.
      *
-     * @param activity The only supported parameter is method reference to a proxy created
+     * @param activity The only supported parameter is a method reference to a proxy created
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @param arg1     first activity argument
      * @param arg2     second activity argument

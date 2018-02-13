@@ -177,7 +177,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                     f.get();
                     throw new Error("unreachable");
                 } catch (RuntimeException e) {
-                    log.warn("Failed CompletablePromise was never accessed. The ignored exception:", e.getCause());
+                    log.warn("Promise that was completedExceptionally was never accessed. " +
+                            "The ignored exception:", e.getCause());
                 }
             }
         } finally {
