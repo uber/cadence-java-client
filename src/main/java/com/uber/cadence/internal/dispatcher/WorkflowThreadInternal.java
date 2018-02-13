@@ -328,7 +328,12 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
 
     @Override
     public void addStackTrace(StringBuilder result) {
-        result.append(getName()).append(": (BLOCKED on ").append(getContext().getYieldReason()).append(")\n");
+        result.append(getName());
+        if (thread == null) {
+            result.append("(NEW)");
+            return;
+        }
+        result.append(": (BLOCKED on ").append(getContext().getYieldReason()).append(")\n");
         // These numbers might change if implementation changes.
         int omitTop = 5;
         int omitBottom = 7;

@@ -62,7 +62,7 @@ public final class Workflow {
      * Extracts workflow execution from a stub created through {@link #newChildWorkflowStub(Class, StartWorkflowOptions)}.
      * Wrapped in a future as child workflow is started asynchronously.
      */
-    public static WFuture<WorkflowExecution> getWorkflowExecution(Object workflowStub) {
+    public static RFuture<WorkflowExecution> getWorkflowExecution(Object workflowStub) {
         return WorkflowInternal.getWorkflowExecution(workflowStub);
     }
 
@@ -103,7 +103,7 @@ public final class Workflow {
      * @return feature that becomes ready when at least specified number of seconds passes.
      * Future is failed with {@link java.util.concurrent.CancellationException}ion if enclosing scope is cancelled.
      */
-    public static WFuture<Void> newTimer(long delaySeconds) {
+    public static RFuture<Void> newTimer(long delaySeconds) {
         return WorkflowInternal.newTimer(delaySeconds);
     }
 
@@ -114,7 +114,7 @@ public final class Workflow {
      * @return feature that becomes ready when at least specified number of seconds passes.
      * Future is failed with {@link java.util.concurrent.CancellationException} if enclosing scope is cancelled.
      */
-    public static WFuture<Void> newTimer(long time, TimeUnit unit) {
+    public static RFuture<Void> newTimer(long time, TimeUnit unit) {
         long milliseconds = (long) Math.ceil(unit.toMillis(time) / 1000000f);
         return WorkflowInternal.newTimer(TimeUnit.MILLISECONDS.toSeconds(milliseconds));
     }
@@ -175,7 +175,7 @@ public final class Workflow {
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @return future that contains activity result or failure
      */
-    public static <R> WFuture<R> async(Functions.Func<R> activity) {
+    public static <R> RFuture<R> async(Functions.Func<R> activity) {
         return WorkflowInternal.async(activity);
     }
 
@@ -187,7 +187,7 @@ public final class Workflow {
      * @param arg1     first activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, R> WFuture<R> async(Functions.Func1<A1, R> activity, A1 arg1) {
+    public static <A1, R> RFuture<R> async(Functions.Func1<A1, R> activity, A1 arg1) {
         return WorkflowInternal.async(activity, arg1);
     }
 
@@ -200,7 +200,7 @@ public final class Workflow {
      * @param arg2     second activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, R> WFuture<R> async(Functions.Func2<A1, A2, R> activity, A1 arg1, A2 arg2) {
+    public static <A1, A2, R> RFuture<R> async(Functions.Func2<A1, A2, R> activity, A1 arg1, A2 arg2) {
         return WorkflowInternal.async(activity, arg1, arg2);
     }
 
@@ -214,7 +214,7 @@ public final class Workflow {
      * @param arg3     third activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, R> WFuture<R> async(Functions.Func3<A1, A2, A3, R> activity, A1 arg1, A2 arg2, A3 arg3) {
+    public static <A1, A2, A3, R> RFuture<R> async(Functions.Func3<A1, A2, A3, R> activity, A1 arg1, A2 arg2, A3 arg3) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3);
     }
 
@@ -229,7 +229,7 @@ public final class Workflow {
      * @param arg4     forth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4, R> WFuture<R> async(Functions.Func4<A1, A2, A3, A4, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    public static <A1, A2, A3, A4, R> RFuture<R> async(Functions.Func4<A1, A2, A3, A4, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4);
     }
 
@@ -245,7 +245,7 @@ public final class Workflow {
      * @param arg5     fifth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4, A5, R> WFuture<R> async(Functions.Func5<A1, A2, A3, A4, A5, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    public static <A1, A2, A3, A4, A5, R> RFuture<R> async(Functions.Func5<A1, A2, A3, A4, A5, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5);
     }
 
@@ -262,7 +262,7 @@ public final class Workflow {
      * @param arg6     sixth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4, A5, A6, R> WFuture<R> async(Functions.Func6<A1, A2, A3, A4, A5, A6, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
+    public static <A1, A2, A3, A4, A5, A6, R> RFuture<R> async(Functions.Func6<A1, A2, A3, A4, A5, A6, R> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
@@ -273,7 +273,7 @@ public final class Workflow {
      *                 through {@link #newActivityStub(Class, ActivitySchedulingOptions)}.
      * @return future that contains activity result or failure
      */
-    public static WFuture<Void> async(Functions.Proc activity) {
+    public static RFuture<Void> async(Functions.Proc activity) {
         return WorkflowInternal.async(activity);
     }
 
@@ -285,7 +285,7 @@ public final class Workflow {
      * @param arg1     first activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1> WFuture<Void> async(Functions.Proc1<A1> activity, A1 arg1) {
+    public static <A1> RFuture<Void> async(Functions.Proc1<A1> activity, A1 arg1) {
         return async(() -> activity.apply(arg1));
     }
 
@@ -298,7 +298,7 @@ public final class Workflow {
      * @param arg2     second activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2> WFuture<Void> async(Functions.Proc2<A1, A2> activity, A1 arg1, A2 arg2) {
+    public static <A1, A2> RFuture<Void> async(Functions.Proc2<A1, A2> activity, A1 arg1, A2 arg2) {
         return WorkflowInternal.async(activity, arg1, arg2);
     }
 
@@ -312,7 +312,7 @@ public final class Workflow {
      * @param arg3     third activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3> WFuture<Void> async(Functions.Proc3<A1, A2, A3> activity, A1 arg1, A2 arg2, A3 arg3) {
+    public static <A1, A2, A3> RFuture<Void> async(Functions.Proc3<A1, A2, A3> activity, A1 arg1, A2 arg2, A3 arg3) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3);
     }
 
@@ -327,7 +327,7 @@ public final class Workflow {
      * @param arg4     forth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4> WFuture<Void> async(Functions.Proc4<A1, A2, A3, A4> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    public static <A1, A2, A3, A4> RFuture<Void> async(Functions.Proc4<A1, A2, A3, A4> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4);
     }
 
@@ -343,7 +343,7 @@ public final class Workflow {
      * @param arg5     fifth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4, A5> WFuture<Void> async(Functions.Proc5<A1, A2, A3, A4, A5> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    public static <A1, A2, A3, A4, A5> RFuture<Void> async(Functions.Proc5<A1, A2, A3, A4, A5> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5);
     }
 
@@ -360,7 +360,7 @@ public final class Workflow {
      * @param arg6     sixth activity argument
      * @return future that contains activity result or failure
      */
-    public static <A1, A2, A3, A4, A5, A6> WFuture<Void> async(Functions.Proc6<A1, A2, A3, A4, A5, A6> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
+    public static <A1, A2, A3, A4, A5, A6> RFuture<Void> async(Functions.Proc6<A1, A2, A3, A4, A5, A6> activity, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
         return WorkflowInternal.async(activity, arg1, arg2, arg3, arg4, arg5, arg6);
     }
 
@@ -386,7 +386,7 @@ public final class Workflow {
      * @param <R>        activity return type
      * @return future that contains the activity result
      */
-    public static <R> WFuture<R> executeActivityAsync(String name, ActivitySchedulingOptions options, Class<R> returnType, Object... args) {
+    public static <R> RFuture<R> executeActivityAsync(String name, ActivitySchedulingOptions options, Class<R> returnType, Object... args) {
         return WorkflowInternal.executeActivityAsync(name, options, returnType, args);
     }
 
