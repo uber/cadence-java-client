@@ -68,7 +68,6 @@ public interface Promise<V> {
      *
      * @param defaultValue value to return in case of failure
      * @return the computed result
-     * @throws RuntimeException if the computation failed.
      */
     V get(V defaultValue);
 
