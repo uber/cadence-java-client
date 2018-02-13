@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.workflow.WFuture;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -196,6 +197,11 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     @Override
     public boolean isCancelRequested() {
         return task.cancellationScope.isCancelRequested();
+    }
+
+    @Override
+    public WFuture<String> getCancellationRequest() {
+        return  task.cancellationScope.getCancellationRequest();
     }
 
     @Override

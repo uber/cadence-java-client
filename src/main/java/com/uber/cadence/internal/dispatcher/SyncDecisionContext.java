@@ -27,6 +27,7 @@ import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivitySchedulingOptions;
+import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
@@ -67,7 +68,6 @@ class SyncDecisionContext {
     }
 
     private WFuture<byte[]> executeActivity(String name, ActivitySchedulingOptions options, byte[] input) {
-        ActivityFutureCancellationHandler cancellationHandler = new ActivityFutureCancellationHandler<>();
         WFuture<byte[]> result = Workflow.newFuture();
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list
@@ -87,7 +87,11 @@ class SyncDecisionContext {
                         result.complete(output);
                     }
                 });
-        cancellationHandler.setCancellationCallback(cancellationCallback);
+        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
+        {
+            cancellationCallback.accept(new CancellationException(reason));
+            return null;
+        });
         return result;
     }
 
@@ -122,7 +126,11 @@ class SyncDecisionContext {
                         result.complete(output);
                     }
                 });
-//        cancellationHandler.setCancellationCallback(cancellationCallback);
+        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
+        {
+            cancellationCallback.accept(new CancellationException(reason));
+            return null;
+        });
         return result;
     }
 
@@ -177,18 +185,5 @@ class SyncDecisionContext {
 
     public WorkflowContext getWorkflowContext() {
         return context.getWorkflowContext();
-    }
-
-    private static class ActivityFutureCancellationHandler<T> implements BiConsumer<WFuture<T>, Boolean> {
-        private Consumer<Throwable> cancellationCallback;
-
-        void setCancellationCallback(Consumer<Throwable> cancellationCallback) {
-            this.cancellationCallback = cancellationCallback;
-        }
-
-        @Override
-        public void accept(WFuture<T> workflowFuture, Boolean aBoolean) {
-            cancellationCallback.accept(new CancellationException("result future cancelled"));
-        }
     }
 }

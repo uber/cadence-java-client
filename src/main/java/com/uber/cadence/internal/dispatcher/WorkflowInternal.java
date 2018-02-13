@@ -394,6 +394,10 @@ public final class WorkflowInternal {
         return result;
     }
 
+    public static CancellationScope currentCancellationScope() {
+        return CancellationScopeImpl.current();
+    }
+
     /**
      * Prohibit instantiation
      */
