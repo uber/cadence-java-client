@@ -74,30 +74,6 @@ public class WorkflowInternalFutureTest {
         trace.setExpected(expected);
     }
 
-//    @Test
-//    public void testCancellation() throws Throwable {
-//        DeterministicRunner r = DeterministicRunner.newRunner(() -> {
-//            WFuture<Boolean> f = new WFutureImpl<>((ff, i) -> {
-//                ff.completeExceptionally(new CancellationException());
-//                trace.add("cancellation handler done");
-//            });
-//            trace.add("root begin");
-//            WorkflowInternal.newThread(() -> {
-//                f.cancel(true);
-//                trace.add("thread1 done");
-//            }).start();
-//            trace.add("root done");
-//        });
-//        r.runUntilAllBlocked();
-//        String[] expected = new String[]{
-//                "root begin",
-//                "root done",
-//                "cancellation handler done",
-//                "thread1 done",
-//        };
-//        trace.setExpected(expected);
-//    }
-
     @Test
     public void testGetTimeout() throws Throwable {
         ExecutorService threadPool = new ThreadPoolExecutor(1, 1000, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
