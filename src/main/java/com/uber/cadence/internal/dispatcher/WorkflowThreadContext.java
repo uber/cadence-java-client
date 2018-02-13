@@ -16,9 +16,6 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.workflow.CancellationScope;
-
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
@@ -50,14 +47,14 @@ class WorkflowThreadContext {
         this.evaluationCondition = lock.newCondition();
     }
 
-    public void initialYield() throws CancellationException {
+    public void initialYield() {
         if (getStatus() != Status.CREATED) {
             throw new IllegalStateException("not in CREATED but in " + getStatus() + " state");
         }
         yield("created", () -> true);
     }
 
-    public void yield(String reason, Supplier<Boolean> unblockFunction) throws CancellationException {
+    public void yield(String reason, Supplier<Boolean> unblockFunction) {
         if (unblockFunction == null) {
             throw new IllegalArgumentException("null unblockFunction");
         }
@@ -65,7 +62,7 @@ class WorkflowThreadContext {
         lock.lock();
         try {
             // TODO: Verify that calling unblockFunction under the lock is a sane thing to do.
-            while (!inRunUntilBlocked || mayBeThrowCancellation() || !unblockFunction.get()) {
+            while (!inRunUntilBlocked || !unblockFunction.get()) {
                 status = Status.YIELDED;
                 runCondition.signal();
                 yieldCondition.await();
@@ -81,19 +78,6 @@ class WorkflowThreadContext {
             yieldReason = null;
             lock.unlock();
         }
-    }
-
-    /**
-     * Throws CancellationException if current {@link CancellationScope#isCancelRequested()}.
-     *
-     * @return alsays returns false to be used in the or condition.
-     */
-    private boolean mayBeThrowCancellation() {
-        CancellationScopeImpl current = CancellationScopeImpl.current();
-        if (current != null && current.isCancelRequested()) {
-            throw new CancellationException(current.getCancellationReason());
-        }
-        return false;
     }
 
     /**

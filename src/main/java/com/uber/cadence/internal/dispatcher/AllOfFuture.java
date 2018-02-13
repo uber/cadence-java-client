@@ -23,7 +23,6 @@ import com.uber.cadence.workflow.Workflow;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -105,12 +104,12 @@ class AllOfFuture<G> implements WFuture<List<G>> {
     }
 
     @Override
-    public List<G> get() throws CancellationException {
+    public List<G> get() {
         return impl.get();
     }
 
     @Override
-    public List<G> get(long timeout, TimeUnit unit) throws CancellationException, TimeoutException {
+    public List<G> get(long timeout, TimeUnit unit) throws TimeoutException {
         return impl.get(timeout, unit);
     }
 }

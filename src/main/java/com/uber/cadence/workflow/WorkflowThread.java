@@ -18,16 +18,15 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
 public interface WorkflowThread extends CancellationScope {
 
     void start();
 
-    void join() throws CancellationException;
+    void join();
 
-    void join(long millis) throws CancellationException;
+    void join(long millis);
 
     void setName(String name);
 
@@ -40,11 +39,11 @@ public interface WorkflowThread extends CancellationScope {
     }
 
     static void sleep(long time, TimeUnit unit) throws InterruptedException {
-        WorkflowInternal.yield(unit.toMillis(time), "sleep", () -> false   );
+        WorkflowInternal.yield(unit.toMillis(time), "sleep", () -> false);
     }
 
     static void sleep(long millis) throws InterruptedException {
-        WorkflowInternal.yield(millis, "sleep", () -> false   );
+        WorkflowInternal.yield(millis, "sleep", () -> false);
     }
 
     String getStackTrace();

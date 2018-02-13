@@ -21,7 +21,6 @@ import com.uber.cadence.workflow.WFuture;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -55,7 +54,7 @@ final class WFutureImpl<V> implements WFuture<V> {
     }
 
     @Override
-    public V get() throws CancellationException {
+    public V get() {
         if (!completed) {
             WorkflowThreadInternal.yield("Feature.get", () -> completed);
         }
@@ -67,7 +66,7 @@ final class WFutureImpl<V> implements WFuture<V> {
     }
 
     @Override
-    public V get(long timeout, TimeUnit unit) throws CancellationException, TimeoutException {
+    public V get(long timeout, TimeUnit unit) throws TimeoutException {
         if (!completed) {
             WorkflowThreadInternal.yield(unit.toMillis(timeout), "Feature.get", () -> completed);
         }

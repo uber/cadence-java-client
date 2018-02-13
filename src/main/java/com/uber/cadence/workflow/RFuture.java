@@ -139,7 +139,7 @@ public interface RFuture<V> {
      * @return the computed result
      * @throws CancellationException if the computation was cancelled while waiting
      */
-    V get() throws CancellationException;
+    V get();
 
     /**
      * Waits if necessary for at most the given time for the computation
@@ -151,7 +151,7 @@ public interface RFuture<V> {
      * @throws CancellationException if the computation was cancelled
      * @throws TimeoutException      if the wait timed out
      */
-    V get(long timeout, TimeUnit unit) throws CancellationException, TimeoutException;
+    V get(long timeout, TimeUnit unit) throws TimeoutException;
 
     <U> WFuture<U> thenApply(Functions.Func1<? super V, ? extends U> fn);
 

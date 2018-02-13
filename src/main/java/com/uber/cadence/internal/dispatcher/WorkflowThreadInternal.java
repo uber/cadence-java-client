@@ -201,7 +201,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
 
     @Override
     public WFuture<String> getCancellationRequest() {
-        return  task.cancellationScope.getCancellationRequest();
+        return task.cancellationScope.getCancellationRequest();
     }
 
     @Override
@@ -235,13 +235,13 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     }
 
     @Override
-    public void join() throws CancellationException {
+    public void join() {
         WorkflowThreadInternal.yield("WorkflowThread.join", this::isDone);
     }
 
     // TODO: Timeout support
     @Override
-    public void join(long millis) throws CancellationException {
+    public void join(long millis) {
         WorkflowThreadInternal.yield(millis, "WorkflowThread.join", this::isDone);
     }
 
@@ -382,7 +382,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @throws CancellationException      if thread (or current cancellation scope was cancelled).
      * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
      */
-    static void yield(String reason, Supplier<Boolean> unblockCondition) throws CancellationException, DestroyWorkflowThreadError {
+    static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
         WorkflowThreadInternal.currentThreadInternal().getContext().yield(reason, unblockCondition);
     }
 
@@ -391,7 +391,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      *
      * @return false if timed out.
      */
-    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws CancellationException, DestroyWorkflowThreadError {
+    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
         if (timeoutMillis == 0) {
             return unblockCondition.get();
         }
