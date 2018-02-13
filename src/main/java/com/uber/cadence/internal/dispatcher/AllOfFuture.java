@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-class AllOfPromise<G> implements CompletablePromise<List<G>> {
+class AllOfPromise<G> implements Promise<List<G>> {
 
     private G[] result;
     private final CompletablePromise<List<G>> impl = Workflow.newCompletablePromise();
@@ -77,21 +77,6 @@ class AllOfPromise<G> implements CompletablePromise<List<G>> {
                 return null;
             });
         }
-    }
-
-    @Override
-    public boolean complete(List<G> value) {
-        return impl.complete(value);
-    }
-
-    @Override
-    public boolean completeExceptionally(RuntimeException value) {
-        return impl.completeExceptionally(value);
-    }
-
-    @Override
-    public boolean completeFrom(Promise<List<G>> source) {
-        return impl.completeFrom(source);
     }
 
     @Override
