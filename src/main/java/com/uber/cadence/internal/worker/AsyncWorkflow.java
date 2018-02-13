@@ -38,13 +38,11 @@ public interface AsyncWorkflow {
      */
     byte[] getOutput();
 
-    void cancel(CancellationException e);
+    void cancel(String reason);
 
     Throwable getFailure();
 
     boolean isCancelRequested();
-
-    byte[] getWorkflowState() throws WorkflowException;
 
     void close();
 

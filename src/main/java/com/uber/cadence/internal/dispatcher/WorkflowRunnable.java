@@ -41,12 +41,15 @@ class WorkflowRunnable implements Runnable {
 
     @Override
     public void run() {
-        output = workflow.execute(attributes.getInput());
-        done = true;
+        try {
+            output = workflow.execute(attributes.getInput());
+        } finally {
+            done = true;
+        }
     }
 
-    public void cancel(CancellationException e) {
-        throw new UnsupportedOperationException("not implemented yet");
+    public void cancel(String reason) {
+
     }
 
     public Throwable getFailure() {

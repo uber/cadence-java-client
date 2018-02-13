@@ -90,8 +90,8 @@ class SyncWorkflow implements AsyncWorkflow {
     }
 
     @Override
-    public void cancel(CancellationException e) {
-        workflowProc.cancel(e);
+    public void cancel(String reason) {
+        runner.cancel(reason);
     }
 
     @Override
@@ -102,11 +102,6 @@ class SyncWorkflow implements AsyncWorkflow {
     @Override
     public boolean isCancelRequested() {
         return workflowProc.isCancelRequested();
-    }
-
-    @Override
-    public byte[] getWorkflowState() throws WorkflowException {
-        throw new UnsupportedOperationException("not supported by Cadence, use query instead");
     }
 
     @Override

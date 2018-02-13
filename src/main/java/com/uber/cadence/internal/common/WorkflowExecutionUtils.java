@@ -36,6 +36,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -118,6 +119,9 @@ public class WorkflowExecutionUtils {
         if (closeEvent.getEventType() == EventType.WorkflowExecutionCompleted) {
             return closeEvent.getWorkflowExecutionCompletedEventAttributes();
         }
+        if (closeEvent.getEventType() == EventType.WorkflowExecutionCanceled) {
+            throw new CancellationException();
+        }
         // TODO: Appropriate exception
         throw new RuntimeException("Workflow end state is not completed: " + prettyPrintHistoryEvent(closeEvent));
     }
@@ -149,7 +153,7 @@ public class WorkflowExecutionUtils {
             }
             pageToken = response.getNextPageToken();
             History history = response.getHistory();
-            if (history != null) {
+            if (history != null && history.getEvents().size() > 0) {
                 event = history.getEvents().get(0);
                 if (!isWorkflowExecutionCompletedEvent(event)) {
                     throw new RuntimeException("Last history event is not completion event: " + event);

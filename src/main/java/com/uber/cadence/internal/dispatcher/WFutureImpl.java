@@ -21,6 +21,7 @@ import com.uber.cadence.workflow.WFuture;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -114,7 +115,7 @@ final class WFutureImpl<V> implements WFuture<V> {
     public <U> WFutureImpl<U> thenApply(Functions.Func1<? super V, ? extends U> fn) {
         return handle((r, e) -> {
             if (e != null) {
-                if (e instanceof CompletionException) {
+                if (e instanceof CompletionException || e instanceof CancellationException) {
                     throw e;
                 }
                 throw new CompletionException(e);
@@ -139,7 +140,7 @@ final class WFutureImpl<V> implements WFuture<V> {
         try {
             Object result = fn.apply(value, failure);
             resultFuture.complete(result);
-        } catch (CompletionException e) {
+        } catch (CompletionException | CancellationException e) {
             resultFuture.completeExceptionally(e);
         } catch (Exception e) {
             resultFuture.completeExceptionally(new CompletionException(e));

@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -137,17 +138,6 @@ public class WorkflowTest {
         String execute();
     }
 
-    public interface QueryableWorkflow {
-        @WorkflowMethod
-        String execute();
-
-        @QueryMethod
-        String getState();
-
-        @SignalMethod(name = "testSignal")
-        void mySignal(String value);
-    }
-
     public static class TestSyncWorkflowImpl implements TestWorkflow1 {
 
         @Override
@@ -166,6 +156,14 @@ public class WorkflowTest {
         }
     }
 
+    @Test
+    public void testSync() throws InterruptedException {
+        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
+        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
+        String result = client.execute();
+        assertEquals("activity10", result);
+    }
+
     public interface TestContinueAsNew {
         @WorkflowMethod
         int execute(int count);
@@ -182,14 +180,6 @@ public class WorkflowTest {
             next.execute(count - 1);
             throw new RuntimeException("unreachable");
         }
-    }
-
-    @Test
-    public void testSync() throws InterruptedException {
-        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
-        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
-        String result = client.execute();
-        assertEquals("activity10", result);
     }
 
     @Test
@@ -213,6 +203,20 @@ public class WorkflowTest {
         assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
         String result = workflowResult.getResult();
         assertEquals("activity10", result);
+    }
+
+    @Test
+    public void testWorkflowCancellation() throws InterruptedException {
+        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
+        UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
+                newStartWorkflowOptions());
+        WorkflowExternalResult<String> workflowResult = client.execute(String.class);
+        client.cancel();
+        try {
+            String result = workflowResult.getResult();
+            fail("unreachable");
+        } catch (CancellationException e) {
+        }
     }
 
     public static class TestAsyncActivityWorkflowImpl implements TestWorkflow1 {
@@ -320,6 +324,17 @@ public class WorkflowTest {
         TestWorkflow2 client = cadenceClient.newWorkflowStub(TestWorkflow2.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("testTimer", result);
+    }
+
+    public interface QueryableWorkflow {
+        @WorkflowMethod
+        String execute();
+
+        @QueryMethod
+        String getState();
+
+        @SignalMethod(name = "testSignal")
+        void mySignal(String value);
     }
 
     public static class TestSignalWorkflowImpl implements QueryableWorkflow {
