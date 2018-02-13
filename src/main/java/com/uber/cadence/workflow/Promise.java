@@ -75,6 +75,17 @@ public interface Promise<V> {
     V get(long timeout, TimeUnit unit) throws TimeoutException;
 
     /**
+     * Waits if necessary for at most the given time for the computation
+     * to complete, and then retrieves its result, if available.
+     *
+     * @param timeout      the maximum time to wait
+     * @param unit         the time unit of the timeout argument
+     * @param defaultValue value to return in case of timeout
+     * @return the computed result or default value in case of any failure including timeout.
+     */
+    V get(long timeout, TimeUnit unit, V defaultValue);
+
+    /**
      * Returns Promise that contains a result of a function. The function is called with the value of this
      * Promise when it is ready. #completeExceptionally is propagated directly to the returned Promise
      * skipping the function.
