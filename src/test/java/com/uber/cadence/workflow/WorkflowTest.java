@@ -158,19 +158,24 @@ public class WorkflowTest {
     @Test
     public void testSync() {
         worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
-        TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
-        String result = client.execute();
+        TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
+        String result = workflowStub.execute();
         assertEquals("activity10", result);
     }
 
     @Test
     public void testSyncUntypedAndStackTrace() throws InterruptedException {
         worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
-        UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
+        UntypedWorkflowStub workflowStub = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
                 newStartWorkflowOptions());
-        WorkflowExternalResult<String> workflowResult = client.execute(String.class);
+        WorkflowExternalResult<String> workflowResult = workflowStub.execute(String.class);
         Thread.sleep(500);
-        String stackTrace = client.query(CadenceClient.QUERY_TYPE_STACK_TRCE, String.class);
+        String stackTrace = workflowStub.query(CadenceClient.QUERY_TYPE_STACK_TRCE, String.class);
+        assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
+        assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
+        // Test stub created from workflow execution.
+        workflowStub = cadenceClient.newUntypedWorkflowStub(workflowResult.getExecution());
+        stackTrace = workflowStub.query(CadenceClient.QUERY_TYPE_STACK_TRCE, String.class);
         assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
         assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
         String result = workflowResult.getResult();
