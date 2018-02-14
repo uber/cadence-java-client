@@ -148,12 +148,37 @@ public class HelloWorldActivitiesImpl implements HelloWorldActivities {
 ```
 The activity completion code:
 ```java
-    public static void completeActivity(byte[] taskToken, String result) {
+    public void completeActivity(byte[] taskToken, String result) {
         completionClient.complete(taskToken, result);
     }
 
-    public static void failActivity(byte[] taskToken, Exception failure) {
+    public void failActivity(byte[] taskToken, Exception failure) {
         completionClient.completeExceptionally(taskToken, failure);
     }
 ```
-### Activity heartbeating
+### Activity Heartbeating
+
+Some activities are potentially long running. To be able to react to their crashes quickly heartbeat mechanism is used.
+Use `Activity.heartbeat` function to let Cadence service know that it is still alive. You can piggy back 
+a `details` on an activity heartbeat. If an activity times out the last value of `details` is included 
+into the ActivityTimeoutException delivered to a workflow. Then workflow can pass the details to 
+the next activity invocation. This acts as a periodic checkpointing mechanism of an activity progress.
+```java
+    public void downloadFile(String fileName) throws IOException {
+        InputStream inputStream = openInputStream(file);
+        try {
+            byte[] bytes = new byte[MAX_BUFFER_SIZE];
+            while ((read = inputStream.read(bytes)) != -1) {
+                totalRead += read;
+                f.write(bytes, 0, read);
+                /*
+                 * Let service know about the download progress.
+                 */
+                 Activity.heartbeat(totalRead);
+            }
+        } finally {
+            inputStream.close();
+        }
+    }
+
+```
