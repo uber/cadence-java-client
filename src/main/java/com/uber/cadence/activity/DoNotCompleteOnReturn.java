@@ -23,7 +23,8 @@ import java.lang.annotation.Target;
 
 /**
  * Used to annotate activity <b>implementation</b> method to indicate that Cadence activity is not completed
- * upon method returning.
+ * upon method returning. Use {@link com.uber.cadence.client.ActivityCompletionClient} to complete, fail or heartbeat
+ * such activity asynchronously (even from a different process).
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)

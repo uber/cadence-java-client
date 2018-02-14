@@ -99,10 +99,18 @@ public class POJOActivityImplementationFactory implements ActivityImplementation
         private final Object activity;
         private boolean doNotCompleteOnReturn;
 
-        public POJOActivityImplementation(Method method, Object activity) {
-            this.method = method;
-            DoNotCompleteOnReturn queryMethod = method.getAnnotation(DoNotCompleteOnReturn.class);
-            if (queryMethod != null) {
+        public POJOActivityImplementation(Method interfaceMethod, Object activity) {
+            this.method = interfaceMethod;
+            // @DoNotCompleteOnReturn is expected to be on implementation method, not the interface.
+            // So lookup method starting from the implementation object class.
+            DoNotCompleteOnReturn annotation = null;
+            try {
+                Method implementationMethod = activity.getClass().getMethod(interfaceMethod.getName(), interfaceMethod.getParameterTypes());
+                annotation = implementationMethod.getAnnotation(DoNotCompleteOnReturn.class);
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException("No implementation method?", e);
+            }
+            if (annotation != null) {
                 doNotCompleteOnReturn = true;
             }
             this.activity = activity;
