@@ -22,6 +22,30 @@ import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.internal.dispatcher.CadenceClientInternal;
 import com.uber.cadence.workflow.Functions;
 
+/**
+ * Client to Cadence service used to start and query workflows by external processes.
+ * Also can be used to create instances of {@link ActivityCompletionClient} to complete activities asynchronously.
+ * <p>
+ * Use {@link #newClient(WorkflowService.Iface, String, CadenceClientOptions)} method to create an instance.
+ * </p>
+ * Example usage:
+ * <pre>
+ * // Create cadence client from the thrift generated cadenceService.
+ * CadenceClient client = CadenceClient.newClient(cadenceService, domain, null);
+ * // Specify workflow start options.
+ * StartWorkflowOptions options = new StartWorkflowOptions();
+ * options.setTaskList(HelloWorldWorker.TASK_LIST);
+ * options.setExecutionStartToCloseTimeoutSeconds(20);
+ * options.setTaskStartToCloseTimeoutSeconds(3);
+ * HelloWorldWorkflow workflow = client.newWorkflowStub(HelloWorldWorkflow.class, options);
+ * // Start Wrokflow Execution
+ * WorkflowExternalResult<String> result = CadenceClient.asyncStart(workflow::helloWorld, "User");
+ * // WorkflowExecution is available after workflow creation
+ * WorkflowExecution workflowExecution = result.getExecution();
+ * System.out.println("Started helloWorld workflow with workflowId=\"" + workflowExecution.getWorkflowId()
+ *                     + "\" and runId=\"" + workflowExecution.getRunId() + "\"");
+ * </pre>
+ */
 public interface CadenceClient {
 
     /**
