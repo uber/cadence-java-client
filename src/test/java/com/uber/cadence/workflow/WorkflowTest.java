@@ -597,6 +597,24 @@ public class WorkflowTest {
         assertEquals("HELLO WORLD!", client.execute());
     }
 
+    /**
+     * Used to test that worker rejects activities with DoNotCompleteOnReturn annotation on interface.
+     */
+    public interface ActivitiesWithDoNotCompleteAnnotation {
+        @DoNotCompleteOnReturn
+        void activity();
+    }
+
+    public class ActivitiesWithDoNotCompleteAnnotationImpl implements ActivitiesWithDoNotCompleteAnnotation {
+        @Override
+        public void activity() {
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testActivitiesWithDoNotCompleteAnnotationInterface() {
+        worker.addActivitiesImplementation(new ActivitiesWithDoNotCompleteAnnotationImpl());
+    }
 
     public interface TestActivities {
 
