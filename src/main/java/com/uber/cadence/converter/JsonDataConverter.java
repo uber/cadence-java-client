@@ -23,8 +23,6 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.DataConverterException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;

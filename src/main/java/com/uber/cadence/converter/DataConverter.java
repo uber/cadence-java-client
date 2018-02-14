@@ -16,8 +16,6 @@
  */
 package com.uber.cadence.converter;
 
-import com.uber.cadence.internal.DataConverterException;
-
 /**
  * Used by the framework to serialize/deserialize method parameters that need to
  * be sent over the wire. 

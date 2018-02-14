@@ -17,6 +17,8 @@
 package com.uber.cadence.converter;
 
 
+import com.uber.cadence.converter.DataConverter;
+
 /**
  * @see DataConverter
  * 
