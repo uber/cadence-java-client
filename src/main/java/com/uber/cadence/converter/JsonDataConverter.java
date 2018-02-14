@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.converter;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.DataConverterException;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -41,7 +43,7 @@ import java.lang.reflect.Array;
  * 
  * @author fateev
  */
-public class JsonDataConverter extends DataConverter {
+public class JsonDataConverter implements DataConverter {
 
     protected final ObjectMapper mapper;
 

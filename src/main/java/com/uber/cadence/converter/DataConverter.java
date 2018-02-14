@@ -14,7 +14,9 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.converter;
+
+import com.uber.cadence.internal.DataConverterException;
 
 /**
  * Used by the framework to serialize/deserialize method parameters that need to
@@ -22,7 +24,7 @@ package com.uber.cadence.internal;
  * 
  * @author fateev
  */
-public abstract class DataConverter {
+public interface DataConverter {
 
     /**
      * Implements conversion of the single value.
@@ -34,7 +36,7 @@ public abstract class DataConverter {
      *             if conversion of the value passed as parameter failed for any
      *             reason.
      */
-    public abstract byte[] toData(Object value) throws DataConverterException;
+    byte[] toData(Object value) throws DataConverterException;
 
     /**
      * Implements conversion of the single value.
@@ -46,6 +48,6 @@ public abstract class DataConverter {
      *             if conversion of the data passed as parameter failed for any
      *             reason.
      */
-    public abstract <T> T fromData(byte[] content, Class<T> valueType) throws DataConverterException;
+    <T> T fromData(byte[] content, Class<T> valueType) throws DataConverterException;
 
 }
