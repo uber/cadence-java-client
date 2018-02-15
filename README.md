@@ -220,6 +220,9 @@ public interface FileProcessingWorkflow {
     void retryNow();    
 }
 ```
+## Starting workflow executions
+
+
 ## Workflow Implementation Guidelines
 A workflow implementation implements a workflow interface. Each time a new workflow execution is started 
 a new instance of the workflow implementation object is created. Then one of the methods 
