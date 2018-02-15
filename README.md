@@ -220,7 +220,7 @@ public interface FileProcessingWorkflow {
     void retryNow();    
 }
 ```
-## Workflow Implementation
+## Workflow Implementation Guidelines
 A workflow implementation implements a workflow interface. Each time a new workflow execution is started 
 a new instance of the workflow implementation object is created. Then one of the methods 
 (depending on which workflow type has been started) annotated with @WorkflowMethod is invoked. As soon as this method 
@@ -249,6 +249,16 @@ executed one thread at a time and under a global lock.
 - Don't change workflow code when there are open workflows. The ability to do updates through visioning is TBD.
 - Don’t access configuration APIs directly from a workflow as changes in the configuration might affect a workflow execution path. 
 Pass it as an argument to a workflow function or use an activity to load it. 
+
+Workflow method arguments and return values are serializable to byte array using provided
+[DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
+JSON serializer, but any alternative serialization mechanism is pluggable.
+
+The values passed to workflows through invocation parameters or returned through a result value are recorded in the execution history. 
+The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
+A large execution history can thus adversely impact the performance of your workflow. 
+Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
+Other than that no additional limitations exist on activity implementations.
 
 ## Calling Activities
 
@@ -357,14 +367,5 @@ Here is above example rewritten to call download and upload in parallel on multi
         }
     }
 ```
+## Starting Workflows
 
-
-Workflow method arguments and return values are serializable to byte array using provided
-[DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
-JSON serializer, but any alternative serialization mechanism is pluggable.
-
-The values passed to workflows through invocation parameters or returned through a result value are recorded in the execution history. 
-The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
-A large execution history can thus adversely impact the performance of your workflow. 
-Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
-Other than that no additional limitations exist on activity implementations.
