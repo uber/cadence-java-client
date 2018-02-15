@@ -20,6 +20,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.internal.dispatcher.CadenceClientInternal;
+import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.workflow.Functions;
 
 /**
@@ -30,20 +31,26 @@ import com.uber.cadence.workflow.Functions;
  * </p>
  * Example usage:
  * <pre>
- * // Create cadence client from the thrift generated cadenceService.
- * CadenceClient client = CadenceClient.newClient(cadenceService, domain, null);
+ * // Create cadence client using cadence service host and port.
+ * CadenceClient client = CadenceClient.newClient(host, port);
+ *
  * // Specify workflow start options.
  * StartWorkflowOptions options = new StartWorkflowOptions();
  * options.setTaskList(HelloWorldWorker.TASK_LIST);
  * options.setExecutionStartToCloseTimeoutSeconds(20);
  * options.setTaskStartToCloseTimeoutSeconds(3);
+ * // Cadence guarantees uniqueness of workflows by their id.
+ * options.setWorkflowId("MyHelloWorld1");
+ *
+ * // Create client side stub to the workflow execution.
  * HelloWorldWorkflow workflow = client.newWorkflowStub(HelloWorldWorkflow.class, options);
- * // Start Wrokflow Execution
- * WorkflowExternalResult<String> result = CadenceClient.asyncStart(workflow::helloWorld, "User");
- * // WorkflowExecution is available after workflow creation
- * WorkflowExecution workflowExecution = result.getExecution();
- * System.out.println("Started helloWorld workflow with workflowId=\"" + workflowExecution.getWorkflowId()
- *                     + "\" and runId=\"" + workflowExecution.getRunId() + "\"");
+ *
+ * // Start Workflow Execution
+ * WorkflowExecution started = CadenceClient.asyncStart(workflow::helloWorld, "User");
+ *
+ * // started.getWorkflowId() should match the one in the options: "MyHelloWorld1"
+ * System.out.println("Started helloWorld workflow with workflowId=\"" + started.getWorkflowId()
+ *                     + "\" and runId=\"" + started.getRunId() + "\"");
  * </pre>
  */
 public interface CadenceClient {
@@ -53,12 +60,69 @@ public interface CadenceClient {
      */
     String QUERY_TYPE_STACK_TRCE = "__stack_trace";
 
-    static CadenceClient newClient(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
-        return new CadenceClientInternal(service, domain, options);
+    /**
+     * Creates worker that connects to the local instance of the Cadence Service that listens
+     * on a default port (7933).
+     *
+     * @param domain domain that worker uses to poll.
+     */
+    static CadenceClient newClient(String domain) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, new CadenceClientOptions());
     }
 
+    /**
+     * Creates worker that connects to the local instance of the Cadence Service that listens
+     * on a default port (7933).
+     *
+     * @param domain  domain that worker uses to poll.
+     * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
+     */
+    static CadenceClient newClient(String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, options);
+    }
+
+    /**
+     * Creates client that connects to an instance of the Cadence Service.
+     *
+     * @param host   of the Cadence Service endpoint
+     * @param port   of the Cadence Service endpoint
+     * @param domain domain that worker uses to poll.
+     */
+    static CadenceClient newClient(String host, int port, String domain) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, new CadenceClientOptions());
+    }
+
+    /**
+     * Creates client that connects to an instance of the Cadence Service.
+     *
+     * @param host    of the Cadence Service endpoint
+     * @param port    of the Cadence Service endpoint
+     * @param domain  domain that worker uses to poll.
+     * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
+     */
+    static CadenceClient newClient(String host, int port, String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, options);
+    }
+
+    /**
+     * Creates client that connects to an instance of the Cadence Service.
+     *
+     * @param service client to the Cadence Service endpoint.
+     * @param domain  domain that worker uses to poll.
+     */
     static CadenceClient newClient(WorkflowService.Iface service, String domain) {
         return new CadenceClientInternal(service, domain, null);
+    }
+
+    /**
+     * Creates client that connects to an instance of the Cadence Service.
+     *
+     * @param service client to the Cadence Service endpoint.
+     * @param domain  domain that worker uses to poll.
+     * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
+     */
+    static CadenceClient newClient(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(service, domain, options);
     }
 
     /**
