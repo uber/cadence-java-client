@@ -26,8 +26,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static com.uber.cadence.serviceclient.WorkflowServiceTChannel.DEFAULT_LOCAL_CADENCE_SERVER_PORT;
-
 public final class Worker {
 
     private final WorkerOptions options;
@@ -35,7 +33,7 @@ public final class Worker {
     private final ActivityWorker activityWorker;
 
     /**
-     * Create worker that connects to the local instance of the Cadence Service that listens
+     * Creates worker that connects to the local instance of the Cadence Service that listens
      * on a default port (7933).
      *
      * @param domain   domain that worker uses to poll.
@@ -47,7 +45,7 @@ public final class Worker {
     }
 
     /**
-     * Create worker that connects to an instance of the Cadence Service.
+     * Creates worker that connects to an instance of the Cadence Service.
      *
      * @param host     of the Cadence Service endpoint
      * @param port     of the Cadence Service endpoint
@@ -60,7 +58,7 @@ public final class Worker {
     }
 
     /**
-     * Create worker that connects to an instance of the Cadence Service.
+     * Creates worker that connects to an instance of the Cadence Service.
      *
      * @param host     of the Cadence Service endpoint
      * @param port     of the Cadence Service endpoint
@@ -74,7 +72,7 @@ public final class Worker {
     }
 
     /**
-     * Create worker that connects to an instance of the Cadence Service.
+     * Creates worker that connects to an instance of the Cadence Service.
      *
      * @param service  client to the Cadence Service endpoint.
      * @param domain   domain that worker uses to poll.
