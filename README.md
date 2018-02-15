@@ -52,7 +52,7 @@ Activities are defined as methods of a plain Java interface. Each method defines
 workflow can use more than one activity interface and call more that one activity method from the same interface.
 The only requirement is that activity method arguments and return values are serializable to byte array using provided
 [DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
-JSON serializer, but any alternative serialization mechanism is pluggable.
+JSON serializer, but an alternative implementation can be easily configured. 
 
 ```Java
 public interface FileProcessingActivities {
@@ -77,10 +77,10 @@ public interface FileProcessingActivities {
 ## Activity Implementation
 
 Activity implementation is just an implementation of an activity interface. A single instance of the activities implementation
-is shared across multiple simultaneous activity invocations. So the activity implementation code should be *thread safe*.
+is shared across multiple simultaneous activity invocations. So the activity implementation code must be *thread safe*.
 
 The values passed to activities through invocation parameters or returned through a result value are recorded in the execution history. 
-The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
+The entire execution history is transferred from the Cadence service to workflow workers when a workflow state needs to recover.
 A large execution history can thus adversely impact the performance of your workflow. 
 Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
 Other than that no additional limitations exist on activity implementations.
@@ -221,6 +221,7 @@ public interface FileProcessingWorkflow {
 }
 ```
 ## Starting workflow executions
+
 
 
 ## Workflow Implementation Guidelines
@@ -370,5 +371,3 @@ Here is above example rewritten to call download and upload in parallel on multi
         }
     }
 ```
-## Starting Workflows
-
