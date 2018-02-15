@@ -222,8 +222,11 @@ public interface FileProcessingWorkflow {
 ```
 ## Starting workflow executions
 
+Given workflow interface starting a workflow execution requires initializing `CadenceClient` instance, creating 
+a client side stub to the workflow and then calling a method annotated with @WorkflowMethod.
+```java
 
-
+```
 ## Workflow Implementation Guidelines
 A workflow implementation implements a workflow interface. Each time a new workflow execution is started 
 a new instance of the workflow implementation object is created. Then one of the methods 
