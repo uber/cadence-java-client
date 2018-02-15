@@ -45,7 +45,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     private final GenericWorkflowClientExternal genericClient;
     private final StartWorkflowOptions options;
     private final DataConverter dataConverter;
-    WorkflowExecution execution;
+    private final AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
 
     public static void initAsyncInvocation() {
         if (asyncResult.get() != null) {
@@ -76,7 +76,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             throw new IllegalArgumentException("null or empty workflowId");
         }
         this.genericClient = genericClient;
-        this.execution = execution;
+        this.execution.set(execution);
         this.options = null;
         this.dataConverter = dataConverter;
     }
@@ -98,15 +98,15 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
                     "from @WorkflowMethod, @QueryMethod or @SignalMethod");
         }
         if (workflowMethod != null) {
-            if (execution != null) {
+            if (execution.get() != null) {
                 throw new IllegalStateException("Already started: " + execution);
             }
             return startWorkflow(method, workflowMethod, args);
         }
+        if (execution.get() == null) {
+            throw new IllegalStateException("Workflow not started yet");
+        }
         if (queryMethod != null) {
-            if (execution == null) {
-                throw new IllegalStateException("Workflow not started yet");
-            }
             return queryWorkflow(method, queryMethod, args);
         }
         if (signalMethod != null) {
@@ -126,8 +126,9 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             signalName = FlowHelpers.getSimpleName(method);
         }
         SignalExternalWorkflowParameters signalParameters = new SignalExternalWorkflowParameters();
-        signalParameters.setRunId(execution.getRunId());
-        signalParameters.setWorkflowId(execution.getWorkflowId());
+        WorkflowExecution exe = execution.get();
+        signalParameters.setRunId(exe.getRunId());
+        signalParameters.setWorkflowId(exe.getWorkflowId());
         signalParameters.setSignalName(signalName);
         byte[] input = dataConverter.toData(args);
         signalParameters.setInput(input);
@@ -145,8 +146,8 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
         QueryWorkflowParameters p = new QueryWorkflowParameters();
         p.setInput(dataConverter.toData(args));
         p.setQueryType(queryType);
-        p.setRunId(execution.getRunId());
-        p.setWorkflowId(execution.getWorkflowId());
+        p.setRunId(execution.get().getRunId());
+        p.setWorkflowId(execution.get().getWorkflowId());
         byte[] queryResult = genericClient.queryWorkflow(p);
         return dataConverter.fromData(queryResult, method.getReturnType());
     }
@@ -168,16 +169,16 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
         }
         byte[] input = dataConverter.toData(args);
         parameters.setInput(input);
-        execution = genericClient.startWorkflow(parameters);
+        execution.set(genericClient.startWorkflow(parameters));
         AtomicReference<WorkflowExecution> async = asyncResult.get();
         if (async != null) {
-            async.set(execution);
+            async.set(execution.get());
             return null;
         }
         try {
             WorkflowExecutionCompletedEventAttributes result =
                     WorkflowExecutionUtils.getWorkflowExecutionResult(genericClient.getService(), genericClient.getDomain(),
-                            execution, options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
+                            execution.get(), options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
             byte[] resultValue = result.getResult();
             if (resultValue == null) {
                 return null;
