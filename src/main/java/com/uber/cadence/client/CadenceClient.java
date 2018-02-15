@@ -20,6 +20,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.StartWorkflowOptions;
 import com.uber.cadence.internal.dispatcher.CadenceClientInternal;
+import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.workflow.Functions;
 
 /**
@@ -53,12 +54,28 @@ public interface CadenceClient {
      */
     String QUERY_TYPE_STACK_TRCE = "__stack_trace";
 
-    static CadenceClient newClient(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
-        return new CadenceClientInternal(service, domain, options);
+    static CadenceClient newClient(String domain) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, new CadenceClientOptions());
+    }
+
+    static CadenceClient newClient(String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, options);
+    }
+
+    static CadenceClient newClient(String host, int port, String domain) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, new CadenceClientOptions());
+    }
+
+    static CadenceClient newClient(String host, int port, String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, options);
     }
 
     static CadenceClient newClient(WorkflowService.Iface service, String domain) {
         return new CadenceClientInternal(service, domain, null);
+    }
+
+    static CadenceClient newClient(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
+        return new CadenceClientInternal(service, domain, options);
     }
 
     /**
