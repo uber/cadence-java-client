@@ -295,6 +295,68 @@ public class FileProcessingWorkflowImpl implements FileProcessingWorkflow {
     ...
 }
 ```
+If different activities need different scheduling options just create multiple client side stubs with different options.
+### Calling Activities Asynchronously
+Being able to call activity synchronously is great. But sometimes workflows need to perform certain operations in parallel.
+`Workflow.async` static method allows invoking any activity asynchronously. The call returns a `Promise` result immediately.
+`Promise` is similar to both Java `Future` and `CompletionStage`. The `Promise` `get` blocks until a result is available. 
+Also it exposes `thenApply` and `handle` methods. See `Promise` JavaDoc for technical details on differences with `Future`.
+
+To convert a synchronous call
+```java
+String localName = activities.download(surceBucket, sourceFile);
+```
+to asynchronous style, pass the method reference to the `Workflow.async` followed by activity arguments.
+```java
+Promise<String> localNamePromise = Workflow.async(activities::download, surceBucket, sourceFile);
+```
+Then to wait synchronously for result:
+```java
+String localName = localNamePromise.get();
+```
+Here is above example rewritten to call download and upload in parallel on multiple files:
+```java
+    public void processFile(Arguments args) {
+        List<Promise<String>> localNamePromises = new ArrayList<>();
+        List<String> processedNames = null;
+        try {
+            // Download all files in parallel
+            for (String sourceFilename : args.getSourceFilenames()) {
+                Promise<String> localName = Workflow.async(activities::download, args.getSourceBucketName(), sourceFilename);
+                localNamePromises.add(localName);
+            }
+            // allOf converts a list of promises to single promise that contains list of each promise value.
+            Promise<List<String>> localNamesPromise = Promise.allOf(localNamePromises);
+
+            // All code until the next line wasn't blocking.
+            // The promise get is a blocking call
+            List<String> localNames = localNamesPromise.get();
+            processedNames = activities.processFiles(localNames);
+
+            // Upload all results in parallel.
+            List<Promise<Void>> uploadedList = new ArrayList<>();
+            for (String processedName : processedNames) {
+                Promise<Void> uploaded = Workflow.async(activities::upload, args.getTargetBucketName(), args.getTargetFilename(), processedName);
+                uploadedList.add(uploaded);
+            }
+            // Wait for all uploads to complete.
+            Promise<?> allUploaded = Promise.allOf(uploadedList);
+            allUploaded.get(); // blocks until all promises are ready.
+        } finally {
+            for (Promise<Sting> localNamePromise : localNamePromises) {
+                // Skip files that haven't completed download
+                if (localNamePromise.isCompleted()) {
+                    activities.deleteLocalFile(localNamePromise.get());
+                }
+            }
+            if (processedNames != null) {
+                for (String processedName : processedNames) {
+                    activities.deleteLocalFile(processedName);
+                }
+            }
+        }
+    }
+```
 
 
 Workflow method arguments and return values are serializable to byte array using provided
