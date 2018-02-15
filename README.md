@@ -44,7 +44,7 @@ act accordingly.
 
 # Activities
 
-Activity is the implementation of a particular task in the business logic.
+Activity is a manifestation of a particular task in the business logic.
 
 ## Activity Interface
 
@@ -55,44 +55,61 @@ The only requirement is that activity method arguments and return values are ser
 JSON serializer, but any alternative serialization mechanism is pluggable.
 
 ```Java
-/**
- * Contract of the hello world activities
- */
-public interface HelloWorldActivities {
+public interface FileProcessingActivities {
+ 
+    void upload(String bucketName, String localName, String targetName);
 
-    String printHello(String name);
+    /**
+     * @return local name
+     */
+    String download(String bucketName, String remoteName);
 
-    String getName();
+    /**
+     * @return local name
+     */
+    String processFile(String localName);
+    
+    void deleteLocalFile(String fileName);
 }
 
 ```
 
 ## Activity Implementation
 
-Activity implementation is just an implementation of an activity interface.
+Activity implementation is just an implementation of an activity interface. A single instance of the activities implementation
+is shared across multiple simultaneous activity invocations. So the activity implementation code should be *thread safe*.
 
-The values passed to activities through invocation parameters or returned through the result value is recorded in the execution history. 
+The values passed to activities through invocation parameters or returned through a result value are recorded in the execution history. 
 The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
 A large execution history can thus adversely impact the performance of your workflow. 
 Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
 Other than that no additional limitations exist on activity implementations.
 
 ```java
-/**
- * Implementation of the hello world activities
- */
-public class HelloWorldActivitiesImpl implements HelloWorldActivities {
+public class FileProcessingActivitiesImpl implements FileProcessingActivities {
 
-    @Override
-    public String printHello(String name) {
-        String result = "Hello " + name + "!";
-        System.out.println(result);
-        return result;
+    private final AmazonS3 s3Client;
+
+    private final String localDirectory;
+
+    void upload(String bucketName, String localName, String targetName) {
+        File f = new File(localName);
+        s3Client.putObject(bucket, remoteName, f);
     }
 
-    @Override
-    public String getName() {
-        return "World";
+    String download(String bucketName, String remoteName, String localName) {
+        // Implementation omitted for brevity
+        return downloadFileFromS3(bucketName, remoteName, localDirectory + localName);
+    }
+
+    String processFile(String localName) {
+        // Implementation omitted for brevity
+        return compressFile(localName);
+    }
+
+    void deleteLocalFile(String fileName) {
+        File f = new File(localDirectory + fileName);
+        f.delete();
     }
 }
 ```
@@ -101,28 +118,20 @@ public class HelloWorldActivitiesImpl implements HelloWorldActivities {
 Class [Activity](src/main/java/com/uber/cadence/activity/Activity.java) provides static getters to access information about workflow that invoked it.
 Note that this information is stored in a thread local variable. So calls to Activity accessors succeed only in the thread that invoked the activity function.
 ```java
- /**
-  * Implementation of the hello world activities that uses static Activity accessors.
-  */
- public class HelloWorldActivitiesImpl implements HelloWorldActivities {
+public class FileProcessingActivitiesImpl implements FileProcessingActivities {
 
      @Override
-     public String printHello(String name) {
+     public String download(String bucketName, String remoteName, String localName) {
+        log.info("domain=" +  Activity.getDomain());
         WorkflowExecution execution = Activity.getWorkflowExecution();
-        String domain = Activity.getDomain();
-        ActivityTask activityTask = Activity.getTask();
         log.info("workflowId=" + execution.getWorkflowId());
         log.info("runId=" + execution.getRunId());
-        log.info("domain=" + domain);
+        ActivityTask activityTask = Activity.getTask();
         log.info("activityId=" + activityTask.getActivityId());
         log.info("activityTimeout=" + activityTask.getStartToCloseTimeoutSeconds());
-        return "Hello " + name + "!";;
+        return downloadFileFromS3(bucketName, remoteName, localDirectory + localName);
      }
- 
-     @Override
-     public String getName() {
-         return "World";
-     }
+     ...
  }
 ```
 ### Asynchronous Activity Completion
@@ -135,20 +144,20 @@ To indicate that an activity should not be completed upon its method return anno
 Then later when replies come complete it using [ActivityCompletionClient](src/main/java/com/uber/cadence/client/ActivityCompletionClient.java).
 To correlate activity invocation with completion use either `TaskToken` or workflow and activity ids.
 ```java
-public class HelloWorldActivitiesImpl implements HelloWorldActivities {
-    
-    @DoNotCompleteOnReturn
-    @Override
-    public String getName() {
-        byte[] taskToken = Activity.getTaskToken();
-        makeAsyncRequest("GetName", taskToken); // contrived example
-        return "ignored"; // This value is ignored when annotated with @DoNotCompleteOnReturn
-    }
+public class FileProcessingActivitiesImpl implements FileProcessingActivities {
+
+     @DoNotCompleteOnReturn
+     public String download(String bucketName, String remoteName, String localName) {
+         byte[] taskToken = Activity.getTaskToken(); // Used to correlate reply
+         asyncDownloadFileFromS3(taskToken, bucketName, remoteName, localDirectory + localName);
+         return "ignored"; // This value is ignored when annotated with @DoNotCompleteOnReturn
+     }
+     ...
 }
 ```
-The activity completion code:
+When download is complete the download service calls back potentially from a different process:
 ```java
-    public void completeActivity(byte[] taskToken, String result) {
+    public <R> void completeActivity(byte[] taskToken, R result) {
         completionClient.complete(taskToken, result);
     }
 
@@ -164,7 +173,10 @@ a `details` on an activity heartbeat. If an activity times out the last value of
 into the ActivityTimeoutException delivered to a workflow. Then workflow can pass the details to 
 the next activity invocation. This acts as a periodic checkpointing mechanism of an activity progress.
 ```java
-    public void downloadFile(String fileName) throws IOException {
+public class FileProcessingActivitiesImpl implements FileProcessingActivities {
+
+     @Override
+     public String download(String bucketName, String remoteName, String localName) {
         InputStream inputStream = openInputStream(file);
         try {
             byte[] bytes = new byte[MAX_BUFFER_SIZE];
@@ -179,6 +191,118 @@ the next activity invocation. This acts as a periodic checkpointing mechanism of
         } finally {
             inputStream.close();
         }
+     }
+     ...
+}
+```
+# Workflows
+Workflow encapsulates orchestration of activities and child workflows. 
+It can also answer to synchronous queries and receive external events (aka signals).
+## Workflow Interface
+A workflow must define an interface class. All its methods must have one of the following annotations:
+- @WorkflowMethod indicates an entry point to a workflow
+- @Signal indicates a method that reacts to external signals. Must have a `void` return type.
+- @Query indicates a method that reacts to synchronous query requests.
+It is possible to have more than method with the same annotation.
+```java
+public interface FileProcessingWorkflow {
+
+    @WorkflowMethod
+    String processFile(Arguments args);
+
+    @QueryMethod(name="history")
+    List<String> getHistory();
+
+    @QueryMethod(name="status")
+    String getStatus();
+        
+    @SignalMethod
+    void retryNow();    
+}
+```
+## Workflow Implementation
+A workflow implementation implements a workflow interface. Each time a new workflow execution is started 
+a new instance of the workflow implementation object is created. Then one of the methods 
+(depending on which workflow type has been started) annotated with @WorkflowMethod is invoked. As soon as this method 
+returns the workflow execution is closed. While workflow execution is open it can receive calls to signal and query methods. 
+No additional calls to workflow methods are allowed. The workflow object is stateful, so query and signal methods 
+can communicate with the other parts of the workflow through workflow object fields.
+
+Cadence uses event sourcing to recover a state of the workflow object including its threads and local variables using
+[event sourcing](https://docs.microsoft.com/en-us/azure/architecture/patterns/event-sourcing). In essence every time 
+workflow state has to be restored its code is reexecuted from the beginning ignoring side effects (like activity invocations) 
+which were already recorded in the workflow event history. Don't get confused, when writing workflow logic the replay is not visible,
+so the code should be written as it executes only once. But this design still puts the following constraints on the workflow 
+implementation:
+- Do not use any mutable global variables as multiple instances of workflows are executed in parallel.
+- Do not call any non deterministic functions like non seeded random or UUID.randomUUID() directly form the workflow code. 
+Always do it in activities.
+- Don’t perform any IO or service calls as they are not usually deterministic. Use activities for that.
+- Only use `Workflow.currentTimeMillis()` to get current time inside a workflow.
+- Do not use native Java `Thread` class. Use `Workflow.newThread` to create workflow friendly `WorkflowThread`.
+- Don't use any synchronization, locks and other standard Java blocking concurrency related classes besides provided 
+by the Workflow class. There is no need in explicit synchronization as even multithreaded code inside a workflow is 
+executed one thread at a time and under a global lock.
+  - Call `WorkflowThread.sleep` instead of `Thread.sleep`
+  - Use `Promise` and `CompletablePromise` instead of `Future` and `CompletableFuture`.
+  - Use `WorkflowQueue` instead of `BlockingQueue`.
+- Don't change workflow code when there are open workflows. The ability to do updates through visioning is TBD.
+- Don’t access configuration APIs directly from a workflow as changes in the configuration might affect a workflow execution path. 
+Pass it as an argument to a workflow function or use an activity to load it. 
+
+## Calling Activities
+
+`Workflow.newActivityStub` returns a client side stub that implements an activity interface. 
+It takes activity type and scheduling options as arguments. Activity options are needed to tell the Cadence service 
+the required timeouts and which task list to use when dispatching a correspondent activity task to a worker.
+
+Calling a method on this interface invokes an activity that implements this method. 
+An activity invocation synchronously blocks until the activity completes (or fails or times out). Even if activity 
+execution takes a few months the workflow code still see it as a single synchronous invocation.
+Isn't it great? I doesn't matter what happens to the processes that host the worklfow. The business logic code
+just sees a single method call.
+```java
+public class FileProcessingWorkflowImpl implements FileProcessingWorkflow {
+
+    private final FileProcessingActivities activities;
+    
+    public FileProcessingWorkflowImpl() {
+        // Options are required as there are no good defaults for the timeouts.
+        ActivitySchedulingOptions ao = new ActivitySchedulingOptions();
+        ao.setScheduleToStartTimeoutSeconds(3600); // from schedule to worker picking it up
+        ao.setScheduleToStartTimeoutSeconds(300); // execution time
+        ao.setTaskList(FileProcessingWorker.TASK_LIST);
+        this.store = Workflow.newActivityStub(FileProcessingActivities.class, ao);
     }
 
+    @Override
+    public void processFile(Arguments args) {
+        String localName = null;
+        String processedName = null;
+        try {
+            localName = activities.download(args.getSourceBucketName(), args.getSourceFilename());
+            processedName = activities.processFile(localName);
+            activities.upload(args.getTargetBucketName(), args.getTargetFilename(), processedName);
+        } finally {
+            if (localName != null) { // File was downloaded
+                activities.deleteLocalFile(localName); 
+            }
+            if (processedName != null) { // File was processed
+                activities.deleteLocalFile(processedName);
+            }
+        }
+    }
+    ...
+}
 ```
+
+
+Workflow method arguments and return values are serializable to byte array using provided
+[DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
+JSON serializer, but any alternative serialization mechanism is pluggable.
+
+The values passed to workflows through invocation parameters or returned through a result value are recorded in the execution history. 
+The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
+A large execution history can thus adversely impact the performance of your workflow. 
+Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
+Other than that no additional limitations exist on activity implementations.
