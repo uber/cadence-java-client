@@ -39,7 +39,9 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,10 +62,13 @@ import static org.junit.Assert.*;
 
 public class WorkflowTest {
 
+    @Rule
+    public TestName testName = new TestName();
+
     private static final String domain = "UnitTest";
-    private static final String taskList = "UnitTest";
     private static final Log log;
     private static ActivityCompletionClient completionClient;
+    private static String taskList;
 
     static {
         LogManager.resetConfiguration();
@@ -109,6 +114,7 @@ public class WorkflowTest {
 
     @Before
     public void setUp() {
+        taskList = "WorkflowTest-" + testName.getMethodName();
         // TODO: Make this configuratble instead of always using local instance.
         worker = new Worker(domain, taskList);
         cadenceClient = CadenceClient.newClient(domain);
@@ -121,14 +127,14 @@ public class WorkflowTest {
         cadenceClientWithOptions = CadenceClient.newClient(domain, clientOptions);
         newStartWorkflowOptions();
         newActivitySchedulingOptions();
+        activitiesImpl.invocations.clear();
+        activitiesImpl.procResult.clear();
     }
 
     @After
     public void tearDown() {
-        worker.shutdown(1, TimeUnit.MINUTES);
+        worker.shutdown(1, TimeUnit.MILLISECONDS);
         activitiesImpl.close();
-        activitiesImpl.invocations.clear();
-        activitiesImpl.procResult.clear();
     }
 
     private void startWorkerFor(Class<?> workflowType) {
@@ -500,7 +506,7 @@ public class WorkflowTest {
 
     @Test
     public void testSignalDuringLastDecision() throws InterruptedException {
-        worker.setWorkflowImplementationTypes(TestSignalDuringLastDecisionWorkflowImpl.class);
+        startWorkerFor(TestSignalDuringLastDecisionWorkflowImpl.class);
         StartWorkflowOptions options = newStartWorkflowOptions();
         options.setWorkflowId("testSignalDuringLastDecision-" + UUID.randomUUID().toString());
         TestWorkflowSignaled client = cadenceClient.newWorkflowStub(TestWorkflowSignaled.class, options);
@@ -515,7 +521,6 @@ public class WorkflowTest {
     }
 
     public static class TestTimerCallbackBlockedWorkflowImpl implements TestWorkflow1 {
-
 
         @Override
         public String execute() {
@@ -593,7 +598,7 @@ public class WorkflowTest {
 
     @Test
     public void testChildWorkflow() {
-        startWorkerFor(TestParentWorkflow.class);
+        worker.addWorkflowImplementationType(TestParentWorkflow.class);
         startWorkerFor(TestChild.class);
 
         StartWorkflowOptions options = new StartWorkflowOptions();
