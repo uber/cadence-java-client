@@ -94,58 +94,6 @@ public final class ContinueAsNewWorkflowExecutionParameters {
         return this;
     }
 
-    public ContinueAsNewWorkflowExecutionParameters createContinueAsNewParametersFromOptions(WorkflowOptions options,
-            WorkflowOptions optionsOverride) {
-        ContinueAsNewWorkflowExecutionParameters continueAsNewWorkflowExecutionParameters = this.clone();
-        
-        if (options != null) {
-            Integer executionStartToCloseTimeoutSeconds = options.getExecutionStartToCloseTimeoutSeconds();
-            if (executionStartToCloseTimeoutSeconds != null) {
-                continueAsNewWorkflowExecutionParameters.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
-            }
-            
-            Integer taskStartToCloseTimeoutSeconds = options.getTaskStartToCloseTimeoutSeconds();
-            if (taskStartToCloseTimeoutSeconds != null) {
-                continueAsNewWorkflowExecutionParameters.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
-            }
-
-            String taskList = options.getTaskList();
-            if (taskList != null && !taskList.isEmpty()) { 
-                continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
-            }
-
-            ChildPolicy childPolicy = options.getChildPolicy();
-            if (childPolicy != null) {
-                continueAsNewWorkflowExecutionParameters.setChildPolicy(childPolicy);
-            }
-        }
-        
-        if (optionsOverride != null) {    
-            Integer executionStartToCloseTimeoutSeconds = optionsOverride.getExecutionStartToCloseTimeoutSeconds();
-            if (executionStartToCloseTimeoutSeconds != null) {
-                continueAsNewWorkflowExecutionParameters.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
-            }
-            
-            Integer taskStartToCloseTimeoutSeconds = optionsOverride.getTaskStartToCloseTimeoutSeconds();
-            if (taskStartToCloseTimeoutSeconds != null) {
-                continueAsNewWorkflowExecutionParameters.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
-            }
-
-            String taskList = optionsOverride.getTaskList();
-            if (taskList != null && !taskList.isEmpty()) { 
-                continueAsNewWorkflowExecutionParameters.setTaskList(taskList);
-            }
-
-            ChildPolicy childPolicy = optionsOverride.getChildPolicy();
-            if (childPolicy != null) {
-                continueAsNewWorkflowExecutionParameters.setChildPolicy(childPolicy);
-            }
-
-        }
-        
-        return continueAsNewWorkflowExecutionParameters;
-    }
-    
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

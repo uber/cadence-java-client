@@ -19,15 +19,15 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.workflow.WorkflowOptions;
+import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
@@ -101,7 +101,7 @@ class SyncDecisionContext {
      * @param executionResult promise that is set bu this method when child workflow is started.
      */
     public Promise<byte[]> executeChildWorkflow(
-            String name, WorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
+            String name, ChildWorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters.Builder()
                 .setWorkflowType(new WorkflowType().setName(name))
                 .setWorkflowId(options.getWorkflowId())

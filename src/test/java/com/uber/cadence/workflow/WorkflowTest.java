@@ -23,6 +23,7 @@ import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
+import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
@@ -568,7 +569,7 @@ public class WorkflowTest {
         private final ITestChild child2;
 
         public TestParentWorkflow() {
-            WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+            ChildWorkflowOptions.Builder options = new ChildWorkflowOptions.Builder();
             options.setWorkflowId(child2Id);
             child2 = Workflow.newChildWorkflowStub(ITestChild.class, options.build());
         }

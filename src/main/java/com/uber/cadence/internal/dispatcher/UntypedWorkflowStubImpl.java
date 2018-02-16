@@ -20,9 +20,9 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.UntypedWorkflowStub;
+import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.error.CheckedExceptionWrapper;
-import com.uber.cadence.workflow.WorkflowOptions;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.generic.QueryWorkflowParameters;
@@ -33,15 +33,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
+class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
     private final GenericWorkflowClientExternal genericClient;
     private final DataConverter dataConverter;
     private final String workflowType;
     private AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
     private final WorkflowOptions options;
 
-    public UntypedWorkflowStubImpl(GenericWorkflowClientExternal genericClient, DataConverter dataConverter,
-                                   WorkflowExecution execution) {
+    UntypedWorkflowStubImpl(GenericWorkflowClientExternal genericClient, DataConverter dataConverter,
+                            WorkflowExecution execution) {
         this.genericClient = genericClient;
         this.dataConverter = dataConverter;
         this.workflowType = null;
@@ -49,8 +49,8 @@ public class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
         this.options = null;
     }
 
-    public UntypedWorkflowStubImpl(GenericWorkflowClientExternal genericClient, DataConverter dataConverter,
-                                   String workflowType, WorkflowOptions options) {
+    UntypedWorkflowStubImpl(GenericWorkflowClientExternal genericClient, DataConverter dataConverter,
+                            String workflowType, WorkflowOptions options) {
         this.genericClient = genericClient;
         this.dataConverter = dataConverter;
         this.workflowType = workflowType;

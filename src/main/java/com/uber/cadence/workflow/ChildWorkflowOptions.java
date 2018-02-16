@@ -19,7 +19,7 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
 
-public final class WorkflowOptions {
+public final class ChildWorkflowOptions {
 
     public static final class Builder {
 
@@ -111,8 +111,8 @@ public final class WorkflowOptions {
             return this;
         }
 
-        public WorkflowOptions build() {
-            return new WorkflowOptions(domain, workflowId, workflowIdReusePolicy, executionStartToCloseTimeoutSeconds,
+        public ChildWorkflowOptions build() {
+            return new ChildWorkflowOptions(domain, workflowId, workflowIdReusePolicy, executionStartToCloseTimeoutSeconds,
                     taskStartToCloseTimeoutSeconds, taskList, childPolicy);
         }
     }
@@ -131,7 +131,7 @@ public final class WorkflowOptions {
 
     private final ChildPolicy childPolicy;
 
-    private WorkflowOptions(String domain, String workflowId, WorkflowIdReusePolicy workflowIdReusePolicy,
+    private ChildWorkflowOptions(String domain, String workflowId, WorkflowIdReusePolicy workflowIdReusePolicy,
                             int executionStartToCloseTimeoutSeconds, int taskStartToCloseTimeoutSeconds, String taskList, ChildPolicy childPolicy) {
         this.domain = domain;
         this.workflowId = workflowId;

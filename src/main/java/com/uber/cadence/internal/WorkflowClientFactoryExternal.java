@@ -17,9 +17,9 @@
 package com.uber.cadence.internal;
 
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
-import com.uber.cadence.workflow.WorkflowOptions;
 
 public interface WorkflowClientFactoryExternal<T> {
 

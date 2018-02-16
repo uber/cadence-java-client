@@ -17,7 +17,7 @@
 package com.uber.cadence.internal;
 
 
-import com.uber.cadence.workflow.WorkflowOptions;
+import com.uber.cadence.client.WorkflowOptions;
 
 public interface DynamicWorkflowClientExternal extends WorkflowClientExternal {
     

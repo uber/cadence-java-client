@@ -19,6 +19,7 @@ package com.uber.cadence.internal;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
@@ -26,15 +27,14 @@ import com.uber.cadence.internal.generic.QueryWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
-import com.uber.cadence.workflow.WorkflowOptions;
 
 public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientExternal {
 
     protected DataConverter dataConverter;
 
-    protected WorkflowOptions schedulingOptions;
+    private WorkflowOptions schedulingOptions;
 
-    protected GenericWorkflowClientExternal genericClient;
+    private GenericWorkflowClientExternal genericClient;
 
     protected WorkflowExecution workflowExecution;
 
@@ -57,13 +57,13 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
         this(workflowExecution, workflowType, options, null, null);
     }
 
-    public DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
-                                             WorkflowOptions options, DataConverter dataConverter) {
+    private DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
+                                              WorkflowOptions options, DataConverter dataConverter) {
         this(workflowExecution, workflowType, options, dataConverter, null);
     }
 
-    public DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
-                                             WorkflowOptions options, DataConverter dataConverter, GenericWorkflowClientExternal genericClient) {
+    DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
+                                      WorkflowOptions options, DataConverter dataConverter, GenericWorkflowClientExternal genericClient) {
         this.workflowExecution = workflowExecution;
         this.workflowType = workflowType;
         this.schedulingOptions = options;

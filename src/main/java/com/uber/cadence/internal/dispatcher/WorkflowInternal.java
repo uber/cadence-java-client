@@ -17,9 +17,9 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.workflow.WorkflowOptions;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
@@ -101,7 +101,7 @@ public final class WorkflowInternal {
     }
 
 
-    public static <T> T newChildWorkflowStub(Class<T> workflowInterface, WorkflowOptions options) {
+    public static <T> T newChildWorkflowStub(Class<T> workflowInterface, ChildWorkflowOptions options) {
         return (T) Proxy.newProxyInstance(WorkflowInternal.class.getClassLoader(),
                 new Class<?>[]{workflowInterface, WorkflowStub.class},
                 new ChildWorkflowInvocationHandler(options, getDecisionContext()));
