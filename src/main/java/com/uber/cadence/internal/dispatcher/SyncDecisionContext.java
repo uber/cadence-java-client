@@ -26,7 +26,7 @@ import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
-import com.uber.cadence.workflow.ActivitySchedulingOptions;
+import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
@@ -58,7 +58,7 @@ class SyncDecisionContext {
         this.converter = converter;
     }
 
-    public <T> Promise<T> executeActivity(String name, ActivitySchedulingOptions options, Object[] args, Class<T> returnType) {
+    public <T> Promise<T> executeActivity(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
         byte[] input = converter.toData(args);
         Promise<byte[]> binaryResult = executeActivity(name, options, input);
         if (returnType == Void.TYPE) {
@@ -67,7 +67,7 @@ class SyncDecisionContext {
         return binaryResult.thenApply(r -> converter.fromData(r, returnType));
     }
 
-    private Promise<byte[]> executeActivity(String name, ActivitySchedulingOptions options, byte[] input) {
+    private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {
         CompletablePromise<byte[]> result = Workflow.newCompletablePromise();
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list

@@ -17,7 +17,7 @@
 package com.uber.cadence.workflow;
 
 
-public final class ActivitySchedulingOptions {
+public final class ActivityOptions {
     
     private Integer heartbeatTimeoutSeconds;
     
@@ -37,7 +37,7 @@ public final class ActivitySchedulingOptions {
         this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
     }
     
-    public ActivitySchedulingOptions withHeartbeatTimeoutSeconds(Integer heartbeatTimeoutSeconds) {
+    public ActivityOptions withHeartbeatTimeoutSeconds(Integer heartbeatTimeoutSeconds) {
         this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
         return this;
     }
@@ -50,7 +50,7 @@ public final class ActivitySchedulingOptions {
 		this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
 	}
 	
-	public ActivitySchedulingOptions withScheduleToCloseTimeoutSeconds(Integer scheduleToCloseTimeoutSeconds) {
+	public ActivityOptions withScheduleToCloseTimeoutSeconds(Integer scheduleToCloseTimeoutSeconds) {
 		this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
 		return this;
 	}
@@ -63,7 +63,7 @@ public final class ActivitySchedulingOptions {
 		this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
 	}
 	
-	public ActivitySchedulingOptions withScheduleToStartTimeoutSeconds(Integer scheduleToStartTimeoutSeconds) {
+	public ActivityOptions withScheduleToStartTimeoutSeconds(Integer scheduleToStartTimeoutSeconds) {
 		this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
 		return this;
 	}
@@ -76,7 +76,7 @@ public final class ActivitySchedulingOptions {
         this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
     }
     
-    public ActivitySchedulingOptions withStartToCloseTimeoutSeconds(Integer startToCloseTimeoutSeconds) {
+    public ActivityOptions withStartToCloseTimeoutSeconds(Integer startToCloseTimeoutSeconds) {
         this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
         return this;
     }
@@ -89,7 +89,7 @@ public final class ActivitySchedulingOptions {
 		this.taskList = taskList;
 	}
 	
-	public ActivitySchedulingOptions withTaskList(String taskList) {
+	public ActivityOptions withTaskList(String taskList) {
 		this.taskList = taskList;
 		return this;
 	}

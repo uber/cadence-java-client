@@ -17,7 +17,6 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.client.ActivityCompletionClient;
@@ -26,7 +25,6 @@ import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.StartWorkflowOptions;
-import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,9 +34,7 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -102,8 +98,8 @@ public class WorkflowTest {
         return result;
     }
 
-    private static ActivitySchedulingOptions newActivitySchedulingOptions() {
-        ActivitySchedulingOptions result = new ActivitySchedulingOptions();
+    private static ActivityOptions newActivitySchedulingOptions() {
+        ActivityOptions result = new ActivityOptions();
         result.setTaskList(taskList);
         result.setHeartbeatTimeoutSeconds(10);
         result.setScheduleToCloseTimeoutSeconds(20);
