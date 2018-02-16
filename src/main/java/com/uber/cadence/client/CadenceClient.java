@@ -67,7 +67,8 @@ public interface CadenceClient {
      * @param domain domain that worker uses to poll.
      */
     static CadenceClient newClient(String domain) {
-        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, new CadenceClientOptions());
+        return new CadenceClientInternal(new WorkflowServiceTChannel(), domain,
+                new CadenceClientOptions.Builder().build());
     }
 
     /**
@@ -89,7 +90,8 @@ public interface CadenceClient {
      * @param domain domain that worker uses to poll.
      */
     static CadenceClient newClient(String host, int port, String domain) {
-        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, new CadenceClientOptions());
+        return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain,
+                new CadenceClientOptions.Builder().build());
     }
 
     /**

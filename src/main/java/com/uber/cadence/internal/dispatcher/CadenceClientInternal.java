@@ -24,6 +24,7 @@ import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactoryImpl;
 import com.uber.cadence.internal.StartWorkflowOptions;
@@ -35,9 +36,6 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.concurrent.CompletableFuture;
-
-import static com.uber.cadence.internal.common.FlowDefaults.DEFAULT_DATA_CONVERTER;
 
 public final class CadenceClientInternal implements CadenceClient {
 
@@ -47,11 +45,7 @@ public final class CadenceClientInternal implements CadenceClient {
 
     public CadenceClientInternal(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
         this.genericClient = new GenericWorkflowClientExternalImpl(service, domain);
-        if (options == null || options.getDataConverter() == null) {
-            this.dataConverter = DEFAULT_DATA_CONVERTER;
-        } else {
-            this.dataConverter = options.getDataConverter();
-        }
+        this.dataConverter = options.getDataConverter();
         this.manualActivityCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(service, domain, dataConverter);
     }
 
@@ -81,6 +75,7 @@ public final class CadenceClientInternal implements CadenceClient {
                 " doesn't have method annotated with any of " + annotationClasses);
     }
 
+    @SuppressWarnings("unchecked")
     public <T> T newWorkflowStub(Class<T> workflowInterface, WorkflowExecution execution) {
         checkAnnotation(workflowInterface, WorkflowMethod.class, QueryMethod.class);
         return (T) Proxy.newProxyInstance(WorkflowInternal.class.getClassLoader(),

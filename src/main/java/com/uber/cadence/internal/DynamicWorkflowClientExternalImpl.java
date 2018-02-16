@@ -23,9 +23,9 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.generic.QueryWorkflowParameters;
-import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
+import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
 
 public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientExternal {
 
@@ -67,7 +67,7 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
         this.workflowType = workflowType;
         this.schedulingOptions = options;
         if (dataConverter == null) {
-            this.dataConverter = new JsonDataConverter();
+            this.dataConverter = JsonDataConverter.getInstance();
         }
         else {
             this.dataConverter = dataConverter;

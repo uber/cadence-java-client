@@ -35,6 +35,7 @@ import org.apache.log4j.Level;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -83,33 +84,10 @@ public class WorkflowTest {
 
     }
 
-    private static Worker worker;
-    private static TestActivitiesImpl activitiesImpl;
-    private static CadenceClient cadenceClient;
-    private static CadenceClient cadenceClientWithOptions;
-    private static ActivitySchedulingOptions activitySchedulingOptions;
-
-    @BeforeClass
-    public static void setUpService() {
-        WorkflowServiceTChannel.ClientOptions.Builder optionsBuilder = new WorkflowServiceTChannel.ClientOptions.Builder();
-        // TODO: Make this configuratble instead of always using local instance.
-        worker = new Worker(domain, taskList);
-        cadenceClient = CadenceClient.newClient(domain);
-        completionClient = cadenceClient.newActivityCompletionClient();
-        activitiesImpl = new TestActivitiesImpl(completionClient);
-        worker.addActivitiesImplementation(activitiesImpl);
-        CadenceClientOptions clientOptions = new CadenceClientOptions();
-        clientOptions.setDataConverter(new JsonDataConverter());
-        cadenceClientWithOptions = CadenceClient.newClient(domain, clientOptions);
-        worker.start();
-        newStartWorkflowOptions();
-        activitySchedulingOptions = new ActivitySchedulingOptions();
-        activitySchedulingOptions.setTaskList(taskList);
-        activitySchedulingOptions.setHeartbeatTimeoutSeconds(10);
-        activitySchedulingOptions.setScheduleToCloseTimeoutSeconds(20);
-        activitySchedulingOptions.setScheduleToStartTimeoutSeconds(10);
-        activitySchedulingOptions.setStartToCloseTimeoutSeconds(10);
-    }
+    private Worker worker;
+    private TestActivitiesImpl activitiesImpl;
+    private CadenceClient cadenceClient;
+    private CadenceClient cadenceClientWithOptions;
 
     private static StartWorkflowOptions newStartWorkflowOptions() {
         StartWorkflowOptions result = new StartWorkflowOptions();
@@ -119,16 +97,43 @@ public class WorkflowTest {
         return result;
     }
 
-    @AfterClass
-    public static void tearDownService() {
-        worker.shutdown(100, TimeUnit.MILLISECONDS);
-        activitiesImpl.close();
+    private static ActivitySchedulingOptions newActivitySchedulingOptions() {
+        ActivitySchedulingOptions result = new ActivitySchedulingOptions();
+        result.setTaskList(taskList);
+        result.setHeartbeatTimeoutSeconds(10);
+        result.setScheduleToCloseTimeoutSeconds(20);
+        result.setScheduleToStartTimeoutSeconds(10);
+        result.setStartToCloseTimeoutSeconds(10);
+        return result;
     }
 
     @Before
     public void setUp() {
+        // TODO: Make this configuratble instead of always using local instance.
+        worker = new Worker(domain, taskList);
+        cadenceClient = CadenceClient.newClient(domain);
+        completionClient = cadenceClient.newActivityCompletionClient();
+        activitiesImpl = new TestActivitiesImpl(completionClient);
+        worker.addActivitiesImplementation(activitiesImpl);
+        CadenceClientOptions clientOptions = new CadenceClientOptions.Builder()
+                .setDataConverter(JsonDataConverter.getInstance())
+                .build();
+        cadenceClientWithOptions = CadenceClient.newClient(domain, clientOptions);
+        newStartWorkflowOptions();
+        newActivitySchedulingOptions();
+    }
+
+    @After
+    public void tearDown() {
+        worker.shutdown(1, TimeUnit.MINUTES);
+        activitiesImpl.close();
         activitiesImpl.invocations.clear();
         activitiesImpl.procResult.clear();
+    }
+
+    private void startWorkerFor(Class<?> workflowType) {
+        worker.addWorkflowImplementationType(workflowType);
+        worker.start();
     }
 
     public interface TestWorkflow1 {
@@ -154,7 +159,7 @@ public class WorkflowTest {
         @Override
         public String execute() {
             AtomicReference<String> a1 = new AtomicReference<>();
-            TestActivities activities = Workflow.newActivityStub(TestActivities.class, activitySchedulingOptions);
+            TestActivities activities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions());
             WorkflowThread t = Workflow.newThread(() -> a1.set(activities.activityWithDelay(1000)));
             t.start();
             t.join(3000);
@@ -165,7 +170,7 @@ public class WorkflowTest {
 
     @Test
     public void testSync() {
-        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
+        startWorkerFor(TestSyncWorkflowImpl.class);
         TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
         String result = workflowStub.execute();
         assertEquals("activity10", result);
@@ -173,7 +178,7 @@ public class WorkflowTest {
 
     @Test
     public void testSyncUntypedAndStackTrace() throws InterruptedException {
-        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
+        startWorkerFor(TestSyncWorkflowImpl.class);
         UntypedWorkflowStub workflowStub = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
                 newStartWorkflowOptions());
         WorkflowExecution execution = workflowStub.start();
@@ -192,7 +197,7 @@ public class WorkflowTest {
 
     @Test
     public void testWorkflowCancellation() {
-        worker.addWorkflowImplementationType(TestSyncWorkflowImpl.class);
+        startWorkerFor(TestSyncWorkflowImpl.class);
         UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
                 newStartWorkflowOptions());
         client.start();
@@ -208,7 +213,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, activitySchedulingOptions);
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions());
             try {
                 testActivities.activityWithDelay(100000);
             } catch (CancellationException e) {
@@ -230,7 +235,7 @@ public class WorkflowTest {
 
     @Test
     public void testDetachedScope() throws InterruptedException {
-        worker.addWorkflowImplementationType(TestDetachedCancellationScope.class);
+        startWorkerFor(TestDetachedCancellationScope.class);
         UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub("TestWorkflow1::execute",
                 newStartWorkflowOptions());
         client.start();
@@ -264,7 +269,7 @@ public class WorkflowTest {
 
     @Test
     public void testContinueAsNew() {
-        worker.addWorkflowImplementationType(TestContinueAsNewImpl.class);
+        startWorkerFor(TestContinueAsNewImpl.class);
         TestContinueAsNew client = cadenceClient.newWorkflowStub(TestContinueAsNew.class, newStartWorkflowOptions());
         int result = client.execute(4);
         assertEquals(111, result);
@@ -274,7 +279,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, activitySchedulingOptions);
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions());
             assertEquals("activity", Workflow.async(testActivities::activity).get());
             assertEquals("1", Workflow.async(testActivities::activity1, "1").get());
             assertEquals("12", Workflow.async(testActivities::activity2, "1", 2).get());
@@ -296,7 +301,7 @@ public class WorkflowTest {
 
     @Test
     public void testAsyncActivity() {
-        worker.addWorkflowImplementationType(TestAsyncActivityWorkflowImpl.class);
+        startWorkerFor(TestAsyncActivityWorkflowImpl.class);
         TestWorkflow1 client = cadenceClient.newWorkflowStub(TestWorkflow1.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("workflow", result);
@@ -321,7 +326,7 @@ public class WorkflowTest {
 
     @Test
     public void testAsyncStart() {
-        worker.addWorkflowImplementationType(TestMultiargsWorkflowsImpl.class);
+        startWorkerFor(TestMultiargsWorkflowsImpl.class);
         TestMultiargsWorkflows stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
         assertResult("func", CadenceClient.asyncStart(stub::func));
         stub = cadenceClient.newWorkflowStub(TestMultiargsWorkflows.class, newStartWorkflowOptions());
@@ -380,7 +385,7 @@ public class WorkflowTest {
 
     @Test
     public void testTimer() {
-        worker.addWorkflowImplementationType(TestTimerWorkflowImpl.class);
+        startWorkerFor(TestTimerWorkflowImpl.class);
         TestWorkflow2 client = cadenceClient.newWorkflowStub(TestWorkflow2.class, newStartWorkflowOptions());
         String result = client.execute();
         assertEquals("testTimer", result);
@@ -427,7 +432,7 @@ public class WorkflowTest {
 
     @Test
     public void testSignal() throws Exception {
-        worker.addWorkflowImplementationType(TestSignalWorkflowImpl.class);
+        startWorkerFor(TestSignalWorkflowImpl.class);
         QueryableWorkflow client = cadenceClient.newWorkflowStub(QueryableWorkflow.class, newStartWorkflowOptions());
         // To execute workflow client.execute() would do. But we want to start workflow and immediately return.
         WorkflowExecution execution = CadenceClient.asyncStart(client::execute);
@@ -452,7 +457,7 @@ public class WorkflowTest {
 
     @Test
     public void testSignalUntyped() {
-        worker.addWorkflowImplementationType(TestSignalWorkflowImpl.class);
+        startWorkerFor(TestSignalWorkflowImpl.class);
         String workflowType = QueryableWorkflow.class.getSimpleName() + "::execute";
         UntypedWorkflowStub client = cadenceClient.newUntypedWorkflowStub(workflowType, newStartWorkflowOptions());
         // To execute workflow client.execute() would do. But we want to start workflow and immediately return.
@@ -533,7 +538,7 @@ public class WorkflowTest {
      */
     @Test
     public void testTimerCallbackBlocked() {
-        worker.addWorkflowImplementationType(TestTimerCallbackBlockedWorkflowImpl.class);
+        startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
         StartWorkflowOptions options = new StartWorkflowOptions();
         options.setExecutionStartToCloseTimeoutSeconds(2);
         options.setTaskStartToCloseTimeoutSeconds(1);
@@ -588,8 +593,8 @@ public class WorkflowTest {
 
     @Test
     public void testChildWorkflow() {
-        worker.addWorkflowImplementationType(TestParentWorkflow.class);
-        worker.addWorkflowImplementationType(TestChild.class);
+        startWorkerFor(TestParentWorkflow.class);
+        startWorkerFor(TestChild.class);
 
         StartWorkflowOptions options = new StartWorkflowOptions();
         options.setExecutionStartToCloseTimeoutSeconds(2);
