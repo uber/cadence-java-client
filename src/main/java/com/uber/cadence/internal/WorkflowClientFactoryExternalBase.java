@@ -28,7 +28,7 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 
     private DataConverter dataConverter;
 
-    private WorkflowOptions startWorkflowOptions = new WorkflowOptions();
+    private WorkflowOptions startWorkflowOptions = new WorkflowOptions.Builder().build();
 
     public WorkflowClientFactoryExternalBase(WorkflowService.Iface service, String domain) {
         this(new GenericWorkflowClientExternalImpl(service, domain));

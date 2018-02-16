@@ -154,37 +154,6 @@ public final class WorkerOptions {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        WorkerOptions that = (WorkerOptions) o;
-
-        if (disableWorkflowWorker != that.disableWorkflowWorker) return false;
-        if (disableActivityWorker != that.disableActivityWorker) return false;
-        if (Double.compare(that.workerActivitiesPerSecond, workerActivitiesPerSecond) != 0) return false;
-        if (maxConcurrentActivityExecutionSize != that.maxConcurrentActivityExecutionSize) return false;
-        if (maxWorkflowThreads != that.maxWorkflowThreads) return false;
-        if (identity != null ? !identity.equals(that.identity) : that.identity != null) return false;
-        return dataConverter != null ? dataConverter.equals(that.dataConverter) : that.dataConverter == null;
-    }
-
-    @Override
-    public int hashCode() {
-        int result;
-        long temp;
-        result = (disableWorkflowWorker ? 1 : 0);
-        result = 31 * result + (disableActivityWorker ? 1 : 0);
-        temp = Double.doubleToLongBits(workerActivitiesPerSecond);
-        result = 31 * result + (int) (temp ^ (temp >>> 32));
-        result = 31 * result + (identity != null ? identity.hashCode() : 0);
-        result = 31 * result + (dataConverter != null ? dataConverter.hashCode() : 0);
-        result = 31 * result + maxConcurrentActivityExecutionSize;
-        result = 31 * result + maxWorkflowThreads;
-        return result;
-    }
-
-    @Override
     public String toString() {
         return "WorkerOptions{" +
                 "disableWorkflowWorker=" + disableWorkflowWorker +

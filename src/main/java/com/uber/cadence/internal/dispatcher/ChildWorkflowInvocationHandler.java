@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Dynamic implementation of a strongly typed child workflow interface.
  */
-public class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
+class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
 
     private final WorkflowOptions options;
     private final SyncDecisionContext decisionContext;
@@ -43,7 +43,7 @@ public class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
     private boolean startRequested;
 
     ChildWorkflowInvocationHandler(WorkflowOptions options, SyncDecisionContext decisionContext) {
-        this.options = options;
+        this.options = options == null ? new WorkflowOptions.Builder().build() : options;
         this.decisionContext = decisionContext;
         dataConverter = decisionContext.getDataConverter();
     }

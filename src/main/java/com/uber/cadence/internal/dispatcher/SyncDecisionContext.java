@@ -102,17 +102,17 @@ class SyncDecisionContext {
      */
     public Promise<byte[]> executeChildWorkflow(
             String name, WorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
-        StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters();
-        parameters.withWorkflowType(new WorkflowType().setName(name)).withInput(input);
-        if (options != null) {
-            parameters.withTaskList(options.getTaskList()).withWorkflowId(options.getWorkflowId());
-            if (options.getExecutionStartToCloseTimeoutSeconds() != null) {
-                parameters.setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds());
-            }
-            if (options.getTaskStartToCloseTimeoutSeconds() != null) {
-                parameters.setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
-            }
-        }
+        StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters.Builder()
+                .setWorkflowType(new WorkflowType().setName(name))
+                .setWorkflowId(options.getWorkflowId())
+                .setInput(input)
+                .setChildPolicy(options.getChildPolicy())
+                .setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds())
+                .setDomain(options.getDomain())
+                .setTaskList(options.getTaskList())
+                .setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds())
+                .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+                .build();
         CompletablePromise<byte[]> result = Workflow.newCompletablePromise();
         Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
                 executionResult::complete,

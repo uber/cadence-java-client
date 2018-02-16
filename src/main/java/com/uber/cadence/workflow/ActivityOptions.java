@@ -21,7 +21,7 @@ package com.uber.cadence.workflow;
  */
 public final class ActivityOptions {
 
-    public static class Builder {
+    public static final class Builder {
 
         private int heartbeatTimeoutSeconds;
 
@@ -124,5 +124,16 @@ public final class ActivityOptions {
 
     public String getTaskList() {
         return taskList;
+    }
+
+    @Override
+    public String toString() {
+        return "ActivityOptions{" +
+                "heartbeatTimeoutSeconds=" + heartbeatTimeoutSeconds +
+                ", scheduleToCloseTimeoutSeconds=" + scheduleToCloseTimeoutSeconds +
+                ", scheduleToStartTimeoutSeconds=" + scheduleToStartTimeoutSeconds +
+                ", startToCloseTimeoutSeconds=" + startToCloseTimeoutSeconds +
+                ", taskList='" + taskList + '\'' +
+                '}';
     }
 }
