@@ -122,7 +122,7 @@ public final class StartChildWorkflowExecutionParameters {
 
     private final WorkflowIdReusePolicy workflowIdReusePolicy;
 
-    public StartChildWorkflowExecutionParameters(String domain, byte[] input, String control, int executionStartToCloseTimeoutSeconds,
+    private StartChildWorkflowExecutionParameters(String domain, byte[] input, String control, int executionStartToCloseTimeoutSeconds,
                                                  String taskList, int taskStartToCloseTimeoutSeconds,
                                                  String workflowId, WorkflowType workflowType, ChildPolicy childPolicy,
                                                  WorkflowIdReusePolicy workflowIdReusePolicy) {
