@@ -99,13 +99,13 @@ public class WorkflowTest {
     }
 
     private static ActivityOptions newActivitySchedulingOptions() {
-        ActivityOptions result = new ActivityOptions();
-        result.setTaskList(taskList);
-        result.setHeartbeatTimeoutSeconds(10);
-        result.setScheduleToCloseTimeoutSeconds(20);
-        result.setScheduleToStartTimeoutSeconds(10);
-        result.setStartToCloseTimeoutSeconds(10);
-        return result;
+        return new ActivityOptions.Builder()
+                .setTaskList(taskList)
+                .setHeartbeatTimeoutSeconds(10)
+                .setScheduleToCloseTimeoutSeconds(20)
+                .setScheduleToStartTimeoutSeconds(10)
+                .setStartToCloseTimeoutSeconds(10)
+                .build();
     }
 
     @Before

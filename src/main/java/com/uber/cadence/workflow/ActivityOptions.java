@@ -16,81 +16,113 @@
  */
 package com.uber.cadence.workflow;
 
-
+/**
+ * Options used to configure how an activity is invoked.
+ */
 public final class ActivityOptions {
-    
-    private Integer heartbeatTimeoutSeconds;
-    
-    private Integer scheduleToCloseTimeoutSeconds;
-    
-    private Integer scheduleToStartTimeoutSeconds;
-	
-    private Integer startToCloseTimeoutSeconds;
-	
-    private String taskList;
-	
-	public Integer getHeartbeatTimeoutSeconds() {
+
+    public static class Builder {
+
+        private int heartbeatTimeoutSeconds;
+
+        private int scheduleToCloseTimeoutSeconds;
+
+        private int scheduleToStartTimeoutSeconds;
+
+        private int startToCloseTimeoutSeconds;
+
+        private String taskList;
+
+        /**
+         * Overall timeout workflow is willing to wait for activity to complete.
+         * It includes time in a task list (use {@link #setScheduleToStartTimeoutSeconds(int)} to limit it)
+         * plus activity execution time (use {@link #setStartToCloseTimeoutSeconds(int)} to limit it).
+         * Either this option or both schedule to start and start to close are required.
+         */
+        public Builder setScheduleToCloseTimeoutSeconds(int scheduleToCloseTimeoutSeconds) {
+            this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * Time activity can stay in task list before it is picked up by a worker.
+         * If schedule to close is not provided then both this and start to close are required.
+         */
+        public Builder setScheduleToStartTimeoutSeconds(int scheduleToStartTimeoutSeconds) {
+            this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * Maximum activity execution time after it was sent to a worker.
+         * If schedule to close is not provided then both this and schedule to start are required.
+         */
+
+        public Builder setStartToCloseTimeoutSeconds(int startToCloseTimeoutSeconds) {
+            this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * Heartbeat interval. Activity must heartbeat before this interval passes after a last heartbeat
+         * or activity start.
+         */
+        public Builder setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
+            this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+            return this;
+        }
+
+        /**
+         * Task list to use when dispatching activity task to a worker. By default it is the same task list name
+         * the workflow was started with.
+         */
+        public Builder setTaskList(String taskList) {
+            this.taskList = taskList;
+            return this;
+        }
+
+        public ActivityOptions build() {
+            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds, scheduleToStartTimeoutSeconds,
+                    startToCloseTimeoutSeconds, taskList);
+        }
+    }
+
+    private final int heartbeatTimeoutSeconds;
+
+    private final int scheduleToCloseTimeoutSeconds;
+
+    private final int scheduleToStartTimeoutSeconds;
+
+    private final int startToCloseTimeoutSeconds;
+
+    private final String taskList;
+
+    private ActivityOptions(int heartbeatTimeoutSeconds, int scheduleToCloseTimeoutSeconds,
+                            int scheduleToStartTimeoutSeconds, int startToCloseTimeoutSeconds, String taskList) {
+        this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+        this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
+        this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
+        this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+        this.taskList = taskList;
+    }
+
+    public int getHeartbeatTimeoutSeconds() {
         return heartbeatTimeoutSeconds;
     }
 
-    public void setHeartbeatTimeoutSeconds(Integer heartbeatTimeoutSeconds) {
-        this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+    public int getScheduleToCloseTimeoutSeconds() {
+        return scheduleToCloseTimeoutSeconds;
     }
-    
-    public ActivityOptions withHeartbeatTimeoutSeconds(Integer heartbeatTimeoutSeconds) {
-        this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
-        return this;
+
+    public int getScheduleToStartTimeoutSeconds() {
+        return scheduleToStartTimeoutSeconds;
     }
-	
-	public Integer getScheduleToCloseTimeoutSeconds() {
-		return scheduleToCloseTimeoutSeconds;
-	}
-	
-	public void setScheduleToCloseTimeoutSeconds(Integer scheduleToCloseTimeoutSeconds) {
-		this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
-	}
-	
-	public ActivityOptions withScheduleToCloseTimeoutSeconds(Integer scheduleToCloseTimeoutSeconds) {
-		this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
-		return this;
-	}
-	
-	public Integer getScheduleToStartTimeoutSeconds() {
-		return scheduleToStartTimeoutSeconds;
-	}
-	
-	public void setScheduleToStartTimeoutSeconds(Integer scheduleToStartTimeoutSeconds) {
-		this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
-	}
-	
-	public ActivityOptions withScheduleToStartTimeoutSeconds(Integer scheduleToStartTimeoutSeconds) {
-		this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
-		return this;
-	}
-	
-	public Integer getStartToCloseTimeoutSeconds() {
+
+    public int getStartToCloseTimeoutSeconds() {
         return startToCloseTimeoutSeconds;
     }
 
-    public void setStartToCloseTimeoutSeconds(Integer startToCloseTimeoutSeconds) {
-        this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+    public String getTaskList() {
+        return taskList;
     }
-    
-    public ActivityOptions withStartToCloseTimeoutSeconds(Integer startToCloseTimeoutSeconds) {
-        this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
-        return this;
-    }
-	
-	public String getTaskList() {
-		return taskList;
-	}
-	
-	public void setTaskList(String taskList) {
-		this.taskList = taskList;
-	}
-	
-	public ActivityOptions withTaskList(String taskList) {
-		this.taskList = taskList;
-		return this;
-	}
 }
