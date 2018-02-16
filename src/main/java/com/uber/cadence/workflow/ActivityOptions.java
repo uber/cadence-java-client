@@ -33,6 +33,17 @@ public final class ActivityOptions {
 
         private String taskList;
 
+        public Builder() {
+        }
+
+        public Builder(ActivityOptions options) {
+            this.scheduleToStartTimeoutSeconds = options.getScheduleToStartTimeoutSeconds();
+            this.scheduleToCloseTimeoutSeconds = options.getScheduleToCloseTimeoutSeconds();
+            this.heartbeatTimeoutSeconds = options.getHeartbeatTimeoutSeconds();
+            this.startToCloseTimeoutSeconds = options.getStartToCloseTimeoutSeconds();
+            this.taskList = options.taskList;
+        }
+
         /**
          * Overall timeout workflow is willing to wait for activity to complete.
          * It includes time in a task list (use {@link #setScheduleToStartTimeoutSeconds(int)} to limit it)
