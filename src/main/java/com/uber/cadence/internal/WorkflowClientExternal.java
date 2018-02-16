@@ -29,7 +29,7 @@ public interface WorkflowClientExternal {
     
     public DataConverter getDataConverter();
 
-    public StartWorkflowOptions getSchedulingOptions();
+    public WorkflowOptions getSchedulingOptions();
     
     public GenericWorkflowClientExternal getGenericClient();
     

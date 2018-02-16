@@ -21,7 +21,7 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 
 import java.util.List;
 
-public class StartWorkflowOptions {
+public class WorkflowOptions {
 
     private String domain;
 
@@ -63,7 +63,7 @@ public class StartWorkflowOptions {
         this.workflowIdReusePolicy = workflowIdReusePolicy;
     }
 
-    public StartWorkflowOptions withWorkflowIdReusePolicy(WorkflowIdReusePolicy workflowIdReusePolicy) {
+    public WorkflowOptions withWorkflowIdReusePolicy(WorkflowIdReusePolicy workflowIdReusePolicy) {
         this.workflowIdReusePolicy = workflowIdReusePolicy;
         return this;
     }
@@ -84,7 +84,7 @@ public class StartWorkflowOptions {
         this.executionStartToCloseTimeoutSeconds = executionStartToCloseTimeoutSeconds;
     }
 
-    public StartWorkflowOptions withExecutionStartToCloseTimeoutSeconds(Integer executionStartToCloseTimeoutSeconds) {
+    public WorkflowOptions withExecutionStartToCloseTimeoutSeconds(Integer executionStartToCloseTimeoutSeconds) {
         this.executionStartToCloseTimeoutSeconds = executionStartToCloseTimeoutSeconds;
         return this;
     }
@@ -97,7 +97,7 @@ public class StartWorkflowOptions {
         this.taskStartToCloseTimeoutSeconds = taskStartToCloseTimeoutSeconds;
     }
 
-    public StartWorkflowOptions withTaskStartToCloseTimeoutSeconds(Integer taskStartToCloseTimeoutSeconds) {
+    public WorkflowOptions withTaskStartToCloseTimeoutSeconds(Integer taskStartToCloseTimeoutSeconds) {
         this.taskStartToCloseTimeoutSeconds = taskStartToCloseTimeoutSeconds;
         return this;
     }
@@ -110,7 +110,7 @@ public class StartWorkflowOptions {
         this.tagList = tagList;
     }
 
-    public StartWorkflowOptions withTagList(List<String> tagList) {
+    public WorkflowOptions withTagList(List<String> tagList) {
         this.tagList = tagList;
         return this;
     }
@@ -123,7 +123,7 @@ public class StartWorkflowOptions {
         this.taskList = taskList;
     }
 
-    public StartWorkflowOptions withTaskList(String taskList) {
+    public WorkflowOptions withTaskList(String taskList) {
         this.taskList = taskList;
         return this;
     }

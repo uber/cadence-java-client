@@ -28,7 +28,7 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 
     private DataConverter dataConverter;
 
-    private StartWorkflowOptions startWorkflowOptions = new StartWorkflowOptions();
+    private WorkflowOptions startWorkflowOptions = new WorkflowOptions();
 
     public WorkflowClientFactoryExternalBase(WorkflowService.Iface service, String domain) {
         this(new GenericWorkflowClientExternalImpl(service, domain));
@@ -57,11 +57,11 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
     }
 
     @Override
-    public StartWorkflowOptions getStartWorkflowOptions() {
+    public WorkflowOptions getStartWorkflowOptions() {
         return startWorkflowOptions;
     }
 
-    public void setStartWorkflowOptions(StartWorkflowOptions startWorkflowOptions) {
+    public void setStartWorkflowOptions(WorkflowOptions startWorkflowOptions) {
         this.startWorkflowOptions = startWorkflowOptions;
     }
 
@@ -88,18 +88,18 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
     }
 
     @Override
-    public T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options) {
+    public T getClient(WorkflowExecution workflowExecution, WorkflowOptions options) {
         return getClient(workflowExecution, options, dataConverter, genericClient);
     }
 
     @Override
-    public T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options, DataConverter dataConverter) {
+    public T getClient(WorkflowExecution workflowExecution, WorkflowOptions options, DataConverter dataConverter) {
         return getClient(workflowExecution, options, dataConverter, genericClient);
     }
 
     @Override
-    public T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options, DataConverter dataConverter,
-            GenericWorkflowClientExternal genericClient) {
+    public T getClient(WorkflowExecution workflowExecution, WorkflowOptions options, DataConverter dataConverter,
+                       GenericWorkflowClientExternal genericClient) {
         checkConfigured();
         return createClientInstance(workflowExecution, options, dataConverter, genericClient);
     }
@@ -115,7 +115,7 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
         }
     }
 
-    protected abstract T createClientInstance(WorkflowExecution workflowExecution, StartWorkflowOptions options,
+    protected abstract T createClientInstance(WorkflowExecution workflowExecution, WorkflowOptions options,
             DataConverter dataConverter, GenericWorkflowClientExternal genericClient);
 
 }

@@ -18,7 +18,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.error.CheckedExceptionWrapper;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
 import java.util.concurrent.TimeUnit;
@@ -46,16 +46,16 @@ public final class Workflow {
 
     /**
      * Creates client stub to a child workflow that implements given interface.
-     *
+     *W
      * @param workflowInterface interface type implemented by activities
      * @param options options passed to the child workflow.
      */
-    public static <T> T newChildWorkflowStub(Class<T> workflowInterface, StartWorkflowOptions options) {
+    public static <T> T newChildWorkflowStub(Class<T> workflowInterface, WorkflowOptions options) {
         return WorkflowInternal.newChildWorkflowStub(workflowInterface, options);
     }
 
     /**
-     * Extracts workflow execution from a stub created through {@link #newChildWorkflowStub(Class, StartWorkflowOptions)}.
+     * Extracts workflow execution from a stub created through {@link #newChildWorkflowStub(Class, WorkflowOptions)}.
      * Wrapped in a Promise as child workflow start is asynchronous.
      */
     public static Promise<WorkflowExecution> getWorkflowExecution(Object workflowStub) {

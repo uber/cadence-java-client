@@ -24,7 +24,7 @@ import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -90,8 +90,8 @@ public class WorkflowTest {
     private CadenceClient cadenceClient;
     private CadenceClient cadenceClientWithOptions;
 
-    private static StartWorkflowOptions newStartWorkflowOptions() {
-        StartWorkflowOptions result = new StartWorkflowOptions();
+    private static WorkflowOptions newStartWorkflowOptions() {
+        WorkflowOptions result = new WorkflowOptions();
         result.setExecutionStartToCloseTimeoutSeconds(30);
         result.setTaskStartToCloseTimeoutSeconds(5);
         result.setTaskList(taskList);
@@ -503,7 +503,7 @@ public class WorkflowTest {
     @Test
     public void testSignalDuringLastDecision() throws InterruptedException {
         startWorkerFor(TestSignalDuringLastDecisionWorkflowImpl.class);
-        StartWorkflowOptions options = newStartWorkflowOptions();
+        WorkflowOptions options = newStartWorkflowOptions();
         options.setWorkflowId("testSignalDuringLastDecision-" + UUID.randomUUID().toString());
         TestWorkflowSignaled client = cadenceClient.newWorkflowStub(TestWorkflowSignaled.class, options);
         WorkflowExecution execution = CadenceClient.asyncStart(client::execute);
@@ -540,7 +540,7 @@ public class WorkflowTest {
     @Test
     public void testTimerCallbackBlocked() {
         startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
-        StartWorkflowOptions options = new StartWorkflowOptions();
+        WorkflowOptions options = new WorkflowOptions();
         options.setExecutionStartToCloseTimeoutSeconds(2);
         options.setTaskStartToCloseTimeoutSeconds(1);
         options.setTaskList(taskList);
@@ -570,7 +570,7 @@ public class WorkflowTest {
         private final ITestChild child2;
 
         public TestParentWorkflow() {
-            StartWorkflowOptions options = new StartWorkflowOptions();
+            WorkflowOptions options = new WorkflowOptions();
             options.setWorkflowId(child2Id);
             child2 = Workflow.newChildWorkflowStub(ITestChild.class, options);
         }
@@ -597,7 +597,7 @@ public class WorkflowTest {
         worker.addWorkflowImplementationType(TestParentWorkflow.class);
         startWorkerFor(TestChild.class);
 
-        StartWorkflowOptions options = new StartWorkflowOptions();
+        WorkflowOptions options = new WorkflowOptions();
         options.setExecutionStartToCloseTimeoutSeconds(2);
         options.setTaskStartToCloseTimeoutSeconds(1);
         options.setTaskList(taskList);

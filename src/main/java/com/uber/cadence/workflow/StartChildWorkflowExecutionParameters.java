@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowType;
 
@@ -153,7 +153,7 @@ public final class StartChildWorkflowExecutionParameters implements Cloneable {
     }
 
     public StartChildWorkflowExecutionParameters createStartChildWorkflowExecutionParametersFromOptions(
-            StartWorkflowOptions options, StartWorkflowOptions optionsOverride) {
+            WorkflowOptions options, WorkflowOptions optionsOverride) {
         StartChildWorkflowExecutionParameters startChildWorkflowExecutionParameters = this.clone();
 
         if (options != null) {

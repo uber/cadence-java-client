@@ -24,10 +24,9 @@ import com.uber.cadence.client.CadenceClient;
 import com.uber.cadence.client.CadenceClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactoryImpl;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
@@ -49,7 +48,7 @@ public final class CadenceClientInternal implements CadenceClient {
         this.manualActivityCompletionClientFactory = new ManualActivityCompletionClientFactoryImpl(service, domain, dataConverter);
     }
 
-    public <T> T newWorkflowStub(Class<T> workflowInterface, StartWorkflowOptions options) {
+    public <T> T newWorkflowStub(Class<T> workflowInterface, WorkflowOptions options) {
         checkAnnotation(workflowInterface, WorkflowMethod.class);
         return (T) Proxy.newProxyInstance(WorkflowInternal.class.getClassLoader(),
                 new Class<?>[]{workflowInterface},
@@ -84,7 +83,7 @@ public final class CadenceClientInternal implements CadenceClient {
     }
 
     @Override
-    public UntypedWorkflowStub newUntypedWorkflowStub(String workflowType, StartWorkflowOptions options) {
+    public UntypedWorkflowStub newUntypedWorkflowStub(String workflowType, WorkflowOptions options) {
         return new UntypedWorkflowStubImpl(genericClient, dataConverter, workflowType, options);
     }
 

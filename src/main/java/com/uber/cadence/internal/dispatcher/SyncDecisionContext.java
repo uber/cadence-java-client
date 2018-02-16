@@ -21,7 +21,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
@@ -101,7 +101,7 @@ class SyncDecisionContext {
      * @param executionResult promise that is set bu this method when child workflow is started.
      */
     public Promise<byte[]> executeChildWorkflow(
-            String name, StartWorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
+            String name, WorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters();
         parameters.withWorkflowType(new WorkflowType().setName(name)).withInput(input);
         if (options != null) {

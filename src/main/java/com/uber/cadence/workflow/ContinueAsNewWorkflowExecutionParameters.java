@@ -17,7 +17,7 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.ChildPolicy;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 
 public final class ContinueAsNewWorkflowExecutionParameters {
 
@@ -95,8 +95,8 @@ public final class ContinueAsNewWorkflowExecutionParameters {
         return this;
     }
 
-    public ContinueAsNewWorkflowExecutionParameters createContinueAsNewParametersFromOptions(StartWorkflowOptions options,
-            StartWorkflowOptions optionsOverride) {
+    public ContinueAsNewWorkflowExecutionParameters createContinueAsNewParametersFromOptions(WorkflowOptions options,
+            WorkflowOptions optionsOverride) {
         ContinueAsNewWorkflowExecutionParameters continueAsNewWorkflowExecutionParameters = this.clone();
         
         if (options != null) {

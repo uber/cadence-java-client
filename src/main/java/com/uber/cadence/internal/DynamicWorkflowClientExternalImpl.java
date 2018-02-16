@@ -31,7 +31,7 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
 
     protected DataConverter dataConverter;
 
-    protected StartWorkflowOptions schedulingOptions;
+    protected WorkflowOptions schedulingOptions;
 
     protected GenericWorkflowClientExternal genericClient;
 
@@ -47,22 +47,22 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
         this(workflowExecution, null, null, null);
     }
 
-    public DynamicWorkflowClientExternalImpl(String workflowId, WorkflowType workflowType, StartWorkflowOptions options) {
+    public DynamicWorkflowClientExternalImpl(String workflowId, WorkflowType workflowType, WorkflowOptions options) {
         this(new WorkflowExecution().setWorkflowId(workflowId), workflowType, options, null, null);
     }
 
     public DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
-            StartWorkflowOptions options) {
+            WorkflowOptions options) {
         this(workflowExecution, workflowType, options, null, null);
     }
 
     public DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
-            StartWorkflowOptions options, DataConverter dataConverter) {
+                                             WorkflowOptions options, DataConverter dataConverter) {
         this(workflowExecution, workflowType, options, dataConverter, null);
     }
 
     public DynamicWorkflowClientExternalImpl(WorkflowExecution workflowExecution, WorkflowType workflowType,
-            StartWorkflowOptions options, DataConverter dataConverter, GenericWorkflowClientExternal genericClient) {
+                                             WorkflowOptions options, DataConverter dataConverter, GenericWorkflowClientExternal genericClient) {
         this.workflowExecution = workflowExecution;
         this.workflowType = workflowType;
         this.schedulingOptions = options;
@@ -83,11 +83,11 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
         this.dataConverter = dataConverter;
     }
 
-    public StartWorkflowOptions getSchedulingOptions() {
+    public WorkflowOptions getSchedulingOptions() {
         return schedulingOptions;
     }
 
-    public void setSchedulingOptions(StartWorkflowOptions schedulingOptions) {
+    public void setSchedulingOptions(WorkflowOptions schedulingOptions) {
         this.schedulingOptions = schedulingOptions;
     }
 
@@ -138,7 +138,7 @@ public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientE
     }
 
     @Override
-    public void startWorkflowExecution(Object[] arguments, StartWorkflowOptions startOptionsOverride) throws WorkflowExecutionAlreadyStartedException {
+    public void startWorkflowExecution(Object[] arguments, WorkflowOptions startOptionsOverride) throws WorkflowExecutionAlreadyStartedException {
         if (workflowType == null) {
             throw new IllegalStateException("Required property workflowType is null");
         }

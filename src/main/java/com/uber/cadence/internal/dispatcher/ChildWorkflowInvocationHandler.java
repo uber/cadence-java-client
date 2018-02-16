@@ -19,7 +19,7 @@ package com.uber.cadence.internal.dispatcher;
 import com.google.common.base.Defaults;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.StartWorkflowOptions;
+import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
@@ -36,13 +36,13 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
 
-    private final StartWorkflowOptions options;
+    private final WorkflowOptions options;
     private final SyncDecisionContext decisionContext;
     private final DataConverter dataConverter;
     private CompletablePromise<WorkflowExecution> execution = Workflow.newCompletablePromise();
     private boolean startRequested;
 
-    ChildWorkflowInvocationHandler(StartWorkflowOptions options, SyncDecisionContext decisionContext) {
+    ChildWorkflowInvocationHandler(WorkflowOptions options, SyncDecisionContext decisionContext) {
         this.options = options;
         this.decisionContext = decisionContext;
         dataConverter = decisionContext.getDataConverter();

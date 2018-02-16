@@ -26,7 +26,7 @@ public interface WorkflowClientFactoryExternal<T> {
 
     DataConverter getDataConverter();
 
-    StartWorkflowOptions getStartWorkflowOptions();
+    WorkflowOptions getStartWorkflowOptions();
 
     T getClient();
 
@@ -34,11 +34,11 @@ public interface WorkflowClientFactoryExternal<T> {
 
     T getClient(WorkflowExecution workflowExecution);
 
-    T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options);
+    T getClient(WorkflowExecution workflowExecution, WorkflowOptions options);
             
-    T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options, DataConverter dataConverter);
+    T getClient(WorkflowExecution workflowExecution, WorkflowOptions options, DataConverter dataConverter);
 
-    T getClient(WorkflowExecution workflowExecution, StartWorkflowOptions options, DataConverter dataConverter,
-            GenericWorkflowClientExternal genericClient);
+    T getClient(WorkflowExecution workflowExecution, WorkflowOptions options, DataConverter dataConverter,
+                GenericWorkflowClientExternal genericClient);
 
 }
