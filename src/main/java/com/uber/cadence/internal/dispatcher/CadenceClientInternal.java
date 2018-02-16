@@ -26,7 +26,7 @@ import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.ManualActivityCompletionClientFactoryImpl;
-import com.uber.cadence.internal.WorkflowOptions;
+import com.uber.cadence.workflow.WorkflowOptions;
 import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;

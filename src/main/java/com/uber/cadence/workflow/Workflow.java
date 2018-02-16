@@ -18,7 +18,6 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.error.CheckedExceptionWrapper;
-import com.uber.cadence.internal.WorkflowOptions;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
 import java.util.concurrent.TimeUnit;

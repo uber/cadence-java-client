@@ -18,7 +18,7 @@ package com.uber.cadence.internal.generic;
 
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import com.uber.cadence.internal.WorkflowOptions;
+import com.uber.cadence.workflow.WorkflowOptions;
 import com.uber.cadence.WorkflowType;
 
 public class StartWorkflowExecutionParameters {

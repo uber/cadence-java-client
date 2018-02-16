@@ -22,7 +22,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.error.CheckedExceptionWrapper;
-import com.uber.cadence.internal.WorkflowOptions;
+import com.uber.cadence.workflow.WorkflowOptions;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.generic.QueryWorkflowParameters;

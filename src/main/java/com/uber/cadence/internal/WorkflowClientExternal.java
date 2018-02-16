@@ -20,6 +20,7 @@ import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
+import com.uber.cadence.workflow.WorkflowOptions;
 
 public interface WorkflowClientExternal {
     

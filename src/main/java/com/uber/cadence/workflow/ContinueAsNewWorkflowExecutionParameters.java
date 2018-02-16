@@ -17,7 +17,6 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.ChildPolicy;
-import com.uber.cadence.internal.WorkflowOptions;
 
 public final class ContinueAsNewWorkflowExecutionParameters {
 

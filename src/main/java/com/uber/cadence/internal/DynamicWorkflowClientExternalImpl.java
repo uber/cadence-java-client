@@ -26,6 +26,7 @@ import com.uber.cadence.internal.generic.QueryWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
+import com.uber.cadence.workflow.WorkflowOptions;
 
 public class DynamicWorkflowClientExternalImpl implements DynamicWorkflowClientExternal {
 

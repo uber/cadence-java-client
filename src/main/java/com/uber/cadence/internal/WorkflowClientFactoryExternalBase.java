@@ -21,8 +21,9 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
+import com.uber.cadence.workflow.WorkflowOptions;
 
- abstract class WorkflowClientFactoryExternalBase<T> implements WorkflowClientFactoryExternal<T> {
+abstract class WorkflowClientFactoryExternalBase<T> implements WorkflowClientFactoryExternal<T> {
 
     private GenericWorkflowClientExternal genericClient;
 
