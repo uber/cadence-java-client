@@ -29,14 +29,6 @@ public class SignalExternalWorkflowException extends DecisionException {
     private String failureCause;
 
     private WorkflowExecution signaledExecution;
-    
-    public SignalExternalWorkflowException(String message) {
-        super(message);
-    }
-
-    public SignalExternalWorkflowException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public SignalExternalWorkflowException(long eventId, WorkflowExecution signaledExecution, String cause) {
         super(cause + " for signaledExecution=\"" + signaledExecution, eventId);

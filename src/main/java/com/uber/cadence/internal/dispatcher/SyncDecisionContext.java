@@ -25,6 +25,7 @@ import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
+import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -62,9 +63,37 @@ class SyncDecisionContext {
         byte[] input = converter.toData(args);
         Promise<byte[]> binaryResult = executeActivity(name, options, input);
         if (returnType == Void.TYPE) {
-            return binaryResult.thenApply(r -> null);
+            return binaryResult.handle((r, failure) -> {
+                rethrowActivityException(failure);
+                return null;
+            });
         }
-        return binaryResult.thenApply(r -> converter.fromData(r, returnType));
+        return binaryResult.handle((r, failure) -> {
+            rethrowActivityException(failure);
+            return converter.fromData(r, returnType);
+        });
+
+    }
+
+    private void rethrowActivityException(RuntimeException failure) {
+        if (failure == null) {
+            return;
+        }
+        if (failure instanceof ActivityTaskFailedException) {
+            ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
+            String causeClassName = taskFailed.getReason();
+            Class<? extends Throwable> causeClass;
+            Throwable cause;
+            try {
+                causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
+                cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
+            } catch (Exception e) {
+                cause = e;
+            }
+            throw new ActivityFailureException(failure.getMessage(), taskFailed.getEventId(),
+                    taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
+        }
+        throw failure;
     }
 
     private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {
@@ -101,7 +130,8 @@ class SyncDecisionContext {
      * @param executionResult promise that is set bu this method when child workflow is started.
      */
     public Promise<byte[]> executeChildWorkflow(
-            String name, ChildWorkflowOptions options, byte[] input, CompletablePromise<WorkflowExecution> executionResult) {
+            String name, ChildWorkflowOptions options, byte[] input, CompletablePromise<
+            WorkflowExecution> executionResult) {
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters.Builder()
                 .setWorkflowType(new WorkflowType().setName(name))
                 .setWorkflowId(options.getWorkflowId())

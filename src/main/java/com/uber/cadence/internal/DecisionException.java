@@ -26,14 +26,6 @@ package com.uber.cadence.internal;
 public abstract class DecisionException extends RuntimeException {
 
     private long eventId;
-    
-    public DecisionException(String message) {
-        super(message);
-    }
-
-    public DecisionException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public DecisionException(String message, long eventId) {
         super(message);
@@ -42,9 +34,5 @@ public abstract class DecisionException extends RuntimeException {
 
     public long getEventId() {
         return eventId;
-    }
-    
-    public void setEventId(long eventId) {
-        this.eventId = eventId;
     }
 }

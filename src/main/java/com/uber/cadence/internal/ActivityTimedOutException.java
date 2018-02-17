@@ -17,28 +17,36 @@
 package com.uber.cadence.internal;
 
 import com.uber.cadence.ActivityType;
+import com.uber.cadence.TimeoutType;
 
 /**
- * Exception used to communicate failure of remote activity.
+ * Exception that indicates Activity time out.
  */
 @SuppressWarnings("serial")
-public class ActivityTaskFailedException extends ActivityTaskException {
-    
-    private byte[] details;
-    
-    public ActivityTaskFailedException(String message, Throwable cause) {
-        super(message, cause);
-    }
+public class ActivityTimedOutException extends ActivityException {
 
-    public ActivityTaskFailedException(String message) {
-        super(message);
-    }
-    
-    public ActivityTaskFailedException(long eventId, ActivityType activityType, String activityId, String reason, byte[] details) {
-        super(reason, eventId, activityType, activityId);
+    private TimeoutType timeoutType;
+
+    private byte[] details;
+
+    public ActivityTimedOutException(long eventId, ActivityType activityType, String activityId, TimeoutType timeoutType,
+                                     byte[] details) {
+        super(String.valueOf(timeoutType), eventId, activityType, activityId);
+        this.timeoutType = timeoutType;
         this.details = details;
     }
-    
+
+    public TimeoutType getTimeoutType() {
+        return timeoutType;
+    }
+
+    public void setTimeoutType(TimeoutType timeoutType) {
+        this.timeoutType = timeoutType;
+    }
+
+    /**
+     * @return The value from the last activity heartbeat details field.
+     */
     public byte[] getDetails() {
         return details;
     }
@@ -46,4 +54,5 @@ public class ActivityTaskFailedException extends ActivityTaskException {
     public void setDetails(byte[] details) {
         this.details = details;
     }
+
 }

@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.google.common.base.Throwables;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
@@ -29,7 +28,6 @@ import com.uber.cadence.internal.generic.ActivityImplementationFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,14 +66,10 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
     }
 
     private ActivityFailureException throwActivityFailure(Throwable e) {
-        if (e instanceof ActivityFailureException) {
-            return (ActivityFailureException) e;
-        }
         if (e instanceof CancellationException) {
             throw (CancellationException) e;
         }
-        return new ActivityFailureException(e.getMessage(),
-                Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8));
+        return new ActivityFailureException(e.getClass().getName(), dataConverter.toData(e));
     }
 
     @Override

@@ -27,7 +27,7 @@ import com.uber.cadence.internal.generic.ActivityImplementation;
  * in the decider understands.
  * <p>
  * It is not expected to be thrown by the application level code.
- * 
+ *
  * @author fateev
  */
 @SuppressWarnings("serial")
@@ -35,20 +35,14 @@ class ActivityFailureException extends RuntimeException {
 
     private byte[] details;
 
-    ActivityFailureException(String reason) {
-        super(reason);
-    }
-    
     /**
      * Construct exception with given arguments.
-     * 
-     * @param reason
-     *            value of reason field
-     * @param details
-     *            application specific failure details
+     *
+     * @param reason  value of reason field
+     * @param details application specific failure details
      */
     ActivityFailureException(String reason, byte[] details) {
-        this(reason);
+        super(reason);
         this.details = details;
     }
 

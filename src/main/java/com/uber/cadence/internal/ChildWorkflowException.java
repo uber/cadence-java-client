@@ -28,15 +28,7 @@ public abstract class ChildWorkflowException extends DecisionException {
     private WorkflowExecution workflowExecution;
     
     private WorkflowType workflowType;
-    
-    public ChildWorkflowException(String message) {
-        super(message);
-    }
 
-    public ChildWorkflowException(String message, Throwable cause) {
-        super(message, cause);
-    }
-    
     public ChildWorkflowException(String message, long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
         super(message + " for workflowExecution=\"" + workflowExecution + "\" of workflowType=" + workflowType, eventId);
         this.workflowExecution = workflowExecution;

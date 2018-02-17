@@ -25,14 +25,6 @@ public abstract class TimerException extends DecisionException {
     private String timerId;
     
     private Object createTimerUserContext;
-    
-    public TimerException(String message) {
-        super(message);
-    }
-
-    public TimerException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public TimerException(String message, long eventId, String timerId, Object createTimerUserContext) {
         super(message, eventId);

@@ -21,14 +21,6 @@ import com.uber.cadence.WorkflowType;
 
 @SuppressWarnings("serial")
 public class ChildWorkflowTimedOutException extends ChildWorkflowException {
-    
-    public ChildWorkflowTimedOutException(String message) {
-        super(message);
-    }
-
-    public ChildWorkflowTimedOutException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public ChildWorkflowTimedOutException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
         super("Time Out", eventId, workflowExecution, workflowType);

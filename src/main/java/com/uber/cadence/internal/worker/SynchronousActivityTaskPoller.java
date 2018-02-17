@@ -192,7 +192,7 @@ public class SynchronousActivityTaskPoller implements TaskPoller {
         try {
             ActivityImplementation activityImplementation = activityImplementationFactory.getActivityImplementation(activityType);
             if (activityImplementation == null) {
-                throw new ActivityFailureException("Unknown activity type: " + activityType);
+                throw new IllegalArgumentException("Unknown activity type: " + activityType);
             }
             output = activityImplementation.execute(service, domain, task);
             if (!activityImplementation.getExecutionOptions().isDoNotCompleteOnReturn()) {

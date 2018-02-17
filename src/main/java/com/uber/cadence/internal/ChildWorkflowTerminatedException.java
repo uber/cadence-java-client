@@ -22,14 +22,6 @@ import com.uber.cadence.WorkflowType;
 
 @SuppressWarnings("serial")
 public class ChildWorkflowTerminatedException extends ChildWorkflowException {
-    
-    public ChildWorkflowTerminatedException(String message) {
-        super(message);
-    }
-
-    public ChildWorkflowTerminatedException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public ChildWorkflowTerminatedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
         super("Terminate", eventId, workflowExecution, workflowType);

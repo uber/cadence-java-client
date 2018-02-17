@@ -24,14 +24,6 @@ import com.uber.cadence.WorkflowType;
 public class StartChildWorkflowFailedException extends ChildWorkflowException {
 
     private ChildWorkflowExecutionFailedCause failureCause;
-    
-    public StartChildWorkflowFailedException(String message) {
-        super(message);
-    }
-
-    public StartChildWorkflowFailedException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public StartChildWorkflowFailedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType,
                                              ChildWorkflowExecutionFailedCause cause) {

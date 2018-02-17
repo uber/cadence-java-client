@@ -25,14 +25,6 @@ public class ChildWorkflowFailedException extends ChildWorkflowException {
 
     private byte[] details;
     
-    public ChildWorkflowFailedException(String message) {
-        super(message);
-    }
-  
-    public ChildWorkflowFailedException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     public ChildWorkflowFailedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType,
                                         String reason, byte[] details) {
         super(createMessage(workflowExecution, workflowType, reason), eventId, workflowExecution, workflowType);

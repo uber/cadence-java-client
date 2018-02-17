@@ -398,6 +398,39 @@ public class WorkflowTest {
         assertEquals("testTimer", result);
     }
 
+    public static interface TestExceptionPropagation {
+        @WorkflowMethod
+        void execute() throws MyCheckedException;
+    }
+
+    public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
+
+        @Override
+        public void execute() throws MyCheckedException {
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
+            try {
+                testActivities.throwChecked();
+            } catch (RuntimeException e) {
+                e.printStackTrace();
+                throw e;
+            }
+        }
+    }
+
+    @Test
+    public void testExceptionPropagation() {
+        startWorkerFor(TestExceptionPropagationImpl.class);
+        TestExceptionPropagation client = cadenceClient.newWorkflowStub(TestExceptionPropagation.class,
+                newWorkflowOptionsBuilder().build());
+        try {
+            client.execute();
+            fail("Unreachable");
+        } catch (MyCheckedException e) {
+            assertEquals("simulated NPE", e.getMessage());
+        }
+    }
+
+
     public interface QueryableWorkflow {
         @WorkflowMethod
         String execute();
@@ -629,6 +662,27 @@ public class WorkflowTest {
         worker.addActivitiesImplementation(new ActivitiesWithDoNotCompleteAnnotationImpl());
     }
 
+    public static class MyCheckedException extends Exception {
+        public MyCheckedException() {
+        }
+
+        public MyCheckedException(String message) {
+            super(message);
+        }
+
+        public MyCheckedException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public MyCheckedException(Throwable cause) {
+            super(cause);
+        }
+
+        public MyCheckedException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+            super(message, cause, enableSuppression, writableStackTrace);
+        }
+    }
+
     public interface TestActivities {
 
         String activityWithDelay(long milliseconds);
@@ -660,6 +714,8 @@ public class WorkflowTest {
         void proc5(String a1, int a2, int a3, int a4, int a5);
 
         void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
+
+        void throwChecked() throws MyCheckedException;
     }
 
     private static class TestActivitiesImpl implements TestActivities {
@@ -789,6 +845,11 @@ public class WorkflowTest {
         public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
             invocations.add("proc6");
             procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
+        }
+
+        @Override
+        public void throwChecked() {
+            throw new NullPointerException("simulated NPE");
         }
     }
 
