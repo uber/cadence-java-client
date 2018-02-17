@@ -213,11 +213,8 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
             if (e instanceof CancellationException) {
                 throw (CancellationException) e;
             }
-            if (e instanceof WorkflowException) {
-                return (WorkflowException) e;
-            }
-            return new WorkflowException(e.getMessage(),
-                    Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8));
+            // TODO: data conversion failure
+            throw new WorkflowException(e.getClass().getName(), dataConverter.toData(e));
         }
     }
 }

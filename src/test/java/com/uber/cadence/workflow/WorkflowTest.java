@@ -400,19 +400,20 @@ public class WorkflowTest {
 
     public static interface TestExceptionPropagation {
         @WorkflowMethod
-        void execute() throws MyCheckedException;
+        void execute();
     }
 
     public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
 
         @Override
-        public void execute() throws MyCheckedException {
+        public void execute() {
             TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
             try {
-                testActivities.throwChecked();
-            } catch (RuntimeException e) {
-                e.printStackTrace();
-                throw e;
+                testActivities.throwNPE();
+            } catch (ActivityFailureException e) {
+                assertTrue(e.getMessage().contains("::throwChecked"));
+                assertNotNull(e.getCause() instanceof NullPointerException);
+                assertEquals("simulated NPE", e.getCause().getMessage());
             }
         }
     }
@@ -422,12 +423,12 @@ public class WorkflowTest {
         startWorkerFor(TestExceptionPropagationImpl.class);
         TestExceptionPropagation client = cadenceClient.newWorkflowStub(TestExceptionPropagation.class,
                 newWorkflowOptionsBuilder().build());
-        try {
+//        try {
             client.execute();
-            fail("Unreachable");
-        } catch (MyCheckedException e) {
-            assertEquals("simulated NPE", e.getMessage());
-        }
+//            fail("Unreachable");
+//        } catch (MyCheckedException e) {
+//            assertEquals("simulated NPE", e.getMessage());
+//        }
     }
 
 
@@ -715,7 +716,7 @@ public class WorkflowTest {
 
         void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
 
-        void throwChecked() throws MyCheckedException;
+        void throwNPE();
     }
 
     private static class TestActivitiesImpl implements TestActivities {
@@ -848,7 +849,7 @@ public class WorkflowTest {
         }
 
         @Override
-        public void throwChecked() {
+        public void throwNPE() {
             throw new NullPointerException("simulated NPE");
         }
     }

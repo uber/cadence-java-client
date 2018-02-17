@@ -63,37 +63,34 @@ class SyncDecisionContext {
         byte[] input = converter.toData(args);
         Promise<byte[]> binaryResult = executeActivity(name, options, input);
         if (returnType == Void.TYPE) {
-            return binaryResult.handle((r, failure) -> {
-                rethrowActivityException(failure);
-                return null;
-            });
+            return binaryResult.thenApply((r) -> null);
         }
-        return binaryResult.handle((r, failure) -> {
-            rethrowActivityException(failure);
-            return converter.fromData(r, returnType);
-        });
-
+        return binaryResult.thenApply((r) -> converter.fromData(r, returnType));
     }
 
-    private void rethrowActivityException(RuntimeException failure) {
+    private RuntimeException mapActivityException(RuntimeException failure) {
         if (failure == null) {
-            return;
+            return null;
         }
-        if (failure instanceof ActivityTaskFailedException) {
-            ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
-            String causeClassName = taskFailed.getReason();
-            Class<? extends Throwable> causeClass;
-            Throwable cause;
-            try {
-                causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
-                cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
-            } catch (Exception e) {
-                cause = e;
-            }
-            throw new ActivityFailureException(failure.getMessage(), taskFailed.getEventId(),
-                    taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
+        if (failure instanceof CancellationException) {
+            return failure;
         }
-        throw failure;
+
+        if (!(failure instanceof ActivityTaskFailedException)) {
+            throw new IllegalArgumentException("Unexpected exception type: ", failure);
+        }
+        ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
+        String causeClassName = taskFailed.getReason();
+        Class<? extends Throwable> causeClass;
+        Throwable cause;
+        try {
+            causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
+            cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
+        } catch (Exception e) {
+            cause = e;
+        }
+        return new ActivityFailureException(failure.getMessage(), taskFailed.getEventId(),
+                taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
     }
 
     private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {
@@ -111,7 +108,7 @@ class SyncDecisionContext {
                 (output, failure) -> {
                     if (failure != null) {
                         // TODO: Make sure that only Exceptions are passed into the callback.
-                        result.completeExceptionally(failure);
+                        result.completeExceptionally(mapActivityException(failure));
                     } else {
                         result.complete(output);
                     }
