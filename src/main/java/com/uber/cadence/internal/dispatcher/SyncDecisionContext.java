@@ -20,6 +20,7 @@ import com.uber.cadence.ActivityType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.ActivityException;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
@@ -77,22 +78,24 @@ class SyncDecisionContext {
         if (failure instanceof CancellationException) {
             return failure;
         }
-
-        if (!(failure instanceof ActivityTaskFailedException)) {
-            throw new IllegalArgumentException("Unexpected exception type: ", failure);
+        if (failure instanceof ActivityTaskFailedException) {
+            ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
+            String causeClassName = taskFailed.getReason();
+            Class<? extends Throwable> causeClass;
+            Throwable cause;
+            try {
+                causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
+                cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
+            } catch (Exception e) {
+                cause = e;
+            }
+            return new ActivityFailureException(taskFailed.getEventId(),
+                    taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
         }
-        ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
-        String causeClassName = taskFailed.getReason();
-        Class<? extends Throwable> causeClass;
-        Throwable cause;
-        try {
-            causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
-            cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
-        } catch (Exception e) {
-            cause = e;
+        if (failure instanceof ActivityException) {
+            return failure;
         }
-        return new ActivityFailureException(taskFailed.getEventId(),
-                taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
+        throw new IllegalArgumentException("Unexpected exception type: " + failure.getClass().getName(), failure);
     }
 
     private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {

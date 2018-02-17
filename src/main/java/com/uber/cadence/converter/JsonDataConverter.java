@@ -16,112 +16,75 @@
  */
 package com.uber.cadence.converter;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonParser;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Implements conversion through Jackson JSON processor. Consult its
- * documentation on how to ensure that classes are serializable, configure their
- * serialization through annotations and {@link ObjectMapper} parameters.
- * 
- * <p>
- * Note that default configuration used by this class includes class name of the
- * every serialized value into the produced JSON. It is done to support
- * polymorphic types out of the box. But in some cases it might be beneficial to
- * disable polymorphic support as it produces much more concise and portable
- * output.
- * 
+ * Implements conversion through GSON JSON processor.
+ *
  * @author fateev
  */
 public class JsonDataConverter implements DataConverter {
 
     private static final DataConverter INSTANCE = new JsonDataConverter();
+    private static final byte[] EMPTY_BLOB = new byte[0];
+    private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+    private final Gson gson;
+    private final JsonParser parser = new JsonParser();
 
     public static DataConverter getInstance() {
         return INSTANCE;
     }
 
-    protected final ObjectMapper mapper;
-
-    /**
-     * Create instance of the converter that uses ObjectMapper with
-     * {@link DeserializationFeature#FAIL_ON_UNKNOWN_PROPERTIES} set to <code>false</code> and
-     * default typing set to {@link DefaultTyping#NON_FINAL}.
-     */
     private JsonDataConverter() {
-        this(new ObjectMapper());
-        // ignoring unknown properties makes us more robust to changes in the schema
-        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-
-        // This will allow including type information all non-final types.  This allows correct 
-        // serialization/deserialization of generic collections, for example List<MyType>. 
-        mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
-    }
-
-    /**
-     * Create instance of the converter that uses {@link ObjectMapper}
-     * configured externally.
-     */
-    public JsonDataConverter(ObjectMapper mapper) {
-        this.mapper = mapper;
+        gson = new GsonBuilder().serializeNulls().create();
     }
 
     @Override
-    public byte[] toData(Object value) throws DataConverterException {
+    public byte[] toData(Object... values) throws DataConverterException {
+        if (values == null || values.length == 0) {
+            return EMPTY_BLOB;
+        }
         try {
-            return mapper.writeValueAsBytes(value);
-        }
-        catch (JsonGenerationException e) {
-            throwDataConverterException(e, value);
-        }
-        catch (JsonMappingException e) {
-            throwDataConverterException(e, value);
-        }
-        catch (IOException e) {
-            throwDataConverterException(e, value);
-        }
-        throw new IllegalStateException("not reachable");
-    }
-
-    private void throwDataConverterException(Throwable e, Object value) {
-        if (value == null) {
-            throw new DataConverterException("Failure serializing null value", e);
-        }
-        throw new DataConverterException("Failure serializing \"" + value + "\" of type \"" + value.getClass() + "\"", e);
-    }
-
-    @Override
-    public <T> T fromData(byte[] serialized, Class<T> valueType) throws DataConverterException {
-        if (serialized == null || serialized.length == 0) {
-            try {
-                if (valueType.isArray()) {
-                    return (T) Array.newInstance(valueType.getComponentType(), 0);
-                }
-                return valueType.newInstance();
-            } catch (Exception e) {
-                throw new DataConverterException("Failure instantiating default value", e);
+            if (values.length == 1) {
+                return gson.toJson(values[0]).getBytes(StandardCharsets.UTF_8);
             }
+            return gson.toJson(values).getBytes(StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new DataConverterException(e);
         }
+    }
+
+    @Override
+    public <T> T fromData(byte[] content, Class<T> valueType) throws DataConverterException {
         try {
-            return mapper.readValue(serialized, valueType);
+            return gson.fromJson(new String(content, StandardCharsets.UTF_8), valueType);
+        } catch (Exception e) {
+            throw new DataConverterException(content, e);
         }
-        catch (JsonParseException e) {
-            throw new DataConverterException(e);
-        }
-        catch (JsonMappingException e) {
-            throw new DataConverterException(e);
-        }
-        catch (IOException e) {
-            throw new DataConverterException(e);
+    }
+
+    @Override
+    public Object[] fromDataArray(byte[] content, Class<?>... valueType) throws DataConverterException {
+        try {
+            if ((content == null || content.length == 0) && (valueType == null || valueType.length == 0)) {
+                return EMPTY_OBJECT_ARRAY;
+            }
+            if (valueType.length == 1) {
+                return new Object[]{fromData(content, valueType[0])};
+            }
+            JsonArray array = parser.parse(new String(content, StandardCharsets.UTF_8)).getAsJsonArray();
+            Object[] result = new Object[valueType.length];
+            for (int i = 0; i < valueType.length; i++) {
+                result[i] = gson.fromJson(array.get(i), valueType[i]);
+            }
+            return result;
+        } catch (Exception e) {
+            throw new DataConverterException(content, valueType, e);
         }
     }
 }

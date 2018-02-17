@@ -16,9 +16,6 @@
  */
 package com.uber.cadence.internal.common;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
 import com.uber.cadence.error.CheckedExceptionWrapper;
@@ -26,8 +23,6 @@ import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.internal.worker.SynchronousRetrier;
 import org.apache.thrift.TException;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -579,12 +574,12 @@ public class WorkflowExecutionUtils {
             try {
                 value = method.invoke(object, (Object[]) null);
                 if (value != null && value.getClass().equals(String.class) && name.equals("getDetails")) {
-                    value = printDetails((String) value);
+                    value = truncateDetails((String) value);
                 }
             } catch (InvocationTargetException e) {
                 throw new RuntimeException(e.getTargetException());
             } catch (RuntimeException e) {
-                throw (RuntimeException) e;
+                throw e;
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -621,34 +616,6 @@ public class WorkflowExecutionUtils {
             result.append("}");
         }
         return result.toString();
-    }
-
-    public static String printDetails(String details) {
-        Throwable failure = null;
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            mapper.enableDefaultTyping(DefaultTyping.NON_FINAL);
-
-            failure = mapper.readValue(details, Throwable.class);
-        } catch (Exception e) {
-            // eat up any data converter exceptions
-        }
-
-        if (failure != null) {
-            StringBuilder builder = new StringBuilder();
-
-            // Also print callstack
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            failure.printStackTrace(pw);
-
-            builder.append(sw.toString());
-
-            details = builder.toString();
-        }
-
-        return details;
     }
 
     /**

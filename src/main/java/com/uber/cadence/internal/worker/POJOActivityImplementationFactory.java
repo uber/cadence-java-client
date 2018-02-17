@@ -132,7 +132,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         public byte[] execute(WorkflowService.Iface service, String domain, PollForActivityTaskResponse task) {
             ActivityExecutionContext context = new ActivityExecutionContextImpl(service, domain, task, dataConverter);
             byte[] input = task.getInput();
-            Object[] args = dataConverter.fromData(input, Object[].class);
+            Object[] args = dataConverter.fromDataArray(input, method.getParameterTypes());
             CurrentActivityExecutionContext.set(context);
             try {
                 Object result = method.invoke(activity, args);
@@ -140,10 +140,12 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
                     return EMPTY_BLOB;
                 }
                 return dataConverter.toData(result);
-            } catch (IllegalAccessException e) {
+            } catch (RuntimeException e) {
                 throw throwActivityFailure(e);
             } catch (InvocationTargetException e) {
                 throw throwActivityFailure(e.getTargetException());
+            } catch (IllegalAccessException e) {
+                throw throwActivityFailure(e);
             } finally {
                 CurrentActivityExecutionContext.unset();
             }

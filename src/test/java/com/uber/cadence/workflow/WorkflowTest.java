@@ -407,22 +407,23 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            throw new UnsupportedOperationException("simulated UOE");
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
+            try {
+                testActivities.throwNPE();
+                fail("unreachable");
+                return "ignored";
+            } catch (ActivityFailureException e) {
+                assertTrue(e.getMessage().contains("::throwNPE"));
+                assertNotNull(e.getCause() instanceof NullPointerException);
+                assertEquals("simulated NPE", e.getCause().getMessage());
+                throw e;
+            }
         }
     }
 
     public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
         @Override
         public void execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
-            try {
-                testActivities.throwNPE();
-                fail("unreachable");
-            } catch (ActivityFailureException e) {
-                assertTrue(e.getMessage().contains("::throwNPE"));
-                assertNotNull(e.getCause() instanceof NullPointerException);
-                assertEquals("simulated NPE", e.getCause().getMessage());
-            }
             ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
                     .setExecutionStartToCloseTimeoutSeconds(5000).build();
             TestWorkflow1 child = Workflow.newChildWorkflowStub(TestWorkflow1.class, options);
@@ -430,9 +431,11 @@ public class WorkflowTest {
                 child.execute();
                 fail("unreachable");
             } catch (RuntimeException e) {
-                assertTrue(e.getMessage().contains("::execute"));
-                assertNotNull(e.getCause() instanceof UnsupportedOperationException);
+                assertTrue(e.getMessage().contains("::throwNPE"));
+                assertNotNull(e.getCause() instanceof ActivityFailureException);
+                assertNotNull(e.getCause().getCause() instanceof UnsupportedOperationException);
                 assertEquals("simulated UOE", e.getCause().getMessage());
+//                throw e;
             }
         }
     }
@@ -444,10 +447,13 @@ public class WorkflowTest {
         TestExceptionPropagation client = cadenceClient.newWorkflowStub(TestExceptionPropagation.class,
                 newWorkflowOptionsBuilder().build());
 //        try {
-        client.execute();
+            client.execute();
 //            fail("Unreachable");
-//        } catch (MyCheckedException e) {
-//            assertEquals("simulated NPE", e.getMessage());
+//        } catch (RuntimeException e) {
+//            assertTrue(e.getMessage().contains("::throwNPE"));
+//            assertNotNull(e.getCause().getCause() instanceof ActivityFailureException);
+//            assertNotNull(e.getCause().getCause().getCause() instanceof UnsupportedOperationException);
+//            assertEquals("simulated UOE", e.getCause().getMessage());
 //        }
     }
 

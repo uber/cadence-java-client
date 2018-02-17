@@ -25,7 +25,7 @@ package com.uber.cadence.converter;
 public interface DataConverter {
 
     /**
-     * Implements conversion of the single value.
+     * Implements conversion of a list of values.
      * 
      * @param value
      *            Java value to convert to String.
@@ -34,10 +34,10 @@ public interface DataConverter {
      *             if conversion of the value passed as parameter failed for any
      *             reason.
      */
-    byte[] toData(Object value) throws DataConverterException;
+    byte[] toData(Object... value) throws DataConverterException;
 
     /**
-     * Implements conversion of the single value.
+     * Implements conversion of a single value.
      * 
      * @param content
      *            Simple Workflow Data value to convert to a Java object.
@@ -48,4 +48,17 @@ public interface DataConverter {
      */
     <T> T fromData(byte[] content, Class<T> valueType) throws DataConverterException;
 
+    /**
+     * Implements conversion of an array of values of different types.
+     * Useful for deserializing arguments of function invocations.
+     *
+     * @param content
+     *            Simple Workflow Data value to convert to a Java objects.
+     * @return array of converted Java objects
+     * @throws DataConverterException
+     *             if conversion of the data passed as parameter failed for any
+     *             reason.
+     */
+
+    Object[] fromDataArray(byte[] content, Class<?>... valueType) throws DataConverterException;
 }
