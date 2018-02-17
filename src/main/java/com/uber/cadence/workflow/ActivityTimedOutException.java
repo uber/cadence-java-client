@@ -14,33 +14,46 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.workflow;
 
+import com.uber.cadence.ActivityType;
+import com.uber.cadence.TimeoutType;
+import com.uber.cadence.internal.ActivityException;
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
-
+/**
+ * Exception that indicates Activity time out.
+ */
 @SuppressWarnings("serial")
-public class ChildWorkflowFailedException extends ChildWorkflowException {
+public class ActivityTimedOutException extends ActivityException {
+
+    private TimeoutType timeoutType;
 
     private byte[] details;
-    
-    public ChildWorkflowFailedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType,
-                                        String reason, byte[] details) {
-        super(createMessage(workflowExecution, workflowType, reason), eventId, workflowExecution, workflowType);
+
+    public ActivityTimedOutException(long eventId, ActivityType activityType, String activityId, TimeoutType timeoutType,
+                                     byte[] details) {
+        super(String.valueOf(timeoutType), eventId, activityType, activityId);
+        this.timeoutType = timeoutType;
         this.details = details;
     }
 
+    public TimeoutType getTimeoutType() {
+        return timeoutType;
+    }
+
+    public void setTimeoutType(TimeoutType timeoutType) {
+        this.timeoutType = timeoutType;
+    }
+
+    /**
+     * @return The value from the last activity heartbeat details field.
+     */
     public byte[] getDetails() {
         return details;
     }
-    
+
     public void setDetails(byte[] details) {
         this.details = details;
     }
-    
-    private static String createMessage(WorkflowExecution workflowExecution, WorkflowType workflowType, String reason) {
-        return "name=" + workflowType.getName() + ", workflowId="
-                + workflowExecution.getWorkflowId() + ", runId=" + workflowExecution.getRunId() + ": " + reason;
-    }
+
 }

@@ -92,16 +92,16 @@ public class WorkflowTest {
 
     private static WorkflowOptions.Builder newWorkflowOptionsBuilder() {
         return new WorkflowOptions.Builder()
-                .setExecutionStartToCloseTimeoutSeconds(10)
+                .setExecutionStartToCloseTimeoutSeconds(20)
                 .setTaskList(taskList);
     }
 
     private static ActivityOptions newActivitySchedulingOptions1() {
         return new ActivityOptions.Builder()
                 .setTaskList(taskList)
-                .setHeartbeatTimeoutSeconds(10)
-                .setScheduleToCloseTimeoutSeconds(20)
-                .setScheduleToStartTimeoutSeconds(10)
+                .setHeartbeatTimeoutSeconds(5)
+                .setScheduleToCloseTimeoutSeconds(5)
+                .setScheduleToStartTimeoutSeconds(5)
                 .setStartToCloseTimeoutSeconds(10)
                 .build();
     }
@@ -398,33 +398,53 @@ public class WorkflowTest {
         assertEquals("testTimer", result);
     }
 
-    public static interface TestExceptionPropagation {
+    public interface TestExceptionPropagation {
         @WorkflowMethod
         void execute();
     }
 
-    public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
+    public static class ThrowingChild implements TestWorkflow1 {
 
+        @Override
+        public String execute() {
+            throw new UnsupportedOperationException("simulated UOE");
+        }
+    }
+
+    public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
         @Override
         public void execute() {
             TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
             try {
                 testActivities.throwNPE();
+                fail("unreachable");
             } catch (ActivityFailureException e) {
-                assertTrue(e.getMessage().contains("::throwChecked"));
+                assertTrue(e.getMessage().contains("::throwNPE"));
                 assertNotNull(e.getCause() instanceof NullPointerException);
                 assertEquals("simulated NPE", e.getCause().getMessage());
+            }
+            ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
+                    .setExecutionStartToCloseTimeoutSeconds(5000).build();
+            TestWorkflow1 child = Workflow.newChildWorkflowStub(TestWorkflow1.class, options);
+            try {
+                child.execute();
+                fail("unreachable");
+            } catch (RuntimeException e) {
+                assertTrue(e.getMessage().contains("::execute"));
+                assertNotNull(e.getCause() instanceof UnsupportedOperationException);
+                assertEquals("simulated UOE", e.getCause().getMessage());
             }
         }
     }
 
     @Test
     public void testExceptionPropagation() {
+        worker.addWorkflowImplementationType(ThrowingChild.class);
         startWorkerFor(TestExceptionPropagationImpl.class);
         TestExceptionPropagation client = cadenceClient.newWorkflowStub(TestExceptionPropagation.class,
                 newWorkflowOptionsBuilder().build());
 //        try {
-            client.execute();
+        client.execute();
 //            fail("Unreachable");
 //        } catch (MyCheckedException e) {
 //            assertEquals("simulated NPE", e.getMessage());

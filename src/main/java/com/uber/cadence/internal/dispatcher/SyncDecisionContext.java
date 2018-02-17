@@ -21,6 +21,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
@@ -28,6 +29,7 @@ import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
@@ -89,7 +91,7 @@ class SyncDecisionContext {
         } catch (Exception e) {
             cause = e;
         }
-        return new ActivityFailureException(failure.getMessage(), taskFailed.getEventId(),
+        return new ActivityFailureException(taskFailed.getEventId(),
                 taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
     }
 
@@ -121,7 +123,31 @@ class SyncDecisionContext {
         return result;
     }
 
-    // TODO: Child workflow cancellation
+
+    private RuntimeException mapChildWorkflowException(RuntimeException failure) {
+        if (failure == null) {
+            return null;
+        }
+        if (failure instanceof CancellationException) {
+            return failure;
+        }
+
+        if (!(failure instanceof ChildWorkflowTaskFailedException)) {
+            throw new IllegalArgumentException("Unexpected exception type: ", failure);
+        }
+        ChildWorkflowTaskFailedException taskFailed = (ChildWorkflowTaskFailedException) failure;
+        String causeClassName = taskFailed.getReason();
+        Class<? extends Throwable> causeClass;
+        Throwable cause;
+        try {
+            causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
+            cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
+        } catch (Exception e) {
+            cause = e;
+        }
+        return new ChildWorkflowFailureException(failure.getMessage(), taskFailed.getEventId(),
+                taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType(), cause);
+    }
 
     /**
      * @param executionResult promise that is set bu this method when child workflow is started.
@@ -145,7 +171,7 @@ class SyncDecisionContext {
                 executionResult::complete,
                 (output, failure) -> {
                     if (failure != null) {
-                        result.completeExceptionally(failure);
+                        result.completeExceptionally(mapChildWorkflowException(failure));
                     } else {
                         result.complete(output);
                     }
