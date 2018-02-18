@@ -14,28 +14,18 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.workflow;
 
-/**
- * Exception that is thrown from generic workflow implementation to indicate
- * that workflow execution should be failed with the given reason and details.
- */
-@SuppressWarnings("serial")
-public class WorkflowException extends RuntimeException {
+public class WorkflowTerminatedException extends WorkflowException {
 
     private final byte[] details;
 
-    public WorkflowException(String reason, byte[] details) {
-        super(reason);
+    public WorkflowTerminatedException(String reason, String identity, byte[] details) {
+        super("Terminated by " + identity + " for \"" + reason + "\"");
         this.details = details;
-    }
-
-    public String getReason() {
-        return getMessage();
     }
 
     public byte[] getDetails() {
         return details;
     }
-
 }

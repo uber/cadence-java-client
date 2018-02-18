@@ -14,17 +14,24 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.workflow;
+package com.uber.cadence.internal.worker;
 
+/**
+ * Internal. Do not throw or catch in application level code.
+ */
+class WorkflowExecutionException extends RuntimeException {
+    private final byte[] details;
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+    public WorkflowExecutionException(String reason, byte[] details) {
+        super(reason);
+        this.details = details;
+    }
 
-@SuppressWarnings("serial")
-public class ChildWorkflowFailureException extends ChildWorkflowException {
+    public byte[] getDetails() {
+        return details;
+    }
 
-    public ChildWorkflowFailureException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType, Throwable cause) {
-        super(cause.getMessage(), eventId, workflowExecution, workflowType);
-        initCause(cause);
+    public String getReason() {
+        return getMessage();
     }
 }

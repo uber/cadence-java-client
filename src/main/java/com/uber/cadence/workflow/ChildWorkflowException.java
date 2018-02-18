@@ -14,42 +14,35 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.internal.DecisionException;
 
 /**
  * Exception used to communicate failure of remote activity.
  */
 @SuppressWarnings("serial")
 public abstract class ChildWorkflowException extends DecisionException {
-    
-    private WorkflowExecution workflowExecution;
-    
-    private WorkflowType workflowType;
 
-    public ChildWorkflowException(String message, long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
+    private final WorkflowExecution workflowExecution;
+
+    private final WorkflowType workflowType;
+
+    protected ChildWorkflowException(String message, long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
         super("\"" + message + "\" while executing \"" + workflowType.getName() + "\" workflow with ID=\""
                 + workflowExecution.getWorkflowId() + "\", RunID=\"" + workflowExecution.getRunId() + " and EventID=" + eventId, eventId);
 
         this.workflowExecution = workflowExecution;
         this.workflowType = workflowType;
     }
-    
+
     public WorkflowExecution getWorkflowExecution() {
         return workflowExecution;
     }
-    
-    public void setWorkflowExecution(WorkflowExecution workflowExecution) {
-        this.workflowExecution = workflowExecution;
-    }
-    
+
     public WorkflowType getWorkflowType() {
         return workflowType;
-    }
-    
-    public void setWorkflowType(WorkflowType workflowType) {
-        this.workflowType = workflowType;
     }
 }

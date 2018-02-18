@@ -16,15 +16,11 @@
  */
 package com.uber.cadence.workflow;
 
+public final class WorkflowFailureException extends WorkflowException {
+    private final long decisionTaskCompletedEventId;
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
-
-@SuppressWarnings("serial")
-public class ChildWorkflowFailureException extends ChildWorkflowException {
-
-    public ChildWorkflowFailureException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType, Throwable cause) {
-        super(cause.getMessage(), eventId, workflowExecution, workflowType);
-        initCause(cause);
+    public WorkflowFailureException(long decisionTaskCompletedEventId, Throwable failure) {
+        super(failure.getMessage(), failure);
+        this.decisionTaskCompletedEventId = decisionTaskCompletedEventId;
     }
 }

@@ -148,8 +148,7 @@ class SyncDecisionContext {
         } catch (Exception e) {
             cause = e;
         }
-        return new ChildWorkflowFailureException(failure.getMessage(), taskFailed.getEventId(),
-                taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType(), cause);
+        return new ChildWorkflowFailureException(taskFailed.getEventId(), taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType(), cause);
     }
 
     /**

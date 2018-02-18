@@ -19,34 +19,44 @@ package com.uber.cadence.internal;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.workflow.ChildWorkflowException;
 
+/**
+ * Internal. Do not catch or throw by application level code.
+ */
 @SuppressWarnings("serial")
-public class ChildWorkflowTaskFailedException extends ChildWorkflowException {
+public class ChildWorkflowTaskFailedException extends RuntimeException {
 
-    private byte[] details;
-    private String reason;
+    private final long eventId;
+
+    private final WorkflowExecution workflowExecution;
+
+    private final WorkflowType workflowType;
+
+    private final byte[] details;
 
     public ChildWorkflowTaskFailedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType,
                                             String reason, byte[] details) {
-        super(createMessage(workflowExecution, workflowType, reason), eventId, workflowExecution, workflowType);
-        this.reason = reason;
+        super(reason);
+        this.eventId = eventId;
+        this.workflowExecution = workflowExecution;
+        this.workflowType = workflowType;
         this.details = details;
+    }
+
+    public long getEventId() {
+        return eventId;
+    }
+
+    public WorkflowExecution getWorkflowExecution() {
+        return workflowExecution;
+    }
+
+    public WorkflowType getWorkflowType() {
+        return workflowType;
     }
 
     public byte[] getDetails() { return details; }
 
-    public String getReason() {
-        return reason;
-    }
-
-
-
-    public void setDetails(byte[] details) {
-        this.details = details;
-    }
-
-    private static String createMessage(WorkflowExecution workflowExecution, WorkflowType workflowType, String reason) {
-        return "name=" + workflowType.getName() + ", workflowId="
-                + workflowExecution.getWorkflowId() + ", runId=" + workflowExecution.getRunId() + ": " + reason;
-    }
+    public String getReason() { return getMessage(); }
 }

@@ -24,9 +24,9 @@ import com.uber.cadence.ActivityType;
 @SuppressWarnings("serial")
 public abstract class ActivityException extends DecisionException {
     
-    private ActivityType activityType;
+    private final ActivityType activityType;
 
-    private String activityId;
+    private final String activityId;
 
     protected ActivityException(String message, long eventId, ActivityType activityType, String activityId) {
         super("\"" + message + "\" while executing \"" + activityType.getName() + "\" activity with ID=\"" + activityId + "\" and EventID=" +  eventId, eventId);
@@ -38,15 +38,7 @@ public abstract class ActivityException extends DecisionException {
         return activityType;
     }
     
-    public void setActivityType(ActivityType activityType) {
-        this.activityType = activityType;
-    }
-    
     public String getActivityId() {
         return activityId;
-    }
-    
-    public void setActivityId(String activityId) {
-        this.activityId = activityId;
     }
 }

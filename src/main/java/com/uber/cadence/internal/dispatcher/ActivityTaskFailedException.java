@@ -17,24 +17,43 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.internal.ActivityException;
 
 /**
+ * Internal. Do not catch or throw in application level code.
  * Exception used to communicate failure of remote activity.
  * TODO: Make package level visibility.
  */
 @SuppressWarnings("serial")
-public class ActivityTaskFailedException extends ActivityException {
-    
-    private byte[] details;
-    private String reason;
+public class ActivityTaskFailedException extends RuntimeException {
 
-    public ActivityTaskFailedException(long eventId, ActivityType activityType, String activityId, String reason, byte[] details) {
-        super(reason, eventId, activityType, activityId);
+    private final long eventId;
+    private final ActivityType activityType;
+    private final String activityId;
+    private final byte[] details;
+    private final String reason;
+
+    public ActivityTaskFailedException(long eventId, ActivityType activityType,
+                                       String activityId, String reason, byte[] details) {
+        super(reason);
+        this.eventId = eventId;
+        this.activityType = activityType;
+        this.activityId = activityId;
         this.reason = reason;
         this.details = details;
     }
-    
+
+    public long getEventId() {
+        return eventId;
+    }
+
+    public ActivityType getActivityType() {
+        return activityType;
+    }
+
+    public String getActivityId() {
+        return activityId;
+    }
+
     public byte[] getDetails() {
         return details;
     }

@@ -65,11 +65,11 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         }
     }
 
-    private ActivityFailureException throwActivityFailure(Throwable e) {
+    private ActivityExecutionException throwActivityFailure(Throwable e) {
         if (e instanceof CancellationException) {
             throw (CancellationException) e;
         }
-        return new ActivityFailureException(e.getClass().getName(), dataConverter.toData(e));
+        return new ActivityExecutionException(e.getClass().getName(), dataConverter.toData(e));
     }
 
     @Override

@@ -17,7 +17,6 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
@@ -31,6 +30,7 @@ import com.uber.cadence.internal.worker.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
 import com.uber.cadence.workflow.SignalMethod;
+import com.uber.cadence.workflow.WorkflowFailureException;
 import com.uber.cadence.workflow.WorkflowMethod;
 
 import java.lang.reflect.InvocationHandler;
@@ -176,14 +176,21 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             return null;
         }
         try {
-            WorkflowExecutionCompletedEventAttributes result =
-                    WorkflowExecutionUtils.getWorkflowExecutionResult(genericClient.getService(), genericClient.getDomain(),
-                            execution.get(), options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
-            byte[] resultValue = result.getResult();
-            if (resultValue == null) {
-                return null;
-            }
+            byte[] resultValue = WorkflowExecutionUtils.getWorkflowExecutionResult(
+                    genericClient.getService(), genericClient.getDomain(), execution.get(),
+                    options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
             return dataConverter.fromData(resultValue, method.getReturnType());
+        } catch (WorkflowExecutionFailedException e) {
+            Class<Throwable> causeClass = null;
+            try {
+                causeClass = (Class<Throwable>) Class.forName(e.getReason());
+            } catch (Exception ee) {
+                RuntimeException failure = new RuntimeException("Failed to deserialize workflow failure cause. " +
+                        "Reason field is expected to contain a failure cause class name", ee);
+                throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), failure);
+            }
+            Throwable cause = dataConverter.fromData(e.getDetails(), causeClass);
+            throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), cause);
         } catch (Exception e) {
             throw CheckedExceptionWrapper.wrap(e);
         }

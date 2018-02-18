@@ -14,17 +14,20 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.workflow;
 
+import com.uber.cadence.TimeoutType;
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+public class WorkflowTimedOutException extends WorkflowException {
 
-@SuppressWarnings("serial")
-public class ChildWorkflowTerminatedException extends ChildWorkflowException {
+    private final TimeoutType timeoutType;
 
-    public ChildWorkflowTerminatedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
-        super("Terminate", eventId, workflowExecution, workflowType);
+    public WorkflowTimedOutException(TimeoutType timeoutType) {
+        super("Timeout type: " + timeoutType);
+        this.timeoutType = timeoutType;
     }
 
+    public TimeoutType getTimeoutType() {
+        return timeoutType;
+    }
 }

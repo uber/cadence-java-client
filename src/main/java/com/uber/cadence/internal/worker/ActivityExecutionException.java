@@ -26,12 +26,12 @@ import com.uber.cadence.internal.generic.ActivityImplementation;
  * as it contains details property in the format that the activity client code
  * in the decider understands.
  * <p>
- * It is not expected to be thrown by the application level code.
+ * It is not expected to be thrown or caught by the application level code.
  *
  * @author fateev
  */
 @SuppressWarnings("serial")
-class ActivityFailureException extends RuntimeException {
+class ActivityExecutionException extends RuntimeException {
 
     private byte[] details;
 
@@ -41,7 +41,7 @@ class ActivityFailureException extends RuntimeException {
      * @param reason  value of reason field
      * @param details application specific failure details
      */
-    ActivityFailureException(String reason, byte[] details) {
+    ActivityExecutionException(String reason, byte[] details) {
         super(reason);
         this.details = details;
     }

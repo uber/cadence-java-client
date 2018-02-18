@@ -19,13 +19,13 @@ package com.uber.cadence.internal.worker;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.WorkflowException;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
+import com.uber.cadence.workflow.WorkflowException;
 import com.uber.cadence.workflow.WorkflowMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -150,7 +150,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
         }
 
         @Override
-        public byte[] execute(byte[] input) throws CancellationException, WorkflowException {
+        public byte[] execute(byte[] input) throws CancellationException, WorkflowExecutionException {
             Object[] args = dataConverter.fromDataArray(input, workflowMethod.getParameterTypes());
             try {
                 newInstance();
@@ -211,7 +211,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 throw (CancellationException) e;
             }
             // TODO: data conversion failure
-            throw new WorkflowException(e.getClass().getName(), dataConverter.toData(e));
+            throw new WorkflowExecutionException(e.getClass().getName(), dataConverter.toData(e));
         }
     }
 }

@@ -22,12 +22,14 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.error.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.generic.QueryWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
+import com.uber.cadence.workflow.WorkflowFailureException;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -103,14 +105,25 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
     @Override
     public <R> R getResult(long timeout, TimeUnit unit, Class<R> returnType) throws TimeoutException {
         checkStarted();
-        WorkflowExecutionCompletedEventAttributes result =
-                WorkflowExecutionUtils.getWorkflowExecutionResult(genericClient.getService(), genericClient.getDomain(),
-                        execution.get(), timeout, unit);
-        byte[] resultValue = result.getResult();
-        if (resultValue == null) {
-            return null;
+        try {
+            byte[] resultValue = WorkflowExecutionUtils.getWorkflowExecutionResult(
+                    genericClient.getService(), genericClient.getDomain(), execution.get(), timeout, unit);
+            if (resultValue == null) {
+                return null;
+            }
+            return dataConverter.fromData(resultValue, returnType);
+        } catch(WorkflowExecutionFailedException e) {
+            Class<Throwable> detailsClass = null;
+            try {
+                detailsClass = (Class<Throwable>) Class.forName(e.getReason());
+            } catch (Exception ee) {
+                RuntimeException failure = new RuntimeException("Couldn't deserialize failure cause " +
+                        "as the reason field is expected to contain an exception class name", e);
+                throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), failure);
+            }
+            Throwable cause = dataConverter.fromData(e.getDetails(), detailsClass);
+            throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), cause);
         }
-        return dataConverter.fromData(resultValue, returnType);
     }
 
 

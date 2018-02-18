@@ -25,29 +25,24 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 import com.google.gson.TypeAdapter;
 import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.uber.cadence.internal.worker.SynchronousActivityTaskPoller;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * Implements conversion through GSON JSON processor.
+ * To extend create a subclass and override {@link #configure(GsonBuilder)} method.
  *
  * @author fateev
  */
@@ -69,13 +64,22 @@ public class JsonDataConverter implements DataConverter {
         return INSTANCE;
     }
 
-    private JsonDataConverter() {
-        gson = new GsonBuilder()
+    protected JsonDataConverter() {
+        GsonBuilder gsonBuilder = new GsonBuilder()
                 .serializeNulls()
                 .addDeserializationExclusionStrategy(new StackTraceExclusion())
                 .addSerializationExclusionStrategy(new StackTraceExclusion())
-                .registerTypeAdapterFactory(new ThrowableTypeAdapterFactory())
-                .create();
+                .registerTypeAdapterFactory(new ThrowableTypeAdapterFactory());
+        GsonBuilder reconfigured = configure(gsonBuilder);
+        gson = reconfigured.create();
+    }
+
+    /**
+     * Override this method to add additional configuration to Gson.
+     * Be careful as this method is called from a constructor.
+     */
+    protected GsonBuilder configure(GsonBuilder builder) {
+        return builder;
     }
 
     /**
@@ -199,6 +203,9 @@ public class JsonDataConverter implements DataConverter {
                 return new StackTraceElement[0];
             }
             String stackTrace = jsonStackTrace.getAsString();
+            if (stackTrace == null || stackTrace.isEmpty()) {
+                return new StackTraceElement[0];
+            }
             try {
                 String[] lines = stackTrace.split("\n");
                 StackTraceElement[] result = new StackTraceElement[lines.length];
@@ -241,7 +248,7 @@ public class JsonDataConverter implements DataConverter {
     /**
      * Skips default serialization of the stackTrace field.
      */
-    private class StackTraceExclusion implements ExclusionStrategy {
+    private static class StackTraceExclusion implements ExclusionStrategy {
         @Override
         public boolean shouldSkipField(FieldAttributes fieldAttributes) {
             String name = fieldAttributes.getName();

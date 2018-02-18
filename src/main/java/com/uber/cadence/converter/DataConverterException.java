@@ -28,7 +28,6 @@ import java.util.Arrays;
 public class DataConverterException extends RuntimeException {
 
     private Class<?>[] valueTypes;
-    private String key;
 
     private String content;
 
@@ -53,10 +52,6 @@ public class DataConverterException extends RuntimeException {
             int maxIndex = Math.min(content.length, 255);
             this.content = new String(content, 0, maxIndex, StandardCharsets.UTF_8);
         }
-    }
-
-    public void setKey(String key) {
-        this.key = key;
     }
 
     @Override

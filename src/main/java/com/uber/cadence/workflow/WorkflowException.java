@@ -16,15 +16,17 @@
  */
 package com.uber.cadence.workflow;
 
+/**
+ * Base exception for all workflow failures returned by an external client.
+ * Note that child workflows throw subclasses of {@link ChildWorkflowException}.
+ */
+public class WorkflowException extends RuntimeException {
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+    protected WorkflowException(String message) {
+        super(message);
+    }
 
-@SuppressWarnings("serial")
-public class ChildWorkflowFailureException extends ChildWorkflowException {
-
-    public ChildWorkflowFailureException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType, Throwable cause) {
-        super(cause.getMessage(), eventId, workflowExecution, workflowType);
-        initCause(cause);
+    protected WorkflowException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

@@ -21,10 +21,10 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 
 @SuppressWarnings("serial")
-public class ChildWorkflowFailureException extends ChildWorkflowException {
+public class ChildWorkflowTerminatedException extends ChildWorkflowException {
 
-    public ChildWorkflowFailureException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType, Throwable cause) {
-        super(cause.getMessage(), eventId, workflowExecution, workflowType);
-        initCause(cause);
+    public ChildWorkflowTerminatedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
+        super("Terminate", eventId, workflowExecution, workflowType);
     }
+
 }
