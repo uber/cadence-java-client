@@ -676,17 +676,22 @@ public class WorkflowTest {
         String execute(String arg);
     }
 
+    public interface ITestNamedChild {
+        @WorkflowMethod(name = "namedChild")
+        String execute(String arg);
+    }
+
     private static String child2Id = UUID.randomUUID().toString();
 
     public static class TestParentWorkflow implements TestWorkflow1 {
 
         private final ITestChild child1 = Workflow.newChildWorkflowStub(ITestChild.class);
-        private final ITestChild child2;
+        private final ITestNamedChild child2;
 
         public TestParentWorkflow() {
             ChildWorkflowOptions.Builder options = new ChildWorkflowOptions.Builder();
             options.setWorkflowId(child2Id);
-            child2 = Workflow.newChildWorkflowStub(ITestChild.class, options.build());
+            child2 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options.build());
         }
 
         @Override
@@ -699,7 +704,13 @@ public class WorkflowTest {
     }
 
     public static class TestChild implements ITestChild {
+        @Override
+        public String execute(String arg) {
+            return arg.toUpperCase();
+        }
+    }
 
+    public static class TestNamedChild implements ITestNamedChild {
         @Override
         public String execute(String arg) {
             return arg.toUpperCase();
@@ -708,7 +719,7 @@ public class WorkflowTest {
 
     @Test
     public void testChildWorkflow() {
-        worker.registerWorkflowImplementationTypes(TestParentWorkflow.class);
+        worker.registerWorkflowImplementationTypes(TestParentWorkflow.class, TestNamedChild.class);
         startWorkerFor(TestChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
