@@ -491,6 +491,7 @@ public class WorkflowTest {
             client.execute();
             fail("Unreachable");
         } catch (WorkflowFailureException e) {
+            e.printStackTrace();
             assertTrue(e.getMessage().contains("::throwNPE"));
             assertNotNull(e.getCause().getCause() instanceof ActivityFailureException);
             assertNotNull(e.getCause() instanceof WorkflowFailureException);
