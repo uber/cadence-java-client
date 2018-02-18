@@ -90,6 +90,9 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                     if (workflowName.isEmpty()) {
                         workflowName = FlowHelpers.getSimpleName(method);
                     }
+                    if (factories.containsKey(workflowName)) {
+                        throw new IllegalStateException(workflowName + " workflow type is already registered with the worker");
+                    }
                     factories.put(workflowName, factory);
                     hasWorkflowMethod = true;
                 }
