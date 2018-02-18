@@ -119,14 +119,14 @@ public class WorkflowTest {
         taskList = "WorkflowTest-" + testName.getMethodName();
         // TODO: Make this configuratble instead of always using local instance.
         worker = new Worker(domain, taskList);
-        cadenceClient = CadenceClient.newClient(domain);
+        cadenceClient = CadenceClient.newInstance(domain);
         completionClient = cadenceClient.newActivityCompletionClient();
         activitiesImpl = new TestActivitiesImpl(completionClient);
         worker.addActivitiesImplementation(activitiesImpl);
         CadenceClientOptions clientOptions = new CadenceClientOptions.Builder()
                 .setDataConverter(JsonDataConverter.getInstance())
                 .build();
-        cadenceClientWithOptions = CadenceClient.newClient(domain, clientOptions);
+        cadenceClientWithOptions = CadenceClient.newInstance(domain, clientOptions);
         newWorkflowOptionsBuilder();
         newActivitySchedulingOptions1();
         activitiesImpl.invocations.clear();

@@ -26,12 +26,12 @@ import com.uber.cadence.workflow.Functions;
  * Client to Cadence service used to start and query workflows by external processes.
  * Also can be used to create instances of {@link ActivityCompletionClient} to complete activities asynchronously.
  * <p>
- * Use {@link #newClient(WorkflowService.Iface, String, CadenceClientOptions)} method to create an instance.
+ * Use {@link #newInstance(WorkflowService.Iface, String, CadenceClientOptions)} method to create an instance.
  * </p>
  * Example usage:
  * <pre>
  * // Create cadence client using cadence service host and port.
- * CadenceClient client = CadenceClient.newClient(host, port);
+ * CadenceClient client = CadenceClient.newInstance(host, port);
  *
  * // Specify workflow start options.
  * WorkflowOptions options = new WorkflowOptions.Builder()
@@ -66,7 +66,7 @@ public interface CadenceClient {
      *
      * @param domain domain that worker uses to poll.
      */
-    static CadenceClient newClient(String domain) {
+    static CadenceClient newInstance(String domain) {
         return new CadenceClientInternal(new WorkflowServiceTChannel(), domain,
                 new CadenceClientOptions.Builder().build());
     }
@@ -78,7 +78,7 @@ public interface CadenceClient {
      * @param domain  domain that worker uses to poll.
      * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
      */
-    static CadenceClient newClient(String domain, CadenceClientOptions options) {
+    static CadenceClient newInstance(String domain, CadenceClientOptions options) {
         return new CadenceClientInternal(new WorkflowServiceTChannel(), domain, options);
     }
 
@@ -89,7 +89,7 @@ public interface CadenceClient {
      * @param port   of the Cadence Service endpoint
      * @param domain domain that worker uses to poll.
      */
-    static CadenceClient newClient(String host, int port, String domain) {
+    static CadenceClient newInstance(String host, int port, String domain) {
         return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain,
                 new CadenceClientOptions.Builder().build());
     }
@@ -102,7 +102,7 @@ public interface CadenceClient {
      * @param domain  domain that worker uses to poll.
      * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
      */
-    static CadenceClient newClient(String host, int port, String domain, CadenceClientOptions options) {
+    static CadenceClient newInstance(String host, int port, String domain, CadenceClientOptions options) {
         return new CadenceClientInternal(new WorkflowServiceTChannel(host, port), domain, options);
     }
 
@@ -112,7 +112,7 @@ public interface CadenceClient {
      * @param service client to the Cadence Service endpoint.
      * @param domain  domain that worker uses to poll.
      */
-    static CadenceClient newClient(WorkflowService.Iface service, String domain) {
+    static CadenceClient newInstance(WorkflowService.Iface service, String domain) {
         return new CadenceClientInternal(service, domain, null);
     }
 
@@ -123,7 +123,7 @@ public interface CadenceClient {
      * @param domain  domain that worker uses to poll.
      * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for configuring client.
      */
-    static CadenceClient newClient(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
+    static CadenceClient newInstance(WorkflowService.Iface service, String domain, CadenceClientOptions options) {
         return new CadenceClientInternal(service, domain, options);
     }
 
