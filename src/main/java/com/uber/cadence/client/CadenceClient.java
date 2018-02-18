@@ -25,6 +25,7 @@ import com.uber.cadence.workflow.Functions;
 /**
  * Client to Cadence service used to start and query workflows by external processes.
  * Also can be used to create instances of {@link ActivityCompletionClient} to complete activities asynchronously.
+ * Do not create this object for each request, keep it for the duration of the process.
  * <p>
  * Use {@link #newInstance(WorkflowService.Iface, String, CadenceClientOptions)} method to create an instance.
  * </p>
