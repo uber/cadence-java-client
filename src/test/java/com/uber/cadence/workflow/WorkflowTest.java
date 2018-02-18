@@ -19,6 +19,7 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.CadenceClient;
@@ -755,6 +756,7 @@ public class WorkflowTest {
 
         String activity();
 
+        @ActivityMethod(name="customActivity1")
         String activity1(String input);
 
         String activity2(String a1, int a2);
