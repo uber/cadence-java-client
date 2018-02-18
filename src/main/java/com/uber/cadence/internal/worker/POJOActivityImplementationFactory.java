@@ -65,7 +65,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         }
     }
 
-    private ActivityExecutionException throwActivityFailure(Throwable e) {
+    private ActivityExecutionException mapToActivityFailure(Throwable e) {
         if (e instanceof CancellationException) {
             throw (CancellationException) e;
         }
@@ -141,11 +141,11 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
                 }
                 return dataConverter.toData(result);
             } catch (RuntimeException e) {
-                throw throwActivityFailure(e);
+                throw mapToActivityFailure(e);
             } catch (InvocationTargetException e) {
-                throw throwActivityFailure(e.getTargetException());
+                throw mapToActivityFailure(e.getTargetException());
             } catch (IllegalAccessException e) {
-                throw throwActivityFailure(e);
+                throw mapToActivityFailure(e);
             } finally {
                 CurrentActivityExecutionContext.unset();
             }
