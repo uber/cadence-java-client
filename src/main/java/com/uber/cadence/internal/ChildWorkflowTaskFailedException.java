@@ -19,7 +19,6 @@ package com.uber.cadence.internal;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.workflow.ChildWorkflowException;
 
 /**
  * Internal. Do not catch or throw by application level code.

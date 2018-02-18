@@ -18,13 +18,13 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.internal.DecisionException;
+import com.uber.cadence.internal.WorkflowOperationException;
 
 /**
- * Exception used to communicate failure of remote activity.
+ * Base exception for failures of a child workflow.
  */
 @SuppressWarnings("serial")
-public abstract class ChildWorkflowException extends DecisionException {
+public abstract class ChildWorkflowException extends WorkflowOperationException {
 
     private final WorkflowExecution workflowExecution;
 

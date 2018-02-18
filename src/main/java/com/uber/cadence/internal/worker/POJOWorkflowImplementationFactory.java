@@ -114,8 +114,8 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
             }
         }
         if (!hasWorkflowMethod) {
-            throw new IllegalArgumentException("Workflow implementation doesn't implement interface " +
-                    "with workflowMethod annotated with @WorkflowMethod: " + workflowImplementationClass);
+            throw new IllegalArgumentException("Workflow implementation doesn't implement any interface " +
+                    "with a workflow method annotated with @WorkflowMethod: " + workflowImplementationClass);
         }
     }
 

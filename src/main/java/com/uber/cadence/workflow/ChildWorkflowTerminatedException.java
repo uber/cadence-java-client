@@ -20,11 +20,14 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 
+/**
+ * Indicates that child workflow was forcefully terminated by an external command to Cadence service.
+ */
 @SuppressWarnings("serial")
-public class ChildWorkflowTerminatedException extends ChildWorkflowException {
+public final class ChildWorkflowTerminatedException extends ChildWorkflowException {
 
     public ChildWorkflowTerminatedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
-        super("Terminate", eventId, workflowExecution, workflowType);
+        super("Terminated", eventId, workflowExecution, workflowType);
     }
 
 }

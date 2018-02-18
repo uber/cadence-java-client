@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.workflow;
 
+import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
@@ -92,7 +93,7 @@ public class WorkflowTest {
 
     private static WorkflowOptions.Builder newWorkflowOptionsBuilder() {
         return new WorkflowOptions.Builder()
-                .setExecutionStartToCloseTimeoutSeconds(20)
+                .setExecutionStartToCloseTimeoutSeconds(10)
                 .setTaskList(taskList);
     }
 
@@ -167,7 +168,7 @@ public class WorkflowTest {
         public String execute() {
             AtomicReference<String> a1 = new AtomicReference<>();
             TestActivities activities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
-            WorkflowThread t = Workflow.newThread(() -> a1.set(activities.activityWithDelay(1000)));
+            WorkflowThread t = Workflow.newThread(() -> a1.set(activities.activityWithDelay(1000, true)));
             t.start();
             t.join(3000);
             WorkflowThread.sleep(1000);
@@ -181,6 +182,36 @@ public class WorkflowTest {
         TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
         String result = workflowStub.execute();
         assertEquals("activity10", result);
+    }
+
+    public static class TestHeartbeatTimeoutDetails implements TestWorkflow1 {
+
+        @Override
+        public String execute() {
+            ActivityOptions options = new ActivityOptions.Builder()
+                    .setTaskList(taskList)
+                    .setHeartbeatTimeoutSeconds(1) // short heartbeat timeout;
+                    .setScheduleToCloseTimeoutSeconds(5)
+                    .build();
+
+            TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+            try {
+                // false for second argument means to heartbeat once to set details and then stop.
+                activities.activityWithDelay(5000, false);
+            } catch (ActivityTimeoutException e) {
+                assertEquals(TimeoutType.HEARTBEAT, e.getTimeoutType());
+                return e.getDetails(String.class);
+            }
+            throw new RuntimeException("unreachable");
+        }
+    }
+
+    @Test
+    public void testHeartbeatTimeoutDetails() {
+        startWorkerFor(TestHeartbeatTimeoutDetails.class);
+        TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
+        String result = workflowStub.execute();
+        assertEquals("heartbeatValue", result);
     }
 
     @Test
@@ -222,7 +253,7 @@ public class WorkflowTest {
         public String execute() {
             TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
             try {
-                testActivities.activityWithDelay(100000);
+                testActivities.activityWithDelay(100000, true);
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a1", testActivities.activity1("a1")));
             }
@@ -440,6 +471,16 @@ public class WorkflowTest {
         }
     }
 
+    /**
+     * Test that an NPE thrown in an activity executed from a child workflow results in the following chain
+     * of exceptions when an exception is received in an external client that executed workflow through a CadenceClient:
+     * <pre>
+     * {@link WorkflowFailureException}
+     *     ->{@link ChildWorkflowFailureException}
+     *         ->{@link ActivityFailureException}
+     *             ->{@link NullPointerException}
+     * </pre>
+     */
     @Test
     public void testExceptionPropagation() {
         worker.addWorkflowImplementationType(ThrowingChild.class);
@@ -713,7 +754,7 @@ public class WorkflowTest {
 
     public interface TestActivities {
 
-        String activityWithDelay(long milliseconds);
+        String activityWithDelay(long milliseconds, boolean heartbeatMoreThanOnce);
 
         String activity();
 
@@ -767,15 +808,19 @@ public class WorkflowTest {
 
         @Override
         @DoNotCompleteOnReturn
-        public String activityWithDelay(long delay) {
+        public String activityWithDelay(long delay, boolean heartbeatMoreThanOnce) {
             byte[] taskToken = Activity.getTaskToken();
             executor.execute(() -> {
                 invocations.add("activityWithDelay");
                 long start = System.currentTimeMillis();
                 try {
+                    int count = 0;
                     while (System.currentTimeMillis() - start < delay) {
+                        if (heartbeatMoreThanOnce || count == 0) {
+                            completionClient.heartbeat(taskToken, "heartbeatValue");
+                        }
+                        count++;
                         Thread.sleep(100);
-                        completionClient.heartbeat(taskToken, "value");
                     }
                     completionClient.complete(taskToken, "activity");
                 } catch (InterruptedException e) {

@@ -46,6 +46,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     private final WorkflowOptions options;
     private final DataConverter dataConverter;
     private final AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
+    private String workflowType;
 
     public static void initAsyncInvocation() {
         if (asyncResult.get() != null) {
@@ -155,13 +156,15 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     private Object startWorkflow(Method method, WorkflowMethod workflowMethod, Object[] args) {
         String workflowName = workflowMethod.name();
         if (workflowName.isEmpty()) {
-            workflowName = FlowHelpers.getSimpleName(method);
+            workflowType = FlowHelpers.getSimpleName(method);
+        } else {
+            workflowType = workflowName;
         }
         StartWorkflowExecutionParameters parameters = new StartWorkflowExecutionParameters();
         parameters.setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds());
         parameters.setTaskList(options.getTaskList());
         parameters.setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds());
-        parameters.setWorkflowType(new WorkflowType().setName(workflowName));
+        parameters.setWorkflowType(new WorkflowType().setName(workflowType));
         if (options.getWorkflowId() == null) {
             parameters.setWorkflowId(UUID.randomUUID().toString());
         } else {
@@ -177,7 +180,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
         }
         try {
             byte[] resultValue = WorkflowExecutionUtils.getWorkflowExecutionResult(
-                    genericClient.getService(), genericClient.getDomain(), execution.get(),
+                    genericClient.getService(), genericClient.getDomain(), execution.get(), workflowType,
                     options.getExecutionStartToCloseTimeoutSeconds(), TimeUnit.SECONDS);
             return dataConverter.fromData(resultValue, method.getReturnType());
         } catch (WorkflowExecutionFailedException e) {
@@ -187,10 +190,10 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             } catch (Exception ee) {
                 RuntimeException failure = new RuntimeException("Failed to deserialize workflow failure cause. " +
                         "Reason field is expected to contain a failure cause class name", ee);
-                throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), failure);
+                throw new WorkflowFailureException(execution.get(), workflowType, e.getDecisionTaskCompletedEventId(), failure);
             }
             Throwable cause = dataConverter.fromData(e.getDetails(), causeClass);
-            throw new WorkflowFailureException(e.getDecisionTaskCompletedEventId(), cause);
+            throw new WorkflowFailureException(execution.get(), workflowType, e.getDecisionTaskCompletedEventId(), cause);
         } catch (Exception e) {
             throw CheckedExceptionWrapper.wrap(e);
         }

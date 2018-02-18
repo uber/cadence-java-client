@@ -17,13 +17,18 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.TimeoutType;
+import com.uber.cadence.WorkflowExecution;
 
-public class WorkflowTimedOutException extends WorkflowException {
+/**
+ * Indicates that a workflow exceeded its execution timeout and was forcefully terminated by the Cadence
+ * service.
+ */
+public final class WorkflowTimedOutException extends WorkflowException {
 
     private final TimeoutType timeoutType;
 
-    public WorkflowTimedOutException(TimeoutType timeoutType) {
-        super("Timeout type: " + timeoutType);
+    public WorkflowTimedOutException(WorkflowExecution execution, String workflowType, TimeoutType timeoutType) {
+        super("Timed out because of " + timeoutType, execution, workflowType, null);
         this.timeoutType = timeoutType;
     }
 

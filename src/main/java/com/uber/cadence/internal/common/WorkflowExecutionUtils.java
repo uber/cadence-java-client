@@ -58,14 +58,14 @@ public class WorkflowExecutionUtils {
 
     /**
      * Returns result of a workflow instance execution or throws an exception if workflow did not complete successfully.
-     *
+     * @param workflowType is optional.
      * @throws TimeoutException if workflow didn't complete within specified timeout
      * @throws CancellationException if workflow was cancelled
      * @throws WorkflowExecutionFailedException if workflow execution failed
      * @throws WorkflowTimedOutException if workflow execution exceeded its execution timeout and was forcefully terminated by the Cadence server.
      * @throws WorkflowTerminatedException if workflow execution was terminated through an external terminate command.
      */
-    public static byte[] getWorkflowExecutionResult(Iface service, String domain, WorkflowExecution workflowExecution, long timeout, TimeUnit unit)
+    public static byte[] getWorkflowExecutionResult(Iface service, String domain, WorkflowExecution workflowExecution, String workflowType, long timeout, TimeUnit unit)
             throws TimeoutException, CancellationException, WorkflowExecutionFailedException, WorkflowTerminatedException, WorkflowTimedOutException {
         // getIntanceCloseEvent waits for workflow completion including new runs.
         HistoryEvent closeEvent = getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
@@ -84,10 +84,10 @@ public class WorkflowExecutionUtils {
                 throw new WorkflowExecutionFailedException(failed.getReason(), failed.getDetails(), failed.getDecisionTaskCompletedEventId());
             case WorkflowExecutionTerminated:
                 WorkflowExecutionTerminatedEventAttributes terminated = closeEvent.getWorkflowExecutionTerminatedEventAttributes();
-                throw new WorkflowTerminatedException(terminated.getReason(), terminated.getIdentity(), terminated.getDetails());
+                throw new WorkflowTerminatedException(workflowExecution, workflowType, terminated.getReason(), terminated.getIdentity(), terminated.getDetails());
             case WorkflowExecutionTimedOut:
                 WorkflowExecutionTimedOutEventAttributes timedOut = closeEvent.getWorkflowExecutionTimedOutEventAttributes();
-                throw new WorkflowTimedOutException(timedOut.getTimeoutType());
+                throw new WorkflowTimedOutException(workflowExecution, workflowType, timedOut.getTimeoutType());
             default:
                 throw new RuntimeException("Workflow end state is not completed: " + prettyPrintHistoryEvent(closeEvent));
         }

@@ -16,11 +16,22 @@
  */
 package com.uber.cadence.workflow;
 
+import com.uber.cadence.WorkflowExecution;
+
+/**
+ * Indicates that a workflow failed. An original cause of the workflow failure can be retrieved
+ * through {@link #getCause()}.
+ */
 public final class WorkflowFailureException extends WorkflowException {
+
     private final long decisionTaskCompletedEventId;
 
-    public WorkflowFailureException(long decisionTaskCompletedEventId, Throwable failure) {
-        super(failure.getMessage(), failure);
+    public WorkflowFailureException(WorkflowExecution execution, String workflowType, long decisionTaskCompletedEventId, Throwable failure) {
+        super(failure.getMessage(), execution, workflowType, failure);
         this.decisionTaskCompletedEventId = decisionTaskCompletedEventId;
+    }
+
+    public long getDecisionTaskCompletedEventId() {
+        return decisionTaskCompletedEventId;
     }
 }

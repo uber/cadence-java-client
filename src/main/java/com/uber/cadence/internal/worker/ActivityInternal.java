@@ -28,8 +28,8 @@ public final class ActivityInternal {
         return CurrentActivityExecutionContext.get();
     }
 
-    public static void recordActivityHeartbeat(Object[] args) {
-        getContext().recordActivityHeartbeat(args);
+    public static void recordActivityHeartbeat(Object details) {
+        getContext().recordActivityHeartbeat(details);
     }
 
     public static ActivityTask getTask() {

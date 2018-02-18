@@ -22,7 +22,7 @@ import com.uber.cadence.ActivityType;
  * Exception used to communicate failure of a remote activity.
  */
 @SuppressWarnings("serial")
-public abstract class ActivityException extends DecisionException {
+public abstract class ActivityException extends WorkflowOperationException {
     
     private final ActivityType activityType;
 

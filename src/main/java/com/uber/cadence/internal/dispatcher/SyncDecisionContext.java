@@ -26,9 +26,11 @@ import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
+import com.uber.cadence.internal.worker.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityOptions;
+import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -91,6 +93,11 @@ class SyncDecisionContext {
             }
             return new ActivityFailureException(taskFailed.getEventId(),
                     taskFailed.getActivityType(), taskFailed.getActivityId(), cause);
+        }
+        if (failure instanceof ActivityTaskTimeoutException) {
+            ActivityTaskTimeoutException timedOut = (ActivityTaskTimeoutException) failure;
+            return new ActivityTimeoutException(timedOut.getEventId(), timedOut.getActivityType(),
+                    timedOut.getActivityId(), timedOut.getTimeoutType(), timedOut.getDetails(), getDataConverter());
         }
         if (failure instanceof ActivityException) {
             return failure;
