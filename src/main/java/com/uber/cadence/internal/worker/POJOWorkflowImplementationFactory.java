@@ -19,6 +19,7 @@ package com.uber.cadence.internal.worker;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
@@ -146,7 +147,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
         private final Map<String, Method> signalHandlers;
         private Object workflow;
 
-        public POJOWorkflowImplementation(Method method, Class<?> workflowImplementationClass, Map<String, Method> signalHandlers) {
+        POJOWorkflowImplementation(Method method, Class<?> workflowImplementationClass, Map<String, Method> signalHandlers) {
             this.workflowMethod = method;
             this.workflowImplementationClass = workflowImplementationClass;
             this.signalHandlers = signalHandlers;
@@ -163,7 +164,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 }
                 return dataConverter.toData(result);
             } catch (IllegalAccessException e) {
-                throw throwWorkflowFailure(e);
+                throw mapWorkflowFailure(e);
             } catch (InvocationTargetException e) {
                 Throwable targetException = e.getTargetException();
                 if (targetException instanceof Error) {
@@ -172,7 +173,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 if (targetException instanceof CancellationException) {
                     throw (CancellationException) targetException;
                 }
-                throw throwWorkflowFailure(targetException);
+                throw mapWorkflowFailure(targetException);
             }
         }
 
@@ -209,11 +210,10 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
             }
         }
 
-        private WorkflowException throwWorkflowFailure(Throwable e) {
+        private WorkflowException mapWorkflowFailure(Throwable e) {
             if (e instanceof CancellationException) {
                 throw (CancellationException) e;
             }
-            // TODO: data conversion failure
             throw new WorkflowExecutionException(e.getClass().getName(), dataConverter.toData(e));
         }
     }
