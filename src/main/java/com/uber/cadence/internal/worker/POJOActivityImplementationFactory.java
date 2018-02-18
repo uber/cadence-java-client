@@ -62,13 +62,16 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
             for (Method method : i.getRawType().getMethods()) {
                 ActivityImplementation implementation = new POJOActivityImplementation(method, activity);
                 ActivityMethod annotation = method.getAnnotation(ActivityMethod.class);
-                String name;
+                String activityType;
                 if (annotation != null && !annotation.name().isEmpty()) {
-                    name = annotation.name();
+                    activityType = annotation.name();
                 } else {
-                    name = FlowHelpers.getSimpleName(method);
+                    activityType = FlowHelpers.getSimpleName(method);
                 }
-                activities.put(name, implementation);
+                if (activities.containsKey(activityType)) {
+                    throw new IllegalStateException(activityType + " activity type is already registered with the worker");
+                }
+                activities.put(activityType, implementation);
             }
         }
     }
@@ -77,7 +80,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         if (e instanceof CancellationException) {
             throw (CancellationException) e;
         }
-        return new ActivityExecutionException(dataConverter.toData(e), e);
+        return new ActivityExecutionException(e.getClass().getName(), dataConverter.toData(e), e);
     }
 
     @Override

@@ -45,7 +45,6 @@ public final class Workflow {
 
     /**
      * Creates client stub to a child workflow that implements given interface.
-     * W
      *
      * @param workflowInterface interface type implemented by activities
      * @param options           options passed to the child workflow.

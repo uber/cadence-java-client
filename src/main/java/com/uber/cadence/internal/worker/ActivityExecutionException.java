@@ -31,17 +31,18 @@ import com.uber.cadence.internal.generic.ActivityImplementation;
  * @author fateev
  */
 @SuppressWarnings("serial")
-public final class ActivityExecutionException extends RuntimeException {
+class ActivityExecutionException extends RuntimeException {
 
     private byte[] details;
 
     /**
      * Construct exception with given arguments.
      *
+     * @param reason  value of reason field
      * @param details application specific failure details
      */
-    ActivityExecutionException(byte[] details, Throwable cause) {
-        super(cause.getClass().getName(), cause);
+    ActivityExecutionException(String reason, byte[] details, Throwable cause) {
+        super(reason, cause);
         this.details = details;
     }
 

@@ -28,5 +28,8 @@ public interface ActivityImplementationFactory {
      */
     boolean isAnyTypeSupported();
 
+    /**
+     * Used by a low level worker code that is not aware about DataConverter to serialize unexpected exceptions.
+     */
     ActivityExecutionException serializeUnexpectedFailure(Throwable e);
 }

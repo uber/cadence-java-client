@@ -19,7 +19,6 @@ package com.uber.cadence.internal.worker;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
@@ -191,11 +190,11 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
         @Override
         public void processSignal(String signalName, byte[] input) {
             Method signalMethod = signalHandlers.get(signalName);
-            Object[] args = dataConverter.fromDataArray(input, signalMethod.getParameterTypes());
             if (signalMethod == null) {
                 log.warn("Unknown signal: " + signalName + ", knownSignals=" + signalHandlers.keySet());
                 throw new IllegalArgumentException("Unknown signal: " + signalName);
             }
+            Object[] args = dataConverter.fromDataArray(input, signalMethod.getParameterTypes());
             try {
                 newInstance();
                 signalMethod.invoke(workflow, args);

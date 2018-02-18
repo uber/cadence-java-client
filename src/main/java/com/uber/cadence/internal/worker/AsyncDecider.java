@@ -242,7 +242,7 @@ class AsyncDecider {
             if (nextWakeUpTime > workflowClock.currentTimeMillis()) {
                 // Round up to the nearest second as we don't want to deliver a timer
                 // earlier than requested.
-                long roundedDelay = (long) Math.ceil(delayMilliseconds / 1000000f);
+                long roundedDelay = (long) Math.ceil(delayMilliseconds / 1000f);
                 long delaySeconds = TimeUnit.MILLISECONDS.toSeconds(roundedDelay);
                 if (delaySeconds == 0) {
                     delaySeconds = 1; //TODO: Deal with subsecond delays.
