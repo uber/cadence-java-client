@@ -17,7 +17,6 @@
 package com.uber.cadence.internal.worker;
 
 import com.google.common.reflect.TypeToken;
-import com.uber.cadence.error.CheckedExceptionWrapper;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.Functions;
