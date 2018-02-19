@@ -43,7 +43,6 @@ import org.junit.rules.TestName;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.BufferOverflowException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -496,8 +495,8 @@ public class WorkflowTest {
     private static void assertNoEmptyStacks(RuntimeException e) {
         // Check that there are no empty stacks
         Throwable c = e;
-        while(c != null) {
-        assertTrue(c.getStackTrace().length > 0);
+        while (c != null) {
+            assertTrue(c.getStackTrace().length > 0);
             c = c.getCause();
         }
     }
