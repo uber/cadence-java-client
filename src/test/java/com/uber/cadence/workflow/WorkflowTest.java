@@ -509,7 +509,6 @@ public class WorkflowTest {
             if (e.getCause().getCause() instanceof AssertionError) {
                 throw (AssertionError)e.getCause().getCause();
             }
-            e.printStackTrace();
             assertTrue(e.getMessage(), e.getMessage().contains("TestExceptionPropagation::execute"));
             assertTrue(e.getStackTrace().length > 0);
             assertTrue(e.getCause().getCause() instanceof ActivityFailureException);
