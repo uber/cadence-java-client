@@ -82,10 +82,10 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
             throw (CancellationException) e;
         }
         WorkflowExecution workflowExecution = task.getWorkflowExecution();
-        String message = "Activity execution failed for WorkflowID=" + workflowExecution.getWorkflowId()
-                + ", RunID=" + workflowExecution.getRunId()
-                + ", ActivityID=" + task.getActivityId()
-                + ", ActivityType=" + task.getActivityType();
+        String message = "\"" + task.getActivityType().getName() + "\" activity execution failed with "
+                + "ActivityID=\"" + task.getActivityId()
+                + "\", WorkflowID=\"" + workflowExecution.getWorkflowId()
+                + "\" and RunID=\"" + workflowExecution.getRunId() + "\"";
         return new ActivityExecutionException(message, e.getClass().getName(), dataConverter.toData(e), e);
     }
 

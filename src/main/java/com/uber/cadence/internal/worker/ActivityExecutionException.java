@@ -45,7 +45,7 @@ public class ActivityExecutionException extends RuntimeException {
      * @param details application specific failure details
      */
     ActivityExecutionException(String message, String reason, byte[] details, Throwable cause) {
-        super(message, cause);
+        super(message, cause, false, false);
         this.reason = reason;
         this.details = details;
     }
