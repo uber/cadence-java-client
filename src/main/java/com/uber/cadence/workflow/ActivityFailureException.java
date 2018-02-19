@@ -14,22 +14,20 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.generic;
+package com.uber.cadence.workflow;
 
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.internal.worker.ActivityExecutionException;
+import com.uber.cadence.internal.ActivityException;
 
-public interface ActivityImplementationFactory {
+/**
+ * Indicates that an activity implementation threw an unhandled exception.
+ * Contains the unhandled exception as a cause. Note that an unhandled exception stack trace
+ * might belong to a separate process or even program.
+ */
+public final class ActivityFailureException extends ActivityException {
 
-    ActivityImplementation getActivityImplementation(ActivityType activityType);
-
-    /**
-     * @return true if there is at least one activity type that factory can create implementation of.
-     */
-    boolean isAnyTypeSupported();
-
-    /**
-     * Used by a low level worker code that is not aware about DataConverter to serialize unexpected exceptions.
-     */
-    ActivityExecutionException serializeUnexpectedFailure(Throwable e);
+    public ActivityFailureException(long eventId, ActivityType activityType, String activityId, Throwable cause) {
+        super(cause.getMessage(), eventId, activityType, activityId);
+        initCause(cause);
+    }
 }

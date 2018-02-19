@@ -20,6 +20,7 @@ import com.google.common.base.Defaults;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.FlowHelpers;
+import com.uber.cadence.workflow.ChildWorkflowException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
@@ -67,7 +68,7 @@ class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
                 throw new IllegalStateException("Already started: " + execution);
             }
             startRequested = true;
-            return executeChildWorkflow(method, args);
+            return executeChildWorkflow(method, workflowMethod, args);
         }
         if (queryMethod != null) {
             if (execution == null) {
@@ -91,8 +92,11 @@ class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
                 "Use activity that perform the query instead.");
     }
 
-    private Object executeChildWorkflow(Method method, Object[] args) {
-        String workflowName = FlowHelpers.getSimpleName(method);
+    private Object executeChildWorkflow(Method method, WorkflowMethod workflowMethod, Object[] args) {
+        String workflowName = workflowMethod.name();
+        if (workflowName.isEmpty()) {
+            workflowName = FlowHelpers.getSimpleName(method);
+        }
         byte[] input = dataConverter.toData(args);
         Promise<byte[]> encodedResult = decisionContext.executeChildWorkflow(
                 workflowName, options, input, execution);
@@ -103,6 +107,13 @@ class ChildWorkflowInvocationHandler extends AsyncInvocationHandler {
             async.set(result);
             return Defaults.defaultValue(method.getReturnType());
         }
-        return result.get();
+        try {
+            return result.get();
+        } catch (ChildWorkflowException e) {
+            // Reset stack to the current one. Otherwise it is very confusing to see a stack of
+            // an event handling method.
+            e.setStackTrace(Thread.currentThread().getStackTrace());
+            throw e;
+        }
     }
 }

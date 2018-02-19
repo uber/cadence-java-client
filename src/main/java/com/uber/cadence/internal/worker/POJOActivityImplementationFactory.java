@@ -16,11 +16,11 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.google.common.base.Throwables;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.FlowHelpers;
@@ -29,7 +29,6 @@ import com.uber.cadence.internal.generic.ActivityImplementationFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,20 +61,26 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         for (TypeToken<?> i : interfaces) {
             for (Method method : i.getRawType().getMethods()) {
                 ActivityImplementation implementation = new POJOActivityImplementation(method, activity);
-                activities.put(FlowHelpers.getSimpleName(method), implementation);
+                ActivityMethod annotation = method.getAnnotation(ActivityMethod.class);
+                String activityType;
+                if (annotation != null && !annotation.name().isEmpty()) {
+                    activityType = annotation.name();
+                } else {
+                    activityType = FlowHelpers.getSimpleName(method);
+                }
+                if (activities.containsKey(activityType)) {
+                    throw new IllegalStateException(activityType + " activity type is already registered with the worker");
+                }
+                activities.put(activityType, implementation);
             }
         }
     }
 
-    private ActivityFailureException throwActivityFailure(Throwable e) {
-        if (e instanceof ActivityFailureException) {
-            return (ActivityFailureException) e;
-        }
+    private ActivityExecutionException mapToActivityFailure(Throwable e) {
         if (e instanceof CancellationException) {
             throw (CancellationException) e;
         }
-        return new ActivityFailureException(e.getMessage(),
-                Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8));
+        return new ActivityExecutionException(e.getClass().getName(), dataConverter.toData(e), e);
     }
 
     @Override
@@ -86,6 +91,11 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
     @Override
     public boolean isAnyTypeSupported() {
         return !activities.isEmpty();
+    }
+
+    @Override
+    public ActivityExecutionException serializeUnexpectedFailure(Throwable e) {
+        return mapToActivityFailure(e);
     }
 
     public void setActivitiesImplementation(Object[] activitiesImplementation) {
@@ -138,7 +148,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         public byte[] execute(WorkflowService.Iface service, String domain, PollForActivityTaskResponse task) {
             ActivityExecutionContext context = new ActivityExecutionContextImpl(service, domain, task, dataConverter);
             byte[] input = task.getInput();
-            Object[] args = dataConverter.fromData(input, Object[].class);
+            Object[] args = dataConverter.fromDataArray(input, method.getParameterTypes());
             CurrentActivityExecutionContext.set(context);
             try {
                 Object result = method.invoke(activity, args);
@@ -146,10 +156,12 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
                     return EMPTY_BLOB;
                 }
                 return dataConverter.toData(result);
-            } catch (IllegalAccessException e) {
-                throw throwActivityFailure(e);
+            } catch (RuntimeException e) {
+                throw mapToActivityFailure(e);
             } catch (InvocationTargetException e) {
-                throw throwActivityFailure(e.getTargetException());
+                throw mapToActivityFailure(e.getTargetException());
+            } catch (IllegalAccessException e) {
+                throw mapToActivityFailure(e);
             } finally {
                 CurrentActivityExecutionContext.unset();
             }

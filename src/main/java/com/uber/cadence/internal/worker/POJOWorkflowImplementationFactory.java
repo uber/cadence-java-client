@@ -16,24 +16,22 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.google.common.base.Throwables;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.WorkflowException;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.internal.dispatcher.SyncWorkflowDefinition;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
+import com.uber.cadence.workflow.WorkflowException;
 import com.uber.cadence.workflow.WorkflowMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -92,6 +90,9 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                     if (workflowName.isEmpty()) {
                         workflowName = FlowHelpers.getSimpleName(method);
                     }
+                    if (factories.containsKey(workflowName)) {
+                        throw new IllegalStateException(workflowName + " workflow type is already registered with the worker");
+                    }
                     factories.put(workflowName, factory);
                     hasWorkflowMethod = true;
                 }
@@ -114,11 +115,10 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 }
 
             }
-            // TODO: Query methods.
         }
         if (!hasWorkflowMethod) {
-            throw new IllegalArgumentException("Workflow implementation doesn't implement interface " +
-                    "with method annotated with @WorkflowMethod: " + workflowImplementationClass);
+            throw new IllegalArgumentException("Workflow implementation doesn't implement any interface " +
+                    "with a workflow method annotated with @WorkflowMethod: " + workflowImplementationClass);
         }
     }
 
@@ -141,29 +141,29 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
 
     private class POJOWorkflowImplementation implements SyncWorkflowDefinition {
 
-        private final Method method;
+        private final Method workflowMethod;
         private final Class<?> workflowImplementationClass;
         private final Map<String, Method> signalHandlers;
         private Object workflow;
 
-        public POJOWorkflowImplementation(Method method, Class<?> workflowImplementationClass, Map<String, Method> signalHandlers) {
-            this.method = method;
+        POJOWorkflowImplementation(Method method, Class<?> workflowImplementationClass, Map<String, Method> signalHandlers) {
+            this.workflowMethod = method;
             this.workflowImplementationClass = workflowImplementationClass;
             this.signalHandlers = signalHandlers;
         }
 
         @Override
-        public byte[] execute(byte[] input) throws CancellationException, WorkflowException {
-            Object[] args = dataConverter.fromData(input, Object[].class);
+        public byte[] execute(byte[] input) throws CancellationException, WorkflowExecutionException {
+            Object[] args = dataConverter.fromDataArray(input, workflowMethod.getParameterTypes());
             try {
                 newInstance();
-                Object result = method.invoke(workflow, args);
-                if (method.getReturnType() == Void.TYPE) {
+                Object result = workflowMethod.invoke(workflow, args);
+                if (workflowMethod.getReturnType() == Void.TYPE) {
                     return EMPTY_BLOB;
                 }
                 return dataConverter.toData(result);
             } catch (IllegalAccessException e) {
-                throw throwWorkflowFailure(e);
+                throw mapWorkflowFailure(e);
             } catch (InvocationTargetException e) {
                 Throwable targetException = e.getTargetException();
                 if (targetException instanceof Error) {
@@ -172,7 +172,7 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
                 if (targetException instanceof CancellationException) {
                     throw (CancellationException) targetException;
                 }
-                throw throwWorkflowFailure(targetException);
+                throw mapWorkflowFailure(targetException);
             }
         }
 
@@ -189,15 +189,15 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
 
         @Override
         public void processSignal(String signalName, byte[] input) {
-            Object[] args = dataConverter.fromData(input, Object[].class);
-            Method method = signalHandlers.get(signalName);
-            if (method == null) {
+            Method signalMethod = signalHandlers.get(signalName);
+            if (signalMethod == null) {
                 log.warn("Unknown signal: " + signalName + ", knownSignals=" + signalHandlers.keySet());
                 throw new IllegalArgumentException("Unknown signal: " + signalName);
             }
+            Object[] args = dataConverter.fromDataArray(input, signalMethod.getParameterTypes());
             try {
                 newInstance();
-                method.invoke(workflow, args);
+                signalMethod.invoke(workflow, args);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             } catch (InvocationTargetException e) {
@@ -209,15 +209,11 @@ public class POJOWorkflowImplementationFactory implements Function<WorkflowType,
             }
         }
 
-        private WorkflowException throwWorkflowFailure(Throwable e) {
+        private WorkflowException mapWorkflowFailure(Throwable e) {
             if (e instanceof CancellationException) {
                 throw (CancellationException) e;
             }
-            if (e instanceof WorkflowException) {
-                return (WorkflowException) e;
-            }
-            return new WorkflowException(e.getMessage(),
-                    Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8));
+            throw new WorkflowExecutionException(e.getClass().getName(), dataConverter.toData(e));
         }
     }
 }

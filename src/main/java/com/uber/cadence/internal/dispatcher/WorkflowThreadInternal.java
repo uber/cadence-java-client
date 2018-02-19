@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -31,8 +32,6 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
-
-    private static final Log log = LogFactory.getLog(WorkflowThreadInternal.class);
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.
@@ -84,12 +83,12 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             } catch (CancellationException e) {
                 log.debug(String.format("Workflow thread \"%s\" run cancelled", name));
             } catch (Throwable e) {
-                if (log.isDebugEnabled()) {
+                if (log.isWarnEnabled() && !root) {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw, true);
                     e.printStackTrace(pw);
                     String stackTrace = sw.getBuffer().toString();
-                    log.debug(String.format("Workflow thread \"%s\" run failed with unhandled exception:\n%s", name, stackTrace));
+                    log.warn(String.format("Workflow thread \"%s\" run failed with unhandled exception:\n%s", name, stackTrace));
                 }
                 context.setUnhandledException(e);
             } finally {
@@ -120,7 +119,9 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     }
 
     private static final ThreadLocal<WorkflowThreadInternal> currentThreadThreadLocal = new ThreadLocal<>();
+    private static final Log log = LogFactory.getLog(WorkflowThreadInternal.class);
 
+    private final boolean root;
     private final ExecutorService threadPool;
     private final WorkflowThreadContext context;
     private final DeterministicRunnerImpl runner;
@@ -147,7 +148,8 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         return result;
     }
 
-    WorkflowThreadInternal(ExecutorService threadPool, DeterministicRunnerImpl runner, String name, boolean ignoreParentCancellation, Runnable runnable) {
+    WorkflowThreadInternal(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name, boolean ignoreParentCancellation, Runnable runnable) {
+        this.root = root;
         this.threadPool = threadPool;
         this.runner = runner;
         this.context = new WorkflowThreadContext(runner.getLock());
@@ -238,6 +240,11 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     @Override
     public void join(long millis) {
         WorkflowThreadInternal.yield(millis, "WorkflowThread.join", this::isDone);
+    }
+
+    @Override
+    public void join(Duration duration) {
+        join(duration.toMillis());
     }
 
     public void setName(String name) {

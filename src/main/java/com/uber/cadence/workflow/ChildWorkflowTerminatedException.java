@@ -14,22 +14,20 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.generic;
+package com.uber.cadence.workflow;
 
-import com.uber.cadence.ActivityType;
-import com.uber.cadence.internal.worker.ActivityExecutionException;
 
-public interface ActivityImplementationFactory {
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowType;
 
-    ActivityImplementation getActivityImplementation(ActivityType activityType);
+/**
+ * Indicates that child workflow was forcefully terminated by an external command to Cadence service.
+ */
+@SuppressWarnings("serial")
+public final class ChildWorkflowTerminatedException extends ChildWorkflowException {
 
-    /**
-     * @return true if there is at least one activity type that factory can create implementation of.
-     */
-    boolean isAnyTypeSupported();
+    public ChildWorkflowTerminatedException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
+        super("Terminated", eventId, workflowExecution, workflowType);
+    }
 
-    /**
-     * Used by a low level worker code that is not aware about DataConverter to serialize unexpected exceptions.
-     */
-    ActivityExecutionException serializeUnexpectedFailure(Throwable e);
 }

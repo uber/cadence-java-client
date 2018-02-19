@@ -16,8 +16,10 @@
  */
 package com.uber.cadence.workflow;
 
+import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.CadenceClient;
@@ -39,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,7 +66,6 @@ public class WorkflowTest {
 
     private static final String domain = "UnitTest";
     private static final Log log;
-    private static ActivityCompletionClient completionClient;
     private static String taskList;
 
     static {
@@ -99,9 +101,9 @@ public class WorkflowTest {
     private static ActivityOptions newActivitySchedulingOptions1() {
         return new ActivityOptions.Builder()
                 .setTaskList(taskList)
-                .setHeartbeatTimeoutSeconds(10)
-                .setScheduleToCloseTimeoutSeconds(20)
-                .setScheduleToStartTimeoutSeconds(10)
+                .setHeartbeatTimeoutSeconds(5)
+                .setScheduleToCloseTimeoutSeconds(5)
+                .setScheduleToStartTimeoutSeconds(5)
                 .setStartToCloseTimeoutSeconds(10)
                 .build();
     }
@@ -118,14 +120,14 @@ public class WorkflowTest {
         taskList = "WorkflowTest-" + testName.getMethodName();
         // TODO: Make this configuratble instead of always using local instance.
         worker = new Worker(domain, taskList);
-        cadenceClient = CadenceClient.newClient(domain);
-        completionClient = cadenceClient.newActivityCompletionClient();
+        cadenceClient = CadenceClient.newInstance(domain);
+        ActivityCompletionClient completionClient = cadenceClient.newActivityCompletionClient();
         activitiesImpl = new TestActivitiesImpl(completionClient);
-        worker.addActivitiesImplementation(activitiesImpl);
+        worker.registerActivitiesImplementations(activitiesImpl);
         CadenceClientOptions clientOptions = new CadenceClientOptions.Builder()
                 .setDataConverter(JsonDataConverter.getInstance())
                 .build();
-        cadenceClientWithOptions = CadenceClient.newClient(domain, clientOptions);
+        cadenceClientWithOptions = CadenceClient.newInstance(domain, clientOptions);
         newWorkflowOptionsBuilder();
         newActivitySchedulingOptions1();
         activitiesImpl.invocations.clear();
@@ -134,12 +136,12 @@ public class WorkflowTest {
 
     @After
     public void tearDown() {
-        worker.shutdown(1, TimeUnit.MILLISECONDS);
+        worker.shutdown(Duration.ofMillis(1));
         activitiesImpl.close();
     }
 
     private void startWorkerFor(Class<?> workflowType) {
-        worker.addWorkflowImplementationType(workflowType);
+        worker.registerWorkflowImplementationTypes(workflowType);
         worker.start();
     }
 
@@ -167,7 +169,7 @@ public class WorkflowTest {
         public String execute() {
             AtomicReference<String> a1 = new AtomicReference<>();
             TestActivities activities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
-            WorkflowThread t = Workflow.newThread(() -> a1.set(activities.activityWithDelay(1000)));
+            WorkflowThread t = Workflow.newThread(() -> a1.set(activities.activityWithDelay(1000, true)));
             t.start();
             t.join(3000);
             WorkflowThread.sleep(1000);
@@ -181,6 +183,36 @@ public class WorkflowTest {
         TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
         String result = workflowStub.execute();
         assertEquals("activity10", result);
+    }
+
+    public static class TestHeartbeatTimeoutDetails implements TestWorkflow1 {
+
+        @Override
+        public String execute() {
+            ActivityOptions options = new ActivityOptions.Builder()
+                    .setTaskList(taskList)
+                    .setHeartbeatTimeoutSeconds(1) // short heartbeat timeout;
+                    .setScheduleToCloseTimeoutSeconds(5)
+                    .build();
+
+            TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+            try {
+                // false for second argument means to heartbeat once to set details and then stop.
+                activities.activityWithDelay(5000, false);
+            } catch (ActivityTimeoutException e) {
+                assertEquals(TimeoutType.HEARTBEAT, e.getTimeoutType());
+                return e.getDetails(String.class);
+            }
+            throw new RuntimeException("unreachable");
+        }
+    }
+
+    @Test
+    public void testHeartbeatTimeoutDetails() {
+        startWorkerFor(TestHeartbeatTimeoutDetails.class);
+        TestWorkflow1 workflowStub = cadenceClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
+        String result = workflowStub.execute();
+        assertEquals("heartbeatValue", result);
     }
 
     @Test
@@ -222,17 +254,17 @@ public class WorkflowTest {
         public String execute() {
             TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
             try {
-                testActivities.activityWithDelay(100000);
+                testActivities.activityWithDelay(100000, true);
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a1", testActivities.activity1("a1")));
             }
             try {
-                WorkflowThread.sleep(1, TimeUnit.HOURS);
+                WorkflowThread.sleep(Duration.ofHours(1));
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a12", testActivities.activity2("a1", 2)));
             }
             try {
-                Workflow.newTimer(1, TimeUnit.HOURS).get();
+                Workflow.newTimer(Duration.ofHours(1)).get();
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a123", testActivities.activity3("a1", 2, 3)));
             }
@@ -376,16 +408,17 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            Promise<Void> timer1 = Workflow.newTimer(1);
-            Promise<Void> timer2 = Workflow.newTimer(2);
+            Promise<Void> timer1 = Workflow.newTimer(Duration.ofMillis(700));
+            Promise<Void> timer2 = Workflow.newTimer(Duration.ofMillis(1300));
 
             long time = Workflow.currentTimeMillis();
             timer1.get();
             long slept = Workflow.currentTimeMillis() - time;
-            assertTrue(slept > 1000);
+            // Also checks that rounding up to a second works.
+            assertTrue(String.valueOf(slept), slept > 1000);
             timer2.get();
             slept = Workflow.currentTimeMillis() - time;
-            assertTrue(slept > 2000);
+            assertTrue(String.valueOf(slept), slept > 2000);
             return "testTimer";
         }
     }
@@ -397,6 +430,83 @@ public class WorkflowTest {
         String result = client.execute();
         assertEquals("testTimer", result);
     }
+
+    public interface TestExceptionPropagation {
+        @WorkflowMethod
+        void execute();
+    }
+
+    public static class ThrowingChild implements TestWorkflow1 {
+
+        @Override
+        public String execute() {
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
+            try {
+                testActivities.throwNPE();
+                fail("unreachable");
+                return "ignored";
+            } catch (ActivityFailureException e) {
+                assertTrue(e.getMessage().contains("::throwNPE"));
+                assertTrue(e.getCause() instanceof NullPointerException);
+                assertEquals("simulated NPE", e.getCause().getMessage());
+                throw e;
+            }
+        }
+    }
+
+    public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
+        @Override
+        public void execute() {
+            ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
+                    .setExecutionStartToCloseTimeoutSeconds(5000).build();
+            TestWorkflow1 child = Workflow.newChildWorkflowStub(TestWorkflow1.class, options);
+            try {
+                child.execute();
+                fail("unreachable");
+            } catch (RuntimeException e) {
+                assertTrue(e.getMessage().contains("::throwNPE"));
+                assertTrue(e.getCause() instanceof ActivityFailureException);
+                assertTrue(e.getStackTrace().length > 0);
+                assertTrue(e.getCause().getCause() instanceof NullPointerException);
+                assertTrue(e.getCause().getStackTrace().length > 0);
+                assertEquals("simulated NPE", e.getCause().getCause().getMessage());
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Test that an NPE thrown in an activity executed from a child workflow results in the following chain
+     * of exceptions when an exception is received in an external client that executed workflow through a CadenceClient:
+     * <pre>
+     * {@link WorkflowFailureException}
+     *     ->{@link ChildWorkflowFailureException}
+     *         ->{@link ActivityFailureException}
+     *             ->{@link NullPointerException}
+     * </pre>
+     */
+    @Test
+    public void testExceptionPropagation() {
+        worker.registerWorkflowImplementationTypes(ThrowingChild.class);
+        startWorkerFor(TestExceptionPropagationImpl.class);
+        TestExceptionPropagation client = cadenceClient.newWorkflowStub(TestExceptionPropagation.class,
+                newWorkflowOptionsBuilder().build());
+        try {
+            client.execute();
+            fail("Unreachable");
+        } catch (WorkflowFailureException e) {
+            assertTrue(e.getMessage().contains("::throwNPE"));
+            assertTrue(e.getStackTrace().length > 0);
+            assertTrue(e.getCause().getCause() instanceof ActivityFailureException);
+            assertTrue(e.getCause().getStackTrace().length > 0);
+            assertTrue(e.getCause().getClass().toString(), e.getCause() instanceof ChildWorkflowFailureException);
+            assertTrue(e.getCause().getCause().getStackTrace().length > 0);
+            assertTrue(e.getCause().getCause().getCause() instanceof NullPointerException);
+            assertTrue(e.getCause().getCause().getCause().getStackTrace().length > 0);
+            assertEquals("simulated NPE", e.getCause().getCause().getCause().getMessage());
+        }
+    }
+
 
     public interface QueryableWorkflow {
         @WorkflowMethod
@@ -453,7 +563,7 @@ public class WorkflowTest {
 
         // Test query through replay by a local worker.
         Worker queryWorker = new Worker(domain, taskList);
-        queryWorker.addWorkflowImplementationType(TestSignalWorkflowImpl.class);
+        queryWorker.registerWorkflowImplementationTypes(TestSignalWorkflowImpl.class);
         String queryResult = queryWorker.queryWorkflowExecution(execution, "QueryableWorkflow::getState", String.class);
         assertEquals("Hello ", queryResult);
 
@@ -525,8 +635,8 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            Promise<Void> timer1 = Workflow.newTimer(0);
-            Promise<Void> timer2 = Workflow.newTimer(1);
+            Promise<Void> timer1 = Workflow.newTimer(Duration.ZERO);
+            Promise<Void> timer2 = Workflow.newTimer(Duration.ofSeconds(1));
 
             CompletablePromise<Void> f = Workflow.newCompletablePromise();
             timer1.thenApply((e) -> {
@@ -567,17 +677,22 @@ public class WorkflowTest {
         String execute(String arg);
     }
 
+    public interface ITestNamedChild {
+        @WorkflowMethod(name = "namedChild")
+        String execute(String arg);
+    }
+
     private static String child2Id = UUID.randomUUID().toString();
 
     public static class TestParentWorkflow implements TestWorkflow1 {
 
         private final ITestChild child1 = Workflow.newChildWorkflowStub(ITestChild.class);
-        private final ITestChild child2;
+        private final ITestNamedChild child2;
 
         public TestParentWorkflow() {
             ChildWorkflowOptions.Builder options = new ChildWorkflowOptions.Builder();
             options.setWorkflowId(child2Id);
-            child2 = Workflow.newChildWorkflowStub(ITestChild.class, options.build());
+            child2 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options.build());
         }
 
         @Override
@@ -590,7 +705,13 @@ public class WorkflowTest {
     }
 
     public static class TestChild implements ITestChild {
+        @Override
+        public String execute(String arg) {
+            return arg.toUpperCase();
+        }
+    }
 
+    public static class TestNamedChild implements ITestNamedChild {
         @Override
         public String execute(String arg) {
             return arg.toUpperCase();
@@ -599,7 +720,7 @@ public class WorkflowTest {
 
     @Test
     public void testChildWorkflow() {
-        worker.addWorkflowImplementationType(TestParentWorkflow.class);
+        worker.registerWorkflowImplementationTypes(TestParentWorkflow.class, TestNamedChild.class);
         startWorkerFor(TestChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
@@ -626,15 +747,16 @@ public class WorkflowTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testActivitiesWithDoNotCompleteAnnotationInterface() {
-        worker.addActivitiesImplementation(new ActivitiesWithDoNotCompleteAnnotationImpl());
+        worker.registerActivitiesImplementations(new ActivitiesWithDoNotCompleteAnnotationImpl());
     }
 
     public interface TestActivities {
 
-        String activityWithDelay(long milliseconds);
+        String activityWithDelay(long milliseconds, boolean heartbeatMoreThanOnce);
 
         String activity();
 
+        @ActivityMethod(name="customActivity1")
         String activity1(String input);
 
         String activity2(String a1, int a2);
@@ -660,6 +782,8 @@ public class WorkflowTest {
         void proc5(String a1, int a2, int a3, int a4, int a5);
 
         void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
+
+        void throwNPE();
     }
 
     private static class TestActivitiesImpl implements TestActivities {
@@ -683,15 +807,19 @@ public class WorkflowTest {
 
         @Override
         @DoNotCompleteOnReturn
-        public String activityWithDelay(long delay) {
+        public String activityWithDelay(long delay, boolean heartbeatMoreThanOnce) {
             byte[] taskToken = Activity.getTaskToken();
             executor.execute(() -> {
                 invocations.add("activityWithDelay");
                 long start = System.currentTimeMillis();
                 try {
+                    int count = 0;
                     while (System.currentTimeMillis() - start < delay) {
+                        if (heartbeatMoreThanOnce || count == 0) {
+                            completionClient.heartbeat(taskToken, "heartbeatValue");
+                        }
+                        count++;
                         Thread.sleep(100);
-                        completionClient.heartbeat(taskToken, "value");
                     }
                     completionClient.complete(taskToken, "activity");
                 } catch (InterruptedException e) {
@@ -789,6 +917,11 @@ public class WorkflowTest {
         public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
             invocations.add("proc6");
             procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
+        }
+
+        @Override
+        public void throwNPE() {
+            throw new NullPointerException("simulated NPE");
         }
     }
 

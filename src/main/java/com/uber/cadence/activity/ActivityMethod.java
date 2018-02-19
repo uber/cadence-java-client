@@ -14,24 +14,23 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.activity;
 
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@SuppressWarnings("serial")
-public class ChildWorkflowTimedOutException extends ChildWorkflowException {
-    
-    public ChildWorkflowTimedOutException(String message) {
-        super(message);
-    }
-
-    public ChildWorkflowTimedOutException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public ChildWorkflowTimedOutException(long eventId, WorkflowExecution workflowExecution, WorkflowType workflowType) {
-        super("Time Out", eventId, workflowExecution, workflowType);
-    }
-
+/**
+ * Indicates that the method is an activity method.
+ * This annotation applies only to activity interface methods.
+ * Not required. Use it to override default activity type name.
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ActivityMethod {
+    /**
+     * Name of the workflow type. Default is {short class name}::{method name}
+     */
+    String name() default "";
 }

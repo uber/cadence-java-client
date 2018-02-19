@@ -17,6 +17,8 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.google.common.base.Defaults;
+import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.internal.ActivityException;
 import com.uber.cadence.internal.common.FlowHelpers;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.Promise;
@@ -43,15 +45,28 @@ class ActivityInvocationHandler extends AsyncInvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
+        ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
+        String activityName;
+        if (activityMethod == null || activityMethod.name().isEmpty()) {
+            activityName = FlowHelpers.getSimpleName(method);
+        } else {
+            activityName = activityMethod.name();
+        }
         SyncDecisionContext decisionContext = WorkflowThreadInternal.currentThreadInternal().getDecisionContext();
-        // TODO: Add annotation to support overriding activity name.
-        String activityName = FlowHelpers.getSimpleName(method);
         AtomicReference<Promise<?>> async = asyncResult.get();
         Promise<?> result = decisionContext.executeActivity(activityName, options, args, method.getReturnType());
         if (async != null) {
             async.set(result);
             return Defaults.defaultValue(method.getReturnType());
         }
-        return result.get();
+        try {
+            return result.get();
+        } catch (ActivityException e) {
+            // Reset stack to the current one. Otherwise it is very confusing to see a stack of
+            // an event handling method.
+            StackTraceElement[] currentStackTrace = Thread.currentThread().getStackTrace();
+            e.setStackTrace(currentStackTrace);
+            throw e;
+        }
     }
 }
