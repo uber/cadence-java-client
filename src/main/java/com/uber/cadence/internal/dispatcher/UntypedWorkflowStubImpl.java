@@ -96,7 +96,7 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
         try {
             return getResult(Long.MAX_VALUE, TimeUnit.MILLISECONDS, returnType);
         } catch (TimeoutException e) {
-            throw CheckedExceptionWrapper.wrap(e);
+            throw CheckedExceptionWrapper.throwWrapped(e);
         }
     }
 

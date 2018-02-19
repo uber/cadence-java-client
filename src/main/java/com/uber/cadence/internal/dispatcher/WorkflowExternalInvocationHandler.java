@@ -197,7 +197,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             Throwable cause = dataConverter.fromData(e.getDetails(), causeClass);
             throw new WorkflowFailureException(execution.get(), workflowType, e.getDecisionTaskCompletedEventId(), cause);
         } catch (Exception e) {
-            throw CheckedExceptionWrapper.wrap(e);
+            throw CheckedExceptionWrapper.throwWrapped(e);
         }
     }
 }

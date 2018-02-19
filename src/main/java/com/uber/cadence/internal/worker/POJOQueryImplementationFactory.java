@@ -83,7 +83,7 @@ public class POJOQueryImplementationFactory {
                 }
                 return dataConverter.toData(result);
             } catch (Throwable e) {
-                throw CheckedExceptionWrapper.wrap(e);
+                throw CheckedExceptionWrapper.throwWrapped(e);
             }
         }
     }
