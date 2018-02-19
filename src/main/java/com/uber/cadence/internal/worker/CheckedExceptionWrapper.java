@@ -73,10 +73,8 @@ public final class CheckedExceptionWrapper extends RuntimeException {
     /**
      * Removes CheckedException wrapper from the whole chain of Exceptions.
      * Assumes that wrapper always has a cause which cannot be a wrapper.
-     * \
      */
     public static Throwable unwrap(Throwable e) {
-        // Assuming that wrapper always has a cause which cannot be a wrapper.
         Throwable head = e;
         if (head instanceof CheckedExceptionWrapper) {
             head = head.getCause();
@@ -86,17 +84,24 @@ public final class CheckedExceptionWrapper extends RuntimeException {
         while (current != null) {
             if (current instanceof CheckedExceptionWrapper) {
                 current = current.getCause();
-//                tail.initCause(current);
-                try {
-                    causeField.set(tail, current);
-                } catch (IllegalAccessException e1) {
-                    throw new RuntimeException(e1);
-                }
+                setThrowableCause(tail, current);
             }
             tail = current;
             current = tail.getCause();
         }
         return head;
+    }
+
+    /**
+     *  Throwable.initCause throws IllegalStateException if cause is already set.
+     *  This method uses reflection to set it directly.
+     */
+    private static void setThrowableCause(Throwable throwable, Throwable cause) {
+        try {
+            causeField.set(throwable, cause);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("unexpected", e);
+        }
     }
 
     private CheckedExceptionWrapper(Exception e) {
