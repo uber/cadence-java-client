@@ -284,54 +284,25 @@ WorkflowExecution workflowExecution = CadenceClient.asyncStart(workflow::process
 System.out.println("Started process file workflow with workflowId=\"" + workflowExecution.getWorkflowId()
                     + "\" and runId=\"" + workflowExecution.getRunId() + "\"");
 ```
-If for whatever reason there is a need to wait for a workflow completion after an asynchronous start it is always possible 
-through the provided untyped stub. All is needed is a workflowID. Note that this call behind the scene performs
-a long poll to a Cadence service waiting for a completion notification.
+If for whatever reason there is a need to wait for a workflow completion after an asynchronous start the simplest way
+is to call the blocking version again. If `WorkflowOptions.WorkflowIdReusePolicy` is not `AllowDuplicate` then instead 
+of throwing `WorkflowExecutionAlreadyStartedException` it reconnects to an existing workflow and waits for its completion.
+The following example shows how to do it from a different process than the one that started the workflow. All this process 
+needs is a `WorkflowID`.
 ```java
 WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
-UntypedWorkflowStub workflowStub = cadenceClient.newUntypedWorkflowStub(execution);
-String result = workflowStub.getResult(String.class);
+FileProcessingWorkflow workflow = cadenceClient.newWorkflowStub(execution);
+// Returns result potentially waiting for workflow to complete.
+String result = workflow.processFile(workflowArgs);
 ```
 ## Implementing Workflows
-### Workflow Implementation Guidelines
+
 A workflow implementation implements a workflow interface. Each time a new workflow execution is started 
 a new instance of the workflow implementation object is created. Then one of the methods 
 (depending on which workflow type has been started) annotated with @WorkflowMethod is invoked. As soon as this method 
 returns the workflow execution is closed. While workflow execution is open it can receive calls to signal and query methods. 
 No additional calls to workflow methods are allowed. The workflow object is stateful, so query and signal methods 
 can communicate with the other parts of the workflow through workflow object fields.
-
-Cadence uses event sourcing to recover a state of the workflow object including its threads and local variables using
-[event sourcing](https://docs.microsoft.com/en-us/azure/architecture/patterns/event-sourcing). In essence every time 
-workflow state has to be restored its code is reexecuted from the beginning ignoring side effects (like activity invocations) 
-which were already recorded in the workflow event history. Don't get confused, when writing workflow logic the replay is not visible,
-so the code should be written as it executes only once. But this design still puts the following constraints on the workflow 
-implementation:
-- Do not use any mutable global variables as multiple instances of workflows are executed in parallel.
-- Do not call any non deterministic functions like non seeded random or UUID.randomUUID() directly form the workflow code. 
-Always do it in activities.
-- Don’t perform any IO or service calls as they are not usually deterministic. Use activities for that.
-- Only use `Workflow.currentTimeMillis()` to get current time inside a workflow.
-- Do not use native Java `Thread` class. Use `Workflow.newThread` to create workflow friendly `WorkflowThread`.
-- Don't use any synchronization, locks and other standard Java blocking concurrency related classes besides provided 
-by the Workflow class. There is no need in explicit synchronization as even multithreaded code inside a workflow is 
-executed one thread at a time and under a global lock.
-  - Call `WorkflowThread.sleep` instead of `Thread.sleep`
-  - Use `Promise` and `CompletablePromise` instead of `Future` and `CompletableFuture`.
-  - Use `WorkflowQueue` instead of `BlockingQueue`.
-- Don't change workflow code when there are open workflows. The ability to do updates through visioning is TBD.
-- Don’t access configuration APIs directly from a workflow as changes in the configuration might affect a workflow execution path. 
-Pass it as an argument to a workflow function or use an activity to load it. 
-
-Workflow method arguments and return values are serializable to byte array using provided
-[DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
-JSON serializer, but any alternative serialization mechanism is pluggable.
-
-The values passed to workflows through invocation parameters or returned through a result value are recorded in the execution history. 
-The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
-A large execution history can thus adversely impact the performance of your workflow. 
-Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
-Other than that no additional limitations exist on activity implementations.
 
 ### Calling Activities
 
@@ -398,46 +369,46 @@ String localName = localNamePromise.get();
 ```
 Here is above example rewritten to call download and upload in parallel on multiple files:
 ```java
-    public void processFile(Arguments args) {
-        List<Promise<String>> localNamePromises = new ArrayList<>();
-        List<String> processedNames = null;
-        try {
-            // Download all files in parallel
-            for (String sourceFilename : args.getSourceFilenames()) {
-                Promise<String> localName = Workflow.async(activities::download, args.getSourceBucketName(), sourceFilename);
-                localNamePromises.add(localName);
+public void processFile(Arguments args) {
+    List<Promise<String>> localNamePromises = new ArrayList<>();
+    List<String> processedNames = null;
+    try {
+        // Download all files in parallel
+        for (String sourceFilename : args.getSourceFilenames()) {
+            Promise<String> localName = Workflow.async(activities::download, args.getSourceBucketName(), sourceFilename);
+            localNamePromises.add(localName);
+        }
+        // allOf converts a list of promises to single promise that contains list of each promise value.
+        Promise<List<String>> localNamesPromise = Promise.allOf(localNamePromises);
+
+        // All code until the next line wasn't blocking.
+        // The promise get is a blocking call
+        List<String> localNames = localNamesPromise.get();
+        processedNames = activities.processFiles(localNames);
+
+        // Upload all results in parallel.
+        List<Promise<Void>> uploadedList = new ArrayList<>();
+        for (String processedName : processedNames) {
+            Promise<Void> uploaded = Workflow.async(activities::upload, args.getTargetBucketName(), args.getTargetFilename(), processedName);
+            uploadedList.add(uploaded);
+        }
+        // Wait for all uploads to complete.
+        Promise<?> allUploaded = Promise.allOf(uploadedList);
+        allUploaded.get(); // blocks until all promises are ready.
+    } finally {
+        for (Promise<Sting> localNamePromise : localNamePromises) {
+            // Skip files that haven't completed download
+            if (localNamePromise.isCompleted()) {
+                activities.deleteLocalFile(localNamePromise.get());
             }
-            // allOf converts a list of promises to single promise that contains list of each promise value.
-            Promise<List<String>> localNamesPromise = Promise.allOf(localNamePromises);
-
-            // All code until the next line wasn't blocking.
-            // The promise get is a blocking call
-            List<String> localNames = localNamesPromise.get();
-            processedNames = activities.processFiles(localNames);
-
-            // Upload all results in parallel.
-            List<Promise<Void>> uploadedList = new ArrayList<>();
+        }
+        if (processedNames != null) {
             for (String processedName : processedNames) {
-                Promise<Void> uploaded = Workflow.async(activities::upload, args.getTargetBucketName(), args.getTargetFilename(), processedName);
-                uploadedList.add(uploaded);
-            }
-            // Wait for all uploads to complete.
-            Promise<?> allUploaded = Promise.allOf(uploadedList);
-            allUploaded.get(); // blocks until all promises are ready.
-        } finally {
-            for (Promise<Sting> localNamePromise : localNamePromises) {
-                // Skip files that haven't completed download
-                if (localNamePromise.isCompleted()) {
-                    activities.deleteLocalFile(localNamePromise.get());
-                }
-            }
-            if (processedNames != null) {
-                for (String processedName : processedNames) {
-                    activities.deleteLocalFile(processedName);
-                }
+                activities.deleteLocalFile(processedName);
             }
         }
     }
+}
 ```
 ### Child Workflows
 Besides activities a workflow can also orchestrate other workflows. 
@@ -452,5 +423,96 @@ Besides activities a workflow can also orchestrate other workflows.
  by calling methods annotated with `@SignalMethod`. Querying a child workflow by calling methods annotated with @QueryMethod 
  from within workflow code is not currently supported. If needed queries can be done from activities
  using `CadenceClient` provided stub. 
-  
+ ```java
+public interface GreetingChild {
+    @WorkflowMethod
+    String composeGreeting(String greeting, String name);
+}
 
+public static class GreetingWorkflowImpl implements GreetingWorkflow {
+
+    @Override
+    public String getGreeting(String name) {
+        GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class);
+
+        // This is blocking call that returns only after child is completed.
+        return child.composeGreeting("Hello", name );
+    }
+}
+```
+Running two children in parallel:
+```java
+public static class GreetingWorkflowImpl implements GreetingWorkflow {
+
+    @Override
+    public String getGreeting(String name) {
+
+        // Workflows are stateful. So a new stub must be created for each new child.
+        GreetingChild child1 = Workflow.newChildWorkflowStub(GreetingChild.class);
+        Promise<String> greeting1 = Workflow.async(child1::composeGreeting, "Hello", name);
+
+        // Both children will run concurrently.
+        GreetingChild child2 = Workflow.newChildWorkflowStub(GreetingChild.class);
+        Promise<String> greeting2 = Workflow.async(child2::composeGreeting, "Bye", name);
+
+        // Do something else here
+        ...
+        return "First: " + greeting1.get() + ", second=" + greeting2.get();
+    }
+}
+```
+To send signal to a child just call a method annotated with @SignalMethod:
+```java
+public interface GreetingChild {
+    @WorkflowMethod
+    String composeGreeting(String greeting, String name);
+    
+    @SignalMethod
+    void updateName(String name);
+}
+
+public static class GreetingWorkflowImpl implements GreetingWorkflow {
+
+    @Override
+    public String getGreeting(String name) {
+        GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class);
+        Promise<String> greeting = Workflow.async(child::composeGreeting, "Hello", name);
+        child.updateName("Cadence");
+        return greeting.get();
+    }
+}
+```
+Calling methods annotated with @QueryMethod is not allowed from within a workflow code.
+### Workflow Implementation Constraints
+
+Cadence uses event sourcing to recover a state of the workflow object including its threads and local variables using
+[event sourcing](https://docs.microsoft.com/en-us/azure/architecture/patterns/event-sourcing). In essence every time 
+workflow state has to be restored its code is reexecuted from the beginning ignoring side effects (like activity invocations) 
+which were already recorded in the workflow event history. Don't get confused, when writing workflow logic the replay is not visible,
+so the code should be written as it executes only once. But this design still puts the following constraints on the workflow 
+implementation:
+- Do not use any mutable global variables as multiple instances of workflows are executed in parallel.
+- Do not call any non deterministic functions like non seeded random or UUID.randomUUID() directly form the workflow code. 
+Always do it in activities.
+- Don’t perform any IO or service calls as they are not usually deterministic. Use activities for that.
+- Only use `Workflow.currentTimeMillis()` to get current time inside a workflow.
+- Do not use native Java `Thread` class. Use `Workflow.newThread` to create workflow friendly `WorkflowThread`.
+- Don't use any synchronization, locks and other standard Java blocking concurrency related classes besides provided 
+by the Workflow class. There is no need in explicit synchronization as even multithreaded code inside a workflow is 
+executed one thread at a time and under a global lock.
+  - Call `WorkflowThread.sleep` instead of `Thread.sleep`
+  - Use `Promise` and `CompletablePromise` instead of `Future` and `CompletableFuture`.
+  - Use `WorkflowQueue` instead of `BlockingQueue`.
+- Don't change workflow code when there are open workflows. The ability to do updates through visioning is TBD.
+- Don’t access configuration APIs directly from a workflow as changes in the configuration might affect a workflow execution path. 
+Pass it as an argument to a workflow function or use an activity to load it. 
+
+Workflow method arguments and return values are serializable to byte array using provided
+[DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
+JSON serializer, but any alternative serialization mechanism is pluggable.
+
+The values passed to workflows through invocation parameters or returned through a result value are recorded in the execution history. 
+The entire execution history is transferred from the Cadence service to workflow workers with every event that the workflow logic needs to process. 
+A large execution history can thus adversely impact the performance of your workflow. 
+Therefore be mindful of the amount of data you transfer via activity invocation parameters or return values. 
+Other than that no additional limitations exist on activity implementations.
