@@ -22,6 +22,7 @@ import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
 import java.time.Duration;
+import java.util.Objects;
 
 public final class Workflow {
 
@@ -85,6 +86,7 @@ public final class Workflow {
      * promise is failed with {@link java.util.concurrent.CancellationException} if enclosing scope is cancelled.
      */
     public static Promise<Void> newTimer(Duration delay) {
+        Objects.nonNull(delay);
         return WorkflowInternal.newTimer(delay);
     }
 
@@ -101,7 +103,7 @@ public final class Workflow {
     }
 
     public static <E> Promise<E> newFailedPromise(Exception failure) {
-        return WorkflowInternal.newFailedPromise(CheckedExceptionWrapper.throwWrapped(failure));
+        return WorkflowInternal.newFailedPromise(CheckedExceptionWrapper.getWrapped(failure));
     }
 
     /**

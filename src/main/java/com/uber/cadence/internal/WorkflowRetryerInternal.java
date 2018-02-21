@@ -24,17 +24,17 @@ public final class WorkflowRetryerInternal {
         int retry = 0;
         long startTime = Workflow.currentTimeMillis();
         while (true) {
+            long nextSleepTime = calculateSleepTime(retry, options);
             try {
                 return func.apply();
             } catch (Exception e) {
                 long elapsed = Workflow.currentTimeMillis() - startTime;
-                if (shouldRethrow(e, options, retry, elapsed)) {
+                if (shouldRethrow(e, options, retry, elapsed, nextSleepTime)) {
                     Workflow.throwWrapped(e);
                 }
             }
             retry++;
-            long sleepTime = calculateSleepTime(retry, options);
-            WorkflowThread.sleep(sleepTime);
+            WorkflowThread.sleep(nextSleepTime);
         }
     }
 
@@ -50,27 +50,27 @@ public final class WorkflowRetryerInternal {
                 return Workflow.newPromise(r);
             }
             long elapsed = Workflow.currentTimeMillis() - startTime;
-            if (shouldRethrow(e, options, retry, elapsed)) {
+            long sleepTime = calculateSleepTime(retry, options);
+            if (shouldRethrow(e, options, retry, elapsed, sleepTime)) {
                 throw e;
             }
-            long sleepTime = calculateSleepTime(retry, options);
             // newTimer runs in a separate thread, so it performs trampolining eliminating tail recursion.
             return Workflow.newTimer(Duration.ofMillis(sleepTime)).thenCompose(
                     (nil) -> retryAsync(options, func, startTime, retry + 1));
         }).thenCompose((r) -> r);
     }
 
-    private static boolean shouldRethrow(Exception e, RetryOptions options, long retry, long elapsed) {
-        if (options.getExceptionFilter().apply(e)) {
-            return false;
+    private static boolean shouldRethrow(Exception e, RetryOptions options, long retry, long elapsed, long sleepTime) {
+        if (!options.getExceptionFilter().apply(e)) {
+            return true;
         }
-        if (retry <= options.getMaximumRetries()) {
-            return false;
+        if (retry > options.getMaximumRetries()) {
+            return true;
         }
-        if (elapsed < options.getExpiration().toMillis() || retry < options.getMinimumRetries()) {
-            return false;
+        if (elapsed + sleepTime >= options.getExpiration().toMillis() && retry > options.getMinimumRetries()) {
+            return true;
         }
-        return true;
+        return false;
     }
 
     private static long calculateSleepTime(long retry, RetryOptions options) {

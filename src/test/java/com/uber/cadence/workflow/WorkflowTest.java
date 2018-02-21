@@ -30,6 +30,8 @@ import com.uber.cadence.client.WorkflowExecutionAlreadyStartedException;
 import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.dispatcher.DeterministicRunnerTest;
+import com.uber.cadence.internal.dispatcher.Tracer;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -450,6 +452,55 @@ public class WorkflowTest {
         String result = client.execute();
         assertEquals("testTimer", result);
     }
+
+    private static final RetryOptions retryOptions = new RetryOptions.Builder()
+            .setInterval(Duration.ofSeconds(10))
+            .setMaximumInterval(Duration.ofSeconds(100))
+            .setExpiration(Duration.ofSeconds(300))
+            .setBackoffCoefficient(2.0)
+            .build();
+
+    public static class TestAsyncRetryWorkflowImpl implements TestWorkflow2 {
+
+        static List<String> trace = new ArrayList<>();
+
+        @Override
+        public String execute() {
+            trace.add("started");
+            Async.retry(retryOptions, () -> {
+                trace.add("retry at " + Workflow.currentTimeMillis());
+                return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
+            }).get();
+            trace.add("beforeSleep");
+            WorkflowThread.sleep(60000);
+            trace.add("done");
+            return "";
+        }
+    }
+
+    /**
+     * @see DeterministicRunnerTest#testRetry()
+     */
+    @Test
+    public void testAsyncRetry() {
+        startWorkerFor(TestAsyncRetryWorkflowImpl.class);
+        TestWorkflow2 client = workflowClient.newWorkflowStub(TestWorkflow2.class, newWorkflowOptionsBuilder().build());
+        String result = client.execute();
+        assertEquals("testTimer", result);
+        List<String> expected = new ArrayList<>();
+        expected.add("started");
+        int retry = 0;
+        long time = 0;
+        while (time < retryOptions.getExpiration().toMillis()) {
+            expected.add("retry at " + time);
+            long sleepMillis = (long) ((Math.pow(retryOptions.getBackoffCoefficient(), retry - 1)) * retryOptions.getInterval().toMillis());
+            sleepMillis = Math.min(sleepMillis, retryOptions.getMaximumInterval().toMillis());
+            retry++;
+            time += sleepMillis;
+        }
+        assertEquals(expected, TestAsyncRetryWorkflowImpl.trace);
+    }
+
 
     public interface TestExceptionPropagation {
         @WorkflowMethod

@@ -214,7 +214,7 @@ public final class Async {
      * @return result of the function or the last failure.
      */
     public static <R> Promise<R> retry(RetryOptions options, Functions.Func<Promise<R>> fn) {
-        return WorkflowRetryerInternal.retry(options, fn);
+        return WorkflowRetryerInternal.retryAsync(options, fn);
     }
 
     /**

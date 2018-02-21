@@ -22,6 +22,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.RetryOptions;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowTest;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
@@ -135,36 +136,51 @@ public class DeterministicRunnerTest {
         assertTrue(d.isDone());
     }
 
+    /**
+     * Async retry cannot be tested here as it relies on timer that is implemented outside of Dispatcher.
+     * @see WorkflowTest#testAsyncRetry()
+     */
     @Test
     public void testRetry() throws Throwable {
+        RetryOptions retryOptions = new RetryOptions.Builder()
+                .setInterval(Duration.ofSeconds(10))
+                .setMaximumInterval(Duration.ofSeconds(100))
+                .setExpiration(Duration.ofSeconds(300))
+                .setBackoffCoefficient(2.0)
+                .build();
         DeterministicRunnerImpl d = new DeterministicRunnerImpl(
                 threadPool,
                 null,
                 () -> currentTime, // clock override
                 () -> {
-                    status = "started";
-                    RetryOptions o1 = new RetryOptions.Builder()
-                            .setInterval(Duration.ofSeconds(10))
-                            .setMaximumInterval(Duration.ofSeconds(100))
-                            .setExpiration(Duration.ofSeconds(300))
-                            .build();
-                    Workflow.retry(o1, () -> {
-                        System.err.println("retry at " + Workflow.currentTimeMillis());
+                    trace.add("started");
+                    Workflow.retry(retryOptions, () -> {
                         trace.add("retry at " + Workflow.currentTimeMillis());
-                        throw new IllegalStateException("foo");
+                        throw new IllegalThreadStateException("simulated");
                     });
-                    status = "afterSleep1";
+                    trace.add("beforeSleep");
                     WorkflowThread.sleep(60000);
-                    status = "done";
+                    trace.add("done");
                 });
-        for (int i=0; i<Duration.ofSeconds(400).toMillis(); i+=10) {
-            currentTime = i;
-            d.runUntilAllBlocked();
-            if (d.isDone()) {
-                fail("should throw");
+        try {
+            for (int i = 0; i < Duration.ofSeconds(400).toMillis(); i += 10) {
+                currentTime = i;
+                d.runUntilAllBlocked();
             }
+            fail("failure expected");
+        } catch (IllegalThreadStateException e) {
+            assertEquals("simulated", e.getMessage());
         }
-        trace.setExpected("foo");
+        int retry = 0;
+        long time = 0;
+        trace.addExpected("started");
+        while (time < retryOptions.getExpiration().toMillis()) {
+            trace.addExpected("retry at " + time);
+            long sleepMillis = (long) ((Math.pow(retryOptions.getBackoffCoefficient(), retry - 1)) * retryOptions.getInterval().toMillis());
+            sleepMillis = Math.min(sleepMillis, retryOptions.getMaximumInterval().toMillis());
+            retry++;
+            time += sleepMillis;
+        }
     }
 
     @Test
@@ -257,7 +273,7 @@ public class DeterministicRunnerTest {
                 "child2 started",
                 "child2 exiting",
         };
-       trace.setExpected(expected);
+        trace.setExpected(expected);
 
     }
 
