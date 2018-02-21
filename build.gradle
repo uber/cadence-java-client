@@ -15,6 +15,7 @@ plugins {
 
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: "org.jruyi.thrift"
 
 group = 'com.uber'
 version = '0.1.0'
@@ -23,11 +24,6 @@ description = """Uber Cadence Java Client"""
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-
-repositories {
-    maven { url "http://artifactory.uber.internal:4587/artifactory/libs-release-local/" }
-    maven { url "http://artifactory.uber.internal:4587/artifactory/libs-snapshot-local/" }
-}
 
 dependencies {
     compile group: 'com.uber.tchannel', name: 'tchannel-core', version: '0.7.6'
@@ -42,10 +38,17 @@ dependencies {
 
 license {
     header rootProject.file('license-header.txt')
+    mapping {
+        java='SLASHSTAR_STYLE'
+    }
+    include 'src/**/*.java'
     strictCheck true
-    exclude('src/test/resources/**')
-    exclude('src/main/resources/**')
-    exclude('src/main/thrift/**')
 }
 
-apply plugin: "org.jruyi.thrift"
+if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+        tasks.withType(Javadoc) {
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
+}
