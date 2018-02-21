@@ -20,12 +20,15 @@ import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.RetryOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowThread;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -39,11 +42,13 @@ import static org.junit.Assert.*;
 
 public class DeterministicRunnerTest {
 
+    @Rule
+    public final Tracer trace = new Tracer();
+
     private String status;
     private boolean unblock1;
     private boolean unblock2;
     private Throwable failure;
-    private List<String> trace = new ArrayList<>();
     private long currentTime;
     private ExecutorService threadPool;
 
@@ -53,7 +58,6 @@ public class DeterministicRunnerTest {
         unblock2 = false;
         failure = null;
         status = "initial";
-        trace.clear();
         currentTime = 0;
         threadPool = new ThreadPoolExecutor(1, 1000, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
     }
@@ -129,6 +133,38 @@ public class DeterministicRunnerTest {
         d.runUntilAllBlocked();
         assertEquals("done", status);
         assertTrue(d.isDone());
+    }
+
+    @Test
+    public void testRetry() throws Throwable {
+        DeterministicRunnerImpl d = new DeterministicRunnerImpl(
+                threadPool,
+                null,
+                () -> currentTime, // clock override
+                () -> {
+                    status = "started";
+                    RetryOptions o1 = new RetryOptions.Builder()
+                            .setInterval(Duration.ofSeconds(10))
+                            .setMaximumInterval(Duration.ofSeconds(100))
+                            .setExpiration(Duration.ofSeconds(300))
+                            .build();
+                    Workflow.retry(o1, () -> {
+                        System.err.println("retry at " + Workflow.currentTimeMillis());
+                        trace.add("retry at " + Workflow.currentTimeMillis());
+                        throw new IllegalStateException("foo");
+                    });
+                    status = "afterSleep1";
+                    WorkflowThread.sleep(60000);
+                    status = "done";
+                });
+        for (int i=0; i<Duration.ofSeconds(400).toMillis(); i+=10) {
+            currentTime = i;
+            d.runUntilAllBlocked();
+            if (d.isDone()) {
+                fail("should throw");
+            }
+        }
+        trace.setExpected("foo");
     }
 
     @Test
@@ -221,7 +257,7 @@ public class DeterministicRunnerTest {
                 "child2 started",
                 "child2 exiting",
         };
-        assertTrace(expected, trace);
+       trace.setExpected(expected);
 
     }
 
@@ -250,7 +286,7 @@ public class DeterministicRunnerTest {
                 "second yield: I just feel like it",
                 "root done",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
     }
 
     @Test
@@ -286,7 +322,7 @@ public class DeterministicRunnerTest {
                 "scope cancelled",
                 "root done",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
     }
 
     @Test
@@ -322,7 +358,7 @@ public class DeterministicRunnerTest {
                 "scope cancelled",
                 "root done",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
     }
 
     private Promise<Void> newTimer(int milliseconds) {
@@ -370,7 +406,7 @@ public class DeterministicRunnerTest {
                 "thread done: from root",
                 "root done",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
     }
 
     @Test
@@ -410,7 +446,8 @@ public class DeterministicRunnerTest {
                 "root started",
                 "thread started",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
+        trace.assertExpected();
         unblock1 = true;
         d.runUntilAllBlocked();
         assertTrue(d.stackTrace(), d.isDone());
@@ -421,7 +458,7 @@ public class DeterministicRunnerTest {
                 "yield done",
                 "root done",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
     }
 
     @Test
@@ -485,7 +522,8 @@ public class DeterministicRunnerTest {
                 "root started",
                 "child started",
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
+        trace.assertExpected();
         // Just check that running again doesn't make any progress.
         d.runUntilAllBlocked();
         assertEquals(61000, d.getNextWakeUpTime());
@@ -497,12 +535,8 @@ public class DeterministicRunnerTest {
                 "child started",
                 "root done"
         };
-        assertTrace(expected, trace);
+        trace.setExpected(expected);
         d.close();
-    }
-
-    private void assertTrace(String[] expected, List<String> trace) {
-        assertEquals(Arrays.asList(expected), trace);
     }
 
     private static final int CHILDREN = 10;
@@ -546,6 +580,6 @@ public class DeterministicRunnerTest {
         for (int i = CHILDREN; i >= 0; i--) {
             expected.add("child " + i + " done");
         }
-        assertEquals(expected, trace);
+        trace.setExpected(expected.toArray(new String[0]));
     }
 }

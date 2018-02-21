@@ -59,7 +59,7 @@ public class Tracer implements TestRule {
     /**
      * Set list of expected values.
      */
-    void setExpected(String[] expected) {
+    void setExpected(String... expected) {
         this.expected = expected;
     }
 
