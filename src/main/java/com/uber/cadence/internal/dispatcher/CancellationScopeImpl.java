@@ -141,7 +141,7 @@ class CancellationScopeImpl implements CancellationScope {
     @Override
     public CompletablePromise<String> getCancellationRequest() {
         if (cancellationPromise == null) {
-            cancellationPromise = Workflow.newCompletablePromise();
+            cancellationPromise = Workflow.newPromise();
             if (isCancelRequested()) {
                 cancellationPromise.complete(getCancellationReason());
             }

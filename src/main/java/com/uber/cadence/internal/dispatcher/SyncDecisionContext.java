@@ -106,7 +106,7 @@ class SyncDecisionContext {
     }
 
     private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {
-        CompletablePromise<byte[]> result = Workflow.newCompletablePromise();
+        CompletablePromise<byte[]> result = Workflow.newPromise();
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list
         parameters.withActivityType(new ActivityType().setName(name)).
@@ -175,7 +175,7 @@ class SyncDecisionContext {
                 .setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds())
                 .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
                 .build();
-        CompletablePromise<byte[]> result = Workflow.newCompletablePromise();
+        CompletablePromise<byte[]> result = Workflow.newPromise();
         Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
                 executionResult::complete,
                 (output, failure) -> {
@@ -194,7 +194,7 @@ class SyncDecisionContext {
     }
 
     public Promise<Void> newTimer(long delaySeconds) {
-        CompletablePromise<Void> timer = Workflow.newCompletablePromise();
+        CompletablePromise<Void> timer = Workflow.newPromise();
         long fireTime = context.getWorkflowClock().currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         timers.addTimer(fireTime, timer);
         CancellationScope.current().getCancellationRequest().thenApply((reason) ->

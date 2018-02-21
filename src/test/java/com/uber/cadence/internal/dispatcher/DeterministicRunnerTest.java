@@ -258,7 +258,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            CompletablePromise<Void> var = Workflow.newCompletablePromise();
+            CompletablePromise<Void> var = Workflow.newPromise();
             CancellationScope scope = Workflow.newCancellationScope(() -> {
                 trace.add("scope started");
                 var.completeFrom(newTimer(300));
@@ -294,7 +294,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            CompletablePromise<Void> var = Workflow.newCompletablePromise();
+            CompletablePromise<Void> var = Workflow.newPromise();
             CancellationScope scope = Workflow.newDetachedCancellationScope(() -> {
                 trace.add("scope started");
                 var.completeFrom(newTimer(300));
@@ -342,7 +342,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            CompletablePromise<Object> threadDone = Workflow.newCompletablePromise();
+            CompletablePromise<Object> threadDone = Workflow.newPromise();
             CancellationScope scope = Workflow.newCancellationScope(() -> {
                 Async.invoke(() -> {
                     trace.add("thread started");
@@ -378,7 +378,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            CompletablePromise<Void> done = Workflow.newCompletablePromise();
+            CompletablePromise<Void> done = Workflow.newPromise();
             Workflow.newDetachedCancellationScope(() -> {
                 Async.invoke(() -> {
                     trace.add("thread started");

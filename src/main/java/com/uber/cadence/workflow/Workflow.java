@@ -17,6 +17,7 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.internal.dispatcher.WorkflowInternal;
 
@@ -91,11 +92,11 @@ public final class Workflow {
         return WorkflowInternal.newQueue(capacity);
     }
 
-    public static <E> CompletablePromise<E> newCompletablePromise() {
+    public static <E> CompletablePromise<E> newPromise() {
         return WorkflowInternal.newCompletablePromise();
     }
 
-    public static <E> Promise<E> newCompletablePromise(E value) {
+    public static <E> Promise<E> newPromise(E value) {
         return WorkflowInternal.newPromise(value);
     }
 
@@ -189,6 +190,17 @@ public final class Workflow {
      */
     public static RuntimeException getWrapped(Throwable e) {
         return WorkflowInternal.getWrapped(e);
+    }
+
+    /**
+     * Invokes function retrying in case of failures according to retry options.
+     * Synchronous variant. Use {@link Async#retry(RetryOptions, Functions.Func)} for asynchronous functions.
+     * @param options retry options that specify retry policy
+     * @param fn function to invoke and retry
+     * @return result of the function or the last failure.
+     */
+    public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
+        return WorkflowRetryerInternal.retry(options, fn);
     }
 
     /**

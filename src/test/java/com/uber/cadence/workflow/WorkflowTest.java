@@ -575,7 +575,7 @@ public class WorkflowTest {
 
         String state = "initial";
         List<String> signals = new ArrayList<>();
-        CompletablePromise promise = Workflow.newCompletablePromise();
+        CompletablePromise promise = Workflow.newPromise();
 
         @Override
         public String execute() {
@@ -690,7 +690,7 @@ public class WorkflowTest {
             Promise<Void> timer1 = Workflow.newTimer(Duration.ZERO);
             Promise<Void> timer2 = Workflow.newTimer(Duration.ofSeconds(1));
 
-            CompletablePromise<Void> f = Workflow.newCompletablePromise();
+            CompletablePromise<Void> f = Workflow.newPromise();
             timer1.thenApply((e) -> {
                 timer2.get(); // This is prohibited
                 f.complete(null);
