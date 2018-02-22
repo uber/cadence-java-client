@@ -89,7 +89,7 @@ public final class WorkflowInternal {
      * Should be used to get current time instead of {@link System#currentTimeMillis()}
      */
     public static long currentTimeMillis() {
-        return WorkflowThreadInternal.currentThreadInternal().getRunner().currentTimeMillis();
+        return DeterministicRunnerImpl.currentThreadInternal().getRunner().currentTimeMillis();
     }
 
     /**
@@ -147,11 +147,7 @@ public final class WorkflowInternal {
     }
 
     private static SyncDecisionContext getDecisionContext() {
-        return WorkflowThreadInternal.currentThreadInternal().getDecisionContext();
-    }
-
-    public static DeterministicRunnerCoroutine currentThread() {
-        return WorkflowThreadInternal.currentThreadInternal();
+        return DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
     }
 
     public static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {

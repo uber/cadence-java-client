@@ -40,6 +40,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     private static final Log log = LogFactory.getLog(DeterministicRunnerImpl.class);
     public static final String WORKFLOW_ROOT_THREAD_NAME = "workflow-root";
+    private static final ThreadLocal<DeterministicRunnerCoroutine> currentThreadThreadLocal = new ThreadLocal<>();
 
     private final Lock lock = new ReentrantLock();
     private final ExecutorService threadPool;
@@ -49,9 +50,21 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private final Supplier<Long> clock;
     private boolean closed;
 
+    static DeterministicRunnerCoroutine currentThreadInternal() {
+        DeterministicRunnerCoroutine result = currentThreadThreadLocal.get();
+        if (result == null) {
+            throw new IllegalStateException("Called from non workflow or workflow callback thread");
+        }
+        return result;
+    }
+
+    static void setCurrentThreadInternal(DeterministicRunnerCoroutine coroutine) {
+        currentThreadThreadLocal.set(coroutine);
+    }
+
     /**
      * Time at which any thread that runs under dispatcher can make progress.
-     * For example when {@link WorkflowThread#sleep(long)} expires.
+     * For example when {@link com.uber.cadence.workflow.Workflow#sleep(long)} expires.
      * 0 means no blocked threads.
      */
     private long nextWakeUpTime;

@@ -30,6 +30,8 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import static com.uber.cadence.internal.dispatcher.DeterministicRunnerImpl.currentThreadInternal;
+
 class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
 
     /**
@@ -57,7 +59,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             thread = Thread.currentThread();
             originalName = thread.getName();
             thread.setName(name);
-            currentThreadThreadLocal.set(WorkflowThreadInternal.this);
+            DeterministicRunnerImpl.setCurrentThreadInternal(WorkflowThreadInternal.this);
             try {
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
@@ -94,7 +96,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 context.setStatus(Status.DONE);
                 thread.setName(originalName);
                 thread = null;
-                currentThreadThreadLocal.set(null);
+                DeterministicRunnerImpl.setCurrentThreadInternal(null);
             }
         }
 
@@ -117,7 +119,6 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         }
     }
 
-    private static final ThreadLocal<DeterministicRunnerCoroutine> currentThreadThreadLocal = new ThreadLocal<>();
     private static final Log log = LogFactory.getLog(WorkflowThreadInternal.class);
 
     private final boolean root;
@@ -134,14 +135,6 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * Note that thread still has to be called for evaluation as other threads might interrupt the blocking call.
      */
     private long blockedUntil;
-
-    static DeterministicRunnerCoroutine currentThreadInternal() {
-        DeterministicRunnerCoroutine result = currentThreadThreadLocal.get();
-        if (result == null) {
-            throw new IllegalStateException("Called from non workflow or workflow callback thread");
-        }
-        return result;
-    }
 
     WorkflowThreadInternal(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name, boolean ignoreParentCancellation, Runnable runnable) {
         this.root = root;
@@ -403,7 +396,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
      */
     static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        WorkflowThreadInternal.currentThreadInternal().yieldImpl(reason, unblockCondition);
+        currentThreadInternal().yieldImpl(reason, unblockCondition);
     }
 
     /**
@@ -412,7 +405,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @return false if timed out.
      */
     static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        return WorkflowThreadInternal.currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
+        return currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
     }
 
     static class YieldWithTimeoutCondition implements Supplier<Boolean> {
