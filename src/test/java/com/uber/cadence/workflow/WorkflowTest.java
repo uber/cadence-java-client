@@ -432,6 +432,12 @@ public class WorkflowTest {
             Promise<Void> timer2 = Workflow.newTimer(Duration.ofMillis(1300));
 
             long time = Workflow.currentTimeMillis();
+            timer1.thenApply((r) -> {
+                // Testing that timer can be created from a callback thread.
+                Workflow.newTimer(Duration.ofSeconds(10));
+                Workflow.currentTimeMillis(); // Testing that time is available here.
+                return r;
+            }).get();
             timer1.get();
             long slept = Workflow.currentTimeMillis() - time;
             // Also checks that rounding up to a second works.
