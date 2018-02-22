@@ -18,7 +18,6 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.WorkflowThread;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

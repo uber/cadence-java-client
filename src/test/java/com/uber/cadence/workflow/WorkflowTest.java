@@ -176,7 +176,7 @@ public class WorkflowTest {
             // In real workflows use
             // Async.invoke(activities::activityWithDelay, 1000, true)
             Promise<String> a1 = Async.invoke(() -> activities.activityWithDelay(1000, true));
-            WorkflowThread.sleep(2000);
+            Workflow.sleep(2000);
             return activities.activity2(a1.get(), 10);
         }
     }
@@ -263,7 +263,7 @@ public class WorkflowTest {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a1", testActivities.activity1("a1")));
             }
             try {
-                WorkflowThread.sleep(Duration.ofHours(1));
+                Workflow.sleep(Duration.ofHours(1));
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a12", testActivities.activity2("a1", 2)));
             }

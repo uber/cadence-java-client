@@ -28,7 +28,6 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.workflow.WorkflowQueue;
-import com.uber.cadence.workflow.WorkflowThread;
 
 import java.lang.reflect.Proxy;
 import java.time.Duration;
@@ -151,12 +150,12 @@ public final class WorkflowInternal {
         return WorkflowThreadInternal.currentThreadInternal().getDecisionContext();
     }
 
-    public static WorkflowThread currentThread() {
+    public static DeterministicRunnerCoroutine currentThread() {
         return WorkflowThreadInternal.currentThreadInternal();
     }
 
-    public static boolean currentThreadResetCanceled() {
-        return WorkflowThreadInternal.currentThreadInternal().resetCanceled();
+    public static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
+        WorkflowThreadInternal.yield(reason, unblockCondition);
     }
 
     public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {

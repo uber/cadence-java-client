@@ -124,16 +124,6 @@ class CancellationScopeImpl implements CancellationScope {
     }
 
     @Override
-    public boolean resetCanceled() {
-        boolean result = cancelRequested;
-        cancelRequested = false;
-        for (CancellationScopeImpl child : children) {
-            child.resetCanceled();
-        }
-        return result;
-    }
-
-    @Override
     public boolean isCancelRequested() {
         return cancelRequested;
     }

@@ -21,6 +21,7 @@ import com.uber.cadence.workflow.Functions;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 
 class CallbackCoroutine implements DeterministicRunnerCoroutine {
 
@@ -156,5 +157,15 @@ class CallbackCoroutine implements DeterministicRunnerCoroutine {
 
     @Override
     public void addStackTrace(StringBuilder result) {
+    }
+
+    @Override
+    public void yieldImpl(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
+        throw new IllegalStateException("Blocking calls are not allowed in callback threads");
+    }
+
+    @Override
+    public boolean yieldImpl(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
+        throw new IllegalStateException("Blocking calls are not allowed in callback threads");
     }
 }
