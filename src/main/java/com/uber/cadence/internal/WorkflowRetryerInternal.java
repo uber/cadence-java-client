@@ -4,7 +4,6 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.RetryOptions;
 import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowThread;
 
 import java.time.Duration;
 
@@ -34,7 +33,7 @@ public final class WorkflowRetryerInternal {
                 }
             }
             retry++;
-            WorkflowThread.sleep(nextSleepTime);
+            Workflow.sleep(nextSleepTime);
         }
     }
 

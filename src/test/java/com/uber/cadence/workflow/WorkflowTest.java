@@ -26,6 +26,7 @@ import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
+import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowExecutionAlreadyStartedException;
 import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
@@ -178,7 +179,7 @@ public class WorkflowTest {
             // In real workflows use
             // Async.invoke(activities::activityWithDelay, 1000, true)
             Promise<String> a1 = Async.invoke(() -> activities.activityWithDelay(1000, true));
-            WorkflowThread.sleep(2000);
+            Workflow.sleep(2000);
             return activities.activity2(a1.get(), 10);
         }
     }
@@ -265,7 +266,7 @@ public class WorkflowTest {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a1", testActivities.activity1("a1")));
             }
             try {
-                WorkflowThread.sleep(Duration.ofHours(1));
+                Workflow.sleep(Duration.ofHours(1));
             } catch (CancellationException e) {
                 Workflow.newDetachedCancellationScope(() -> assertEquals("a12", testActivities.activity2("a1", 2)));
             }
@@ -434,6 +435,12 @@ public class WorkflowTest {
             Promise<Void> timer2 = Workflow.newTimer(Duration.ofMillis(1300));
 
             long time = Workflow.currentTimeMillis();
+            timer1.thenApply((r) -> {
+                // Testing that timer can be created from a callback thread.
+                Workflow.newTimer(Duration.ofSeconds(10));
+                Workflow.currentTimeMillis(); // Testing that time is available here.
+                return r;
+            }).get();
             timer1.get();
             long slept = Workflow.currentTimeMillis() - time;
             // Also checks that rounding up to a second works.
@@ -454,10 +461,10 @@ public class WorkflowTest {
     }
 
     private static final RetryOptions retryOptions = new RetryOptions.Builder()
-            .setInterval(Duration.ofSeconds(10))
-            .setMaximumInterval(Duration.ofSeconds(100))
-            .setExpiration(Duration.ofSeconds(300))
-            .setBackoffCoefficient(2.0)
+            .setInterval(Duration.ofSeconds(1))
+            .setMaximumInterval(Duration.ofSeconds(1))
+            .setExpiration(Duration.ofSeconds(2))
+            .setBackoffCoefficient(1)
             .build();
 
     public static class TestAsyncRetryWorkflowImpl implements TestWorkflow2 {
@@ -466,13 +473,14 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
+            trace.clear(); // clear because of replay
             trace.add("started");
             Async.retry(retryOptions, () -> {
                 trace.add("retry at " + Workflow.currentTimeMillis());
                 return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
             }).get();
             trace.add("beforeSleep");
-            WorkflowThread.sleep(60000);
+            Workflow.sleep(60000);
             trace.add("done");
             return "";
         }
@@ -485,20 +493,19 @@ public class WorkflowTest {
     public void testAsyncRetry() {
         startWorkerFor(TestAsyncRetryWorkflowImpl.class);
         TestWorkflow2 client = workflowClient.newWorkflowStub(TestWorkflow2.class, newWorkflowOptionsBuilder().build());
-        String result = client.execute();
-        assertEquals("testTimer", result);
-        List<String> expected = new ArrayList<>();
-        expected.add("started");
-        int retry = 0;
-        long time = 0;
-        while (time < retryOptions.getExpiration().toMillis()) {
-            expected.add("retry at " + time);
-            long sleepMillis = (long) ((Math.pow(retryOptions.getBackoffCoefficient(), retry - 1)) * retryOptions.getInterval().toMillis());
-            sleepMillis = Math.min(sleepMillis, retryOptions.getMaximumInterval().toMillis());
-            retry++;
-            time += sleepMillis;
+        String result = null;
+        try {
+            result = client.execute();
+            fail("unreachable");
+        } catch (WorkflowException e) {
+            assertTrue(e.getCause() instanceof IllegalThreadStateException);
+            assertEquals("simulated", e.getCause().getMessage());
         }
-        assertEquals(expected, TestAsyncRetryWorkflowImpl.trace);
+        assertNull(result);
+        assertEquals(TestAsyncRetryWorkflowImpl.trace.toString(), 3, TestAsyncRetryWorkflowImpl.trace.size());
+        assertEquals("started", TestAsyncRetryWorkflowImpl.trace.get(0));
+        assertTrue(TestAsyncRetryWorkflowImpl.trace.get(1).startsWith("retry at "));
+        assertTrue(TestAsyncRetryWorkflowImpl.trace.get(2).startsWith("retry at "));
     }
 
 
@@ -771,7 +778,7 @@ public class WorkflowTest {
             while (cause.getCause() != null) {
                 cause = cause.getCause();
             }
-            assertTrue(e.toString(), cause.getMessage().contains("Called from non workflow or workflow callback thread"));
+            assertTrue(e.toString(), cause.getMessage().contains("Blocking calls are not allowed in callback threads"));
         }
     }
 
