@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Helper class for timers.
@@ -40,7 +39,13 @@ class WorkflowTimers {
 
         private final Set<CompletablePromise<Void>> results = new HashSet<>();
 
-        public void addTimer(CompletablePromise<Void> result) {
+        private final long fireTime;
+
+        private Timers(long fireTime) {
+            this.fireTime = fireTime;
+        }
+
+        void addTimer(CompletablePromise<Void> result) {
             results.add(result);
             // Remove timer on cancellation
             result.handle((r, failure) -> {
@@ -52,7 +57,7 @@ class WorkflowTimers {
             });
         }
 
-        public void fire() {
+        void fire() {
             for (CompletablePromise<Void> t : results) {
                 t.complete(null);
             }
@@ -63,32 +68,15 @@ class WorkflowTimers {
         }
     }
 
-    private static class TimeResultPair {
-        final long fireTime;
-        final CompletablePromise<Void> result;
-
-        private TimeResultPair(long fireTime, CompletablePromise<Void> result) {
-            this.fireTime = fireTime;
-            this.result = result;
-        }
-    }
-
     /**
      * Timers sorted by fire time.
      */
-    private final AtomicReference<List<TimeResultPair>> firing = new AtomicReference<>();
     private final SortedMap<Long, Timers> timers = new TreeMap<>();
-    private final List<TimeResultPair> concurrentlyAdded = new ArrayList<>();
 
     public void addTimer(long fireTime, CompletablePromise<Void> result) {
-        List<TimeResultPair> list = firing.get();
-        if (list != null) {
-            concurrentlyAdded.add(new TimeResultPair(fireTime, result));
-            return;
-        }
         Timers t = timers.get(fireTime);
         if (t == null) {
-            t = new Timers();
+            t = new Timers(fireTime);
             timers.put(fireTime, t);
         }
         t.addTimer(result);
@@ -107,30 +95,23 @@ class WorkflowTimers {
      */
     public boolean fireTimers(long currentTime) {
         boolean fired = false;
-        boolean concurrently = false;
+        boolean newTimersAdded;
         do {
-            if (!firing.compareAndSet(null, new ArrayList<>())) {
-                throw new IllegalStateException("fireTimers called in parallel");
-            }
-            ;
-            List<Long> toDelete = new ArrayList<>();
+            List<Timers> toFire = new ArrayList<>();
             for (Map.Entry<Long, Timers> pair : timers.entrySet()) {
                 if (pair.getKey() > currentTime) {
                     break;
                 }
-                pair.getValue().fire();
-                toDelete.add(pair.getKey());
+                toFire.add(pair.getValue());
             }
-            for (Long key : toDelete) {
-                timers.remove(key);
+            int beforeSize = timers.size() - toFire.size();
+            for (Timers t : toFire) {
+                t.fire();
+                timers.remove(t.fireTime);
             }
-            fired = fired || !toDelete.isEmpty();
-            List<TimeResultPair> added = firing.getAndSet(null);
-            for (TimeResultPair pair : added) {
-                addTimer(pair.fireTime, pair.result);
-            }
-            concurrently = !added.isEmpty();
-        } while (concurrently);
+            newTimersAdded = timers.size() > beforeSize;
+            fired = fired || !toFire.isEmpty();
+        } while (newTimersAdded);
         return fired;
     }
 
