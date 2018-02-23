@@ -138,7 +138,7 @@ public final class WorkflowInternal {
      * @return activity result
      */
     public static <R> R executeActivity(String name, ActivityOptions options, Class<R> returnType, Object... args) {
-        Promise<R> result = getDecisionContext().executeActivity(name, options, args, returnType);
+        Promise<R> result = getDecisionContext().executeActivityWithRetry(name, options, args, returnType);
         if (AsyncInternal.isAsync()) {
             AsyncInternal.setAsyncResult(result);
             return null; // ignored

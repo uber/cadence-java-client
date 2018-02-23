@@ -31,6 +31,7 @@ import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityOptions;
 import com.uber.cadence.workflow.ActivityTimeoutException;
+import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -38,6 +39,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.RetryOptions;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowContext;
@@ -53,6 +55,7 @@ class SyncDecisionContext {
     private final AsyncDecisionContext context;
     private final GenericAsyncActivityClient activityClient;
     private final GenericAsyncWorkflowClient workflowClient;
+    private DeterministicRunner runner;
     private final DataConverter converter;
     private final WorkflowTimers timers = new WorkflowTimers();
     private Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
@@ -64,9 +67,24 @@ class SyncDecisionContext {
         this.converter = converter;
     }
 
-    public <T> Promise<T> executeActivity(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+    /**
+     * Using setter, as runner is initialized with this context, so it is not ready during construction of this.
+     */
+    public void setRunner(DeterministicRunner runner) {
+        this.runner = runner;
+    }
+
+    public <T> Promise<T> executeActivityWithRetry(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+        RetryOptions retryOptions = options.getRetryOptions();
+        if (retryOptions != null) {
+            return Async.retry(retryOptions, () -> executeActivity(name, options, args, returnType));
+        }
+        return executeActivity(name, options, args, returnType);
+    }
+
+    private <T> Promise<T> executeActivity(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
         byte[] input = converter.toData(args);
-        Promise<byte[]> binaryResult = executeActivity(name, options, input);
+        Promise<byte[]> binaryResult = executeActivityWithRetry(name, options, input);
         if (returnType == Void.TYPE) {
             return binaryResult.thenApply((r) -> null);
         }
@@ -105,7 +123,7 @@ class SyncDecisionContext {
         throw new IllegalArgumentException("Unexpected exception type: " + failure.getClass().getName(), failure);
     }
 
-    private Promise<byte[]> executeActivity(String name, ActivityOptions options, byte[] input) {
+    private Promise<byte[]> executeActivityWithRetry(String name, ActivityOptions options, byte[] input) {
         CompletablePromise<byte[]> result = Workflow.newPromise();
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list
@@ -120,14 +138,15 @@ class SyncDecisionContext {
                 (output, failure) -> {
                     if (failure != null) {
                         // TODO: Make sure that only Exceptions are passed into the callback.
-                        result.completeExceptionally(mapActivityException(failure));
+                        runner.newBeforeThread("activity completion callback", () -> result.completeExceptionally(mapActivityException(failure)));
                     } else {
-                        result.complete(output);
+                        runner.newBeforeThread("activity failure callback", () -> result.complete(output));
                     }
                 });
         CancellationScope.current().getCancellationRequest().thenApply((reason) ->
         {
             cancellationCallback.accept(new CancellationException(reason));
+//            runner.newBeforeThread("activity cancellation callback", () -> cancellationCallback.accept(new CancellationException(reason)));
             return null;
         });
         return result;

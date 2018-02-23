@@ -66,6 +66,7 @@ class SyncWorkflow implements AsyncWorkflow {
         workflowProc = new WorkflowRunnable(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
         runner = DeterministicRunner.newRunner(threadPool, syncContext, context.getWorkflowClock()::currentTimeMillis, workflowProc);
         runner.newCallbackTask(syncContext::fireTimers, "timer callbacks");
+        syncContext.setRunner(runner);
     }
 
     @Override

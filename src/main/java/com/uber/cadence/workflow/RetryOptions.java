@@ -23,127 +23,179 @@ public final class RetryOptions {
 
     public final static class Builder {
 
-        private Duration interval = Duration.ofSeconds(1);
+        private Duration initialInterval;
+
+        private Duration expiration;
 
         private double backoffCoefficient = 2;
 
-        private int maximumRetries = Integer.MAX_VALUE;
+        private int maximumAttempts = Integer.MAX_VALUE;
 
-        private Duration expiration = Duration.ZERO;
+        private long minimumAttempts;
 
-        private Duration maximumInterval = Duration.ofMinutes(1);
-
-        private int minimumRetries;
+        private Duration maximumInterval;
 
         private Functions.Func1<Exception, Boolean> exceptionFilter = (e) -> true;
 
-        public Builder setInterval(Duration interval) {
-            this.interval = interval;
+
+        /**
+         * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
+         * Required!
+         */
+        public Builder setInitialInterval(Duration initialInterval) {
+            Objects.requireNonNull(initialInterval);
+            if (initialInterval.isNegative() || initialInterval.isZero()) {
+                throw new IllegalArgumentException("Invalid interval: " + initialInterval);
+            }
+            this.initialInterval = initialInterval;
             return this;
         }
 
-        public Builder setBackoffCoefficient(double backoffCoefficient) {
-            this.backoffCoefficient = backoffCoefficient;
-            return this;
-        }
-
-        public Builder setMaximumRetries(int maximumRetries) {
-            this.maximumRetries = maximumRetries;
-            return this;
-        }
-
+        /**
+         * Maximum time to retry. Null means forever.
+         * When exceeded the retries stop even if maximum retries is not reached yet.
+         */
         public Builder setExpiration(Duration expiration) {
-            Objects.requireNonNull(expiration);
+            if (expiration != null && (expiration.isNegative() || expiration.isZero())) {
+                throw new IllegalArgumentException("Invalid interval: " + expiration);
+            }
             this.expiration = expiration;
             return this;
         }
 
         /**
-         * Maximum time to keep retrying. Default is {@link Duration#ZERO} which means retry forever.
+         * Coefficient used to calculate the next retry interval.
+         * The next retry interval is previous interval multiplied by this coefficient.
+         * Must be 1 or larger.
          */
-        public Builder setMaximumInterval(Duration maximumInterval) {
-            Objects.requireNonNull(maximumInterval);
-            this.maximumInterval = maximumInterval;
+        public Builder setBackoffCoefficient(double backoffCoefficient) {
+            if (backoffCoefficient < 1.0) {
+                throw new IllegalArgumentException("coefficient less than 1");
+            }
+            this.backoffCoefficient = backoffCoefficient;
             return this;
         }
 
         /**
-         * Minimum number of retries before bailing out independently of maximum interval value.
+         * Maximum number of attempts. When exceeded the retries stop even if not expired yet.
+         * Must be 1 or bigger.
          */
-        public Builder setMinimumRetries(int minimumRetries) {
-            this.minimumRetries = minimumRetries;
+        public Builder setMaximumAttempts(int maximumAttempts) {
+            if (maximumAttempts < 1) {
+                throw new IllegalArgumentException("less than 1");
+            }
+            this.maximumAttempts = maximumAttempts;
+            return this;
+        }
+
+        /**
+         * Minimum number of retries. Even if expired will retry until this number is reached.
+         * Must be 1 or bigger.
+         */
+        public Builder setMinimumAttempts(long minimumAttempts) {
+            this.minimumAttempts = minimumAttempts;
+            return this;
+        }
+
+        /**
+         * Maximum interval between retries. Exponential backoff leads to interval increase.
+         * This value is the cap of the increase.
+         */
+        public Builder setMaximumInterval(Duration maximumInterval) {
+            Objects.requireNonNull(maximumInterval);
+            if (maximumInterval != null && (maximumInterval.isNegative() || maximumInterval.isZero())) {
+                throw new IllegalArgumentException("Invalid interval: " + maximumInterval);
+            }
+            this.maximumInterval = maximumInterval;
             return this;
         }
 
         /**
          * Returns true if exception should retried.
          * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried and
-         * are not even passed to this filter. The default filter always returns true.
-         *
-         * @param exceptionFilter non null
+         * are not even passed to this filter. null means retry everything else.
          */
         public Builder setExceptionFilter(Functions.Func1<Exception, Boolean> exceptionFilter) {
-            Objects.requireNonNull(exceptionFilter);
             this.exceptionFilter = exceptionFilter;
             return this;
         }
 
         public RetryOptions build() {
-            return new RetryOptions(interval, backoffCoefficient, maximumRetries, expiration, maximumInterval,
-                    minimumRetries, exceptionFilter);
+            if (initialInterval == null) {
+                throw new IllegalStateException("required property initialInterval not set");
+            }
+            if (maximumInterval != null && maximumInterval.compareTo(initialInterval) == -1) {
+                throw new IllegalStateException("maximumInterval(" + maximumInterval
+                        + ") cannot be smaller than initialInterval(" + initialInterval);
+            }
+            return new RetryOptions(initialInterval, backoffCoefficient, expiration, maximumAttempts, minimumAttempts, maximumInterval,
+                    exceptionFilter == null ? (e)->true : exceptionFilter);
         }
     }
 
-    private RetryOptions(Duration interval, double backoffCoefficient, int maximumRetries, Duration expiration,
-                         Duration maximumInterval, int minimumRetries, Functions.Func1<Exception, Boolean> exceptionFilter) {
-        this.interval = interval;
-        this.backoffCoefficient = backoffCoefficient;
-        this.maximumRetries = maximumRetries;
-        this.expiration = expiration;
-        this.maximumInterval = maximumInterval;
-        this.minimumRetries = minimumRetries;
-        this.exceptionFilter = exceptionFilter;
-    }
-
-    private final Duration interval;
+    private final Duration initialInterval;
 
     private final double backoffCoefficient;
 
-    private final int maximumRetries;
-
     private final Duration expiration;
+
+    private final int maximumAttempts;
+
+    private final long minimumAttempts;
 
     private final Duration maximumInterval;
 
-    private final int minimumRetries;
-
     private final Functions.Func1<Exception, Boolean> exceptionFilter;
 
-    public Duration getInterval() {
-        return interval;
+    private RetryOptions(Duration initialInterval, double backoffCoefficient, Duration expiration, int maximumAttempts,
+                         long minimumAttempts, Duration maximumInterval, Functions.Func1<Exception, Boolean> exceptionFilter) {
+        this.initialInterval = initialInterval;
+        this.backoffCoefficient = backoffCoefficient;
+        this.expiration = expiration;
+        this.maximumAttempts = maximumAttempts;
+        this.minimumAttempts = minimumAttempts;
+        this.maximumInterval = maximumInterval;
+        this.exceptionFilter = exceptionFilter;
+    }
+
+    public Duration getInitialInterval() {
+        return initialInterval;
     }
 
     public double getBackoffCoefficient() {
         return backoffCoefficient;
     }
 
-    public int getMaximumRetries() {
-        return maximumRetries;
-    }
-
     public Duration getExpiration() {
         return expiration;
+    }
+
+    public int getMaximumAttempts() {
+        return maximumAttempts;
+    }
+
+    public long getMinimumAttempts() {
+        return minimumAttempts;
     }
 
     public Duration getMaximumInterval() {
         return maximumInterval;
     }
 
-    public int getMinimumRetries() {
-        return minimumRetries;
-    }
-
     public Functions.Func1<Exception, Boolean> getExceptionFilter() {
         return exceptionFilter;
+    }
+
+    @Override
+    public String toString() {
+        return "RetryOptions{" +
+                "initialInterval=" + initialInterval +
+                ", backoffCoefficient=" + backoffCoefficient +
+                ", expiration=" + expiration +
+                ", maximumAttempts=" + maximumAttempts +
+                ", minimumAttempts=" + minimumAttempts +
+                ", maximumInterval=" + maximumInterval +
+                ", exceptionFilter=" + exceptionFilter +
+                '}';
     }
 }

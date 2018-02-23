@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -47,8 +48,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private final ExecutorService threadPool;
     private final SyncDecisionContext decisionContext;
     private LinkedList<DeterministicRunnerCoroutine> threads = new LinkedList<>(); // protected by lock
+    private List<DeterministicRunnerCoroutine> threadsToAddBefore = Collections.synchronizedList(new ArrayList<>());
     private List<DeterministicRunnerCoroutine> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
+
     private final Supplier<Long> clock;
+    private boolean inRunUntilAllBlocked;
+    private boolean closeRequested;
     private boolean closed;
 
     static DeterministicRunnerCoroutine currentThreadInternal() {
@@ -109,14 +114,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public void runUntilAllBlocked() throws Throwable {
         lock.lock();
         try {
-            lock.lock();
-            try {
-                if (closed) {
-                    throw new IllegalStateException("closed");
-                }
-            } finally {
-                lock.unlock();
+            if (closed) {
+                throw new IllegalStateException("closed");
             }
+            log.info("runUntilAllBlocked begin");
+
+            inRunUntilAllBlocked = true;
             Throwable unhandledException = null;
             // Keep repeating until at least one of the threads makes progress.
             boolean progress;
@@ -129,6 +132,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                     DeterministicRunnerCoroutine c = ci.next();
                     progress = c.runUntilBlocked() || progress;
                     if (c.isDone()) {
+                        log.info("thread remove");
                         ci.remove();
                         if (c.getUnhandledException() != null) {
                             unhandledException = c.getUnhandledException();
@@ -150,7 +154,17 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             if (nextWakeUpTime < currentTimeMillis()) {
                 nextWakeUpTime = 0;
             }
+            // Close was requested while running
+            if (closeRequested) {
+                close();
+            }
+            log.info("runUntilAllBlocked end");
+        } catch (ConcurrentModificationException e) {
+            log.info("runUntilAllBlocked concurrent exception");
+            throw e;
         } finally {
+
+            inRunUntilAllBlocked = false;
             lock.unlock();
         }
     }
@@ -177,10 +191,21 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     @Override
     public void close() {
+        log.info("CLOSE BEGIN");
+
         lock.lock();
         if (closed) {
             return;
         }
+        // Do not close while runUntilAllBlocked executes.
+        // closeRequested tells it to call close() at the end.
+        closeRequested = true;
+        if (inRunUntilAllBlocked) {
+            log.info("CLOSE EXITED BECAUSE OF RUN");
+
+            return;
+        }
+        log.info("CLOSE!!!!!!!!");
         try {
             for (DeterministicRunnerCoroutine c : threads) {
                 c.stop();
@@ -266,7 +291,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             throw new IllegalStateException("closed");
         }
         try {
-
             threads.add(new CallbackCoroutine(threadPool, this, taskName, task, false,
                     WorkflowInternal.currentCancellationScope()));
         } finally {
@@ -274,13 +298,21 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         }
     }
 
+    /**
+     * Executes before any other threads next time runUntilBlockedCalled.
+     * Must never be called from any workflow threads.
+     */
     @Override
     public WorkflowThread newBeforeThread(String name, Runnable r) {
+        if (currentThreadThreadLocal.get() != null) {
+            throw new IllegalStateException("called from workflow thread");
+        }
         WorkflowThreadInternal result = new WorkflowThreadInternal(false, threadPool, this, name,
                 false, runnerCancellationScope, r);
         result.start();
         lock.lock();
         try {
+            log.info("New Before Thread");
             threads.addFirst(result);
         } finally {
             lock.unlock();

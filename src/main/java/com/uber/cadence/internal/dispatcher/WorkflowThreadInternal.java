@@ -366,6 +366,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @param value accessible through {@link DeterministicRunner#getExitValue()}.
      */
     static <R> void exit(R value) {
+        currentThreadInternal().stop(); // needed to close WorkflowThreadContext
         currentThreadInternal().getRunner().exit(value);
     }
 

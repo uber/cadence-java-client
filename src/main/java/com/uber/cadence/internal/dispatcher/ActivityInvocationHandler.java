@@ -62,7 +62,7 @@ class ActivityInvocationHandler implements InvocationHandler {
             activityName = activityMethod.name();
         }
         SyncDecisionContext decisionContext = DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
-        Promise<?> result = decisionContext.executeActivity(activityName, options, args, method.getReturnType());
+        Promise<?> result = decisionContext.executeActivityWithRetry(activityName, options, args, method.getReturnType());
         if (AsyncInternal.isAsync()) {
             AsyncInternal.setAsyncResult(result);
             return Defaults.defaultValue(method.getReturnType());

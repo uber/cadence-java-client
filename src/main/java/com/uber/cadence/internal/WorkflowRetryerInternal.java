@@ -39,42 +39,48 @@ public final class WorkflowRetryerInternal {
 
     public static <R> Promise<R> retryAsync(RetryOptions options, Functions.Func<Promise<R>> func) {
         long startTime = Workflow.currentTimeMillis();
-        return retryAsync(options, func, startTime, 0);
+        return retryAsync(options, func, startTime, 1);
     }
 
     private static <R> Promise<R> retryAsync(RetryOptions options, Functions.Func<Promise<R>> func, long startTime,
-                                             long retry) {
+                                             long attempt) {
         return func.apply().handle((r, e) -> {
             if (e == null) {
                 return Workflow.newPromise(r);
             }
             long elapsed = Workflow.currentTimeMillis() - startTime;
-            long sleepTime = calculateSleepTime(retry, options);
-            if (shouldRethrow(e, options, retry, elapsed, sleepTime)) {
+            long sleepTime = calculateSleepTime(attempt + 1, options);
+            if (shouldRethrow(e, options, attempt, elapsed, sleepTime)) {
                 throw e;
             }
             // newTimer runs in a separate thread, so it performs trampolining eliminating tail recursion.
             return Workflow.newTimer(Duration.ofMillis(sleepTime)).thenCompose(
-                    (nil) -> retryAsync(options, func, startTime, retry + 1));
+                    (nil) -> retryAsync(options, func, startTime, attempt + 1));
         }).thenCompose((r) -> r);
     }
 
-    private static boolean shouldRethrow(Exception e, RetryOptions options, long retry, long elapsed, long sleepTime) {
+    private static boolean shouldRethrow(Exception e, RetryOptions options, long attempt, long elapsed, long sleepTime) {
         if (!options.getExceptionFilter().apply(e)) {
             return true;
         }
-        if (retry > options.getMaximumRetries()) {
+        // Attempt that failed.
+        if (attempt >= options.getMaximumAttempts()) {
             return true;
         }
-        if (elapsed + sleepTime >= options.getExpiration().toMillis() && retry > options.getMinimumRetries()) {
+        Duration expiration = options.getExpiration();
+        if (expiration != null && elapsed + sleepTime >= expiration.toMillis() && attempt > options.getMinimumAttempts()) {
             return true;
         }
         return false;
     }
 
-    private static long calculateSleepTime(long retry, RetryOptions options) {
-        double sleepMillis = (Math.pow(options.getBackoffCoefficient(), retry - 1)) * options.getInterval().toMillis();
-        return Math.min((long) sleepMillis, options.getMaximumInterval().toMillis());
+    private static long calculateSleepTime(long attempt, RetryOptions options) {
+        double sleepMillis = (Math.pow(options.getBackoffCoefficient(), attempt - 1)) * options.getInitialInterval().toMillis();
+        Duration maximumInterval = options.getMaximumInterval();
+        if (maximumInterval == null) {
+            return (long) sleepMillis;
+        }
+        return Math.min((long) sleepMillis, maximumInterval.toMillis());
     }
 
     private WorkflowRetryerInternal() {

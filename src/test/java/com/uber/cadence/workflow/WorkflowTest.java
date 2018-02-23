@@ -32,7 +32,6 @@ import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.dispatcher.DeterministicRunnerTest;
-import com.uber.cadence.internal.dispatcher.Tracer;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -105,7 +104,7 @@ public class WorkflowTest {
                 .setTaskList(taskList);
     }
 
-    private static ActivityOptions newActivitySchedulingOptions1() {
+    private static ActivityOptions newActivityOptions1() {
         return new ActivityOptions.Builder()
                 .setTaskList(taskList)
                 .setHeartbeatTimeoutSeconds(5)
@@ -115,7 +114,7 @@ public class WorkflowTest {
                 .build();
     }
 
-    private static ActivityOptions newActivitySchedulingOptions2() {
+    private static ActivityOptions newActivityOptions2() {
         return new ActivityOptions.Builder()
                 .setScheduleToCloseTimeoutSeconds(20)
                 .build();
@@ -136,7 +135,7 @@ public class WorkflowTest {
                 .build();
         workflowClientWithOptions = WorkflowClient.newInstance(domain, clientOptions);
         newWorkflowOptionsBuilder();
-        newActivitySchedulingOptions1();
+        newActivityOptions1();
         activitiesImpl.invocations.clear();
         activitiesImpl.procResult.clear();
     }
@@ -174,7 +173,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities activities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
+            TestActivities activities = Workflow.newActivityStub(TestActivities.class, newActivityOptions1());
             // Invoke synchronously in a separate thread for testing purposes only.
             // In real workflows use
             // Async.invoke(activities::activityWithDelay, 1000, true)
@@ -191,6 +190,44 @@ public class WorkflowTest {
         String result = workflowStub.execute();
         assertEquals("activity10", result);
     }
+
+    public static class TestActivityRetry implements TestWorkflow1 {
+
+        @Override
+        public String execute() {
+            ActivityOptions options = new ActivityOptions.Builder()
+                    .setTaskList(taskList)
+                    .setHeartbeatTimeoutSeconds(5)
+                    .setScheduleToCloseTimeoutSeconds(5)
+                    .setScheduleToStartTimeoutSeconds(5)
+                    .setStartToCloseTimeoutSeconds(10)
+                    .setRetryOptions(new RetryOptions.Builder()
+                            .setMinimumAttempts(2)
+                            .setMaximumInterval(Duration.ofSeconds(1))
+                            .setInitialInterval(Duration.ofSeconds(1))
+                            .setMaximumAttempts(3)
+                            .build())
+                    .build();
+
+            TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+            activities.throwIO();
+            return "ignored";
+        }
+    }
+
+    @Test
+    public void testActivityRetry() {
+        startWorkerFor(TestActivityRetry.class);
+        TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
+        try {
+            workflowStub.execute();
+            fail("unreachable");
+        } catch (WorkflowException e) {
+            assertTrue(e.getCause().getCause() instanceof IOException);
+        }
+        assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    }
+
 
     public static class TestHeartbeatTimeoutDetails implements TestWorkflow1 {
 
@@ -259,7 +296,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions1());
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivityOptions1());
             try {
                 testActivities.activityWithDelay(100000, true);
             } catch (CancellationException e) {
@@ -325,7 +362,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
             Promise<String> a = Async.invoke(testActivities::activity);
             Promise<String> a1 = Async.invoke(testActivities::activity1, "1");
             Promise<String> a2 = Async.invoke(testActivities::activity2, "1", 2);
@@ -461,7 +498,7 @@ public class WorkflowTest {
     }
 
     private static final RetryOptions retryOptions = new RetryOptions.Builder()
-            .setInterval(Duration.ofSeconds(1))
+            .setInitialInterval(Duration.ofSeconds(1))
             .setMaximumInterval(Duration.ofSeconds(1))
             .setExpiration(Duration.ofSeconds(2))
             .setBackoffCoefficient(1)
@@ -518,7 +555,7 @@ public class WorkflowTest {
 
         @Override
         public String execute() {
-            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivitySchedulingOptions2());
+            TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
             try {
                 testActivities.throwIO();
                 fail("unreachable");
@@ -1031,6 +1068,7 @@ public class WorkflowTest {
 
         @Override
         public void throwIO() {
+            invocations.add("throwIO");
             try {
                 throw new IOException("simulated IO problem");
             } catch (IOException e) {
