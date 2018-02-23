@@ -726,7 +726,7 @@ public class WorkflowTest {
             while (cause.getCause() != null) {
                 cause = cause.getCause();
             }
-            assertTrue(e.toString(), cause.getMessage().contains("Called from non workflow or workflow callback thread"));
+            assertTrue(e.toString(), cause.getMessage().contains("Blocking calls are not allowed in callback threads"));
         }
     }
 

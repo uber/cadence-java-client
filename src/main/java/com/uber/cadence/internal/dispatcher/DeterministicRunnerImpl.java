@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.dispatcher;
 
+import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import org.apache.commons.logging.Log;
@@ -75,6 +76,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private Set<Promise> failedPromises = new HashSet<>();
     private Object exitValue;
     private WorkflowThreadInternal rootWorkflowThread;
+    private final CancellationScopeImpl runnerCancellationScope;
+
 
     DeterministicRunnerImpl(Runnable root) {
         this(System::currentTimeMillis, root);
@@ -90,9 +93,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         this.threadPool = threadPool;
         this.decisionContext = decisionContext;
         this.clock = clock;
+        runnerCancellationScope = new CancellationScopeImpl(true, null, null);
         // TODO: workflow instance specific thread name
         rootWorkflowThread = new WorkflowThreadInternal(true, threadPool, this,
-                WORKFLOW_ROOT_THREAD_NAME, true, root);
+                WORKFLOW_ROOT_THREAD_NAME, false, runnerCancellationScope, root);
         threads.add(rootWorkflowThread);
         rootWorkflowThread.start();
     }
@@ -191,7 +195,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                     throw new Error("unreachable");
                 } catch (RuntimeException e) {
                     log.warn("Promise that was completedExceptionally was never accessed. " +
-                            "The ignored exception:", e.getCause());
+                            "The ignored exception:", CheckedExceptionWrapper.unwrap(e));
                 }
             }
         } finally {
@@ -250,7 +254,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             lock.unlock();
         }
         WorkflowThreadInternal result = new WorkflowThreadInternal(false, threadPool, this, name,
-                ignoreParentCancellation, runnable);
+                ignoreParentCancellation, CancellationScopeImpl.current(), runnable);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
     }
@@ -262,7 +266,9 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             throw new IllegalStateException("closed");
         }
         try {
-            threads.add(new CallbackCoroutine(threadPool, this, taskName, task));
+
+            threads.add(new CallbackCoroutine(threadPool, this, taskName, task, false,
+                    WorkflowInternal.currentCancellationScope()));
         } finally {
             lock.unlock();
         }
@@ -271,7 +277,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public WorkflowThread newBeforeThread(String name, Runnable r) {
         WorkflowThreadInternal result = new WorkflowThreadInternal(false, threadPool, this, name,
-                false, r);
+                false, runnerCancellationScope, r);
         result.start();
         lock.lock();
         try {

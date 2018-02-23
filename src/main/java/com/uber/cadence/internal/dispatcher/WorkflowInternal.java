@@ -184,7 +184,7 @@ public final class WorkflowInternal {
         return result;
     }
 
-    public static CancellationScope currentCancellationScope() {
+    public static CancellationScopeImpl currentCancellationScope() {
         return CancellationScopeImpl.current();
     }
 

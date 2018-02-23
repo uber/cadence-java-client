@@ -341,7 +341,7 @@ public class DeterministicRunnerTest {
         trace.add("init");
         DeterministicRunner d = new DeterministicRunnerImpl(() -> {
             trace.add("root started");
-            CompletablePromise<Object> threadDone = Workflow.newCompletablePromise();
+            CompletablePromise<String> threadDone = Workflow.newCompletablePromise();
             CancellationScope scope = Workflow.newCancellationScope(() -> {
                 Async.invoke(() -> {
                     trace.add("thread started");
@@ -349,8 +349,8 @@ public class DeterministicRunnerTest {
                     WorkflowInternal.yield("reason1",
                             () -> CancellationScope.current().isCancelRequested()
                     );
+                    threadDone.completeFrom(cancellation);
                     trace.add("thread done: " + cancellation.get());
-                    threadDone.complete(null);
                 });
             });
             trace.add("root before cancel");

@@ -45,10 +45,10 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         private CancellationScopeImpl cancellationScope;
 
         RunnableWrapper(WorkflowThreadContext context, String name, boolean ignoreParentCancellation,
-                        Runnable runnable) {
+                        CancellationScopeImpl parent, Runnable runnable) {
             this.context = context;
             this.name = name;
-            cancellationScope = new CancellationScopeImpl(ignoreParentCancellation, runnable);
+            cancellationScope = new CancellationScopeImpl(ignoreParentCancellation, runnable, parent);
             if (context.getStatus() != Status.CREATED) {
                 throw new IllegalStateException("context not in CREATED state");
             }
@@ -93,10 +93,10 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
                 }
                 context.setUnhandledException(e);
             } finally {
+                DeterministicRunnerImpl.setCurrentThreadInternal(null);
                 context.setStatus(Status.DONE);
                 thread.setName(originalName);
                 thread = null;
-                DeterministicRunnerImpl.setCurrentThreadInternal(null);
             }
         }
 
@@ -136,7 +136,9 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      */
     private long blockedUntil;
 
-    WorkflowThreadInternal(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name, boolean ignoreParentCancellation, Runnable runnable) {
+    WorkflowThreadInternal(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name,
+                           boolean ignoreParentCancellation, CancellationScopeImpl parentCancellationScope,
+                           Runnable runnable) {
         this.root = root;
         this.threadPool = threadPool;
         this.runner = runner;
@@ -146,7 +148,7 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
             name = "workflow-" + super.hashCode();
         }
         log.debug(String.format("Workflow thread \"%s\" created", name));
-        this.task = new RunnableWrapper(context, name, ignoreParentCancellation, runnable);
+        this.task = new RunnableWrapper(context, name, ignoreParentCancellation, parentCancellationScope, runnable);
     }
 
     static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation) {
