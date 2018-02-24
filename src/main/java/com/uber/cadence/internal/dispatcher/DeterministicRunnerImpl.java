@@ -268,9 +268,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         StringBuilder result = new StringBuilder();
         try {
             for (DeterministicRunnerCoroutine coroutine : threads) {
-                if (coroutine instanceof CallbackCoroutine) {
-                    continue;
-                }
                 if (result.length() > 0) {
                     result.append("\n");
                 }
