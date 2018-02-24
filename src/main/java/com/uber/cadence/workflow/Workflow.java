@@ -133,6 +133,17 @@ public final class Workflow {
     }
 
     /**
+     * Invokes function retrying in case of failures according to retry options.
+     * Synchronous variant. Use {@link Async#retry(RetryOptions, Functions.Func)} for asynchronous functions.
+     * @param options retry options that specify retry policy
+     * @param fn function to invoke and retry
+     * @return result of the function or the last failure.
+     */
+    public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
+        return WorkflowRetryerInternal.retry(options, fn);
+    }
+
+    /**
      * Creates client stub that can be used to continue this workflow as new generation.
      *
      * @param workflowInterface interface type implemented by next generation of workflow
@@ -206,14 +217,13 @@ public final class Workflow {
     }
 
     /**
-     * Invokes function retrying in case of failures according to retry options.
-     * Synchronous variant. Use {@link Async#retry(RetryOptions, Functions.Func)} for asynchronous functions.
-     * @param options retry options that specify retry policy
-     * @param fn function to invoke and retry
-     * @return result of the function or the last failure.
+     * True if workflow code is being replayed.
+     * <b>Warning!</b> Never make workflow logic depend on this flag as it is going to break determinism.
+     * The only reasonable uses for this flag are deduping external never failing side effects
+     * like logging or metric reporting.
      */
-    public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
-        return WorkflowRetryerInternal.retry(options, fn);
+    public static boolean isReplaying() {
+        return WorkflowInternal.isReplaying();
     }
 
     /**

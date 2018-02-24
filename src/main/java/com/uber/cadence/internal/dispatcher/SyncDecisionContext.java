@@ -78,21 +78,50 @@ class SyncDecisionContext {
         return runner;
     }
 
-    public <T> Promise<T> executeActivityWithRetry(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+    public <T> Promise<T> executeActivity(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
         RetryOptions retryOptions = options.getRetryOptions();
         if (retryOptions != null) {
-            return Async.retry(retryOptions, () -> executeActivity(name, options, args, returnType));
+            return Async.retry(retryOptions, () -> executeActivityOnce(name, options, args, returnType));
         }
-        return executeActivity(name, options, args, returnType);
+        return executeActivityOnce(name, options, args, returnType);
     }
 
-    private <T> Promise<T> executeActivity(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+    private <T> Promise<T> executeActivityOnce(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
         byte[] input = converter.toData(args);
-        Promise<byte[]> binaryResult = executeActivityWithRetry(name, options, input);
+        Promise<byte[]> binaryResult = executeActivityOnce(name, options, input);
         if (returnType == Void.TYPE) {
             return binaryResult.thenApply((r) -> null);
         }
         return binaryResult.thenApply((r) -> converter.fromData(r, returnType));
+    }
+
+    private Promise<byte[]> executeActivityOnce(String name, ActivityOptions options, byte[] input) {
+        CompletablePromise<byte[]> result = Workflow.newPromise();
+        ExecuteActivityParameters parameters = new ExecuteActivityParameters();
+        //TODO: Real task list
+        parameters.withActivityType(new ActivityType().setName(name)).
+                withInput(input).
+                withTaskList(options.getTaskList()).
+                withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeoutSeconds()).
+                withStartToCloseTimeoutSeconds(options.getStartToCloseTimeoutSeconds()).
+                withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeoutSeconds()).
+                setHeartbeatTimeoutSeconds(options.getHeartbeatTimeoutSeconds());
+        Consumer<Throwable> cancellationCallback = activityClient.scheduleActivityTask(parameters,
+                (output, failure) -> {
+                    if (failure != null) {
+                        runner.executeInWorkflowThread("activity failure callback",
+                                () -> result.completeExceptionally(mapActivityException(failure)));
+                    } else {
+                        runner.executeInWorkflowThread("activity failure callback",
+                                () -> result.complete(output));
+                    }
+                });
+        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
+        {
+            cancellationCallback.accept(new CancellationException(reason));
+            return null;
+        });
+        return result;
     }
 
     private RuntimeException mapActivityException(RuntimeException failure) {
@@ -127,64 +156,20 @@ class SyncDecisionContext {
         throw new IllegalArgumentException("Unexpected exception type: " + failure.getClass().getName(), failure);
     }
 
-    private Promise<byte[]> executeActivityWithRetry(String name, ActivityOptions options, byte[] input) {
-        CompletablePromise<byte[]> result = Workflow.newPromise();
-        ExecuteActivityParameters parameters = new ExecuteActivityParameters();
-        //TODO: Real task list
-        parameters.withActivityType(new ActivityType().setName(name)).
-                withInput(input).
-                withTaskList(options.getTaskList()).
-                withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeoutSeconds()).
-                withStartToCloseTimeoutSeconds(options.getStartToCloseTimeoutSeconds()).
-                withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeoutSeconds()).
-                setHeartbeatTimeoutSeconds(options.getHeartbeatTimeoutSeconds());
-        Consumer<Throwable> cancellationCallback = activityClient.scheduleActivityTask(parameters,
-                (output, failure) -> {
-                    if (failure != null) {
-                        runner.executeInWorkflowThread("activity failure callback",
-                                () -> result.completeExceptionally(mapActivityException(failure)));
-                    } else {
-                        runner.executeInWorkflowThread("activity failure callback",
-                                () -> result.complete(output));
-                    }
-                });
-        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
-        {
-            cancellationCallback.accept(new CancellationException(reason));
-            return null;
-        });
-        return result;
+    public Promise<byte[]> executeChildWorkflow(String name, ChildWorkflowOptions options, byte[] input,
+                                                CompletablePromise<WorkflowExecution> executionResult) {
+        RetryOptions retryOptions = options.getRetryOptions();
+        if (retryOptions != null) {
+            return Async.retry(retryOptions, () -> executeChildWorkflowOnce(name, options, input, executionResult));
+        }
+        return executeChildWorkflowOnce(name, options, input, executionResult);
     }
 
-
-    private RuntimeException mapChildWorkflowException(RuntimeException failure) {
-        if (failure == null) {
-            return null;
-        }
-        if (failure instanceof CancellationException) {
-            return failure;
-        }
-
-        if (!(failure instanceof ChildWorkflowTaskFailedException)) {
-            throw new IllegalArgumentException("Unexpected exception type: ", failure);
-        }
-        ChildWorkflowTaskFailedException taskFailed = (ChildWorkflowTaskFailedException) failure;
-        String causeClassName = taskFailed.getReason();
-        Class<? extends Throwable> causeClass;
-        Throwable cause;
-        try {
-            causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
-            cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
-        } catch (Exception e) {
-            cause = e;
-        }
-        return new ChildWorkflowFailureException(taskFailed.getEventId(), taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType(), cause);
-    }
 
     /**
      * @param executionResult promise that is set bu this method when child workflow is started.
      */
-    public Promise<byte[]> executeChildWorkflow(
+    private Promise<byte[]> executeChildWorkflowOnce(
             String name, ChildWorkflowOptions options, byte[] input, CompletablePromise<
             WorkflowExecution> executionResult) {
         StartChildWorkflowExecutionParameters parameters = new StartChildWorkflowExecutionParameters.Builder()
@@ -203,9 +188,11 @@ class SyncDecisionContext {
                 executionResult::complete,
                 (output, failure) -> {
                     if (failure != null) {
-                        result.completeExceptionally(mapChildWorkflowException(failure));
+                        runner.executeInWorkflowThread("child workflow failure callback",
+                                () -> result.completeExceptionally(mapChildWorkflowException(failure)));
                     } else {
-                        result.complete(output);
+                        runner.executeInWorkflowThread("child workflow completion callback",
+                                () -> result.complete(output));
                     }
                 });
         CancellationScope.current().getCancellationRequest().thenApply((reason) ->
@@ -214,6 +201,30 @@ class SyncDecisionContext {
             return null;
         });
         return result;
+    }
+
+    private RuntimeException mapChildWorkflowException(RuntimeException failure) {
+        if (failure == null) {
+            return null;
+        }
+        if (failure instanceof CancellationException) {
+            return failure;
+        }
+
+        if (!(failure instanceof ChildWorkflowTaskFailedException)) {
+            throw new IllegalArgumentException("Unexpected exception type: ", failure);
+        }
+        ChildWorkflowTaskFailedException taskFailed = (ChildWorkflowTaskFailedException) failure;
+        String causeClassName = taskFailed.getReason();
+        Throwable cause;
+        try {
+            @SuppressWarnings("unchecked")
+            Class<? extends Throwable> causeClass = (Class<? extends Throwable>) Class.forName(causeClassName);
+            cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
+        } catch (Exception e) {
+            cause = e;
+        }
+        return new ChildWorkflowFailureException(taskFailed.getEventId(), taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType(), cause);
     }
 
     public Promise<Void> newTimer(long delaySeconds) {
@@ -283,5 +294,9 @@ class SyncDecisionContext {
 
     public WorkflowContext getWorkflowContext() {
         return context.getWorkflowContext();
+    }
+
+    public boolean isReplaying() {
+        return context.getWorkflowClock().isReplaying();
     }
 }
