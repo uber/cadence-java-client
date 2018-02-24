@@ -92,7 +92,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     private Set<Promise> failedPromises = new HashSet<>();
     private boolean exitRequested;
     private Object exitValue;
-    private WorkflowThreadInternal rootWorkflowThread;
+    private WorkflowThread rootWorkflowThread;
     private final CancellationScopeImpl runnerCancellationScope;
 
 
@@ -137,7 +137,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             do {
                 threadsToAdd.clear();
                 for (NamedRunnable nr : toExecuteInWorkflowThread) {
-                    WorkflowThreadInternal thread = new WorkflowThreadInternal(false, threadPool,
+                    WorkflowThread thread = new WorkflowThreadInternal(false, threadPool,
                             this, nr.name, false, runnerCancellationScope, nr.runnable);
                     // It is important to prepend threads as there are callbacks
                     // like signals that have to run before any other threads.
@@ -311,7 +311,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         }
     }
 
-    WorkflowThreadInternal newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
+    WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
         lock.lock();
         try {
             checkWorkflowThreadOnly();
@@ -319,7 +319,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
-        WorkflowThreadInternal result = new WorkflowThreadInternal(false, threadPool, this, name,
+        WorkflowThread result = new WorkflowThreadInternal(false, threadPool, this, name,
                 ignoreParentCancellation, CancellationScopeImpl.current(), runnable);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
