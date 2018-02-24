@@ -214,20 +214,10 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
         return runner.getDecisionContext();
     }
 
-    @Override
-    public void join() {
-        WorkflowThreadInternal.yield("WorkflowThread.join", this::isDone);
-    }
-
     // TODO: Timeout support
     @Override
     public void join(long millis) {
         WorkflowThreadInternal.yield(millis, "WorkflowThread.join", this::isDone);
-    }
-
-    @Override
-    public void join(Duration duration) {
-        join(duration.toMillis());
     }
 
     public void setName(String name) {
@@ -299,10 +289,9 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
     public void stop() {
         // Cannot call destroy() on itself
         if (thread == Thread.currentThread()) {
-            context.exit();
-        } else {
-            context.destroy();
+            throw new Error("Cannot call destroy on itself: " + thread.getName());
         }
+        context.destroy();
         if (!context.isDone()) {
             throw new RuntimeException("Couldn't destroy the thread. " +
                     "The blocked thread stack trace: " + getStackTrace());
@@ -366,8 +355,13 @@ class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCorou
      * @param value accessible through {@link DeterministicRunner#getExitValue()}.
      */
     static <R> void exit(R value) {
-        currentThreadInternal().stop(); // needed to close WorkflowThreadContext
-        currentThreadInternal().getRunner().exit(value);
+        currentThreadInternal().exitThread(value); // needed to close WorkflowThreadContext
+    }
+
+    @Override
+    public <R> void exitThread(R value) {
+        runner.exit(value);
+        throw new DestroyWorkflowThreadError("exit");
     }
 
     /**

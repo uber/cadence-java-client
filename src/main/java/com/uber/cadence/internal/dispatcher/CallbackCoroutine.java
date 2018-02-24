@@ -164,4 +164,10 @@ class CallbackCoroutine implements DeterministicRunnerCoroutine {
     public boolean yieldImpl(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
         throw new IllegalStateException("Blocking calls are not allowed in callback threads");
     }
+
+    @Override
+    public <R> void exitThread(R value) {
+        runner.exit(value);
+        throw new DestroyWorkflowThreadError("exit");
+    }
 }

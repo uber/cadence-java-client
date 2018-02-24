@@ -24,11 +24,7 @@ interface WorkflowThread extends CancellationScope {
 
     void start();
 
-    void join();
-
     void join(long millis);
-
-    void join(Duration duration);
 
     void setName(String name);
 

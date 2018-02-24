@@ -32,7 +32,7 @@ class CancellationScopeImpl implements CancellationScope {
 
     static CancellationScopeImpl current() {
         if (scopeStack.get().empty()) {
-            return null;
+            throw new IllegalStateException("Cannot be called by non workflow thread");
         }
         return scopeStack.get().peek();
     }

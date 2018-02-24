@@ -785,14 +785,10 @@ public class WorkflowTest {
             Promise<Void> timer1 = Workflow.newTimer(Duration.ZERO);
             Promise<Void> timer2 = Workflow.newTimer(Duration.ofSeconds(1));
 
-            CompletablePromise<Void> f = Workflow.newPromise();
-            timer1.thenApply((e) -> {
-                timer2.get(); // This is prohibited
-                f.complete(null);
-                return null;
+            return timer1.thenApply((e) -> {
+                timer2.get();
+                return "timer2Fired";
             }).get();
-            f.get();
-            return "testTimerBlocked";
         }
     }
 
@@ -803,20 +799,12 @@ public class WorkflowTest {
     public void testTimerCallbackBlocked() {
         startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
-        options.setExecutionStartToCloseTimeoutSeconds(2);
+        options.setExecutionStartToCloseTimeoutSeconds(10);
         options.setTaskStartToCloseTimeoutSeconds(1);
         options.setTaskList(taskList);
         TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
-        try {
-            client.execute();
-            fail("failure expected");
-        } catch (Exception e) {
-            Throwable cause = e;
-            while (cause.getCause() != null) {
-                cause = cause.getCause();
-            }
-            assertTrue(e.toString(), cause.getMessage().contains("Blocking calls are not allowed in callback threads"));
-        }
+        String result = client.execute();
+        assertEquals("timer2Fired", result);
     }
 
     public interface ITestChild {

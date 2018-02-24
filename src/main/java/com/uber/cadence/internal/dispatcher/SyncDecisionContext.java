@@ -74,6 +74,10 @@ class SyncDecisionContext {
         this.runner = runner;
     }
 
+    public DeterministicRunner getRunner() {
+        return runner;
+    }
+
     public <T> Promise<T> executeActivityWithRetry(String name, ActivityOptions options, Object[] args, Class<T> returnType) {
         RetryOptions retryOptions = options.getRetryOptions();
         if (retryOptions != null) {
@@ -138,15 +142,16 @@ class SyncDecisionContext {
                 (output, failure) -> {
                     if (failure != null) {
                         // TODO: Make sure that only Exceptions are passed into the callback.
-                        runner.newBeforeThread("activity completion callback", () -> result.completeExceptionally(mapActivityException(failure)));
+                        runner.executeInWorkflowThread("activity failure callback",
+                                () -> result.completeExceptionally(mapActivityException(failure)));
                     } else {
-                        runner.newBeforeThread("activity failure callback", () -> result.complete(output));
+                        runner.executeInWorkflowThread("activity failure callback",
+                                () -> result.complete(output));
                     }
                 });
         CancellationScope.current().getCancellationRequest().thenApply((reason) ->
         {
             cancellationCallback.accept(new CancellationException(reason));
-//            runner.newBeforeThread("activity cancellation callback", () -> cancellationCallback.accept(new CancellationException(reason)));
             return null;
         });
         return result;
@@ -213,6 +218,12 @@ class SyncDecisionContext {
     }
 
     public Promise<Void> newTimer(long delaySeconds) {
+        if (delaySeconds < 0) {
+            throw new IllegalArgumentException("negative delay");
+        }
+        if (delaySeconds == 0) {
+            return Workflow.newPromise(null);
+        }
         CompletablePromise<Void> timer = Workflow.newPromise();
         long fireTime = context.getWorkflowClock().currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         timers.addTimer(fireTime, timer);
@@ -228,8 +239,12 @@ class SyncDecisionContext {
     /**
      * @return true if any timer fired
      */
-    public boolean fireTimers() {
-        return timers.fireTimers(context.getWorkflowClock().currentTimeMillis());
+    public void fireTimers() {
+        timers.fireTimers(context.getWorkflowClock().currentTimeMillis());
+    }
+
+    public boolean hasTimersToFire() {
+        return timers.hasTimersToFire(context.getWorkflowClock().currentTimeMillis());
     }
 
     public long getNextFireTime() {

@@ -263,7 +263,7 @@ public class DeterministicRunnerTest {
         assertFalse(d.isDone());
         unblock2 = true;
         d.runUntilAllBlocked();
-//        assertTrue(d.isDone());
+        assertTrue(d.isDone());
         assertEquals("exitValue", d.getExitValue());
         String[] expected = new String[]{
                 "root started",

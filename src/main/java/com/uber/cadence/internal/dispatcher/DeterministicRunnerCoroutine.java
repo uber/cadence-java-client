@@ -39,4 +39,6 @@ interface DeterministicRunnerCoroutine {
     void yieldImpl(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
 
     boolean yieldImpl(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
+
+    <R> void exitThread(R value);
 }

@@ -17,6 +17,8 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.CompletablePromise;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,6 +33,8 @@ import java.util.TreeMap;
  * Not thread safe.
  */
 class WorkflowTimers {
+
+    private static final Log log = LogFactory.getLog(WorkflowTimers.class);
 
     /**
      * Timers that fire at the same time.
@@ -66,6 +70,10 @@ class WorkflowTimers {
         public void remove(CompletablePromise<Void> result) {
             results.remove(result);
         }
+
+        public boolean isEmpty() {
+            return results.isEmpty();
+        }
     }
 
     /**
@@ -88,12 +96,19 @@ class WorkflowTimers {
             throw new Error("Unknown timer");
         }
         t.remove(result);
+        if (t.isEmpty()) {
+            timers.remove(fireTime);
+        }
+    }
+
+    public boolean hasTimersToFire(long currentTime) {
+        return !timers.isEmpty() && timers.firstKey() <= currentTime;
     }
 
     /**
      * @return true if any timer fired
      */
-    public boolean fireTimers(long currentTime) {
+    public void fireTimers(long currentTime) {
         boolean fired = false;
         boolean newTimersAdded;
         do {
@@ -112,7 +127,9 @@ class WorkflowTimers {
             newTimersAdded = timers.size() > beforeSize;
             fired = fired || !toFire.isEmpty();
         } while (newTimersAdded);
-        return fired;
+        if (fired) {
+            log.info("Fired some timers");
+        }
     }
 
     public long getNextFireTime() {
