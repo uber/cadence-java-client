@@ -141,7 +141,6 @@ class SyncDecisionContext {
         Consumer<Throwable> cancellationCallback = activityClient.scheduleActivityTask(parameters,
                 (output, failure) -> {
                     if (failure != null) {
-                        // TODO: Make sure that only Exceptions are passed into the callback.
                         runner.executeInWorkflowThread("activity failure callback",
                                 () -> result.completeExceptionally(mapActivityException(failure)));
                     } else {

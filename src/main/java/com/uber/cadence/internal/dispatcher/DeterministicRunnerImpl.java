@@ -23,7 +23,6 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -127,7 +126,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         lock.lock();
         try {
             checkClosed();
-            log.info("runUntilAllBlocked begin");
 
             inRunUntilAllBlocked = true;
             Throwable unhandledException = null;
@@ -158,7 +156,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                         break outerLoop;
                     }
                     if (c.isDone()) {
-                        log.info("thread remove");
                         ci.remove();
                         if (c.getUnhandledException() != null) {
                             unhandledException = c.getUnhandledException();
@@ -182,12 +179,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             if (nextWakeUpTime < currentTimeMillis()) {
                 nextWakeUpTime = 0;
             }
-            log.info("runUntilAllBlocked end");
-        } catch (ConcurrentModificationException e) {
-            log.info("runUntilAllBlocked concurrent exception");
-            throw e;
         } finally {
-
             inRunUntilAllBlocked = false;
             // Close was requested while running
             if (closeRequested) {
@@ -312,13 +304,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     WorkflowThread newThread(Runnable runnable, boolean detached, String name) {
-        lock.lock();
-        try {
-            checkWorkflowThreadOnly();
-            checkClosed();
-        } finally {
-            lock.unlock();
-        }
+        checkWorkflowThreadOnly();
+        checkClosed();
         WorkflowThread result = new WorkflowThreadImpl(false, threadPool, this, name,
                 detached, CancellationScopeImpl.current(), runnable);
         threadsToAdd.add(result); // This is synchronized collection.

@@ -17,7 +17,6 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.CancellationScope;
-import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Workflow;
 
 import java.util.concurrent.ExecutorService;
@@ -64,7 +63,7 @@ interface DeterministicRunner {
     boolean isDone();
 
     /**
-     * @return exit value passed to WorkflowThreadImpl.exit().
+     * @return exit value passed to {@link WorkflowThread#exit(Object)}
      */
     <R> R getExitValue();
 
@@ -97,8 +96,12 @@ interface DeterministicRunner {
     long getNextWakeUpTime();
 
     /**
-     * Adds already started thread before all other threads. To be called before runUntilAllBlocked.
-     * This is used to ensure that some operations (like signal callbacks) are executed before all other threads.
+     * Executes a runnable in a specially created workflow thread.
+     * This newly created thread is given chance to run before any other existing threads.
+     * This is used to ensure that some operations (like signal callbacks) are executed
+     * before all other threads which is important to guarantee their processing even if
+     * they were received after workflow code decided to complete.
+     * To be called before runUntilAllBlocked.
      */
     void executeInWorkflowThread(String name, Runnable r);
 }

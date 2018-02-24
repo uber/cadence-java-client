@@ -61,9 +61,7 @@ class WorkflowThreadImpl implements WorkflowThread {
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
                 context.initialYield();
-                log.debug(String.format("Workflow thread \"%s\" run started", name));
                 cancellationScope.run();
-                log.debug(String.format("Workflow thread \"%s\" run completed", name));
             } catch (DestroyWorkflowThreadError e) {
                 if (!context.isDestroyRequested()) {
                     context.setUnhandledException(e);

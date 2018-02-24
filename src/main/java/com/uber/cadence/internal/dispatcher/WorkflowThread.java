@@ -18,7 +18,6 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.workflow.CancellationScope;
 
-import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.function.Supplier;
 

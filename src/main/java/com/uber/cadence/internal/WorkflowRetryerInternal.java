@@ -9,9 +9,18 @@ import java.time.Duration;
 
 /**
  * Implements operation retry logic for both synchronous and asynchronous operations.
+ * Internal class. Do not reference this class directly.
+ * Use {@link Workflow#retry(RetryOptions, Functions.Func)} or
+ * Async{@link #retry(RetryOptions, Functions.Func)}.
  */
 public final class WorkflowRetryerInternal {
 
+    /**
+     * Retry procedure synchronously.
+     *
+     * @param options retry options.
+     * @param proc    procedure to retry.
+     */
     public static void retry(RetryOptions options, Functions.Proc proc) {
         retry(options, () -> {
             proc.apply();
@@ -19,6 +28,13 @@ public final class WorkflowRetryerInternal {
         });
     }
 
+    /**
+     * Retry function synchronously.
+     *
+     * @param options retry options.
+     * @param func    procedure to retry.
+     * @return result of func if ever completed successfully.
+     */
     public static <R> R retry(RetryOptions options, Functions.Func<R> func) {
         int retry = 0;
         long startTime = Workflow.currentTimeMillis();
@@ -37,6 +53,13 @@ public final class WorkflowRetryerInternal {
         }
     }
 
+    /**
+     * Retry function asynchronously.
+     *
+     * @param options retry options.
+     * @param func    procedure to retry.
+     * @return result promise to the result or failure if retries stopped according to options.
+     */
     public static <R> Promise<R> retryAsync(RetryOptions options, Functions.Func<Promise<R>> func) {
         long startTime = Workflow.currentTimeMillis();
         return retryAsync(options, func, startTime, 1);
