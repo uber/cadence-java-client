@@ -151,11 +151,11 @@ public final class WorkflowInternal {
     }
 
     public static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        WorkflowThreadInternal.yield(reason, unblockCondition);
+        WorkflowThread.yield(reason, unblockCondition);
     }
 
     public static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        return WorkflowThreadInternal.yield(timeoutMillis, reason, unblockCondition);
+        return WorkflowThread.yield(timeoutMillis, reason, unblockCondition);
     }
 
     public static WorkflowContext getContext() {

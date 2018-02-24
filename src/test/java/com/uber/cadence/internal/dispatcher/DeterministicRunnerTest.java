@@ -252,7 +252,7 @@ public class DeterministicRunnerTest {
                         () -> unblock2
                 );
                 trace.add("child2 exiting");
-                WorkflowThreadInternal.exit("exitValue");
+                WorkflowThread.exit("exitValue");
                 trace.add("child2 done");
             });
             thread1.get();

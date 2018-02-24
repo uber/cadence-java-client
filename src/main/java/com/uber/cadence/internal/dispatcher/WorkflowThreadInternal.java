@@ -22,7 +22,6 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -214,12 +213,6 @@ class WorkflowThreadInternal implements WorkflowThread {
         return runner.getDecisionContext();
     }
 
-    // TODO: Timeout support
-    @Override
-    public void join(long millis) {
-        WorkflowThreadInternal.yield(millis, "WorkflowThread.join", this::isDone);
-    }
-
     public void setName(String name) {
         task.setName(name);
     }
@@ -344,18 +337,8 @@ class WorkflowThreadInternal implements WorkflowThread {
         long blockedUntil = WorkflowInternal.currentTimeMillis() + timeoutMillis;
         setBlockedUntil(blockedUntil);
         YieldWithTimeoutCondition condition = new YieldWithTimeoutCondition(unblockCondition, blockedUntil);
-        yield(reason, condition);
+        WorkflowThread.yield(reason, condition);
         return !condition.isTimedOut();
-    }
-
-    /**
-     * Stop executing all workflow threads and puts {@link DeterministicRunner} into closed state.
-     * To be called only from a workflow thread.
-     *
-     * @param value accessible through {@link DeterministicRunner#getExitValue()}.
-     */
-    static <R> void exit(R value) {
-        currentThreadInternal().exitThread(value); // needed to close WorkflowThreadContext
     }
 
     @Override
@@ -376,28 +359,6 @@ class WorkflowThreadInternal implements WorkflowThread {
             pw.println("\tat " + se);
         }
         return sw.toString();
-    }
-
-    /**
-     * Block current thread until unblockCondition is evaluated to true.
-     * This method is intended for framework level libraries, never use directly in a workflow implementation.
-     *
-     * @param reason           reason for blocking
-     * @param unblockCondition condition that should return true to indicate that thread should unblock.
-     * @throws CancellationException      if thread (or current cancellation scope was cancelled).
-     * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
-     */
-    static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        currentThreadInternal().yieldImpl(reason, unblockCondition);
-    }
-
-    /**
-     * Block current thread until unblockCondition is evaluated to true or timeoutMillis passes.
-     *
-     * @return false if timed out.
-     */
-    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
-        return currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
     }
 
     static class YieldWithTimeoutCondition implements Supplier<Boolean> {

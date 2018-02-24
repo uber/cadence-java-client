@@ -19,13 +19,36 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.workflow.CancellationScope;
 
 import java.time.Duration;
+import java.util.concurrent.CancellationException;
 import java.util.function.Supplier;
+
+import static com.uber.cadence.internal.dispatcher.DeterministicRunnerImpl.currentThreadInternal;
 
 interface WorkflowThread extends CancellationScope {
 
-    void start();
+    /**
+     * Block current thread until unblockCondition is evaluated to true.
+     * This method is intended for framework level libraries, never use directly in a workflow implementation.
+     *
+     * @param reason           reason for blocking
+     * @param unblockCondition condition that should return true to indicate that thread should unblock.
+     * @throws CancellationException      if thread (or current cancellation scope was cancelled).
+     * @throws DestroyWorkflowThreadError if thread was asked to be destroyed.
+     */
+    static void yield(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
+        currentThreadInternal().yieldImpl(reason, unblockCondition);
+    }
 
-    void join(long millis);
+    /**
+     * Block current thread until unblockCondition is evaluated to true or timeoutMillis passes.
+     *
+     * @return false if timed out.
+     */
+    static boolean yield(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError {
+        return currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
+    }
+
+    void start();
 
     void setName(String name);
 
@@ -54,6 +77,16 @@ interface WorkflowThread extends CancellationScope {
     void yieldImpl(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
 
     boolean yieldImpl(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
+
+    /**
+     * Stop executing all workflow threads and puts {@link DeterministicRunner} into closed state.
+     * To be called only from a workflow thread.
+     *
+     * @param value accessible through {@link DeterministicRunner#getExitValue()}.
+     */
+    static <R> void exit(R value) {
+        currentThreadInternal().exitThread(value); // needed to close WorkflowThreadContext
+    }
 
     <R> void exitThread(R value);
 
