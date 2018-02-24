@@ -19,6 +19,7 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.workflow.CancellationScope;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 interface WorkflowThread extends CancellationScope {
 
@@ -33,4 +34,27 @@ interface WorkflowThread extends CancellationScope {
     long getId();
 
     String getStackTrace();
+
+    DeterministicRunnerImpl getRunner();
+
+    SyncDecisionContext getDecisionContext();
+
+    long getBlockedUntil();
+
+    boolean runUntilBlocked();
+
+    Throwable getUnhandledException();
+
+    boolean isDone();
+
+    void stop();
+
+    void addStackTrace(StringBuilder result);
+
+    void yieldImpl(String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
+
+    boolean yieldImpl(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition) throws DestroyWorkflowThreadError;
+
+    <R> void exitThread(R value);
+
 }

@@ -32,7 +32,7 @@ import java.util.function.Supplier;
 
 import static com.uber.cadence.internal.dispatcher.DeterministicRunnerImpl.currentThreadInternal;
 
-class WorkflowThreadInternal implements WorkflowThread, DeterministicRunnerCoroutine {
+class WorkflowThreadInternal implements WorkflowThread {
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.

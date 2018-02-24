@@ -54,28 +54,28 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     private static final Log log = LogFactory.getLog(DeterministicRunnerImpl.class);
     public static final String WORKFLOW_ROOT_THREAD_NAME = "workflow-root";
-    private static final ThreadLocal<DeterministicRunnerCoroutine> currentThreadThreadLocal = new ThreadLocal<>();
+    private static final ThreadLocal<WorkflowThread> currentThreadThreadLocal = new ThreadLocal<>();
 
     private final Lock lock = new ReentrantLock();
     private final ExecutorService threadPool;
     private final SyncDecisionContext decisionContext;
-    private final LinkedList<DeterministicRunnerCoroutine> threads = new LinkedList<>(); // protected by lock
-    private final List<DeterministicRunnerCoroutine> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
+    private final LinkedList<WorkflowThread> threads = new LinkedList<>(); // protected by lock
+    private final List<WorkflowThread> threadsToAdd = Collections.synchronizedList(new ArrayList<>());
     private final List<NamedRunnable> toExecuteInWorkflowThread = new ArrayList<>();
     private final Supplier<Long> clock;
     private boolean inRunUntilAllBlocked;
     private boolean closeRequested;
     private boolean closed;
 
-    static DeterministicRunnerCoroutine currentThreadInternal() {
-        DeterministicRunnerCoroutine result = currentThreadThreadLocal.get();
+    static WorkflowThread currentThreadInternal() {
+        WorkflowThread result = currentThreadThreadLocal.get();
         if (result == null) {
             throw new Error("Called from non workflow or workflow callback thread");
         }
         return result;
     }
 
-    static void setCurrentThreadInternal(DeterministicRunnerCoroutine coroutine) {
+    static void setCurrentThreadInternal(WorkflowThread coroutine) {
         currentThreadThreadLocal.set(coroutine);
     }
 
@@ -148,10 +148,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                 }
                 toExecuteInWorkflowThread.clear();
                 progress = false;
-                ListIterator<DeterministicRunnerCoroutine> ci = threads.listIterator();
+                ListIterator<WorkflowThread> ci = threads.listIterator();
                 nextWakeUpTime = 0;
                 while (ci.hasNext()) {
-                    DeterministicRunnerCoroutine c = ci.next();
+                    WorkflowThread c = ci.next();
                     progress = c.runUntilBlocked() || progress;
                     if (exitRequested) {
                         close();
@@ -175,7 +175,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
                     close();
                     throw unhandledException;
                 }
-                for (DeterministicRunnerCoroutine c : threadsToAdd) {
+                for (WorkflowThread c : threadsToAdd) {
                     threads.add(c);
                 }
             } while (progress && !threads.isEmpty());
@@ -239,7 +239,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             return;
         }
         try {
-            for (DeterministicRunnerCoroutine c : threads) {
+            for (WorkflowThread c : threads) {
                 c.stop();
             }
             threads.clear();
@@ -267,7 +267,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         checkClosed();
         StringBuilder result = new StringBuilder();
         try {
-            for (DeterministicRunnerCoroutine coroutine : threads) {
+            for (WorkflowThread coroutine : threads) {
                 if (result.length() > 0) {
                     result.append("\n");
                 }
