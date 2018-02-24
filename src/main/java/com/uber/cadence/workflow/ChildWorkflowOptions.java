@@ -39,6 +39,20 @@ public final class ChildWorkflowOptions {
 
         private RetryOptions retryOptions;
 
+        public Builder() {
+        }
+
+        public Builder(ChildWorkflowOptions source) {
+            this.domain = source.getDomain();
+            this.workflowId = source.getWorkflowId();
+            this.workflowIdReusePolicy = source.getWorkflowIdReusePolicy();
+            this.executionStartToCloseTimeoutSeconds = source.getExecutionStartToCloseTimeoutSeconds();
+            this.taskStartToCloseTimeoutSeconds = source.getTaskStartToCloseTimeoutSeconds();
+            this.taskList = source.getTaskList();
+            this.childPolicy = source.getChildPolicy();
+            this.retryOptions = source.getRetryOptions();
+        }
+
         /**
          * Specify domain in which workflow should be started.
          * <p>
@@ -190,13 +204,14 @@ public final class ChildWorkflowOptions {
 
     @Override
     public String toString() {
-        return "WorkflowOptions{" +
+        return "ChildWorkflowOptions{" +
                 "domain='" + domain + '\'' +
                 ", workflowId='" + workflowId + '\'' +
                 ", workflowIdReusePolicy=" + workflowIdReusePolicy +
                 ", executionStartToCloseTimeoutSeconds=" + executionStartToCloseTimeoutSeconds +
                 ", taskStartToCloseTimeoutSeconds=" + taskStartToCloseTimeoutSeconds +
                 ", taskList='" + taskList + '\'' +
+                ", retryOptions=" + retryOptions +
                 ", childPolicy=" + childPolicy +
                 '}';
     }
