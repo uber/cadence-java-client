@@ -24,6 +24,9 @@ import java.util.function.Supplier;
 
 import static com.uber.cadence.internal.dispatcher.DeterministicRunnerImpl.currentThreadInternal;
 
+/**
+ * Thread that is scheduled deterministically by {@link DeterministicRunner}.
+ */
 interface WorkflowThread extends CancellationScope {
 
     /**
@@ -48,12 +51,18 @@ interface WorkflowThread extends CancellationScope {
         return currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
     }
 
-    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation) {
-        return newThread(runnable, ignoreParentCancellation, null);
+    /**
+     * Creates a new thread instance.
+     * @param runnable thread function to run
+     * @param detached If this thread is detached from the parent {@link CancellationScope}
+     * @return
+     */
+    static WorkflowThread newThread(Runnable runnable, boolean detached) {
+        return newThread(runnable, detached, null);
     }
 
-    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
-        return currentThreadInternal().getRunner().newThread(runnable, ignoreParentCancellation, name);
+    static WorkflowThread newThread(Runnable runnable, boolean detached, String name) {
+        return currentThreadInternal().getRunner().newThread(runnable, detached, name);
     }
 
     void start();

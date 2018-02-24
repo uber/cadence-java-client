@@ -27,7 +27,7 @@ import java.util.Stack;
 class CancellationScopeImpl implements CancellationScope {
 
     private static ThreadLocal<Stack<CancellationScopeImpl>> scopeStack = ThreadLocal.withInitial(Stack::new);
-    private boolean ignoreParentCancellation;
+    private boolean detached;
     private CompletablePromise<String> cancellationPromise;
 
     static CancellationScopeImpl current() {
@@ -46,7 +46,7 @@ class CancellationScopeImpl implements CancellationScope {
         if (current != expected) {
             throw new Error("Unexpected scope");
         }
-        if (!current.ignoreParentCancellation) {
+        if (!current.detached) {
             current.parent.removeChild(current);
         }
     }
@@ -64,18 +64,18 @@ class CancellationScopeImpl implements CancellationScope {
         this(ignoreParentCancellation, runnable, current());
     }
 
-    CancellationScopeImpl(boolean ignoreParentCancellation, Runnable runnable, CancellationScopeImpl parent) {
-        this.ignoreParentCancellation = ignoreParentCancellation;
+    CancellationScopeImpl(boolean detached, Runnable runnable, CancellationScopeImpl parent) {
+        this.detached = detached;
         this.runnable = runnable;
         setParent(parent);
     }
 
     private void setParent(CancellationScopeImpl parent) {
         if (parent == null) {
-            ignoreParentCancellation = true;
+            detached = true;
             return;
         }
-        if (!ignoreParentCancellation) {
+        if (!detached) {
             this.parent = parent;
             parent.addChild(this);
             if (parent.isCancelRequested()) {
@@ -94,8 +94,8 @@ class CancellationScopeImpl implements CancellationScope {
     }
 
     @Override
-    public boolean isIgnoreParentCancellation() {
-        return ignoreParentCancellation;
+    public boolean isDetached() {
+        return detached;
     }
 
     @Override

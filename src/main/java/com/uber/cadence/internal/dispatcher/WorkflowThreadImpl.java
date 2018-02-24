@@ -29,7 +29,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-class WorkflowThreadInternal implements WorkflowThread {
+class WorkflowThreadImpl implements WorkflowThread {
 
     /**
      * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl constructor.
@@ -41,11 +41,11 @@ class WorkflowThreadInternal implements WorkflowThread {
         private String name;
         private CancellationScopeImpl cancellationScope;
 
-        RunnableWrapper(WorkflowThreadContext context, String name, boolean ignoreParentCancellation,
+        RunnableWrapper(WorkflowThreadContext context, String name, boolean detached,
                         CancellationScopeImpl parent, Runnable runnable) {
             this.context = context;
             this.name = name;
-            cancellationScope = new CancellationScopeImpl(ignoreParentCancellation, runnable, parent);
+            cancellationScope = new CancellationScopeImpl(detached, runnable, parent);
             if (context.getStatus() != Status.CREATED) {
                 throw new IllegalStateException("context not in CREATED state");
             }
@@ -56,7 +56,7 @@ class WorkflowThreadInternal implements WorkflowThread {
             thread = Thread.currentThread();
             originalName = thread.getName();
             thread.setName(name);
-            DeterministicRunnerImpl.setCurrentThreadInternal(WorkflowThreadInternal.this);
+            DeterministicRunnerImpl.setCurrentThreadInternal(WorkflowThreadImpl.this);
             try {
                 // initialYield blocks thread until the first runUntilBlocked is called.
                 // Otherwise r starts executing without control of the dispatcher.
@@ -116,7 +116,7 @@ class WorkflowThreadInternal implements WorkflowThread {
         }
     }
 
-    private static final Log log = LogFactory.getLog(WorkflowThreadInternal.class);
+    private static final Log log = LogFactory.getLog(WorkflowThreadImpl.class);
 
     private final boolean root;
     private final ExecutorService threadPool;
@@ -133,9 +133,9 @@ class WorkflowThreadInternal implements WorkflowThread {
      */
     private long blockedUntil;
 
-    WorkflowThreadInternal(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name,
-                           boolean ignoreParentCancellation, CancellationScopeImpl parentCancellationScope,
-                           Runnable runnable) {
+    WorkflowThreadImpl(boolean root, ExecutorService threadPool, DeterministicRunnerImpl runner, String name,
+                       boolean detached, CancellationScopeImpl parentCancellationScope,
+                       Runnable runnable) {
         this.root = root;
         this.threadPool = threadPool;
         this.runner = runner;
@@ -145,12 +145,12 @@ class WorkflowThreadInternal implements WorkflowThread {
             name = "workflow-" + super.hashCode();
         }
         log.debug(String.format("Workflow thread \"%s\" created", name));
-        this.task = new RunnableWrapper(context, name, ignoreParentCancellation, parentCancellationScope, runnable);
+        this.task = new RunnableWrapper(context, name, detached, parentCancellationScope, runnable);
     }
 
     @Override
-    public boolean isIgnoreParentCancellation() {
-        return task.cancellationScope.isIgnoreParentCancellation();
+    public boolean isDetached() {
+        return task.cancellationScope.isDetached();
     }
 
     @Override

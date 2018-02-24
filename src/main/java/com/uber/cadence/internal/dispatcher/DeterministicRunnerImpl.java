@@ -112,7 +112,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         this.clock = clock;
         runnerCancellationScope = new CancellationScopeImpl(true, null, null);
         // TODO: workflow instance specific thread name
-        rootWorkflowThread = new WorkflowThreadInternal(true, threadPool, this,
+        rootWorkflowThread = new WorkflowThreadImpl(true, threadPool, this,
                 WORKFLOW_ROOT_THREAD_NAME, false, runnerCancellationScope, root);
         threads.add(rootWorkflowThread);
         rootWorkflowThread.start();
@@ -137,7 +137,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             do {
                 threadsToAdd.clear();
                 for (NamedRunnable nr : toExecuteInWorkflowThread) {
-                    WorkflowThread thread = new WorkflowThreadInternal(false, threadPool,
+                    WorkflowThread thread = new WorkflowThreadImpl(false, threadPool,
                             this, nr.name, false, runnerCancellationScope, nr.runnable);
                     // It is important to prepend threads as there are callbacks
                     // like signals that have to run before any other threads.
@@ -311,7 +311,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         }
     }
 
-    WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
+    WorkflowThread newThread(Runnable runnable, boolean detached, String name) {
         lock.lock();
         try {
             checkWorkflowThreadOnly();
@@ -319,8 +319,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         } finally {
             lock.unlock();
         }
-        WorkflowThread result = new WorkflowThreadInternal(false, threadPool, this, name,
-                ignoreParentCancellation, CancellationScopeImpl.current(), runnable);
+        WorkflowThread result = new WorkflowThreadImpl(false, threadPool, this, name,
+                detached, CancellationScopeImpl.current(), runnable);
         threadsToAdd.add(result); // This is synchronized collection.
         return result;
     }

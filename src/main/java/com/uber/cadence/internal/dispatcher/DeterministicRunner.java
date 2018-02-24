@@ -64,7 +64,7 @@ interface DeterministicRunner {
     boolean isDone();
 
     /**
-     * @return exit value passed to WorkflowThreadInternal.exit().
+     * @return exit value passed to WorkflowThreadImpl.exit().
      */
     <R> R getExitValue();
 
