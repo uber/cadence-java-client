@@ -43,14 +43,14 @@ import static com.uber.cadence.internal.dispatcher.AsyncInternal.AsyncMarker;
 public final class WorkflowInternal {
 
     public static WorkflowThread newThread(boolean ignoreParentCancellation, Runnable runnable) {
-        return WorkflowThreadInternal.newThread(runnable, ignoreParentCancellation);
+        return WorkflowThread.newThread(runnable, ignoreParentCancellation);
     }
 
     public static WorkflowThread newThread(boolean ignoreParentCancellation, String name, Runnable runnable) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
         }
-        return WorkflowThreadInternal.newThread(runnable, ignoreParentCancellation, name);
+        return WorkflowThread.newThread(runnable, ignoreParentCancellation, name);
     }
 
     public static Promise<Void> newTimer(Duration duration) {

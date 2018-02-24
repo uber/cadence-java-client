@@ -29,8 +29,6 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import static com.uber.cadence.internal.dispatcher.DeterministicRunnerImpl.currentThreadInternal;
-
 class WorkflowThreadInternal implements WorkflowThread {
 
     /**
@@ -148,14 +146,6 @@ class WorkflowThreadInternal implements WorkflowThread {
         }
         log.debug(String.format("Workflow thread \"%s\" created", name));
         this.task = new RunnableWrapper(context, name, ignoreParentCancellation, parentCancellationScope, runnable);
-    }
-
-    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation) {
-        return newThread(runnable, ignoreParentCancellation, null);
-    }
-
-    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
-        return currentThreadInternal().getRunner().newThread(runnable, ignoreParentCancellation, name);
     }
 
     @Override

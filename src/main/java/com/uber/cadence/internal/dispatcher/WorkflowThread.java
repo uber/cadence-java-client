@@ -48,6 +48,14 @@ interface WorkflowThread extends CancellationScope {
         return currentThreadInternal().yieldImpl(timeoutMillis, reason, unblockCondition);
     }
 
+    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation) {
+        return newThread(runnable, ignoreParentCancellation, null);
+    }
+
+    static WorkflowThread newThread(Runnable runnable, boolean ignoreParentCancellation, String name) {
+        return currentThreadInternal().getRunner().newThread(runnable, ignoreParentCancellation, name);
+    }
+
     void start();
 
     void setName(String name);
