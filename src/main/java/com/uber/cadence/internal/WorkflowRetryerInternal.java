@@ -1,5 +1,6 @@
 package com.uber.cadence.internal;
 
+import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.RetryOptions;
@@ -67,7 +68,13 @@ public final class WorkflowRetryerInternal {
 
     private static <R> Promise<R> retryAsync(RetryOptions options, Functions.Func<Promise<R>> func, long startTime,
                                              long attempt) {
-        return func.apply().handle((r, e) -> {
+        CompletablePromise<R> funcResult = Workflow.newPromise();
+        try {
+            funcResult.completeFrom(func.apply());
+        } catch (RuntimeException e) {
+            funcResult.completeExceptionally(e);
+        }
+        return funcResult.handle((r, e) -> {
             if (e == null) {
                 return Workflow.newPromise(r);
             }
