@@ -18,9 +18,8 @@ package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowIdReusePolicy;
+import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.UntypedWorkflowStub;
-import com.uber.cadence.client.DuplicateWorkflowException;
-import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;

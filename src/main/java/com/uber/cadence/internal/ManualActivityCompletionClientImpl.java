@@ -31,12 +31,10 @@ import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
 
-import javax.swing.text.html.parser.Entity;
 import java.util.concurrent.CancellationException;
 
 // TODO: service call retries
