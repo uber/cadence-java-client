@@ -16,10 +16,33 @@
  */
 package com.uber.cadence.workflow;
 
+import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.MethodRetry;
+
 /**
  * Options used to configure how an activity is invoked.
  */
 public final class ActivityOptions {
+
+    /**
+     * Used to merge annotation and options. Options takes precedence.
+     */
+    static ActivityOptions merge(ActivityMethod a, MethodRetry r, ActivityOptions o) {
+        return new ActivityOptions.Builder()
+                .setScheduleToStartTimeoutSeconds(
+                        merge(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeoutSeconds()))
+                .setScheduleToStartTimeoutSeconds(
+                        merge(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeoutSeconds()))
+                .setStartToCloseTimeoutSeconds(
+                        merge(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeoutSeconds()))
+                .setHeartbeatTimeoutSeconds(
+                        merge(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeoutSeconds()))
+                .setTaskList(
+                        o.getTaskList() != null ? o.getTaskList() : (a.taskList().isEmpty() ? null : a.taskList()))
+                .setRetryOptions(
+                        RetryOptions.merge(r, o.getRetryOptions()))
+                .build();
+    }
 
     public static final class Builder {
 
@@ -74,7 +97,6 @@ public final class ActivityOptions {
          * Maximum activity execution time after it was sent to a worker.
          * If schedule to close is not provided then both this and schedule to start are required.
          */
-
         public Builder setStartToCloseTimeoutSeconds(int startToCloseTimeoutSeconds) {
             this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
             return this;
@@ -107,8 +129,8 @@ public final class ActivityOptions {
         }
 
         public ActivityOptions build() {
-            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds, scheduleToStartTimeoutSeconds,
-                    startToCloseTimeoutSeconds, taskList, retryOptions);
+            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds,
+                    scheduleToStartTimeoutSeconds, startToCloseTimeoutSeconds, taskList, retryOptions);
         }
     }
 
@@ -185,5 +207,13 @@ public final class ActivityOptions {
                 ", taskList='" + taskList + '\'' +
                 retryOptions != null ? ", retryOptions=" + retryOptions : "" +
                 '}';
+    }
+
+    private static int merge(int annotation, int options) {
+        if (options == 0) {
+            return annotation;
+        } else {
+            return options;
+        }
     }
 }

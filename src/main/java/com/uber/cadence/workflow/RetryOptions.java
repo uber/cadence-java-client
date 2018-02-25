@@ -16,10 +16,31 @@
  */
 package com.uber.cadence.workflow;
 
+import com.google.common.base.Defaults;
+import com.uber.cadence.activity.MethodRetry;
+
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public final class RetryOptions {
+
+    /**
+     * Merges annotation with explicitly provided RetryOptions.
+     * If there is conflict RetryOptions takes precedence.
+     */
+    static RetryOptions merge(MethodRetry r, RetryOptions o) {
+        return new RetryOptions.Builder()
+                .setInitialInterval(merge(r.initialIntervalSeconds(), o.getInitialInterval()))
+                .setExpiration(merge(r.expirationSeconds(), o.getExpiration()))
+                .setMaximumInterval(merge(r.maximumIntervalSeconds(), o.getMaximumInterval()))
+                .setBackoffCoefficient(merge(r.backoffCoefficient(), o.getBackoffCoefficient(), double.class))
+                .setMaximumAttempts(merge(r.maximumAttempts(), o.getMaximumAttempts(), int.class))
+                .setMinimumAttempts(merge(r.minimumAttempts(), o.getMinimumAttempts(), int.class))
+                .setExceptionFilter(merge(r.exceptionFilters(), o.getExceptionFilter()))
+                .build();
+    }
 
     public final static class Builder {
 
@@ -31,12 +52,11 @@ public final class RetryOptions {
 
         private int maximumAttempts = Integer.MAX_VALUE;
 
-        private long minimumAttempts;
+        private int minimumAttempts;
 
         private Duration maximumInterval;
 
         private Functions.Func1<Exception, Boolean> exceptionFilter = (e) -> true;
-
 
         /**
          * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
@@ -92,7 +112,7 @@ public final class RetryOptions {
          * Minimum number of retries. Even if expired will retry until this number is reached.
          * Must be 1 or bigger.
          */
-        public Builder setMinimumAttempts(long minimumAttempts) {
+        public Builder setMinimumAttempts(int minimumAttempts) {
             this.minimumAttempts = minimumAttempts;
             return this;
         }
@@ -111,11 +131,11 @@ public final class RetryOptions {
         }
 
         /**
-         * Returns true if exception should retried.
+         * Returns true if exception should be retried.
          * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried and
          * are not even passed to this filter. null means retry everything else.
          */
-        public Builder setExceptionFilter(Functions.Func1<Exception, Boolean> exceptionFilter) {
+        public Builder  setExceptionFilter(Functions.Func1<Exception, Boolean> exceptionFilter) {
             this.exceptionFilter = exceptionFilter;
             return this;
         }
@@ -129,7 +149,7 @@ public final class RetryOptions {
                         + ") cannot be smaller than initialInterval(" + initialInterval);
             }
             return new RetryOptions(initialInterval, backoffCoefficient, expiration, maximumAttempts, minimumAttempts, maximumInterval,
-                    exceptionFilter == null ? (e)->true : exceptionFilter);
+                    exceptionFilter == null ? (e) -> true : exceptionFilter);
         }
     }
 
@@ -141,14 +161,14 @@ public final class RetryOptions {
 
     private final int maximumAttempts;
 
-    private final long minimumAttempts;
+    private final int minimumAttempts;
 
     private final Duration maximumInterval;
 
     private final Functions.Func1<Exception, Boolean> exceptionFilter;
 
     private RetryOptions(Duration initialInterval, double backoffCoefficient, Duration expiration, int maximumAttempts,
-                         long minimumAttempts, Duration maximumInterval, Functions.Func1<Exception, Boolean> exceptionFilter) {
+                         int minimumAttempts, Duration maximumInterval, Functions.Func1<Exception, Boolean> exceptionFilter) {
         this.initialInterval = initialInterval;
         this.backoffCoefficient = backoffCoefficient;
         this.expiration = expiration;
@@ -174,7 +194,7 @@ public final class RetryOptions {
         return maximumAttempts;
     }
 
-    public long getMinimumAttempts() {
+    public int getMinimumAttempts() {
         return minimumAttempts;
     }
 
@@ -197,5 +217,49 @@ public final class RetryOptions {
                 ", maximumInterval=" + maximumInterval +
                 ", exceptionFilter=" + exceptionFilter +
                 '}';
+    }
+
+    private static <G> G merge(G annotation, G options, Class<G> type) {
+        if (options != Defaults.defaultValue(type)) {
+            return options;
+        }
+        return annotation;
+    }
+
+    private static Duration merge(long aSeconds, Duration o) {
+        if (o != null) {
+            return o;
+        }
+        return aSeconds == 0 ? null : Duration.ofSeconds(aSeconds);
+    }
+
+    private static Functions.Func1<Exception, Boolean> merge(Class<? extends Functions.Func1<Exception, Boolean>>[] classes,
+                                                             Functions.Func1<Exception, Boolean> exceptionFilter) {
+        if (exceptionFilter != null) {
+            return exceptionFilter;
+        }
+        final List<Functions.Func1<Exception, Boolean>> filters = new ArrayList<>();
+        for (Class<? extends Functions.Func1<Exception, Boolean>> fClass : classes) {
+            try {
+                Functions.Func1<Exception, Boolean> func = fClass.newInstance();
+                filters.add(func);
+            } catch (Exception e) {
+                throw Workflow.throwWrapped(e);
+            }
+        }
+        if (filters.isEmpty()) {
+            return null;
+        }
+        if (filters.size() == 1) {
+            return filters.get(0);
+        }
+        return (e) -> {
+            for(Functions.Func1<Exception, Boolean> f: filters) {
+                if (!f.apply(e)) {
+                    return false;
+                }
+            }
+            return true;
+        };
     }
 }
