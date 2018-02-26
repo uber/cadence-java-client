@@ -20,7 +20,7 @@ import com.google.common.base.Defaults;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.internal.ActivityException;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.workflow.ActivityOptions;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 

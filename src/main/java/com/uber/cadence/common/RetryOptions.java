@@ -14,13 +14,14 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.workflow;
+package com.uber.cadence.common;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.activity.MethodRetry;
 
 import java.time.Duration;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -30,7 +31,13 @@ public final class RetryOptions {
      * Merges annotation with explicitly provided RetryOptions.
      * If there is conflict RetryOptions takes precedence.
      */
-    static RetryOptions merge(MethodRetry r, RetryOptions o) {
+    public static RetryOptions merge(MethodRetry r, RetryOptions o) {
+        if (r == null) {
+            return o;
+        }
+        if (o == null) {
+            o = new RetryOptions.Builder().build();
+        }
         return new RetryOptions.Builder()
                 .setInitialInterval(merge(r.initialIntervalSeconds(), o.getInitialInterval()))
                 .setExpiration(merge(r.expirationSeconds(), o.getExpiration()))
@@ -38,8 +45,8 @@ public final class RetryOptions {
                 .setBackoffCoefficient(merge(r.backoffCoefficient(), o.getBackoffCoefficient(), double.class))
                 .setMaximumAttempts(merge(r.maximumAttempts(), o.getMaximumAttempts(), int.class))
                 .setMinimumAttempts(merge(r.minimumAttempts(), o.getMinimumAttempts(), int.class))
-                .setExceptionFilter(merge(r.exceptionFilters(), o.getExceptionFilter()))
-                .build();
+                .setDoNotRetry(merge(r.doNotRetry(), o.getDoNotRetry()))
+                .buildValidating();
     }
 
     public final static class Builder {
@@ -48,19 +55,19 @@ public final class RetryOptions {
 
         private Duration expiration;
 
-        private double backoffCoefficient = 2;
+        private double backoffCoefficient;
 
-        private int maximumAttempts = Integer.MAX_VALUE;
+        private int maximumAttempts;
 
         private int minimumAttempts;
 
         private Duration maximumInterval;
 
-        private Functions.Func1<Exception, Boolean> exceptionFilter = (e) -> true;
+        private List<Class<? extends Throwable>> doNotRetry;
 
         /**
          * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
-         * Required!
+         * Must be specified either through {@link MethodRetry#initialIntervalSeconds()} or this method.
          */
         public Builder setInitialInterval(Duration initialInterval) {
             Objects.requireNonNull(initialInterval);
@@ -89,9 +96,6 @@ public final class RetryOptions {
          * Must be 1 or larger.
          */
         public Builder setBackoffCoefficient(double backoffCoefficient) {
-            if (backoffCoefficient < 1.0) {
-                throw new IllegalArgumentException("coefficient less than 1");
-            }
             this.backoffCoefficient = backoffCoefficient;
             return this;
         }
@@ -101,9 +105,6 @@ public final class RetryOptions {
          * Must be 1 or bigger.
          */
         public Builder setMaximumAttempts(int maximumAttempts) {
-            if (maximumAttempts < 1) {
-                throw new IllegalArgumentException("less than 1");
-            }
             this.maximumAttempts = maximumAttempts;
             return this;
         }
@@ -123,7 +124,7 @@ public final class RetryOptions {
          */
         public Builder setMaximumInterval(Duration maximumInterval) {
             Objects.requireNonNull(maximumInterval);
-            if (maximumInterval != null && (maximumInterval.isNegative() || maximumInterval.isZero())) {
+            if (maximumInterval.isNegative() || maximumInterval.isZero()) {
                 throw new IllegalArgumentException("Invalid interval: " + maximumInterval);
             }
             this.maximumInterval = maximumInterval;
@@ -131,16 +132,32 @@ public final class RetryOptions {
         }
 
         /**
-         * Returns true if exception should be retried.
+         * List of exceptions to retry. When matching an exact match is used. So adding
+         * RuntimeException.class to this list is going to include only RuntimeException itself, not all of
+         * its subclasses. The reason for such behaviour is to be able to support server side
+         * retries without knowledge of Java exception hierarchy.
          * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried and
-         * are not even passed to this filter. null means retry everything else.
+         * are not even passed to this filter.
          */
-        public Builder  setExceptionFilter(Functions.Func1<Exception, Boolean> exceptionFilter) {
-            this.exceptionFilter = exceptionFilter;
+        @SafeVarargs
+        public final Builder setDoNotRetry(Class<? extends Throwable>... doNotRetry) {
+            this.doNotRetry = Arrays.asList(doNotRetry);
             return this;
         }
 
+        /**
+         * Build RetryOptions without performing validation as validation should be done after mergin with
+         * {@link MethodRetry}.
+         */
         public RetryOptions build() {
+            return new RetryOptions(initialInterval, backoffCoefficient, expiration, maximumAttempts,
+                    minimumAttempts, maximumInterval, doNotRetry);
+        }
+
+        /**
+         * Builds validating merged options.
+         */
+        private RetryOptions buildValidating() {
             if (initialInterval == null) {
                 throw new IllegalStateException("required property initialInterval not set");
             }
@@ -148,9 +165,21 @@ public final class RetryOptions {
                 throw new IllegalStateException("maximumInterval(" + maximumInterval
                         + ") cannot be smaller than initialInterval(" + initialInterval);
             }
-            return new RetryOptions(initialInterval, backoffCoefficient, expiration, maximumAttempts, minimumAttempts, maximumInterval,
-                    exceptionFilter == null ? (e) -> true : exceptionFilter);
+            if (maximumAttempts != 0 && minimumAttempts != 0 && maximumAttempts < minimumAttempts) {
+                throw new IllegalStateException("maximumAttempts(" + maximumAttempts
+                        + ") cannot be smaller than minimumAttempts(" + minimumAttempts);
+            }
+            if (backoffCoefficient != 0d && backoffCoefficient < 1.0) {
+                throw new IllegalArgumentException("coefficient less than 1");
+            }
+            if (maximumAttempts != 0 && maximumAttempts < 0) {
+                throw new IllegalArgumentException("negative maximum attempts");
+            }
+
+            return new RetryOptions(initialInterval, backoffCoefficient, expiration, maximumAttempts,
+                    minimumAttempts, maximumInterval, doNotRetry);
         }
+
     }
 
     private final Duration initialInterval;
@@ -165,17 +194,17 @@ public final class RetryOptions {
 
     private final Duration maximumInterval;
 
-    private final Functions.Func1<Exception, Boolean> exceptionFilter;
+    private final List<Class<? extends Throwable>> doNotRetry;
 
     private RetryOptions(Duration initialInterval, double backoffCoefficient, Duration expiration, int maximumAttempts,
-                         int minimumAttempts, Duration maximumInterval, Functions.Func1<Exception, Boolean> exceptionFilter) {
+                         int minimumAttempts, Duration maximumInterval, List<Class<? extends Throwable>> doNotRetry) {
         this.initialInterval = initialInterval;
         this.backoffCoefficient = backoffCoefficient;
         this.expiration = expiration;
         this.maximumAttempts = maximumAttempts;
         this.minimumAttempts = minimumAttempts;
         this.maximumInterval = maximumInterval;
-        this.exceptionFilter = exceptionFilter;
+        this.doNotRetry = doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : null;
     }
 
     public Duration getInitialInterval() {
@@ -202,8 +231,12 @@ public final class RetryOptions {
         return maximumInterval;
     }
 
-    public Functions.Func1<Exception, Boolean> getExceptionFilter() {
-        return exceptionFilter;
+    /**
+     * @return null if not configured. When merging with annotation it makes a difference.
+     * null means use values from an annotation. Empty list means do not retry on anything.
+     */
+    public List<Class<? extends Throwable>> getDoNotRetry() {
+        return doNotRetry;
     }
 
     @Override
@@ -215,12 +248,45 @@ public final class RetryOptions {
                 ", maximumAttempts=" + maximumAttempts +
                 ", minimumAttempts=" + minimumAttempts +
                 ", maximumInterval=" + maximumInterval +
-                ", exceptionFilter=" + exceptionFilter +
+                ", doNotRetry=" + doNotRetry +
                 '}';
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        RetryOptions that = (RetryOptions) o;
+
+        if (Double.compare(that.backoffCoefficient, backoffCoefficient) != 0) return false;
+        if (maximumAttempts != that.maximumAttempts) return false;
+        if (minimumAttempts != that.minimumAttempts) return false;
+        if (initialInterval != null ? !initialInterval.equals(that.initialInterval) : that.initialInterval != null)
+            return false;
+        if (expiration != null ? !expiration.equals(that.expiration) : that.expiration != null) return false;
+        if (maximumInterval != null ? !maximumInterval.equals(that.maximumInterval) : that.maximumInterval != null)
+            return false;
+        return doNotRetry != null ? doNotRetry.equals(that.doNotRetry) : that.doNotRetry == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        result = initialInterval != null ? initialInterval.hashCode() : 0;
+        temp = Double.doubleToLongBits(backoffCoefficient);
+        result = 31 * result + (int) (temp ^ (temp >>> 32));
+        result = 31 * result + (expiration != null ? expiration.hashCode() : 0);
+        result = 31 * result + maximumAttempts;
+        result = 31 * result + minimumAttempts;
+        result = 31 * result + (maximumInterval != null ? maximumInterval.hashCode() : 0);
+        result = 31 * result + (doNotRetry != null ? doNotRetry.hashCode() : 0);
+        return result;
+    }
+
     private static <G> G merge(G annotation, G options, Class<G> type) {
-        if (options != Defaults.defaultValue(type)) {
+        if (!Defaults.defaultValue(type).equals(options)) {
             return options;
         }
         return annotation;
@@ -233,33 +299,13 @@ public final class RetryOptions {
         return aSeconds == 0 ? null : Duration.ofSeconds(aSeconds);
     }
 
-    private static Functions.Func1<Exception, Boolean> merge(Class<? extends Functions.Func1<Exception, Boolean>>[] classes,
-                                                             Functions.Func1<Exception, Boolean> exceptionFilter) {
-        if (exceptionFilter != null) {
-            return exceptionFilter;
+    private static Class<? extends Throwable>[] merge(Class<? extends Throwable>[] a,
+                                                      List<Class<? extends Throwable>> o) {
+        if (o != null) {
+            @SuppressWarnings("unchecked")
+            Class<? extends Throwable>[] result = new Class[o.size()];
+            return o.toArray(result);
         }
-        final List<Functions.Func1<Exception, Boolean>> filters = new ArrayList<>();
-        for (Class<? extends Functions.Func1<Exception, Boolean>> fClass : classes) {
-            try {
-                Functions.Func1<Exception, Boolean> func = fClass.newInstance();
-                filters.add(func);
-            } catch (Exception e) {
-                throw Workflow.throwWrapped(e);
-            }
-        }
-        if (filters.isEmpty()) {
-            return null;
-        }
-        if (filters.size() == 1) {
-            return filters.get(0);
-        }
-        return (e) -> {
-            for(Functions.Func1<Exception, Boolean> f: filters) {
-                if (!f.apply(e)) {
-                    return false;
-                }
-            }
-            return true;
-        };
+        return a.length == 0 ? null : a;
     }
 }

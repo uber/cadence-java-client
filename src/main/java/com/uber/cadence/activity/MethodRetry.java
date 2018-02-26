@@ -16,19 +16,20 @@
  */
 package com.uber.cadence.activity;
 
-import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.common.RetryOptions;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.time.Duration;
 
 /**
  * Indicates retry policy for a workflow or activity method.
  * This annotation applies only to activity or workflow interface methods.
  * Not required. When not used either retries don't happen or they are
  * configured through correspondent options.
- * If {@link com.uber.cadence.workflow.RetryOptions} are present on {@link com.uber.cadence.workflow.ActivityOptions}
+ * If {@link RetryOptions} are present on {@link ActivityOptions}
  * the fields that are not default take precedence over parameters of this annotation.
  */
 @Retention(RetentionPolicy.RUNTIME)
@@ -37,45 +38,45 @@ public @interface MethodRetry {
 
     /**
      * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
-     * Required!
+     * Required. Can be overridden through {@link RetryOptions.Builder#setInitialInterval(Duration)}.
      */
     long initialIntervalSeconds();
 
     /**
-     * Maximum time to retry. Null means forever.
+     * Maximum time to retry. Default is forever.
      * When exceeded the retries stop even if maximum retries is not reached yet.
      */
-    long expirationSeconds() default Integer.MAX_VALUE;
+    long expirationSeconds() default 0;
 
     /**
      * Coefficient used to calculate the next retry interval.
      * The next retry interval is previous interval multiplied by this coefficient.
-     * Must be 1 or larger.
+     * Must be 1 or larger. Default is 2.0.
      */
-    double backoffCoefficient() default 2.0;
+    double backoffCoefficient() default 0;
 
     /**
      * Maximum number of attempts. When exceeded the retries stop even if not expired yet.
-     * Must be 1 or bigger.
+     * Must be 1 or bigger. Default is unlimited.
      */
-    int maximumAttempts() default Integer.MAX_VALUE;
+    int maximumAttempts() default 0;
 
     /**
      * Minimum number of retries. Even if expired will retry until this number is reached.
-     * Must be 1 or bigger.
+     * Must be 1 or bigger. Default is 0.
      */
     int minimumAttempts() default 0;
 
     /**
      * Maximum interval between retries. Exponential backoff leads to interval increase.
-     * This value is the cap of the increase.
+     * This value is the cap of the increase. Default is 100x {@link #initialIntervalSeconds()}.
      */
     long maximumIntervalSeconds() default 0;
 
     /**
-     * All filters should return true if exception should be retried.
-     * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried and
-     * are not even passed to the filters.
+     * Classes of exceptions to not retry.
+     * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried, so they are not
+     * allowed in this list.
      */
-    Class<? extends Functions.Func1<Exception, Boolean>>[] exceptionFilters() default {};
+    Class<? extends Throwable>[] doNotRetry() default {};
 }

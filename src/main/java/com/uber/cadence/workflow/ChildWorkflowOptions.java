@@ -18,6 +18,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
+import com.uber.cadence.common.RetryOptions;
 
 public final class ChildWorkflowOptions {
 

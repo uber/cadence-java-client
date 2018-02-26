@@ -14,10 +14,9 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.workflow;
+package com.uber.cadence.activity;
 
-import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.activity.MethodRetry;
+import com.uber.cadence.common.RetryOptions;
 
 /**
  * Options used to configure how an activity is invoked.
@@ -27,9 +26,9 @@ public final class ActivityOptions {
     /**
      * Used to merge annotation and options. Options takes precedence.
      */
-    static ActivityOptions merge(ActivityMethod a, MethodRetry r, ActivityOptions o) {
+    public static ActivityOptions merge(ActivityMethod a, MethodRetry r, ActivityOptions o) {
         return new ActivityOptions.Builder()
-                .setScheduleToStartTimeoutSeconds(
+                .setScheduleToCloseTimeoutSeconds(
                         merge(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeoutSeconds()))
                 .setScheduleToStartTimeoutSeconds(
                         merge(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeoutSeconds()))
@@ -41,7 +40,7 @@ public final class ActivityOptions {
                         o.getTaskList() != null ? o.getTaskList() : (a.taskList().isEmpty() ? null : a.taskList()))
                 .setRetryOptions(
                         RetryOptions.merge(r, o.getRetryOptions()))
-                .build();
+                .buildValidating();
     }
 
     public static final class Builder {
@@ -132,6 +131,15 @@ public final class ActivityOptions {
             return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds,
                     scheduleToStartTimeoutSeconds, startToCloseTimeoutSeconds, taskList, retryOptions);
         }
+
+        ActivityOptions buildValidating() {
+            if (scheduleToCloseTimeoutSeconds == 0 && (scheduleToStartTimeoutSeconds == 0 || startToCloseTimeoutSeconds == 0)) {
+                throw new IllegalStateException("Either ScheduleToClose or both ScheduleToStart and StarToClose " +
+                        "timeouts are required: ");
+            }
+            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds,
+                    scheduleToStartTimeoutSeconds, startToCloseTimeoutSeconds, taskList, retryOptions);
+        }
     }
 
     private final int heartbeatTimeoutSeconds;
@@ -162,10 +170,6 @@ public final class ActivityOptions {
                 this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
             }
         } else {
-            if (scheduleToStartTimeoutSeconds == 0 || startToCloseTimeoutSeconds == 0) {
-                throw new IllegalStateException("Either ScheduleToClose or both ScheduleToStart and StarToClose " +
-                        "timeouts are required: ");
-            }
             this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
             this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
         }
@@ -205,8 +209,34 @@ public final class ActivityOptions {
                 ", scheduleToStartTimeoutSeconds=" + scheduleToStartTimeoutSeconds +
                 ", startToCloseTimeoutSeconds=" + startToCloseTimeoutSeconds +
                 ", taskList='" + taskList + '\'' +
-                retryOptions != null ? ", retryOptions=" + retryOptions : "" +
+                ", retryOptions=" + retryOptions +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ActivityOptions that = (ActivityOptions) o;
+
+        if (heartbeatTimeoutSeconds != that.heartbeatTimeoutSeconds) return false;
+        if (scheduleToCloseTimeoutSeconds != that.scheduleToCloseTimeoutSeconds) return false;
+        if (scheduleToStartTimeoutSeconds != that.scheduleToStartTimeoutSeconds) return false;
+        if (startToCloseTimeoutSeconds != that.startToCloseTimeoutSeconds) return false;
+        if (taskList != null ? !taskList.equals(that.taskList) : that.taskList != null) return false;
+        return retryOptions != null ? retryOptions.equals(that.retryOptions) : that.retryOptions == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = heartbeatTimeoutSeconds;
+        result = 31 * result + scheduleToCloseTimeoutSeconds;
+        result = 31 * result + scheduleToStartTimeoutSeconds;
+        result = 31 * result + startToCloseTimeoutSeconds;
+        result = 31 * result + (taskList != null ? taskList.hashCode() : 0);
+        result = 31 * result + (retryOptions != null ? retryOptions.hashCode() : 0);
+        return result;
     }
 
     private static int merge(int annotation, int options) {

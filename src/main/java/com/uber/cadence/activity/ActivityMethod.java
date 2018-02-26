@@ -16,8 +16,6 @@
  */
 package com.uber.cadence.activity;
 
-import com.uber.cadence.workflow.ActivityOptions;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
