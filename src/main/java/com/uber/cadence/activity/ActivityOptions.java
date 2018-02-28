@@ -18,40 +18,55 @@ package com.uber.cadence.activity;
 
 import com.uber.cadence.common.RetryOptions;
 
+import java.time.Duration;
+
+import static com.uber.cadence.internal.common.InternalUtils.roundUpToSeconds;
+
 /**
  * Options used to configure how an activity is invoked.
  */
 public final class ActivityOptions {
 
     /**
-     * Used to merge annotation and options. Options takes precedence.
+     * Used to merge annotation and options. Options takes precedence. Returns options
+     * with all defaults filled in.
      */
     public static ActivityOptions merge(ActivityMethod a, MethodRetry r, ActivityOptions o) {
+        if (a == null) {
+            if (r == null) {
+                return new ActivityOptions.Builder(o).validateAndBuildWithDefaults();
+            }
+            RetryOptions mergedR = RetryOptions.merge(r, o.getRetryOptions());
+            return new ActivityOptions.Builder().setRetryOptions(mergedR).validateAndBuildWithDefaults();
+        }
+        if (o == null) {
+            o = new ActivityOptions.Builder().build();
+        }
         return new ActivityOptions.Builder()
-                .setScheduleToCloseTimeoutSeconds(
-                        merge(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeoutSeconds()))
-                .setScheduleToStartTimeoutSeconds(
-                        merge(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeoutSeconds()))
-                .setStartToCloseTimeoutSeconds(
-                        merge(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeoutSeconds()))
-                .setHeartbeatTimeoutSeconds(
-                        merge(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeoutSeconds()))
+                .setScheduleToCloseTimeout(
+                        merge(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
+                .setScheduleToStartTimeout(
+                        merge(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeout()))
+                .setStartToCloseTimeout(
+                        merge(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeout()))
+                .setHeartbeatTimeout(
+                        merge(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeout()))
                 .setTaskList(
                         o.getTaskList() != null ? o.getTaskList() : (a.taskList().isEmpty() ? null : a.taskList()))
                 .setRetryOptions(
                         RetryOptions.merge(r, o.getRetryOptions()))
-                .buildValidating();
+                .validateAndBuildWithDefaults();
     }
 
     public static final class Builder {
 
-        private int heartbeatTimeoutSeconds;
+        private Duration heartbeatTimeout;
 
-        private int scheduleToCloseTimeoutSeconds;
+        private Duration scheduleToCloseTimeout;
 
-        private int scheduleToStartTimeoutSeconds;
+        private Duration scheduleToStartTimeout;
 
-        private int startToCloseTimeoutSeconds;
+        private Duration startToCloseTimeout;
 
         private String taskList;
 
@@ -64,22 +79,22 @@ public final class ActivityOptions {
          * Copy Builder fields from the options.
          */
         public Builder(ActivityOptions options) {
-            this.scheduleToStartTimeoutSeconds = options.getScheduleToStartTimeoutSeconds();
-            this.scheduleToCloseTimeoutSeconds = options.getScheduleToCloseTimeoutSeconds();
-            this.heartbeatTimeoutSeconds = options.getHeartbeatTimeoutSeconds();
-            this.startToCloseTimeoutSeconds = options.getStartToCloseTimeoutSeconds();
+            this.scheduleToStartTimeout = options.getScheduleToStartTimeout();
+            this.scheduleToCloseTimeout = options.getScheduleToCloseTimeout();
+            this.heartbeatTimeout = options.getHeartbeatTimeout();
+            this.startToCloseTimeout = options.getStartToCloseTimeout();
             this.taskList = options.taskList;
             this.retryOptions = options.retryOptions;
         }
 
         /**
          * Overall timeout workflow is willing to wait for activity to complete.
-         * It includes time in a task list (use {@link #setScheduleToStartTimeoutSeconds(int)} to limit it)
-         * plus activity execution time (use {@link #setStartToCloseTimeoutSeconds(int)} to limit it).
+         * It includes time in a task list (use {@link #setScheduleToStartTimeout(Duration)} to limit it)
+         * plus activity execution time (use {@link #setStartToCloseTimeout(Duration)} to limit it).
          * Either this option or both schedule to start and start to close are required.
          */
-        public Builder setScheduleToCloseTimeoutSeconds(int scheduleToCloseTimeoutSeconds) {
-            this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
+        public Builder setScheduleToCloseTimeout(Duration scheduleToCloseTimeout) {
+            this.scheduleToCloseTimeout = scheduleToCloseTimeout;
             return this;
         }
 
@@ -87,8 +102,8 @@ public final class ActivityOptions {
          * Time activity can stay in task list before it is picked up by a worker.
          * If schedule to close is not provided then both this and start to close are required.
          */
-        public Builder setScheduleToStartTimeoutSeconds(int scheduleToStartTimeoutSeconds) {
-            this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
+        public Builder setScheduleToStartTimeout(Duration scheduleToStartTimeout) {
+            this.scheduleToStartTimeout = scheduleToStartTimeout;
             return this;
         }
 
@@ -96,8 +111,8 @@ public final class ActivityOptions {
          * Maximum activity execution time after it was sent to a worker.
          * If schedule to close is not provided then both this and schedule to start are required.
          */
-        public Builder setStartToCloseTimeoutSeconds(int startToCloseTimeoutSeconds) {
-            this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+        public Builder setStartToCloseTimeout(Duration startToCloseTimeout) {
+            this.startToCloseTimeout = startToCloseTimeout;
             return this;
         }
 
@@ -105,8 +120,8 @@ public final class ActivityOptions {
          * Heartbeat interval. Activity must heartbeat before this interval passes after a last heartbeat
          * or activity start.
          */
-        public Builder setHeartbeatTimeoutSeconds(int heartbeatTimeoutSeconds) {
-            this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
+        public Builder setHeartbeatTimeout(Duration heartbeatTimeoutSeconds) {
+            this.heartbeatTimeout = heartbeatTimeoutSeconds;
             return this;
         }
 
@@ -128,69 +143,70 @@ public final class ActivityOptions {
         }
 
         public ActivityOptions build() {
-            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds,
-                    scheduleToStartTimeoutSeconds, startToCloseTimeoutSeconds, taskList, retryOptions);
+            return new ActivityOptions(heartbeatTimeout, scheduleToCloseTimeout,
+                    scheduleToStartTimeout, startToCloseTimeout, taskList, retryOptions);
         }
 
-        ActivityOptions buildValidating() {
-            if (scheduleToCloseTimeoutSeconds == 0 && (scheduleToStartTimeoutSeconds == 0 || startToCloseTimeoutSeconds == 0)) {
+        private ActivityOptions validateAndBuildWithDefaults() {
+            if (scheduleToCloseTimeout == null && (scheduleToStartTimeout == null || startToCloseTimeout == null)) {
                 throw new IllegalStateException("Either ScheduleToClose or both ScheduleToStart and StarToClose " +
                         "timeouts are required: ");
             }
-            return new ActivityOptions(heartbeatTimeoutSeconds, scheduleToCloseTimeoutSeconds,
-                    scheduleToStartTimeoutSeconds, startToCloseTimeoutSeconds, taskList, retryOptions);
+            return new ActivityOptions(roundUpToSeconds(heartbeatTimeout), roundUpToSeconds(scheduleToCloseTimeout),
+                    roundUpToSeconds(scheduleToStartTimeout), roundUpToSeconds(startToCloseTimeout),
+                    taskList, retryOptions);
         }
     }
 
-    private final int heartbeatTimeoutSeconds;
+    private final Duration heartbeatTimeout;
 
-    private final int scheduleToCloseTimeoutSeconds;
+    private final Duration scheduleToCloseTimeout;
 
-    private final int scheduleToStartTimeoutSeconds;
+    private final Duration scheduleToStartTimeout;
 
-    private final int startToCloseTimeoutSeconds;
+    private final Duration startToCloseTimeout;
 
     private final String taskList;
 
     private final RetryOptions retryOptions;
 
-    private ActivityOptions(int heartbeatTimeoutSeconds, int scheduleToCloseTimeoutSeconds,
-                            int scheduleToStartTimeoutSeconds, int startToCloseTimeoutSeconds, String taskList, RetryOptions retryOptions) {
-        this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
-        this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
-        if (scheduleToCloseTimeoutSeconds != 0) {
-            if (scheduleToStartTimeoutSeconds == 0) {
-                this.scheduleToStartTimeoutSeconds = scheduleToCloseTimeoutSeconds;
+    private ActivityOptions(Duration heartbeatTimeout, Duration scheduleToCloseTimeout,
+                            Duration scheduleToStartTimeout, Duration startToCloseTimeout, String taskList, RetryOptions retryOptions) {
+        this.heartbeatTimeout = heartbeatTimeout;
+        this.scheduleToCloseTimeout = scheduleToCloseTimeout;
+        if (scheduleToCloseTimeout != null) {
+            if (scheduleToStartTimeout == null) {
+                this.scheduleToStartTimeout = scheduleToCloseTimeout;
             } else {
-                this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
+                this.scheduleToStartTimeout = scheduleToStartTimeout;
             }
-            if (startToCloseTimeoutSeconds == 0) {
-                this.startToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
+            if (startToCloseTimeout == null) {
+                this.startToCloseTimeout = scheduleToCloseTimeout;
             } else {
-                this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+                this.startToCloseTimeout = startToCloseTimeout;
             }
         } else {
-            this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
-            this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
+            this.scheduleToStartTimeout = scheduleToStartTimeout;
+            this.startToCloseTimeout = startToCloseTimeout;
         }
         this.taskList = taskList;
         this.retryOptions = retryOptions;
     }
 
-    public int getHeartbeatTimeoutSeconds() {
-        return heartbeatTimeoutSeconds;
+    public Duration getHeartbeatTimeout() {
+        return heartbeatTimeout;
     }
 
-    public int getScheduleToCloseTimeoutSeconds() {
-        return scheduleToCloseTimeoutSeconds;
+    public Duration getScheduleToCloseTimeout() {
+        return scheduleToCloseTimeout;
     }
 
-    public int getScheduleToStartTimeoutSeconds() {
-        return scheduleToStartTimeoutSeconds;
+    public Duration getScheduleToStartTimeout() {
+        return scheduleToStartTimeout;
     }
 
-    public int getStartToCloseTimeoutSeconds() {
-        return startToCloseTimeoutSeconds;
+    public Duration getStartToCloseTimeout() {
+        return startToCloseTimeout;
     }
 
     public String getTaskList() {
@@ -204,10 +220,10 @@ public final class ActivityOptions {
     @Override
     public String toString() {
         return "ActivityOptions{" +
-                "heartbeatTimeoutSeconds=" + heartbeatTimeoutSeconds +
-                ", scheduleToCloseTimeoutSeconds=" + scheduleToCloseTimeoutSeconds +
-                ", scheduleToStartTimeoutSeconds=" + scheduleToStartTimeoutSeconds +
-                ", startToCloseTimeoutSeconds=" + startToCloseTimeoutSeconds +
+                "heartbeatTimeout=" + heartbeatTimeout +
+                ", scheduleToCloseTimeout=" + scheduleToCloseTimeout +
+                ", scheduleToStartTimeout=" + scheduleToStartTimeout +
+                ", startToCloseTimeout=" + startToCloseTimeout +
                 ", taskList='" + taskList + '\'' +
                 ", retryOptions=" + retryOptions +
                 '}';
@@ -220,28 +236,32 @@ public final class ActivityOptions {
 
         ActivityOptions that = (ActivityOptions) o;
 
-        if (heartbeatTimeoutSeconds != that.heartbeatTimeoutSeconds) return false;
-        if (scheduleToCloseTimeoutSeconds != that.scheduleToCloseTimeoutSeconds) return false;
-        if (scheduleToStartTimeoutSeconds != that.scheduleToStartTimeoutSeconds) return false;
-        if (startToCloseTimeoutSeconds != that.startToCloseTimeoutSeconds) return false;
+        if (heartbeatTimeout != null ? !heartbeatTimeout.equals(that.heartbeatTimeout) : that.heartbeatTimeout != null)
+            return false;
+        if (scheduleToCloseTimeout != null ? !scheduleToCloseTimeout.equals(that.scheduleToCloseTimeout) : that.scheduleToCloseTimeout != null)
+            return false;
+        if (scheduleToStartTimeout != null ? !scheduleToStartTimeout.equals(that.scheduleToStartTimeout) : that.scheduleToStartTimeout != null)
+            return false;
+        if (startToCloseTimeout != null ? !startToCloseTimeout.equals(that.startToCloseTimeout) : that.startToCloseTimeout != null)
+            return false;
         if (taskList != null ? !taskList.equals(that.taskList) : that.taskList != null) return false;
         return retryOptions != null ? retryOptions.equals(that.retryOptions) : that.retryOptions == null;
     }
 
     @Override
     public int hashCode() {
-        int result = heartbeatTimeoutSeconds;
-        result = 31 * result + scheduleToCloseTimeoutSeconds;
-        result = 31 * result + scheduleToStartTimeoutSeconds;
-        result = 31 * result + startToCloseTimeoutSeconds;
+        int result = heartbeatTimeout != null ? heartbeatTimeout.hashCode() : 0;
+        result = 31 * result + (scheduleToCloseTimeout != null ? scheduleToCloseTimeout.hashCode() : 0);
+        result = 31 * result + (scheduleToStartTimeout != null ? scheduleToStartTimeout.hashCode() : 0);
+        result = 31 * result + (startToCloseTimeout != null ? startToCloseTimeout.hashCode() : 0);
         result = 31 * result + (taskList != null ? taskList.hashCode() : 0);
         result = 31 * result + (retryOptions != null ? retryOptions.hashCode() : 0);
         return result;
     }
 
-    private static int merge(int annotation, int options) {
-        if (options == 0) {
-            return annotation;
+    private static Duration merge(int annotationSeconds, Duration options) {
+        if (options == null) {
+            return Duration.ofSeconds(annotationSeconds);
         } else {
             return options;
         }

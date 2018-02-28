@@ -19,7 +19,6 @@ package com.uber.cadence.internal.dispatcher;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.client.DuplicateWorkflowException;
-import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
@@ -35,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class WorkflowExternalInvocationHandler implements InvocationHandler {
 
     private static final ThreadLocal<AtomicReference<WorkflowExecution>> asyncResult = new ThreadLocal<>();
-    private final AtomicReference<UntypedWorkflowStub> untyped = new AtomicReference<>();
+    private final AtomicReference<UntypedWorkflowStubImpl> untyped = new AtomicReference<>();
     private final WorkflowOptions options;
     private final DataConverter dataConverter;
     private final AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
@@ -137,8 +136,8 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
         getUntyped().signal(signalName, args);
     }
 
-    private UntypedWorkflowStub getUntyped() {
-        UntypedWorkflowStub result = untyped.get();
+    private UntypedWorkflowStubImpl getUntyped() {
+        UntypedWorkflowStubImpl result = untyped.get();
         if (result == null) {
             throw new IllegalStateException("Not started yet");
         }
@@ -164,6 +163,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
         } else {
             workflowType = workflowName;
         }
+        WorkflowOptions o = WorkflowOptions.merge(workflowMethod, options);
         // There is no race condition here.
         // If it is not set then it means the invocation handler was created passing workflow type rather than execution.
         // So in worst case scenario set will be called twice with the same object.
@@ -171,7 +171,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
             untyped.set(new UntypedWorkflowStubImpl(genericClient, dataConverter, workflowType, options));
         }
         try {
-            execution.set(getUntyped().start(args));
+            execution.set(getUntyped().startWithOptions(o, args));
         } catch (DuplicateWorkflowException e) {
             execution.set(e.getExecution());
             // We do allow duplicated calls if policy is not AllowDuplicate. Semantic is to wait for result.

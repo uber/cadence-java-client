@@ -23,6 +23,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.ActivityException;
 import com.uber.cadence.internal.AsyncDecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
@@ -50,6 +51,8 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import static com.uber.cadence.internal.common.InternalUtils.roundUpToSeconds;
 
 class SyncDecisionContext {
     private final AsyncDecisionContext context;
@@ -100,12 +103,12 @@ class SyncDecisionContext {
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list
         parameters.withActivityType(new ActivityType().setName(name)).
-                withInput(input).
-                withTaskList(options.getTaskList()).
-                withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeoutSeconds()).
-                withStartToCloseTimeoutSeconds(options.getStartToCloseTimeoutSeconds()).
-                withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeoutSeconds()).
-                setHeartbeatTimeoutSeconds(options.getHeartbeatTimeoutSeconds());
+                withInput(input)
+                .withTaskList(options.getTaskList())
+                .withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeout().getSeconds())
+                .withStartToCloseTimeoutSeconds(options.getStartToCloseTimeout().getSeconds())
+                .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds())
+                .setHeartbeatTimeoutSeconds(options.getHeartbeatTimeout().getSeconds());
         Consumer<Throwable> cancellationCallback = activityClient.scheduleActivityTask(parameters,
                 (output, failure) -> {
                     if (failure != null) {
@@ -138,7 +141,7 @@ class SyncDecisionContext {
             Throwable cause;
             try {
                 @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-                Class<? extends Throwable> cc = (Class<? extends Throwable>) Class.forName(causeClassName);
+                        Class<? extends Throwable> cc = (Class<? extends Throwable>) Class.forName(causeClassName);
                 causeClass = cc;
                 cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
             } catch (Exception e) {
@@ -179,12 +182,12 @@ class SyncDecisionContext {
                 .setWorkflowId(options.getWorkflowId())
                 .setInput(input)
                 .setChildPolicy(options.getChildPolicy())
-                .setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeoutSeconds())
-                .setDomain(options.getDomain())
-                .setTaskList(options.getTaskList())
-                .setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeoutSeconds())
-                .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
-                .build();
+                .setExecutionStartToCloseTimeoutSeconds(options.getExecutionStartToCloseTimeout().getSeconds())
+                        .setDomain(options.getDomain())
+                        .setTaskList(options.getTaskList())
+                        .setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeout().getSeconds())
+                        .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+                        .build();
         CompletablePromise<byte[]> result = Workflow.newPromise();
         Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
                 executionResult::complete,

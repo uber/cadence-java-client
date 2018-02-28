@@ -18,10 +18,10 @@ public class ActivityOptionsTest {
     public void testOnlyOptionsPresent() throws NoSuchMethodException {
         ActivityOptions o = new ActivityOptions.Builder()
                 .setTaskList("foo")
-                .setHeartbeatTimeoutSeconds(123)
-                .setScheduleToCloseTimeoutSeconds(321)
-                .setScheduleToStartTimeoutSeconds(333)
-                .setStartToCloseTimeoutSeconds(345)
+                .setHeartbeatTimeout(Duration.ofSeconds(123))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(321))
+                .setScheduleToStartTimeout(Duration.ofSeconds(333))
+                .setStartToCloseTimeout(Duration.ofSeconds(345))
                 .setRetryOptions(new RetryOptions.Builder()
                         .setDoNotRetry(IllegalArgumentException.class)
                         .setMaximumAttempts(11111)
@@ -47,10 +47,10 @@ public class ActivityOptionsTest {
     public void testOnlyOptionsAndEmptyAnnotationsPresent() throws NoSuchMethodException {
         ActivityOptions o = new ActivityOptions.Builder()
                 .setTaskList("foo")
-                .setHeartbeatTimeoutSeconds(123)
-                .setScheduleToCloseTimeoutSeconds(321)
-                .setScheduleToStartTimeoutSeconds(333)
-                .setStartToCloseTimeoutSeconds(345)
+                .setHeartbeatTimeout(Duration.ofSeconds(123))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(321))
+                .setScheduleToStartTimeout(Duration.ofSeconds(333))
+                .setStartToCloseTimeout(Duration.ofSeconds(345))
                 .setRetryOptions(new RetryOptions.Builder()
                         .setDoNotRetry(IllegalArgumentException.class)
                         .setMaximumAttempts(11111)
@@ -85,10 +85,10 @@ public class ActivityOptionsTest {
                 .build();
         ActivityOptions merged = ActivityOptions.merge(a, r, o);
         Assert.assertEquals(a.taskList(), merged.getTaskList());
-        Assert.assertEquals(a.heartbeatTimeoutSeconds(), merged.getHeartbeatTimeoutSeconds());
-        Assert.assertEquals(a.scheduleToCloseTimeoutSeconds(), merged.getScheduleToCloseTimeoutSeconds());
-        Assert.assertEquals(a.scheduleToStartTimeoutSeconds(), merged.getScheduleToStartTimeoutSeconds());
-        Assert.assertEquals(a.startToCloseTimeoutSeconds(), merged.getStartToCloseTimeoutSeconds());
+        Assert.assertEquals(a.heartbeatTimeoutSeconds(), merged.getHeartbeatTimeout().getSeconds());
+        Assert.assertEquals(a.scheduleToCloseTimeoutSeconds(), merged.getScheduleToCloseTimeout().getSeconds());
+        Assert.assertEquals(a.scheduleToStartTimeoutSeconds(), merged.getScheduleToStartTimeout().getSeconds());
+        Assert.assertEquals(a.startToCloseTimeoutSeconds(), merged.getStartToCloseTimeout().getSeconds());
 
         RetryOptions rMerged = merged.getRetryOptions();
         Assert.assertEquals(r.maximumAttempts(), rMerged.getMaximumAttempts());
@@ -104,10 +104,10 @@ public class ActivityOptionsTest {
     public void testBothPresent() throws NoSuchMethodException {
         ActivityOptions o = new ActivityOptions.Builder()
                 .setTaskList("foo")
-                .setHeartbeatTimeoutSeconds(123)
-                .setScheduleToCloseTimeoutSeconds(321)
-                .setScheduleToStartTimeoutSeconds(333)
-                .setStartToCloseTimeoutSeconds(345)
+                .setHeartbeatTimeout(Duration.ofSeconds(123))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(321))
+                .setScheduleToStartTimeout(Duration.ofSeconds(333))
+                .setStartToCloseTimeout(Duration.ofSeconds(345))
                 .setRetryOptions(new RetryOptions.Builder()
                         .setDoNotRetry(IllegalArgumentException.class)
                         .setMaximumAttempts(11111)

@@ -67,7 +67,7 @@ public final class RetryOptions {
 
         /**
          * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
-         * Must be specified either through {@link MethodRetry#initialIntervalSeconds()} or this method.
+         * Required if {@link com.uber.cadence.activity.ActivityMethod} is not specified.
          */
         public Builder setInitialInterval(Duration initialInterval) {
             Objects.requireNonNull(initialInterval);
@@ -79,7 +79,7 @@ public final class RetryOptions {
         }
 
         /**
-         * Maximum time to retry. Null means forever.
+         * Maximum time to retry. Default means forever.
          * When exceeded the retries stop even if maximum retries is not reached yet.
          */
         public Builder setExpiration(Duration expiration) {
@@ -93,7 +93,7 @@ public final class RetryOptions {
         /**
          * Coefficient used to calculate the next retry interval.
          * The next retry interval is previous interval multiplied by this coefficient.
-         * Must be 1 or larger.
+         * Must be 1 or larger. Default is 2.0.
          */
         public Builder setBackoffCoefficient(double backoffCoefficient) {
             this.backoffCoefficient = backoffCoefficient;
@@ -102,7 +102,7 @@ public final class RetryOptions {
 
         /**
          * Maximum number of attempts. When exceeded the retries stop even if not expired yet.
-         * Must be 1 or bigger.
+         * Must be 1 or bigger. Default is unlimited.
          */
         public Builder setMaximumAttempts(int maximumAttempts) {
             this.maximumAttempts = maximumAttempts;
@@ -111,7 +111,7 @@ public final class RetryOptions {
 
         /**
          * Minimum number of retries. Even if expired will retry until this number is reached.
-         * Must be 1 or bigger.
+         * Must be 1 or bigger. Default is 0.
          */
         public Builder setMinimumAttempts(int minimumAttempts) {
             this.minimumAttempts = minimumAttempts;
@@ -120,7 +120,7 @@ public final class RetryOptions {
 
         /**
          * Maximum interval between retries. Exponential backoff leads to interval increase.
-         * This value is the cap of the increase.
+         * This value is the cap of the increase. Default is 100x of initial interval.
          */
         public Builder setMaximumInterval(Duration maximumInterval) {
             Objects.requireNonNull(maximumInterval);

@@ -104,23 +104,23 @@ public class WorkflowTest {
 
     private static WorkflowOptions.Builder newWorkflowOptionsBuilder() {
         return new WorkflowOptions.Builder()
-                .setExecutionStartToCloseTimeoutSeconds(10)
+                .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
                 .setTaskList(taskList);
     }
 
     private static ActivityOptions newActivityOptions1() {
         return new ActivityOptions.Builder()
                 .setTaskList(taskList)
-                .setHeartbeatTimeoutSeconds(5)
-                .setScheduleToCloseTimeoutSeconds(5)
-                .setScheduleToStartTimeoutSeconds(5)
-                .setStartToCloseTimeoutSeconds(10)
+                .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                .setHeartbeatTimeout(Duration.ofSeconds(5))
+                .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                .setStartToCloseTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
     private static ActivityOptions newActivityOptions2() {
         return new ActivityOptions.Builder()
-                .setScheduleToCloseTimeoutSeconds(20)
+                .setScheduleToCloseTimeout(Duration.ofSeconds(20))
                 .build();
     }
 
@@ -202,10 +202,10 @@ public class WorkflowTest {
         public TestActivityRetry() {
             ActivityOptions options = new ActivityOptions.Builder()
                     .setTaskList(taskList)
-                    .setHeartbeatTimeoutSeconds(5)
-                    .setScheduleToCloseTimeoutSeconds(5)
-                    .setScheduleToStartTimeoutSeconds(5)
-                    .setStartToCloseTimeoutSeconds(10)
+                    .setHeartbeatTimeout(Duration.ofSeconds(5))
+                    .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                    .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                    .setStartToCloseTimeout(Duration.ofSeconds(10))
                     .setRetryOptions(new RetryOptions.Builder()
                             .setMinimumAttempts(2)
                             .setMaximumInterval(Duration.ofSeconds(1))
@@ -243,10 +243,10 @@ public class WorkflowTest {
         public TestAsyncActivityRetry() {
             ActivityOptions options = new ActivityOptions.Builder()
                     .setTaskList(taskList)
-                    .setHeartbeatTimeoutSeconds(5)
-                    .setScheduleToCloseTimeoutSeconds(5)
-                    .setScheduleToStartTimeoutSeconds(5)
-                    .setStartToCloseTimeoutSeconds(10)
+                    .setHeartbeatTimeout(Duration.ofSeconds(5))
+                    .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                    .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                    .setStartToCloseTimeout(Duration.ofSeconds(10))
                     .setRetryOptions(new RetryOptions.Builder()
                             .setMinimumAttempts(2)
                             .setMaximumInterval(Duration.ofSeconds(1))
@@ -284,8 +284,8 @@ public class WorkflowTest {
         public String execute() {
             ActivityOptions options = new ActivityOptions.Builder()
                     .setTaskList(taskList)
-                    .setHeartbeatTimeoutSeconds(1) // short heartbeat timeout;
-                    .setScheduleToCloseTimeoutSeconds(5)
+                    .setHeartbeatTimeout(Duration.ofSeconds(1)) // short heartbeat timeout;
+                    .setScheduleToCloseTimeout(Duration.ofSeconds(5))
                     .build();
 
             TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
@@ -632,7 +632,7 @@ public class WorkflowTest {
         @Override
         public void execute() {
             ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
-                    .setExecutionStartToCloseTimeoutSeconds(5000).build();
+                    .setExecutionStartToCloseTimeout(Duration.ofHours(1)).build();
             TestWorkflow1 child = Workflow.newChildWorkflowStub(TestWorkflow1.class, options);
             try {
                 child.execute();
@@ -851,8 +851,8 @@ public class WorkflowTest {
     public void testTimerCallbackBlocked() {
         startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
-        options.setExecutionStartToCloseTimeoutSeconds(10);
-        options.setTaskStartToCloseTimeoutSeconds(1);
+        options.setExecutionStartToCloseTimeout(Duration.ofSeconds(10));
+        options.setTaskStartToCloseTimeout(Duration.ofSeconds(1));
         options.setTaskList(taskList);
         TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
         String result = client.execute();
@@ -911,8 +911,8 @@ public class WorkflowTest {
         startWorkerFor(TestChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
-        options.setExecutionStartToCloseTimeoutSeconds(200);
-        options.setTaskStartToCloseTimeoutSeconds(60);
+        options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));
+        options.setTaskStartToCloseTimeout(Duration.ofSeconds(60));
         options.setTaskList(taskList);
         TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
         assertEquals("HELLO WORLD!", client.execute());
@@ -924,8 +924,8 @@ public class WorkflowTest {
 
         public TestChildWorkflowRetryWorkflow() {
             ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
-                    .setExecutionStartToCloseTimeoutSeconds(5)
-                    .setTaskStartToCloseTimeoutSeconds(2)
+                    .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
+                    .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
                     .setTaskList(taskList)
                     .setRetryOptions(new RetryOptions.Builder()
                             .setMinimumAttempts(2)
@@ -962,8 +962,8 @@ public class WorkflowTest {
         startWorkerFor(TestChildWorkflowRetryWorkflow.class, AngryChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
-        options.setExecutionStartToCloseTimeoutSeconds(20);
-        options.setTaskStartToCloseTimeoutSeconds(2);
+        options.setExecutionStartToCloseTimeout(Duration.ofSeconds(20));
+        options.setTaskStartToCloseTimeout(Duration.ofSeconds(2));
         options.setTaskList(taskList);
         TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
         try {
@@ -982,8 +982,8 @@ public class WorkflowTest {
 
         public TestChildWorkflowAsyncRetryWorkflow() {
             ChildWorkflowOptions options = new ChildWorkflowOptions.Builder()
-                    .setExecutionStartToCloseTimeoutSeconds(5)
-                    .setTaskStartToCloseTimeoutSeconds(2)
+                    .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
+                    .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
                     .setTaskList(taskList)
                     .setRetryOptions(new RetryOptions.Builder()
                             .setMinimumAttempts(2)
@@ -1007,8 +1007,8 @@ public class WorkflowTest {
         startWorkerFor(TestChildWorkflowAsyncRetryWorkflow.class, AngryChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
-        options.setExecutionStartToCloseTimeoutSeconds(20);
-        options.setTaskStartToCloseTimeoutSeconds(2);
+        options.setExecutionStartToCloseTimeout(Duration.ofSeconds(20));
+        options.setTaskStartToCloseTimeout(Duration.ofSeconds(2));
         options.setTaskList(taskList);
         TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
         try {

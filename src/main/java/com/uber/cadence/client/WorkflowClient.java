@@ -37,8 +37,8 @@ import com.uber.cadence.workflow.Functions;
  * // Specify workflow start options.
  * WorkflowOptions options = new WorkflowOptions.Builder()
  *     .setTaskList(HelloWorldWorker.TASK_LIST);
- *     .setExecutionStartToCloseTimeoutSeconds(20);
- *     .setTaskStartToCloseTimeoutSeconds(3)
+ *     .setExecutionStartToCloseTimeout(20);
+ *     .setTaskStartToCloseTimeout(3)
  *     // Cadence guarantees uniqueness of workflows by their id.
  *     .setWorkflowId("MyHelloWorld1")
  *     .build();

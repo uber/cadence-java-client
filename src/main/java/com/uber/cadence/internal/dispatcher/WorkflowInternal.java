@@ -55,7 +55,7 @@ public final class WorkflowInternal {
     }
 
     public static Promise<Void> newTimer(Duration duration) {
-        return getDecisionContext().newTimer(InternalUtils.roundUpToSeconds(duration));
+        return getDecisionContext().newTimer(InternalUtils.roundUpToSeconds(duration).getSeconds());
     }
 
     public static <E> WorkflowQueue<E> newQueue(int capacity) {

@@ -27,10 +27,12 @@ import java.time.Duration;
 /**
  * Indicates retry policy for a workflow or activity method.
  * This annotation applies only to activity or workflow interface methods.
+ * For workflows currently used only for child workflow retries.
  * Not required. When not used either retries don't happen or they are
  * configured through correspondent options.
- * If {@link RetryOptions} are present on {@link ActivityOptions}
- * the fields that are not default take precedence over parameters of this annotation.
+ * If {@link RetryOptions} are present on {@link ActivityOptions} or
+ * {@link com.uber.cadence.workflow.ChildWorkflowOptions} the fields that are not default
+ * take precedence over parameters of this annotation.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
@@ -74,7 +76,10 @@ public @interface MethodRetry {
     long maximumIntervalSeconds() default 0;
 
     /**
-     * Classes of exceptions to not retry.
+     * List of exceptions to retry. When matching an exact match is used. So adding
+     * RuntimeException.class to this list is going to include only RuntimeException itself, not all of
+     * its subclasses. The reason for such behaviour is to be able to support server side
+     * retries without knowledge of Java exception hierarchy.
      * {@link Error} and {@link java.util.concurrent.CancellationException} are never retried, so they are not
      * allowed in this list.
      */
