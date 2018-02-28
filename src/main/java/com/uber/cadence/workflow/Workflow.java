@@ -38,6 +38,15 @@ public final class Workflow {
     }
 
     /**
+     * Creates client stub to activities that implement given interface.
+     *
+     * @param activityInterface interface type implemented by activities
+     */
+    public static <T> T newActivityStub(Class<T> activityInterface) {
+        return WorkflowInternal.newActivityStub(activityInterface, null);
+    }
+
+    /**
      * Creates client stub to a child workflow that implements given interface using
      * parent options.
      *

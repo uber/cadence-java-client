@@ -36,13 +36,7 @@ class ActivityInvocationHandler implements InvocationHandler {
     private final ActivityOptions options;
 
     ActivityInvocationHandler(ActivityOptions options) {
-        // Default task list to the same name as the workflow one.
-        if (options.getTaskList() == null) {
-            String workflowTaskList = WorkflowInternal.getContext().getTaskList();
-            this.options = new ActivityOptions.Builder(options).setTaskList(workflowTaskList).build();
-        } else {
-            this.options = options;
-        }
+        this.options = options;
     }
 
     @Override

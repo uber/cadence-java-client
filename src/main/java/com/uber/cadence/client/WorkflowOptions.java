@@ -66,6 +66,9 @@ public final class WorkflowOptions {
         }
 
         public Builder(WorkflowOptions o) {
+            if (o == null) {
+                return;
+            }
             this.workflowIdReusePolicy = o.workflowIdReusePolicy;
             this.workflowId = o.workflowId;
             this.taskStartToCloseTimeout = o.taskStartToCloseTimeout;
@@ -148,6 +151,9 @@ public final class WorkflowOptions {
         public WorkflowOptions validateBuildWithDefaults() {
             if (executionStartToCloseTimeout == null) {
                 throw new IllegalStateException("Required property executionStartToCloseTimeout is not set");
+            }
+            if (taskList ==  null) {
+                throw new IllegalStateException("Required property taskList is not set");
             }
             WorkflowIdReusePolicy policy = workflowIdReusePolicy;
             if (policy == null) {

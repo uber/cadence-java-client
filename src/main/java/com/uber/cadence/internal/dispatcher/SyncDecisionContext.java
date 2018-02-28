@@ -102,9 +102,13 @@ class SyncDecisionContext {
         CompletablePromise<byte[]> result = Workflow.newPromise();
         ExecuteActivityParameters parameters = new ExecuteActivityParameters();
         //TODO: Real task list
+        String taskList = options.getTaskList();
+        if (taskList == null) {
+            taskList = getWorkflowContext().getTaskList();
+        }
         parameters.withActivityType(new ActivityType().setName(name)).
                 withInput(input)
-                .withTaskList(options.getTaskList())
+                .withTaskList(taskList)
                 .withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeout().getSeconds())
                 .withStartToCloseTimeoutSeconds(options.getStartToCloseTimeout().getSeconds())
                 .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds())

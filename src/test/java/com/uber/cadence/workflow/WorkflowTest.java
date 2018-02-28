@@ -23,6 +23,7 @@ import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
+import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -231,6 +232,35 @@ public class WorkflowTest {
             workflowStub.execute();
             fail("unreachable");
         } catch (WorkflowException e) {
+            assertTrue(e.getCause().getCause() instanceof IOException);
+        }
+        assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    }
+
+    public static class TestActivityRetryAnnotated implements TestWorkflow1 {
+
+        private final TestActivities activities;
+
+        public TestActivityRetryAnnotated() {
+            this.activities = Workflow.newActivityStub(TestActivities.class);
+        }
+
+        @Override
+        public String execute() {
+            activities.throwIOAnnotated();
+            return "ignored";
+        }
+    }
+
+    @Test
+    public void testActivityRetryAnnotated() {
+        startWorkerFor(TestActivityRetryAnnotated.class);
+        TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder().build());
+        try {
+            workflowStub.execute();
+            fail("unreachable");
+        } catch (WorkflowException e) {
+            e.printStackTrace();
             assertTrue(e.getCause().getCause() instanceof IOException);
         }
         assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
@@ -471,7 +501,7 @@ public class WorkflowTest {
         TestMultiargsWorkflows stub = workflowClient.newWorkflowStub(TestMultiargsWorkflows.class, newWorkflowOptionsBuilder().build());
         assertResult("func", WorkflowClient.asyncStart(stub::func));
         assertEquals("func", stub.func()); // Check that duplicated start just returns the result.
-        stub = workflowClient.newWorkflowStub(TestMultiargsWorkflows.class, newWorkflowOptionsBuilder().build());
+        stub = workflowClient.newWorkflowStub(TestMultiargsWorkflows.class);
         assertResult("1", WorkflowClient.asyncStart(stub::func1, "1"));
         assertEquals("1", stub.func1("1")); // Check that duplicated start just returns the result.
         // Check that duplicated start is not allowed for AllowDuplicate IdReusePolicy
@@ -1075,6 +1105,11 @@ public class WorkflowTest {
         void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
 
         void throwIO();
+
+        @ActivityMethod(scheduleToStartTimeoutSeconds = 5, scheduleToCloseTimeoutSeconds = 5,
+                heartbeatTimeoutSeconds = 5, startToCloseTimeoutSeconds = 10)
+        @MethodRetry(initialIntervalSeconds = 1, maximumIntervalSeconds = 1, minimumAttempts = 2, maximumAttempts = 3)
+        void throwIOAnnotated();
     }
 
     private static class TestActivitiesImpl implements TestActivities {
@@ -1219,13 +1254,25 @@ public class WorkflowTest {
                 throw Activity.throwWrapped(e);
             }
         }
+
+        @Override
+        public void throwIOAnnotated() {
+            invocations.add("throwIOAnnotated");
+            try {
+                throw new IOException("simulated IO problem");
+            } catch (IOException e) {
+                throw Activity.throwWrapped(e);
+            }
+        }
     }
 
     public interface TestMultiargsWorkflows {
         @WorkflowMethod
         String func();
 
-        @WorkflowMethod
+        @WorkflowMethod(name = "func1", taskList = "WorkflowTest-testAsyncStart",
+                workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
+                executionStartToCloseTimeoutSeconds = 10)
         String func1(String input);
 
         @WorkflowMethod

@@ -20,6 +20,7 @@ import com.google.common.base.Defaults;
 import com.uber.cadence.activity.MethodRetry;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +64,7 @@ public final class RetryOptions {
 
         private Duration maximumInterval;
 
-        private List<Class<? extends Throwable>> doNotRetry;
+        private List<Class<? extends Throwable>> doNotRetry = new ArrayList<>(0);
 
         /**
          * Interval of the first retry. If coefficient is 1.0 then it is used for all retries.
@@ -141,7 +142,9 @@ public final class RetryOptions {
          */
         @SafeVarargs
         public final Builder setDoNotRetry(Class<? extends Throwable>... doNotRetry) {
-            this.doNotRetry = Arrays.asList(doNotRetry);
+            if (doNotRetry != null) {
+                this.doNotRetry = Arrays.asList(doNotRetry);
+            }
             return this;
         }
 
