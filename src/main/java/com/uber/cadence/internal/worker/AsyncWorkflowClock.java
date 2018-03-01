@@ -14,13 +14,15 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal;
 
-import com.uber.cadence.internal.AsyncWorkflowClock;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.internal.worker.AsyncWorkflowClockImpl;
+import com.uber.cadence.internal.worker.DecisionsHelper;
+import com.uber.cadence.internal.worker.OpenRequestInfo;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,30 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class AsyncWorkflowClockImpl implements AsyncWorkflowClock {
+/**
+ * Clock that must be used inside workflow definition code to ensure replay
+ * determinism.
+ * TODO: Refactor to become a helper for managing timers instead of the generic clock class.
+ */
+ class AsyncWorkflowClock {
+
+    class IdCancellationCallbackPair {
+        private final String id;
+        private final Consumer<Throwable> cancellationCallback;
+
+        public IdCancellationCallbackPair(String id, Consumer<Throwable> cancellationCallback) {
+            this.id = id;
+            this.cancellationCallback = cancellationCallback;
+        }
+
+        public String getId() {
+            return id;
+        }
+
+        public Consumer<Throwable> getCancellationCallback() {
+            return cancellationCallback;
+        }
+    }
 
     private final class TimerCancellationHandler implements Consumer<Throwable> {
 
@@ -118,7 +143,7 @@ class AsyncWorkflowClockImpl implements AsyncWorkflowClock {
             });
             scheduledTimers.put(timerId, context);
             timersByFiringTime.put(firingTime, timerId);
-            result = new IdCancellationCallbackPair(timerId, new TimerCancellationHandler(timerId));
+            result = new IdCancellationCallbackPair(timerId, new AsyncWorkflowClockImpl.TimerCancellationHandler(timerId));
         }
         SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
         for (String timerId : toCancel.values()) {
@@ -178,5 +203,4 @@ class AsyncWorkflowClockImpl implements AsyncWorkflowClock {
             }
         }
     }
-
 }

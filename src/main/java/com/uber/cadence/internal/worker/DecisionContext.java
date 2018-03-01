@@ -16,15 +16,22 @@
  */
 package com.uber.cadence.internal;
 
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.generic.AsyncWorkflowClock;
+import com.uber.cadence.internal.generic.ExecuteActivityParameters;
+import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.workflow.WorkflowContext;
+
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Clock that must be used inside workflow definition code to ensure replay
- * determinism.
- * TODO: Refactor to become a helper for managing timers instead of the generic clock class.
+ * Represents the context for decider. Should only be used within the scope of
+ * workflow definition code, meaning any code which is not part of activity
+ * implementations.
  */
-public interface AsyncWorkflowClock {
+public interface DecisionContext {
 
     class IdCancellationCallbackPair {
         private final String id;
@@ -43,6 +50,45 @@ public interface AsyncWorkflowClock {
             return cancellationCallback;
         }
     }
+
+    /**
+     * Used to dynamically schedule an activity for execution
+     *
+     * @param parameters An object which encapsulates all the information required to
+     *                   schedule an activity for execution
+     * @param callback   Callback that is called upon activity completion or failure.
+     * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
+     */
+    Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters,
+                                             BiConsumer<byte[], RuntimeException> callback);
+
+
+    /**
+     * Start child workflow.
+     *
+     * @param parameters An object which encapsulates all the information required to
+     *                   schedule a child workflow for execution
+     * @param callback   Callback that is called upon child workflow completion or failure.
+     * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
+     */
+    Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters, Consumer<WorkflowExecution> executionCallback,
+                                           BiConsumer<byte[], RuntimeException> callback);
+
+// TODO(Cadence):   Promise<Void> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters);
+
+    void requestCancelWorkflowExecution(WorkflowExecution execution);
+
+    void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters);
+
+    /**
+     * Deterministic unique Id generator
+     */
+    String generateUniqueId();
+
+
+    AsyncWorkflowClock getWorkflowClock();
+
+    WorkflowContext getWorkflowContext();
 
     /**
      * @return time of the {@link com.uber.cadence.PollForDecisionTaskResponse} start event of the decision
