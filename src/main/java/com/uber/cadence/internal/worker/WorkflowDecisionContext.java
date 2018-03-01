@@ -45,7 +45,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-final class GenericAsyncWorkflowClient {
+final class WorkflowDecisionContext {
 
     private final class ChildWorkflowCancellationHandler implements Consumer<Throwable> {
 
@@ -81,7 +81,7 @@ final class GenericAsyncWorkflowClient {
 
     private final Map<String, OpenRequestInfo<Void, Void>> scheduledSignals = new HashMap<String, OpenRequestInfo<Void, Void>>();
 
-    GenericAsyncWorkflowClient(DecisionsHelper decisions, WorkflowContext workflowContext) {
+    WorkflowDecisionContext(DecisionsHelper decisions, WorkflowContext workflowContext) {
         this.decisions = decisions;
         this.workflowContext = workflowContext;
     }

@@ -14,10 +14,9 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.internal.generic.AsyncWorkflowClock;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
@@ -85,8 +84,6 @@ public interface DecisionContext {
      */
     String generateUniqueId();
 
-
-    AsyncWorkflowClock getWorkflowClock();
 
     WorkflowContext getWorkflowContext();
 

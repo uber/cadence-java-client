@@ -21,7 +21,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.internal.DecisionContext;
+import com.uber.cadence.internal.worker.DecisionContext;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.worker.AsyncWorkflow;
 import com.uber.cadence.internal.worker.POJOWorkflowImplementationFactory;
@@ -64,7 +64,7 @@ class SyncWorkflow implements AsyncWorkflow {
         }
 
         workflowProc = new WorkflowRunnable(syncContext, workflow, event.getWorkflowExecutionStartedEventAttributes());
-        runner = DeterministicRunner.newRunner(threadPool, syncContext, context.getWorkflowClock()::currentTimeMillis, workflowProc);
+        runner = DeterministicRunner.newRunner(threadPool, syncContext, context::currentTimeMillis, workflowProc);
         syncContext.setRunner(runner);
     }
 

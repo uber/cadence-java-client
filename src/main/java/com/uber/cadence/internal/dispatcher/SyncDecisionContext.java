@@ -23,7 +23,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.ActivityException;
-import com.uber.cadence.internal.DecisionContext;
+import com.uber.cadence.internal.worker.DecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
@@ -235,7 +235,7 @@ class SyncDecisionContext {
             return Workflow.newPromise(null);
         }
         CompletablePromise<Void> timer = Workflow.newPromise();
-        long fireTime = context.getWorkflowClock().currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
+        long fireTime = context.currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         timers.addTimer(fireTime, timer);
         CancellationScope.current().getCancellationRequest().thenApply((reason) ->
         {
@@ -246,15 +246,12 @@ class SyncDecisionContext {
         return timer;
     }
 
-    /**
-     * @return true if any timer fired
-     */
     public void fireTimers() {
-        timers.fireTimers(context.getWorkflowClock().currentTimeMillis());
+        timers.fireTimers(context.currentTimeMillis());
     }
 
     public boolean hasTimersToFire() {
-        return timers.hasTimersToFire(context.getWorkflowClock().currentTimeMillis());
+        return timers.hasTimersToFire(context.currentTimeMillis());
     }
 
     public long getNextFireTime() {
@@ -297,6 +294,6 @@ class SyncDecisionContext {
     }
 
     public boolean isReplaying() {
-        return context.getWorkflowClock().isReplaying();
+        return context.isReplaying();
     }
 }

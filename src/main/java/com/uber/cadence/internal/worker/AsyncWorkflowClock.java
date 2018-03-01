@@ -14,15 +14,12 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.internal.worker.AsyncWorkflowClockImpl;
-import com.uber.cadence.internal.worker.DecisionsHelper;
-import com.uber.cadence.internal.worker.OpenRequestInfo;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,25 +35,7 @@ import java.util.function.Consumer;
  * determinism.
  * TODO: Refactor to become a helper for managing timers instead of the generic clock class.
  */
- class AsyncWorkflowClock {
-
-    class IdCancellationCallbackPair {
-        private final String id;
-        private final Consumer<Throwable> cancellationCallback;
-
-        public IdCancellationCallbackPair(String id, Consumer<Throwable> cancellationCallback) {
-            this.id = id;
-            this.cancellationCallback = cancellationCallback;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public Consumer<Throwable> getCancellationCallback() {
-            return cancellationCallback;
-        }
-    }
+final class AsyncWorkflowClock {
 
     private final class TimerCancellationHandler implements Consumer<Throwable> {
 
@@ -92,11 +71,10 @@ import java.util.function.Consumer;
 
     private boolean replaying = true;
 
-    AsyncWorkflowClockImpl(DecisionsHelper decisions) {
+    AsyncWorkflowClock(DecisionsHelper decisions) {
         this.decisions = decisions;
     }
 
-    @Override
     public long currentTimeMillis() {
         return replayCurrentTimeMilliseconds;
     }
@@ -105,19 +83,17 @@ import java.util.function.Consumer;
         this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
     }
 
-    @Override
     public boolean isReplaying() {
         return replaying;
     }
 
-    @Override
-    public IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback) {
+    public DecisionContext.IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback) {
         if (delaySeconds < 0) {
             throw new IllegalArgumentException("Negative delaySeconds: " + delaySeconds);
         }
         if (delaySeconds == 0) {
             callback.accept(null);
-            return new IdCancellationCallbackPair("immediate", throwable -> {
+            return new DecisionContext.IdCancellationCallbackPair("immediate", throwable -> {
             });
         }
         long firingTime = currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
@@ -130,7 +106,7 @@ import java.util.function.Consumer;
                 return null;
             }
         }
-        IdCancellationCallbackPair result = null;
+        DecisionContext.IdCancellationCallbackPair result = null;
         if (!timersByFiringTime.containsKey(firingTime)) {
             final OpenRequestInfo<Object, Long> context = new OpenRequestInfo<>(firingTime);
             final StartTimerDecisionAttributes timer = new StartTimerDecisionAttributes();
@@ -143,7 +119,7 @@ import java.util.function.Consumer;
             });
             scheduledTimers.put(timerId, context);
             timersByFiringTime.put(firingTime, timerId);
-            result = new IdCancellationCallbackPair(timerId, new AsyncWorkflowClockImpl.TimerCancellationHandler(timerId));
+            result = new DecisionContext.IdCancellationCallbackPair(timerId, new AsyncWorkflowClock.TimerCancellationHandler(timerId));
         }
         SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
         for (String timerId : toCancel.values()) {
@@ -159,7 +135,6 @@ import java.util.function.Consumer;
         return result;
     }
 
-    @Override
     public void cancelAllTimers() {
         for (String timerId : timersByFiringTime.values()) {
             OpenRequestInfo<?, ?> pair = scheduledTimers.get(timerId);

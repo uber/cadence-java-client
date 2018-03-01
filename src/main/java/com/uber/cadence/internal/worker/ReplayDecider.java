@@ -23,7 +23,6 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
@@ -46,8 +45,6 @@ class ReplayDecider {
 
     private final DecisionsHelper decisionsHelper;
 
-    private final AsyncWorkflowClockImpl workflowClock;
-
     private final DecisionContextImpl context;
 
     private AsyncWorkflow workflow;
@@ -68,8 +65,7 @@ class ReplayDecider {
         this.decisionsHelper = decisionsHelper;
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         workflowContext = new WorkfowContextImpl(domain, decisionTask, historyHelper.getWorkflowExecutionStartedEventAttributes());
-        this.workflowClock = new AsyncWorkflowClockImpl(decisionsHelper);
-        context = new DecisionContextImpl(decisionsHelper, workflowClock, workflowContext);
+        context = new DecisionContextImpl(decisionsHelper, workflowContext);
     }
 
     public boolean isCancelRequested() {
@@ -177,7 +173,7 @@ class ReplayDecider {
                 handleTimerStarted(event);
                 break;
             case TimerCanceled:
-                workflowClock.handleTimerCanceled(event);
+                context.handleTimerCanceled(event);
                 break;
 //        case SignalExternalWorkflowExecutionInitiated:
 //            decisionsHelper.handleSignalExternalWorkflowExecutionInitiated(event);
@@ -236,14 +232,14 @@ class ReplayDecider {
         } else {
             long nextWakeUpTime = workflow.getNextWakeUpTime();
             if (nextWakeUpTime == 0) { // No time based waiting
-                workflowClock.cancelAllTimers();
+                context.cancelAllTimers();
             }
-            long delayMilliseconds = nextWakeUpTime - workflowClock.currentTimeMillis();
-            if (nextWakeUpTime > workflowClock.currentTimeMillis()) {
+            long delayMilliseconds = nextWakeUpTime - context.currentTimeMillis();
+            if (nextWakeUpTime > context.currentTimeMillis()) {
                 // Round up to the nearest second as we don't want to deliver a timer
                 // earlier than requested.
                 long delaySeconds = InternalUtils.roundUpToSeconds(Duration.ofMillis(delayMilliseconds)).getSeconds();
-                workflowClock.createTimer(delaySeconds, (t) -> {
+                context.createTimer(delaySeconds, (t) -> {
                     // Intentionally left empty.
                     // Timer ensures that decision is scheduled at the time workflow can make progress.
                     // But no specific timer related action is necessary.
@@ -268,7 +264,7 @@ class ReplayDecider {
         if (timerId.equals(DecisionsHelper.FORCE_IMMEDIATE_DECISION_TIMER)) {
             return;
         }
-        workflowClock.handleTimerFired(event.getEventId(), attributes);
+        context.handleTimerFired(event.getEventId(), attributes);
     }
 
     private void handleTimerStarted(HistoryEvent event) {
@@ -318,7 +314,7 @@ class ReplayDecider {
                         if (!eventsIterator.isNextDecisionFailed()) {
                             // Cadence timestamp is in nanoseconds
                             long replayCurrentTimeMilliseconds = event.getTimestamp() / MILLION;
-                            workflowClock.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
+                            context.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
                             break;
                         }
                     } else if (eventType == EventType.DecisionTaskScheduled
@@ -331,7 +327,7 @@ class ReplayDecider {
                 }
                 for (HistoryEvent event : decisionCompletionToStartEvents) {
                     if (event.getEventId() >= lastNonReplayedEventId) {
-                        workflowClock.setReplaying(false);
+                        context.setReplaying(false);
                     }
                     EventType eventType = event.getEventType();
                     processEvent(event, eventType);

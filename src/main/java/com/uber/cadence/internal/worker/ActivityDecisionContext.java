@@ -35,7 +35,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-final class GenericAsyncActivityClient {
+final class ActivityDecisionContext {
 
     private final class ActivityCancellationHandler implements Consumer<Throwable> {
 
@@ -64,7 +64,7 @@ final class GenericAsyncActivityClient {
 
     private final Map<String, OpenRequestInfo<byte[], ActivityType>> scheduledActivities = new HashMap<>();
 
-    public GenericAsyncActivityClient(DecisionsHelper decisions) {
+    public ActivityDecisionContext(DecisionsHelper decisions) {
         this.decisions = decisions;
     }
 
@@ -95,7 +95,7 @@ final class GenericAsyncActivityClient {
         decisions.scheduleActivityTask(attributes);
         context.setCompletionHandle(callback);
         scheduledActivities.put(attributes.getActivityId(), context);
-        return new GenericAsyncActivityClient.ActivityCancellationHandler(attributes.getActivityId(), callback);
+        return new ActivityDecisionContext.ActivityCancellationHandler(attributes.getActivityId(), callback);
     }
 
     void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes) {

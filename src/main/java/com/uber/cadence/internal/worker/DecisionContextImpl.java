@@ -18,9 +18,8 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.internal.DecisionContext;
-import com.uber.cadence.internal.AsyncWorkflowClock;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
@@ -31,18 +30,18 @@ import java.util.function.Consumer;
 
 class DecisionContextImpl implements DecisionContext {
 
-    private final GenericAsyncActivityClient activityClient;
+    private final ActivityDecisionContext activityClient;
 
-    private final GenericAsyncWorkflowClient workflowClient;
+    private final WorkflowDecisionContext workflowClient;
 
     private final AsyncWorkflowClock workflowClock;
 
     private final WorkflowContext workflowContext;
 
-    DecisionContextImpl(DecisionsHelper decisionsHelper, AsyncWorkflowClock workflowClock, WorkflowContext workflowContext) {
-        this.activityClient = new GenericAsyncActivityClient(decisionsHelper);
-        this.workflowClient = new GenericAsyncWorkflowClient(decisionsHelper, workflowContext);
-        this.workflowClock = workflowClock;
+    DecisionContextImpl(DecisionsHelper decisionsHelper, WorkflowContext workflowContext) {
+        this.activityClient = new ActivityDecisionContext(decisionsHelper);
+        this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
+        this.workflowClock = new AsyncWorkflowClock(decisionsHelper);
         this.workflowContext = workflowContext;
     }
 
@@ -75,13 +74,36 @@ class DecisionContextImpl implements DecisionContext {
     }
 
     @Override
-    public AsyncWorkflowClock getWorkflowClock() {
-        return workflowClock;
+    public WorkflowContext getWorkflowContext() {
+        return workflowContext;
+    }
+
+    public void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
+        workflowClock.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
     }
 
     @Override
-    public WorkflowContext getWorkflowContext() {
-        return workflowContext;
+    public boolean isReplaying() {
+        return workflowClock.isReplaying();
+    }
+
+    @Override
+    public IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback) {
+        return workflowClock.createTimer(delaySeconds, callback);
+    }
+
+    @Override
+    public void cancelAllTimers() {
+        workflowClock.cancelAllTimers();
+    }
+
+    @Override
+    public long currentTimeMillis() {
+        return workflowClock.currentTimeMillis();
+    }
+
+    public void setReplaying(boolean replaying) {
+        workflowClock.setReplaying(replaying);
     }
 
     public void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes) {
@@ -134,5 +156,13 @@ class DecisionContextImpl implements DecisionContext {
 
     public void handleChildWorkflowExecutionCompleted(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionCompleted(event);
+    }
+
+    public void handleTimerFired(Long eventId, TimerFiredEventAttributes attributes) {
+        workflowClock.handleTimerFired(eventId, attributes);
+    }
+
+    public void handleTimerCanceled(HistoryEvent event) {
+        workflowClock.handleTimerCanceled(event);
     }
 }
