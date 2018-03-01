@@ -46,8 +46,6 @@ class ReplayDecider {
 
     private final DecisionsHelper decisionsHelper;
 
-    private final GenericAsyncWorkflowClientImpl workflowClient;
-
     private final AsyncWorkflowClockImpl workflowClock;
 
     private final DecisionContextImpl context;
@@ -70,9 +68,8 @@ class ReplayDecider {
         this.decisionsHelper = decisionsHelper;
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         workflowContext = new WorkfowContextImpl(domain, decisionTask, historyHelper.getWorkflowExecutionStartedEventAttributes());
-        this.workflowClient = new GenericAsyncWorkflowClientImpl(decisionsHelper, workflowContext);
         this.workflowClock = new AsyncWorkflowClockImpl(decisionsHelper);
-        context = new DecisionContextImpl(decisionsHelper, workflowClient, workflowClock, workflowContext);
+        context = new DecisionContextImpl(decisionsHelper, workflowClock, workflowContext);
     }
 
     public boolean isCancelRequested() {
@@ -101,25 +98,25 @@ class ReplayDecider {
                 context.handleActivityTaskTimedOut(event);
                 break;
             case ExternalWorkflowExecutionCancelRequested:
-                workflowClient.handleChildWorkflowExecutionCancelRequested(event);
+                context.handleChildWorkflowExecutionCancelRequested(event);
                 break;
             case ChildWorkflowExecutionCanceled:
-                workflowClient.handleChildWorkflowExecutionCanceled(event);
+                context.handleChildWorkflowExecutionCanceled(event);
                 break;
             case ChildWorkflowExecutionCompleted:
-                workflowClient.handleChildWorkflowExecutionCompleted(event);
+                context.handleChildWorkflowExecutionCompleted(event);
                 break;
             case ChildWorkflowExecutionFailed:
-                workflowClient.handleChildWorkflowExecutionFailed(event);
+                context.handleChildWorkflowExecutionFailed(event);
                 break;
             case ChildWorkflowExecutionStarted:
-                workflowClient.handleChildWorkflowExecutionStarted(event);
+                context.handleChildWorkflowExecutionStarted(event);
                 break;
             case ChildWorkflowExecutionTerminated:
-                workflowClient.handleChildWorkflowExecutionTerminated(event);
+                context.handleChildWorkflowExecutionTerminated(event);
                 break;
             case ChildWorkflowExecutionTimedOut:
-                workflowClient.handleChildWorkflowExecutionTimedOut(event);
+                context.handleChildWorkflowExecutionTimedOut(event);
                 break;
             case DecisionTaskCompleted:
                 handleDecisionTaskCompleted(event);
@@ -137,7 +134,7 @@ class ReplayDecider {
 //            workflowClient.handleExternalWorkflowExecutionSignaled(event);
 //            break;
             case StartChildWorkflowExecutionFailed:
-                workflowClient.handleStartChildWorkflowExecutionFailed(event);
+                context.handleStartChildWorkflowExecutionFailed(event);
                 break;
             case TimerFired:
                 handleTimerFired(event);

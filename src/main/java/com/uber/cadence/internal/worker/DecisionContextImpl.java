@@ -25,7 +25,6 @@ import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.WorkflowContext;
-import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -40,10 +39,9 @@ class DecisionContextImpl implements DecisionContext {
 
     private final WorkflowContext workflowContext;
 
-    DecisionContextImpl(DecisionsHelper decisionsHelper, GenericAsyncWorkflowClient workflowClient,
-                        AsyncWorkflowClock workflowClock, WorkflowContext workflowContext) {
+    DecisionContextImpl(DecisionsHelper decisionsHelper, AsyncWorkflowClock workflowClock, WorkflowContext workflowContext) {
         this.activityClient = new GenericAsyncActivityClient(decisionsHelper);
-        this.workflowClient = workflowClient;
+        this.workflowClient = new GenericAsyncWorkflowClient(decisionsHelper, workflowContext);
         this.workflowClock = workflowClock;
         this.workflowContext = workflowContext;
     }
@@ -104,5 +102,37 @@ class DecisionContextImpl implements DecisionContext {
 
     public void handleActivityTaskTimedOut(HistoryEvent event) {
         activityClient.handleActivityTaskTimedOut(event);
+    }
+
+    public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionCancelRequested(event);
+    }
+
+    public void handleChildWorkflowExecutionCanceled(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionCanceled(event);
+    }
+
+    public void handleChildWorkflowExecutionStarted(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionStarted(event);
+    }
+
+    public void handleChildWorkflowExecutionTimedOut(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionTimedOut(event);
+    }
+
+    public void handleChildWorkflowExecutionTerminated(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionTerminated(event);
+    }
+
+    public void handleStartChildWorkflowExecutionFailed(HistoryEvent event) {
+        workflowClient.handleStartChildWorkflowExecutionFailed(event);
+    }
+
+    public void handleChildWorkflowExecutionFailed(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionFailed(event);
+    }
+
+    public void handleChildWorkflowExecutionCompleted(HistoryEvent event) {
+        workflowClient.handleChildWorkflowExecutionCompleted(event);
     }
 }

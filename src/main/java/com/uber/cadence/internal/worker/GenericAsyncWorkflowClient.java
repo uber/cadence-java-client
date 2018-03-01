@@ -32,10 +32,9 @@ import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
+import com.uber.cadence.internal.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
-import com.uber.cadence.internal.StartChildWorkflowFailedException;
-import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.WorkflowContext;
@@ -46,7 +45,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
+final class GenericAsyncWorkflowClient {
 
     private final class ChildWorkflowCancellationHandler implements Consumer<Throwable> {
 
@@ -82,12 +81,11 @@ class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
 
     private final Map<String, OpenRequestInfo<Void, Void>> scheduledSignals = new HashMap<String, OpenRequestInfo<Void, Void>>();
 
-    GenericAsyncWorkflowClientImpl(DecisionsHelper decisions, WorkflowContext workflowContext) {
+    GenericAsyncWorkflowClient(DecisionsHelper decisions, WorkflowContext workflowContext) {
         this.decisions = decisions;
         this.workflowContext = workflowContext;
     }
 
-    @Override
     public Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
                                                   Consumer<WorkflowExecution> executionCallback,
                                                   BiConsumer<byte[], RuntimeException> callback) {
@@ -179,7 +177,6 @@ class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
 //        return context.getResult();
 //    }
 
-    @Override
     public void requestCancelWorkflowExecution(WorkflowExecution execution) {
         RequestCancelExternalWorkflowExecutionDecisionAttributes attributes = new RequestCancelExternalWorkflowExecutionDecisionAttributes();
         String workflowId = execution.getWorkflowId();
@@ -190,14 +187,12 @@ class GenericAsyncWorkflowClientImpl implements GenericAsyncWorkflowClient {
         decisions.requestCancelExternalWorkflowExecution(childWorkflow, attributes, null);
     }
 
-    @Override
     public void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
 
-        // TODO: add validation to check if continueAsNew is not set 
+        // TODO: add validation to check if continueAsNew is not set
         workflowContext.setContinueAsNewOnCompletion(continueParameters);
     }
 
-    @Override
     public String generateUniqueId() {
         WorkflowExecution workflowExecution = workflowContext.getWorkflowExecution();
         String runId = workflowExecution.getRunId();

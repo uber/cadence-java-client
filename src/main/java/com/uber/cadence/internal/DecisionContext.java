@@ -18,7 +18,6 @@ package com.uber.cadence.internal;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
-import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.WorkflowContext;

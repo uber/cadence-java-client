@@ -35,7 +35,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public final class GenericAsyncActivityClient {
+final class GenericAsyncActivityClient {
 
     private final class ActivityCancellationHandler implements Consumer<Throwable> {
 
