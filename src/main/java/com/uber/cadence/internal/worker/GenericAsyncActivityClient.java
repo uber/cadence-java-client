@@ -28,7 +28,6 @@ import com.uber.cadence.TaskList;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.internal.dispatcher.ActivityTaskFailedException;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
-import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,7 +35,7 @@ import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class GenericAsyncActivityClientImpl implements GenericAsyncActivityClient {
+public final class GenericAsyncActivityClient {
 
     private final class ActivityCancellationHandler implements Consumer<Throwable> {
 
@@ -65,11 +64,10 @@ class GenericAsyncActivityClientImpl implements GenericAsyncActivityClient {
 
     private final Map<String, OpenRequestInfo<byte[], ActivityType>> scheduledActivities = new HashMap<>();
 
-    public GenericAsyncActivityClientImpl(DecisionsHelper decisions) {
+    public GenericAsyncActivityClient(DecisionsHelper decisions) {
         this.decisions = decisions;
     }
 
-    @Override
     public Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters, BiConsumer<byte[], RuntimeException> callback) {
         final OpenRequestInfo<byte[], ActivityType> context = new OpenRequestInfo<>(parameters.getActivityType());
         final ScheduleActivityTaskDecisionAttributes attributes = new ScheduleActivityTaskDecisionAttributes();
@@ -97,7 +95,7 @@ class GenericAsyncActivityClientImpl implements GenericAsyncActivityClient {
         decisions.scheduleActivityTask(attributes);
         context.setCompletionHandle(callback);
         scheduledActivities.put(attributes.getActivityId(), context);
-        return new ActivityCancellationHandler(attributes.getActivityId(), callback);
+        return new GenericAsyncActivityClient.ActivityCancellationHandler(attributes.getActivityId(), callback);
     }
 
     void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes) {

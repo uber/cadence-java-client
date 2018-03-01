@@ -16,6 +16,8 @@
  */
 package com.uber.cadence.internal.worker;
 
+import com.uber.cadence.ActivityTaskStartedEventAttributes;
+import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.AsyncWorkflowClock;
@@ -23,13 +25,12 @@ import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.WorkflowContext;
-import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class AsyncDecisionContextImpl implements DecisionContext {
+class DecisionContextImpl implements DecisionContext {
 
     private final GenericAsyncActivityClient activityClient;
 
@@ -39,9 +40,9 @@ class AsyncDecisionContextImpl implements DecisionContext {
 
     private final WorkflowContext workflowContext;
 
-    AsyncDecisionContextImpl(GenericAsyncActivityClient activityClient, GenericAsyncWorkflowClient workflowClient,
-                             AsyncWorkflowClock workflowClock, WorkflowContext workflowContext) {
-        this.activityClient = activityClient;
+    DecisionContextImpl(DecisionsHelper decisionsHelper, GenericAsyncWorkflowClient workflowClient,
+                        AsyncWorkflowClock workflowClock, WorkflowContext workflowContext) {
+        this.activityClient = new GenericAsyncActivityClient(decisionsHelper);
         this.workflowClient = workflowClient;
         this.workflowClock = workflowClock;
         this.workflowContext = workflowContext;
@@ -83,5 +84,25 @@ class AsyncDecisionContextImpl implements DecisionContext {
     @Override
     public WorkflowContext getWorkflowContext() {
         return workflowContext;
+    }
+
+    public void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes) {
+        activityClient.handleActivityTaskStarted(attributes);
+    }
+
+    public void handleActivityTaskCanceled(HistoryEvent event) {
+        activityClient.handleActivityTaskCanceled(event);
+    }
+
+    public void handleActivityTaskCompleted(HistoryEvent event) {
+        activityClient.handleActivityTaskCompleted(event);
+    }
+
+    public void handleActivityTaskFailed(HistoryEvent event) {
+        activityClient.handleActivityTaskFailed(event);
+    }
+
+    public void handleActivityTaskTimedOut(HistoryEvent event) {
+        activityClient.handleActivityTaskTimedOut(event);
     }
 }

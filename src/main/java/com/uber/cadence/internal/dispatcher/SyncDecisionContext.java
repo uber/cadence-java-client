@@ -27,8 +27,6 @@ import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
-import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
-import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 import com.uber.cadence.internal.worker.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
 import com.uber.cadence.workflow.ActivityFailureException;

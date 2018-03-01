@@ -46,13 +46,11 @@ class ReplayDecider {
 
     private final DecisionsHelper decisionsHelper;
 
-    private final GenericAsyncActivityClientImpl activityClient;
-
     private final GenericAsyncWorkflowClientImpl workflowClient;
 
     private final AsyncWorkflowClockImpl workflowClock;
 
-    private final DecisionContext context;
+    private final DecisionContextImpl context;
 
     private AsyncWorkflow workflow;
 
@@ -70,12 +68,11 @@ class ReplayDecider {
         this.workflow = workflow;
         this.historyHelper = historyHelper;
         this.decisionsHelper = decisionsHelper;
-        this.activityClient = new GenericAsyncActivityClientImpl(decisionsHelper);
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         workflowContext = new WorkfowContextImpl(domain, decisionTask, historyHelper.getWorkflowExecutionStartedEventAttributes());
         this.workflowClient = new GenericAsyncWorkflowClientImpl(decisionsHelper, workflowContext);
         this.workflowClock = new AsyncWorkflowClockImpl(decisionsHelper);
-        context = new AsyncDecisionContextImpl(activityClient, workflowClient, workflowClock, workflowContext);
+        context = new DecisionContextImpl(decisionsHelper, workflowClient, workflowClock, workflowContext);
     }
 
     public boolean isCancelRequested() {
@@ -89,19 +86,19 @@ class ReplayDecider {
     private void processEvent(HistoryEvent event, EventType eventType) throws Throwable {
         switch (eventType) {
             case ActivityTaskCanceled:
-                activityClient.handleActivityTaskCanceled(event);
+                context.handleActivityTaskCanceled(event);
                 break;
             case ActivityTaskCompleted:
-                activityClient.handleActivityTaskCompleted(event);
+                context.handleActivityTaskCompleted(event);
                 break;
             case ActivityTaskFailed:
-                activityClient.handleActivityTaskFailed(event);
+                context.handleActivityTaskFailed(event);
                 break;
             case ActivityTaskStarted:
-                activityClient.handleActivityTaskStarted(event.getActivityTaskStartedEventAttributes());
+                context.handleActivityTaskStarted(event.getActivityTaskStartedEventAttributes());
                 break;
             case ActivityTaskTimedOut:
-                activityClient.handleActivityTaskTimedOut(event);
+                context.handleActivityTaskTimedOut(event);
                 break;
             case ExternalWorkflowExecutionCancelRequested:
                 workflowClient.handleChildWorkflowExecutionCancelRequested(event);
