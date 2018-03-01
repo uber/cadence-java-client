@@ -36,9 +36,9 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
-class AsyncDecider {
+class ReplayDecider {
 
-    private static final Log log = LogFactory.getLog(AsyncDecider.class);
+    private static final Log log = LogFactory.getLog(ReplayDecider.class);
 
     private static final int MILLION = 1000000;
 
@@ -66,7 +66,7 @@ class AsyncDecider {
 
     private WorkflowExecutionException failure;
 
-    public AsyncDecider(String domain, AsyncWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
+    public ReplayDecider(String domain, AsyncWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
         this.workflow = workflow;
         this.historyHelper = historyHelper;
         this.decisionsHelper = decisionsHelper;
