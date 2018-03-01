@@ -16,13 +16,20 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.AsyncWorkflowClock;
+import com.uber.cadence.internal.generic.ExecuteActivityParameters;
+import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.WorkflowContext;
 import com.uber.cadence.internal.generic.GenericAsyncActivityClient;
 import com.uber.cadence.internal.generic.GenericAsyncWorkflowClient;
 
-class AsyncDecisionContextImpl extends AsyncDecisionContext {
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+class AsyncDecisionContextImpl implements DecisionContext {
 
     private final GenericAsyncActivityClient activityClient;
 
@@ -41,13 +48,31 @@ class AsyncDecisionContextImpl extends AsyncDecisionContext {
     }
 
     @Override
-    public GenericAsyncActivityClient getActivityClient() {
-       return activityClient;
+    public Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters,
+                                                    BiConsumer<byte[], RuntimeException> callback) {
+        return activityClient.scheduleActivityTask(parameters, callback);
     }
 
     @Override
-    public GenericAsyncWorkflowClient getWorkflowClient() {
-        return workflowClient;
+    public Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
+                                                  Consumer<WorkflowExecution> executionCallback,
+                                                  BiConsumer<byte[], RuntimeException> callback) {
+        return workflowClient.startChildWorkflow(parameters, executionCallback, callback);
+    }
+
+    @Override
+    public void requestCancelWorkflowExecution(WorkflowExecution execution) {
+        workflowClient.requestCancelWorkflowExecution(execution);
+    }
+
+    @Override
+    public void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters) {
+        workflowClient.continueAsNewOnCompletion(parameters);
+    }
+
+    @Override
+    public String generateUniqueId() {
+        return workflowClient.generateUniqueId();
     }
 
     @Override

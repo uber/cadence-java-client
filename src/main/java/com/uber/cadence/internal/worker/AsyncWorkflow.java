@@ -18,11 +18,11 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.DecisionContext;
 
 public interface AsyncWorkflow {
 
-    void start(HistoryEvent event, AsyncDecisionContext context) throws Exception;
+    void start(HistoryEvent event, DecisionContext context) throws Exception;
 
     /**
      * Handle an external signal event.

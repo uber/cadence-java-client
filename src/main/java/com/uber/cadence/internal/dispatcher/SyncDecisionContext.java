@@ -23,7 +23,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.ActivityException;
-import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
@@ -52,18 +52,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 class SyncDecisionContext {
-    private final AsyncDecisionContext context;
-    private final GenericAsyncActivityClient activityClient;
-    private final GenericAsyncWorkflowClient workflowClient;
+    private final DecisionContext context;
     private DeterministicRunner runner;
     private final DataConverter converter;
     private final WorkflowTimers timers = new WorkflowTimers();
     private Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
 
-    public SyncDecisionContext(AsyncDecisionContext context, DataConverter converter) {
+    public SyncDecisionContext(DecisionContext context, DataConverter converter) {
         this.context = context;
-        activityClient = context.getActivityClient();
-        workflowClient = context.getWorkflowClient();
         this.converter = converter;
     }
 
@@ -110,7 +106,7 @@ class SyncDecisionContext {
                 .withStartToCloseTimeoutSeconds(options.getStartToCloseTimeout().getSeconds())
                 .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds())
                 .setHeartbeatTimeoutSeconds(options.getHeartbeatTimeout().getSeconds());
-        Consumer<Throwable> cancellationCallback = activityClient.scheduleActivityTask(parameters,
+        Consumer<Throwable> cancellationCallback = context.scheduleActivityTask(parameters,
                 (output, failure) -> {
                     if (failure != null) {
                         runner.executeInWorkflowThread("activity failure callback",
@@ -190,7 +186,7 @@ class SyncDecisionContext {
                         .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
                         .build();
         CompletablePromise<byte[]> result = Workflow.newPromise();
-        Consumer<Throwable> cancellationCallback = workflowClient.startChildWorkflow(parameters,
+        Consumer<Throwable> cancellationCallback = context.startChildWorkflow(parameters,
                 executionResult::complete,
                 (output, failure) -> {
                     if (failure != null) {
@@ -291,7 +287,7 @@ class SyncDecisionContext {
     }
 
     public void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters) {
-        context.getWorkflowClient().continueAsNewOnCompletion(parameters);
+        context.continueAsNewOnCompletion(parameters);
     }
 
     public DataConverter getDataConverter() {

@@ -23,7 +23,7 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.internal.AsyncDecisionContext;
+import com.uber.cadence.internal.DecisionContext;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions;
@@ -52,7 +52,7 @@ class ReplayDecider {
 
     private final AsyncWorkflowClockImpl workflowClock;
 
-    private final AsyncDecisionContext context;
+    private final DecisionContext context;
 
     private AsyncWorkflow workflow;
 
