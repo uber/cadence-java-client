@@ -20,7 +20,7 @@ import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.TimerFiredEventAttributes;
 
-public interface HistoryEventHandler {
+interface HistoryEventHandler {
     void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes);
 
     void handleActivityTaskCanceled(HistoryEvent event);

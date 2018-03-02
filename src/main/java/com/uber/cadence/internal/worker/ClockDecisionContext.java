@@ -41,29 +41,25 @@ final class ClockDecisionContext {
 
         private final String timerId;
 
-        public <T> TimerCancellationHandler(String timerId) {
+        TimerCancellationHandler(String timerId) {
             this.timerId = timerId;
         }
 
         @Override
         public void accept(Throwable reason) {
-            decisions.cancelTimer(timerId, new Runnable() {
-
-                @Override
-                public void run() {
-                    OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-                    BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
-                    CancellationException exception = new CancellationException("Cancelled by request");
-                    exception.initCause(reason);
-                    context.accept(null, exception);
-                }
+            decisions.cancelTimer(timerId, () -> {
+                OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
+                BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
+                CancellationException exception = new CancellationException("Cancelled by request");
+                exception.initCause(reason);
+                context.accept(null, exception);
             });
         }
     }
 
     private final DecisionsHelper decisions;
 
-    private final Map<String, OpenRequestInfo<?, ?>> scheduledTimers = new HashMap<String, OpenRequestInfo<?, ?>>();
+    private final Map<String, OpenRequestInfo<?, Long>> scheduledTimers = new HashMap<>();
 
     private final SortedMap<Long, String> timersByFiringTime = new TreeMap<>();
 
@@ -75,7 +71,7 @@ final class ClockDecisionContext {
         this.decisions = decisions;
     }
 
-    public long currentTimeMillis() {
+    long currentTimeMillis() {
         return replayCurrentTimeMilliseconds;
     }
 
@@ -83,11 +79,11 @@ final class ClockDecisionContext {
         this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
     }
 
-    public boolean isReplaying() {
+    boolean isReplaying() {
         return replaying;
     }
 
-    public Consumer<Throwable> createTimer(long delaySeconds, Consumer<Throwable> callback) {
+    Consumer<Throwable> createTimer(long delaySeconds, Consumer<Throwable> callback) {
         if (delaySeconds < 0) {
             throw new IllegalArgumentException("Negative delaySeconds: " + delaySeconds);
         }
@@ -107,22 +103,19 @@ final class ClockDecisionContext {
         }
         Consumer<Throwable> result = null;
         if (!timersByFiringTime.containsKey(firingTime)) {
-            final OpenRequestInfo<Object, Long> context = new OpenRequestInfo<>(firingTime);
+            final OpenRequestInfo<?, Long> context = new OpenRequestInfo<>(firingTime);
             final StartTimerDecisionAttributes timer = new StartTimerDecisionAttributes();
             timer.setStartToFireTimeoutSeconds(delaySeconds);
             final String timerId = decisions.getNextId();
             timer.setTimerId(timerId);
             decisions.startTimer(timer, null);
-            context.setCompletionHandle((ctx, throwable) -> {
-                callback.accept(null);
-            });
+            context.setCompletionHandle((ctx, throwable) -> callback.accept(null));
             scheduledTimers.put(timerId, context);
             timersByFiringTime.put(firingTime, timerId);
             result = new ClockDecisionContext.TimerCancellationHandler(timerId);
         }
         SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
         for (String timerId : toCancel.values()) {
-            OpenRequestInfo<?, ?> pair = scheduledTimers.get(timerId);
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
                 BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
@@ -134,7 +127,7 @@ final class ClockDecisionContext {
         return result;
     }
 
-    public void cancelAllTimers() {
+    void cancelAllTimers() {
         for (String timerId : timersByFiringTime.values()) {
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
@@ -150,15 +143,14 @@ final class ClockDecisionContext {
         this.replaying = replaying;
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
     void handleTimerFired(TimerFiredEventAttributes attributes) {
         String timerId = attributes.getTimerId();
         if (decisions.handleTimerClosed(timerId)) {
-            OpenRequestInfo scheduled = scheduledTimers.remove(timerId);
+            OpenRequestInfo<?, Long> scheduled = scheduledTimers.remove(timerId);
             if (scheduled != null) {
-                BiConsumer completionCallback = scheduled.getCompletionCallback();
+                BiConsumer<?, RuntimeException>  completionCallback = scheduled.getCompletionCallback();
                 completionCallback.accept(null, null);
-                long firingTime = (long) scheduled.getUserContext();
+                long firingTime = scheduled.getUserContext();
                 timersByFiringTime.remove(firingTime);
             }
         }

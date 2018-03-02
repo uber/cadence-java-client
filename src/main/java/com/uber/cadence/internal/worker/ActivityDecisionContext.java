@@ -64,11 +64,11 @@ final class ActivityDecisionContext {
 
     private final Map<String, OpenRequestInfo<byte[], ActivityType>> scheduledActivities = new HashMap<>();
 
-    public ActivityDecisionContext(DecisionsHelper decisions) {
+    ActivityDecisionContext(DecisionsHelper decisions) {
         this.decisions = decisions;
     }
 
-    public Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters, BiConsumer<byte[], RuntimeException> callback) {
+    Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters, BiConsumer<byte[], RuntimeException> callback) {
         final OpenRequestInfo<byte[], ActivityType> context = new OpenRequestInfo<>(parameters.getActivityType());
         final ScheduleActivityTaskDecisionAttributes attributes = new ScheduleActivityTaskDecisionAttributes();
         attributes.setActivityType(parameters.getActivityType());

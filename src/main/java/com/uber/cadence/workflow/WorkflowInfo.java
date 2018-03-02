@@ -15,7 +15,4 @@ public interface WorkflowInfo {
     String getTaskList();
 
     Duration getExecutionStartToCloseTimeout();
-
-    Duration getDecisionTaskTimeoutSeconds();
-
 }

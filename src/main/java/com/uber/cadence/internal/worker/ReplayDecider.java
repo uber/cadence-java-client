@@ -261,7 +261,7 @@ class ReplayDecider {
         if (timerId.equals(DecisionsHelper.FORCE_IMMEDIATE_DECISION_TIMER)) {
             return;
         }
-        context.handleTimerFired(event.getEventId(), attributes);
+        context.handleTimerFired(attributes);
     }
 
     private void handleTimerStarted(HistoryEvent event) {
@@ -318,8 +318,6 @@ class ReplayDecider {
                             && eventType != EventType.DecisionTaskTimedOut
                             && eventType != EventType.DecisionTaskFailed) {
                         decisionCompletionToStartEvents.add(event);
-                    } else {
-                        // skip
                     }
                 }
                 for (HistoryEvent event : decisionCompletionToStartEvents) {

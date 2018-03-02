@@ -42,9 +42,4 @@ final class WorkflowInfoImpl implements WorkflowInfo {
     public Duration getExecutionStartToCloseTimeout() {
         return context.getExecutionStartToCloseTimeout();
     }
-
-    @Override
-    public Duration getDecisionTaskTimeoutSeconds() {
-        return context.getDecisionTaskTimeout();
-    }
 }

@@ -85,7 +85,7 @@ final class WorkflowDecisionContext {
         this.workflowContext = workflowContext;
     }
 
-    public Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
+    Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
                                                   Consumer<WorkflowExecution> executionCallback,
                                                   BiConsumer<byte[], RuntimeException> callback) {
         final StartChildWorkflowExecutionDecisionAttributes attributes = new StartChildWorkflowExecutionDecisionAttributes();
@@ -138,7 +138,7 @@ final class WorkflowDecisionContext {
     }
 
 //    @Override
-//    public Promise<Void> signalWorkflowExecution(final SignalExternalWorkflowParameters parameters) {
+//    Promise<Void> signalWorkflowExecution(final SignalExternalWorkflowParameters parameters) {
 //        final OpenRequestInfo<Void, Void> context = new OpenRequestInfo<Void, Void>();
 //        final SignalExternalWorkflowExecutionDecisionAttributes attributes = new SignalExternalWorkflowExecutionDecisionAttributes();
 //        String signalId = decisions.getNextId();
@@ -176,7 +176,7 @@ final class WorkflowDecisionContext {
 //        return context.getResult();
 //    }
 
-    public void requestCancelWorkflowExecution(WorkflowExecution execution) {
+    void requestCancelWorkflowExecution(WorkflowExecution execution) {
         RequestCancelExternalWorkflowExecutionDecisionAttributes attributes = new RequestCancelExternalWorkflowExecutionDecisionAttributes();
         String workflowId = execution.getWorkflowId();
         attributes.setWorkflowId(workflowId);
@@ -186,19 +186,19 @@ final class WorkflowDecisionContext {
         decisions.requestCancelExternalWorkflowExecution(childWorkflow, attributes, null);
     }
 
-    public void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
+    void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
 
         // TODO: add validation to check if continueAsNew is not set
         workflowContext.setContinueAsNewOnCompletion(continueParameters);
     }
 
-    public String generateUniqueId() {
+    String generateUniqueId() {
         WorkflowExecution workflowExecution = workflowContext.getWorkflowExecution();
         String runId = workflowExecution.getRunId();
         return runId + ":" + decisions.getNextId();
     }
 
-    public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
+    void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
         decisions.handleChildWorkflowExecutionCancelRequested(event);
     }
 

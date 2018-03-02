@@ -29,22 +29,22 @@ final class WorkflowContext {
     private WorkflowExecutionStartedEventAttributes startedAttributes;
     private final String domain;
 
-    public WorkflowContext(String domain, PollForDecisionTaskResponse decisionTask,
+    WorkflowContext(String domain, PollForDecisionTaskResponse decisionTask,
                            WorkflowExecutionStartedEventAttributes startedAttributes) {
         this.domain = domain;
         this.decisionTask = decisionTask;
         this.startedAttributes = startedAttributes;
     }
 
-    public com.uber.cadence.WorkflowExecution getWorkflowExecution() {
+    com.uber.cadence.WorkflowExecution getWorkflowExecution() {
         return decisionTask.getWorkflowExecution();
     }
 
-    public com.uber.cadence.WorkflowType getWorkflowType() {
+    com.uber.cadence.WorkflowType getWorkflowType() {
         return decisionTask.getWorkflowType();
     }
 
-    public boolean isCancelRequested() {
+    boolean isCancelRequested() {
         return cancelRequested;
     }
 
@@ -52,11 +52,11 @@ final class WorkflowContext {
         cancelRequested = flag;
     }
 
-    public ContinueAsNewWorkflowExecutionParameters getContinueAsNewOnCompletion() {
+    ContinueAsNewWorkflowExecutionParameters getContinueAsNewOnCompletion() {
         return continueAsNewOnCompletion;
     }
 
-    public void setContinueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
+    void setContinueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
         if (continueParameters == null) {
             continueParameters = new ContinueAsNewWorkflowExecutionParameters();
         }
@@ -74,36 +74,36 @@ final class WorkflowContext {
     }
 
     // TODO: Implement as soon as WorkflowExecutionStartedEventAttributes have these fields added.
-////    public WorkflowExecution getParentWorkflowExecution() {
+////    WorkflowExecution getParentWorkflowExecution() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return attributes.getParentWorkflowExecution();
 //    }
 
-////    public com.uber.cadence.ChildPolicy getChildPolicy() {
+////    com.uber.cadence.ChildPolicy getChildPolicy() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return ChildPolicy.fromValue(attributes.getChildPolicy());
 //    }
 
-////    public String getContinuedExecutionRunId() {
+////    String getContinuedExecutionRunId() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return attributes.getContinuedExecutionRunId();
 //    }
 
-    public int getExecutionStartToCloseTimeoutSeconds() {
+    int getExecutionStartToCloseTimeoutSeconds() {
         WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
         return attributes.getExecutionStartToCloseTimeoutSeconds();
     }
 
-    public int getDecisionTaskTimeoutSeconds() {
+    int getDecisionTaskTimeoutSeconds() {
         return startedAttributes.getTaskStartToCloseTimeoutSeconds();
     }
 
-    public String getTaskList() {
+    String getTaskList() {
         WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
         return attributes.getTaskList().getName();
     }
 
-    public String getDomain() {
+    String getDomain() {
         return domain;
     }
 
