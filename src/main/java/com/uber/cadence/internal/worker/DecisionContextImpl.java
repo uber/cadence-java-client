@@ -31,7 +31,7 @@ import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class DecisionContextImpl implements DecisionContext {
+class DecisionContextImpl implements DecisionContext, HistoryEventHandler {
 
     private final ActivityDecisionContext activityClient;
 
@@ -169,64 +169,78 @@ class DecisionContextImpl implements DecisionContext {
         workflowClock.setReplaying(replaying);
     }
 
+    @Override
     public void handleActivityTaskStarted(ActivityTaskStartedEventAttributes attributes) {
         activityClient.handleActivityTaskStarted(attributes);
     }
 
+    @Override
     public void handleActivityTaskCanceled(HistoryEvent event) {
         activityClient.handleActivityTaskCanceled(event);
     }
 
+    @Override
     public void handleActivityTaskCompleted(HistoryEvent event) {
         activityClient.handleActivityTaskCompleted(event);
     }
 
+    @Override
     public void handleActivityTaskFailed(HistoryEvent event) {
         activityClient.handleActivityTaskFailed(event);
     }
 
+    @Override
     public void handleActivityTaskTimedOut(HistoryEvent event) {
         activityClient.handleActivityTaskTimedOut(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionCancelRequested(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionCanceled(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionCanceled(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionStarted(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionStarted(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionTimedOut(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionTimedOut(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionTerminated(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionTerminated(event);
     }
 
+    @Override
     public void handleStartChildWorkflowExecutionFailed(HistoryEvent event) {
         workflowClient.handleStartChildWorkflowExecutionFailed(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionFailed(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionFailed(event);
     }
 
+    @Override
     public void handleChildWorkflowExecutionCompleted(HistoryEvent event) {
         workflowClient.handleChildWorkflowExecutionCompleted(event);
     }
 
-    public void handleTimerFired(Long eventId, TimerFiredEventAttributes attributes) {
-        workflowClock.handleTimerFired(eventId, attributes);
+    @Override
+    public void handleTimerFired(TimerFiredEventAttributes attributes) {
+        workflowClock.handleTimerFired(attributes);
     }
 
+    @Override
     public void handleTimerCanceled(HistoryEvent event) {
         workflowClock.handleTimerCanceled(event);
     }
-
 }

@@ -29,7 +29,6 @@ import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.worker.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.worker.DecisionContext;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
-import com.uber.cadence.internal.worker.WorkflowContext;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.CancellationScope;

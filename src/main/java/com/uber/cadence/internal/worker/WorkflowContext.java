@@ -29,7 +29,8 @@ final class WorkflowContext {
     private WorkflowExecutionStartedEventAttributes startedAttributes;
     private final String domain;
 
-    public WorkflowContext(String domain, PollForDecisionTaskResponse decisionTask, WorkflowExecutionStartedEventAttributes startedAttributes) {
+    public WorkflowContext(String domain, PollForDecisionTaskResponse decisionTask,
+                           WorkflowExecutionStartedEventAttributes startedAttributes) {
         this.domain = domain;
         this.decisionTask = decisionTask;
         this.startedAttributes = startedAttributes;

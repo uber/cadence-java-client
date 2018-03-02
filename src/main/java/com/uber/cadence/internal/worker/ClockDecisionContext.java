@@ -151,7 +151,7 @@ final class ClockDecisionContext {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    void handleTimerFired(Long eventId, TimerFiredEventAttributes attributes) {
+    void handleTimerFired(TimerFiredEventAttributes attributes) {
         String timerId = attributes.getTimerId();
         if (decisions.handleTimerClosed(timerId)) {
             OpenRequestInfo scheduled = scheduledTimers.remove(timerId);
