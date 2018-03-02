@@ -35,7 +35,7 @@ import java.util.function.Consumer;
  * determinism.
  * TODO: Refactor to become a helper for managing timers instead of the generic clock class.
  */
-final class AsyncWorkflowClock {
+final class ClockDecisionContext {
 
     private final class TimerCancellationHandler implements Consumer<Throwable> {
 
@@ -71,7 +71,7 @@ final class AsyncWorkflowClock {
 
     private boolean replaying = true;
 
-    AsyncWorkflowClock(DecisionsHelper decisions) {
+    ClockDecisionContext(DecisionsHelper decisions) {
         this.decisions = decisions;
     }
 
@@ -119,7 +119,7 @@ final class AsyncWorkflowClock {
             });
             scheduledTimers.put(timerId, context);
             timersByFiringTime.put(firingTime, timerId);
-            result = new DecisionContext.IdCancellationCallbackPair(timerId, new AsyncWorkflowClock.TimerCancellationHandler(timerId));
+            result = new DecisionContext.IdCancellationCallbackPair(timerId, new ClockDecisionContext.TimerCancellationHandler(timerId));
         }
         SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
         for (String timerId : toCancel.values()) {

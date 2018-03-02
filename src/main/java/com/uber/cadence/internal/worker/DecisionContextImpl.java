@@ -34,14 +34,14 @@ class DecisionContextImpl implements DecisionContext {
 
     private final WorkflowDecisionContext workflowClient;
 
-    private final AsyncWorkflowClock workflowClock;
+    private final ClockDecisionContext workflowClock;
 
     private final WorkflowContext workflowContext;
 
     DecisionContextImpl(DecisionsHelper decisionsHelper, WorkflowContext workflowContext) {
         this.activityClient = new ActivityDecisionContext(decisionsHelper);
         this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
-        this.workflowClock = new AsyncWorkflowClock(decisionsHelper);
+        this.workflowClock = new ClockDecisionContext(decisionsHelper);
         this.workflowContext = workflowContext;
     }
 
