@@ -23,12 +23,13 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.ActivityException;
-import com.uber.cadence.internal.worker.DecisionContext;
 import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.internal.worker.ActivityTaskTimeoutException;
+import com.uber.cadence.internal.worker.DecisionContext;
 import com.uber.cadence.internal.worker.POJOQueryImplementationFactory;
+import com.uber.cadence.internal.worker.WorkflowContext;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.CancellationScope;
@@ -40,7 +41,6 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -95,7 +95,7 @@ class SyncDecisionContext {
         //TODO: Real task list
         String taskList = options.getTaskList();
         if (taskList == null) {
-            taskList = getWorkflowContext().getTaskList();
+            taskList = context.getTaskList();
         }
         parameters.withActivityType(new ActivityType().setName(name)).
                 withInput(input)
@@ -289,11 +289,11 @@ class SyncDecisionContext {
         return converter;
     }
 
-    public WorkflowContext getWorkflowContext() {
-        return context.getWorkflowContext();
-    }
-
     public boolean isReplaying() {
         return context.isReplaying();
+    }
+
+    public DecisionContext getContext() {
+        return context;
     }
 }

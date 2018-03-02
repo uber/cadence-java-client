@@ -37,7 +37,6 @@ import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
-import com.uber.cadence.workflow.WorkflowContext;
 
 import java.util.HashMap;
 import java.util.Map;

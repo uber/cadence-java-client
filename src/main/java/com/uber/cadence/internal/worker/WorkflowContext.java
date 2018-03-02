@@ -16,13 +16,12 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.workflow.WorkflowContext;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 
-class WorkfowContextImpl implements WorkflowContext {
+final class WorkflowContext {
 
     private final PollForDecisionTaskResponse decisionTask;
     private boolean cancelRequested;
@@ -30,23 +29,20 @@ class WorkfowContextImpl implements WorkflowContext {
     private WorkflowExecutionStartedEventAttributes startedAttributes;
     private final String domain;
 
-    public WorkfowContextImpl(String domain, PollForDecisionTaskResponse decisionTask, WorkflowExecutionStartedEventAttributes startedAttributes) {
+    public WorkflowContext(String domain, PollForDecisionTaskResponse decisionTask, WorkflowExecutionStartedEventAttributes startedAttributes) {
         this.domain = domain;
         this.decisionTask = decisionTask;
         this.startedAttributes = startedAttributes;
     }
-    
-    @Override
+
     public com.uber.cadence.WorkflowExecution getWorkflowExecution() {
         return decisionTask.getWorkflowExecution();
     }
 
-    @Override
     public com.uber.cadence.WorkflowType getWorkflowType() {
         return decisionTask.getWorkflowType();
     }
 
-    @Override
     public boolean isCancelRequested() {
         return cancelRequested;
     }
@@ -55,12 +51,10 @@ class WorkfowContextImpl implements WorkflowContext {
         cancelRequested = flag;
     }
 
-    @Override
     public ContinueAsNewWorkflowExecutionParameters getContinueAsNewOnCompletion() {
         return continueAsNewOnCompletion;
     }
 
-    @Override
     public void setContinueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
         if (continueParameters == null) {
             continueParameters = new ContinueAsNewWorkflowExecutionParameters();
@@ -79,42 +73,35 @@ class WorkfowContextImpl implements WorkflowContext {
     }
 
     // TODO: Implement as soon as WorkflowExecutionStartedEventAttributes have these fields added.
-//    @Override
-//    public WorkflowExecution getParentWorkflowExecution() {
+////    public WorkflowExecution getParentWorkflowExecution() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return attributes.getParentWorkflowExecution();
 //    }
 
-//    @Override
-//    public com.uber.cadence.ChildPolicy getChildPolicy() {
+////    public com.uber.cadence.ChildPolicy getChildPolicy() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return ChildPolicy.fromValue(attributes.getChildPolicy());
 //    }
-    
-//    @Override
-//    public String getContinuedExecutionRunId() {
+
+////    public String getContinuedExecutionRunId() {
 //        WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
 //        return attributes.getContinuedExecutionRunId();
 //    }
-    
-    @Override
+
     public int getExecutionStartToCloseTimeoutSeconds() {
         WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
         return attributes.getExecutionStartToCloseTimeoutSeconds();
     }
 
-    @Override
     public int getDecisionTaskTimeoutSeconds() {
         return startedAttributes.getTaskStartToCloseTimeoutSeconds();
     }
 
-    @Override
     public String getTaskList() {
         WorkflowExecutionStartedEventAttributes attributes = getWorkflowStartedEventAttributes();
         return attributes.getTaskList().getName();
     }
 
-    @Override
     public String getDomain() {
         return domain;
     }

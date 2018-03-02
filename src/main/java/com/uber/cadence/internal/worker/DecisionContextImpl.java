@@ -18,13 +18,16 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
-import com.uber.cadence.workflow.WorkflowContext;
 
+import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -38,11 +41,76 @@ class DecisionContextImpl implements DecisionContext {
 
     private final WorkflowContext workflowContext;
 
-    DecisionContextImpl(DecisionsHelper decisionsHelper, WorkflowContext workflowContext) {
+    DecisionContextImpl(DecisionsHelper decisionsHelper, String domain, PollForDecisionTaskResponse decisionTask,
+                        WorkflowExecutionStartedEventAttributes startedAttributes) {
         this.activityClient = new ActivityDecisionContext(decisionsHelper);
+        this.workflowContext = new WorkflowContext(domain, decisionTask, startedAttributes);
         this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
         this.workflowClock = new ClockDecisionContext(decisionsHelper);
-        this.workflowContext = workflowContext;
+    }
+
+    @Override
+    public WorkflowExecution getWorkflowExecution() {
+        return workflowContext.getWorkflowExecution();
+    }
+
+    @Override
+    public WorkflowType getWorkflowType() {
+        return workflowContext.getWorkflowType();
+    }
+
+    @Override
+    public boolean isCancelRequested() {
+        return workflowContext.isCancelRequested();
+    }
+
+    public void setCancelRequested(boolean flag) {
+        workflowContext.setCancelRequested(flag);
+    }
+
+    @Override
+    public ContinueAsNewWorkflowExecutionParameters getContinueAsNewOnCompletion() {
+        return workflowContext.getContinueAsNewOnCompletion();
+    }
+
+    @Override
+    public void setContinueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
+        workflowContext.setContinueAsNewOnCompletion(continueParameters);
+    }
+
+    @Override
+    public int getExecutionStartToCloseTimeoutSeconds() {
+        return workflowContext.getExecutionStartToCloseTimeoutSeconds();
+    }
+
+    @Override
+    public Duration getDecisionTaskTimeout() {
+        return Duration.ofSeconds(workflowContext.getDecisionTaskTimeoutSeconds());
+    }
+
+    @Override
+    public String getTaskList() {
+        return workflowContext.getTaskList();
+    }
+
+    @Override
+    public String getDomain() {
+        return workflowContext.getDomain();
+    }
+
+    @Override
+    public String getWorkflowId() {
+        return workflowContext.getWorkflowExecution().getWorkflowId();
+    }
+
+    @Override
+    public String getRunId() {
+        return workflowContext.getWorkflowExecution().getRunId();
+    }
+
+    @Override
+    public Duration getExecutionStartToCloseTimeout() {
+        return Duration.ofSeconds(workflowContext.getExecutionStartToCloseTimeoutSeconds());
     }
 
     @Override
@@ -73,11 +141,6 @@ class DecisionContextImpl implements DecisionContext {
         return workflowClient.generateUniqueId();
     }
 
-    @Override
-    public WorkflowContext getWorkflowContext() {
-        return workflowContext;
-    }
-
     public void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
         workflowClock.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
     }
@@ -88,7 +151,7 @@ class DecisionContextImpl implements DecisionContext {
     }
 
     @Override
-    public IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback) {
+    public Consumer<Throwable> createTimer(long delaySeconds, Consumer<Throwable> callback) {
         return workflowClock.createTimer(delaySeconds, callback);
     }
 
@@ -165,4 +228,5 @@ class DecisionContextImpl implements DecisionContext {
     public void handleTimerCanceled(HistoryEvent event) {
         workflowClock.handleTimerCanceled(event);
     }
+
 }

@@ -51,21 +51,18 @@ class ReplayDecider {
 
     private boolean cancelRequested;
 
-    private WorkfowContextImpl workflowContext;
-
     private boolean unhandledDecision;
 
     private boolean completed;
 
     private WorkflowExecutionException failure;
 
-    public ReplayDecider(String domain, AsyncWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
+    ReplayDecider(String domain, AsyncWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
         this.workflow = workflow;
         this.historyHelper = historyHelper;
         this.decisionsHelper = decisionsHelper;
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
-        workflowContext = new WorkfowContextImpl(domain, decisionTask, historyHelper.getWorkflowExecutionStartedEventAttributes());
-        context = new DecisionContextImpl(decisionsHelper, workflowContext);
+        context = new DecisionContextImpl(decisionsHelper, domain, decisionTask, historyHelper.getWorkflowExecutionStartedEventAttributes());
     }
 
     public boolean isCancelRequested() {
@@ -221,7 +218,7 @@ class ReplayDecider {
             } else if (cancelRequested) {
                 decisionsHelper.cancelWorkflowExecution();
             } else {
-                ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion = workflowContext.getContinueAsNewOnCompletion();
+                ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion = context.getContinueAsNewOnCompletion();
                 if (continueAsNewOnCompletion != null) {
                     decisionsHelper.continueAsNewWorkflowExecution(continueAsNewOnCompletion);
                 } else {
@@ -248,17 +245,17 @@ class ReplayDecider {
         }
     }
 
-    private void handleDecisionTaskStarted(HistoryEvent event) throws Throwable {
+    private void handleDecisionTaskStarted(HistoryEvent event) {
     }
 
-    private void handleWorkflowExecutionCancelRequested(HistoryEvent event) throws Throwable {
-        workflowContext.setCancelRequested(true);
+    private void handleWorkflowExecutionCancelRequested(HistoryEvent event) {
+        context.setCancelRequested(true);
         String cause = event.getWorkflowExecutionCancelRequestedEventAttributes().getCause();
         workflow.cancel(cause);
         cancelRequested = true;
     }
 
-    private void handleTimerFired(HistoryEvent event) throws Throwable {
+    private void handleTimerFired(HistoryEvent event) {
         TimerFiredEventAttributes attributes = event.getTimerFiredEventAttributes();
         String timerId = attributes.getTimerId();
         if (timerId.equals(DecisionsHelper.FORCE_IMMEDIATE_DECISION_TIMER)) {
@@ -276,7 +273,7 @@ class ReplayDecider {
         decisionsHelper.handleTimerStarted(event);
     }
 
-    private void handleWorkflowExecutionSignaled(HistoryEvent event) throws Throwable {
+    private void handleWorkflowExecutionSignaled(HistoryEvent event) {
         assert (event.getEventType() == EventType.WorkflowExecutionSignaled);
         final WorkflowExecutionSignaledEventAttributes signalAttributes = event.getWorkflowExecutionSignaledEventAttributes();
         if (completed) {
@@ -317,12 +314,12 @@ class ReplayDecider {
                             context.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
                             break;
                         }
-                    } else if (eventType == EventType.DecisionTaskScheduled
-                            || eventType == EventType.DecisionTaskTimedOut
-                            || eventType == EventType.DecisionTaskFailed) {
-                        // skip
-                    } else {
+                    } else if (eventType != EventType.DecisionTaskScheduled
+                            && eventType != EventType.DecisionTaskTimedOut
+                            && eventType != EventType.DecisionTaskFailed) {
                         decisionCompletionToStartEvents.add(event);
+                    } else {
+                        // skip
                     }
                 }
                 for (HistoryEvent event : decisionCompletionToStartEvents) {

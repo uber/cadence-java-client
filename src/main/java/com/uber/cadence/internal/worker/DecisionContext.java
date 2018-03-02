@@ -17,11 +17,12 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
-import com.uber.cadence.workflow.WorkflowContext;
 
+import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -32,23 +33,36 @@ import java.util.function.Consumer;
  */
 public interface DecisionContext {
 
-    class IdCancellationCallbackPair {
-        private final String id;
-        private final Consumer<Throwable> cancellationCallback;
+    WorkflowExecution getWorkflowExecution();
 
-        public IdCancellationCallbackPair(String id, Consumer<Throwable> cancellationCallback) {
-            this.id = id;
-            this.cancellationCallback = cancellationCallback;
-        }
+    // TODO: Add to Cadence
+//    com.uber.cadence.WorkflowExecution getParentWorkflowExecution();
 
-        public String getId() {
-            return id;
-        }
+    WorkflowType getWorkflowType();
 
-        public Consumer<Throwable> getCancellationCallback() {
-            return cancellationCallback;
-        }
-    }
+    boolean isCancelRequested();
+
+    ContinueAsNewWorkflowExecutionParameters getContinueAsNewOnCompletion();
+
+    void setContinueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters);
+
+//    com.uber.cadence.ChildPolicy getChildPolicy();
+
+//    String getContinuedExecutionRunId();
+
+    int getExecutionStartToCloseTimeoutSeconds();
+
+    String getTaskList();
+
+    String getDomain();
+
+    String getWorkflowId();
+
+    String getRunId();
+
+    Duration getExecutionStartToCloseTimeout();
+
+    Duration getDecisionTaskTimeout();
 
     /**
      * Used to dynamically schedule an activity for execution
@@ -85,8 +99,6 @@ public interface DecisionContext {
     String generateUniqueId();
 
 
-    WorkflowContext getWorkflowContext();
-
     /**
      * @return time of the {@link com.uber.cadence.PollForDecisionTaskResponse} start event of the decision
      * being processed or replayed.
@@ -107,10 +119,11 @@ public interface DecisionContext {
      * @param delaySeconds time-interval after which the Value becomes ready in seconds.
      * @param callback     Callback that is called with null parameter after the specified delay.
      *                     CancellationException is passed as a parameter in case of a cancellation.
-     * @return pair that contains timer id and cancellation callback. Invoke {@link Consumer#accept(Object)} to cancel timer.
+     * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel timer.
      */
-    IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback);
+    Consumer<Throwable>  createTimer(long delaySeconds, Consumer<Throwable> callback);
 
     void cancelAllTimers();
+
 
 }

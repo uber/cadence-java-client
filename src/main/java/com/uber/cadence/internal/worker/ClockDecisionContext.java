@@ -87,14 +87,13 @@ final class ClockDecisionContext {
         return replaying;
     }
 
-    public DecisionContext.IdCancellationCallbackPair createTimer(long delaySeconds, Consumer<Throwable> callback) {
+    public Consumer<Throwable> createTimer(long delaySeconds, Consumer<Throwable> callback) {
         if (delaySeconds < 0) {
             throw new IllegalArgumentException("Negative delaySeconds: " + delaySeconds);
         }
         if (delaySeconds == 0) {
             callback.accept(null);
-            return new DecisionContext.IdCancellationCallbackPair("immediate", throwable -> {
-            });
+            return  throwable -> {};
         }
         long firingTime = currentTimeMillis() + TimeUnit.SECONDS.toMillis(delaySeconds);
         // As the timer resolution is 1 second it doesn't really make sense to update a timer
@@ -106,7 +105,7 @@ final class ClockDecisionContext {
                 return null;
             }
         }
-        DecisionContext.IdCancellationCallbackPair result = null;
+        Consumer<Throwable> result = null;
         if (!timersByFiringTime.containsKey(firingTime)) {
             final OpenRequestInfo<Object, Long> context = new OpenRequestInfo<>(firingTime);
             final StartTimerDecisionAttributes timer = new StartTimerDecisionAttributes();
@@ -119,7 +118,7 @@ final class ClockDecisionContext {
             });
             scheduledTimers.put(timerId, context);
             timersByFiringTime.put(firingTime, timerId);
-            result = new DecisionContext.IdCancellationCallbackPair(timerId, new ClockDecisionContext.TimerCancellationHandler(timerId));
+            result = new ClockDecisionContext.TimerCancellationHandler(timerId);
         }
         SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
         for (String timerId : toCancel.values()) {
@@ -137,7 +136,6 @@ final class ClockDecisionContext {
 
     public void cancelAllTimers() {
         for (String timerId : timersByFiringTime.values()) {
-            OpenRequestInfo<?, ?> pair = scheduledTimers.get(timerId);
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
                 BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
