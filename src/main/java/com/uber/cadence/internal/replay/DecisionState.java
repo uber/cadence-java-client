@@ -14,13 +14,28 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
-enum DecisionTarget {
-    ACTIVITY,
-    LAMBDA_FUNCTION,
-    EXTERNAL_WORKFLOW,
-    SIGNAL,
-    TIMER,
-    SELF
+enum DecisionState {
+
+    CREATED,
+
+    DECISION_SENT,
+
+    CANCELED_BEFORE_INITIATED,
+    
+    INITIATED,
+
+    STARTED,
+    
+    CANCELED_AFTER_INITIATED,
+
+    CANCELED_AFTER_STARTED,
+
+    CANCELLATION_DECISION_SENT,
+
+    COMPLETED_AFTER_CANCELLATION_DECISION_SENT,
+
+    COMPLETED
+
 }

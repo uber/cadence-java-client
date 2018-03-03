@@ -29,10 +29,10 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
-import com.uber.cadence.internal.generic.QueryWorkflowParameters;
+import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
-import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
+import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import org.apache.thrift.TException;
 
 import java.util.UUID;

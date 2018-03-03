@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ActivityTaskCanceledEventAttributes;
 import com.uber.cadence.ActivityTaskCompletedEventAttributes;
@@ -27,7 +27,6 @@ import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.internal.dispatcher.ActivityTaskFailedException;
-import com.uber.cadence.internal.generic.ExecuteActivityParameters;
 
 import java.util.HashMap;
 import java.util.Map;

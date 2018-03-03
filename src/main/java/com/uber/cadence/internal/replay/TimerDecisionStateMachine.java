@@ -14,13 +14,16 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.CancelTimerDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.DecisionType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.StartTimerDecisionAttributes;
+import com.uber.cadence.internal.replay.DecisionId;
+import com.uber.cadence.internal.replay.DecisionState;
+import com.uber.cadence.internal.replay.DecisionStateMachineBase;
 
 /**
  * Timer doesn't have separate initiation decision as it is started immediately.

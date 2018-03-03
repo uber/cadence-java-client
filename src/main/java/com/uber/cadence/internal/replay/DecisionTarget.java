@@ -14,21 +14,13 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.WorkflowExecution;
-
-import java.util.function.Consumer;
-
-class OpenChildWorkflowRequestInfo extends OpenRequestInfo<byte[], String> {
-
-    private final Consumer<WorkflowExecution> executionCallback;
-
-    public OpenChildWorkflowRequestInfo(Consumer<WorkflowExecution> executionCallback) {
-        this.executionCallback = executionCallback;
-    }
-
-    public Consumer<WorkflowExecution> getExecutionCallback() {
-        return executionCallback;
-    }
+enum DecisionTarget {
+    ACTIVITY,
+    LAMBDA_FUNCTION,
+    EXTERNAL_WORKFLOW,
+    SIGNAL,
+    TIMER,
+    SELF
 }

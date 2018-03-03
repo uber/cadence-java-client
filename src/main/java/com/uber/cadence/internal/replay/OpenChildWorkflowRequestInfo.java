@@ -14,28 +14,21 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
-enum DecisionState {
+import com.uber.cadence.WorkflowExecution;
 
-    CREATED,
+import java.util.function.Consumer;
 
-    DECISION_SENT,
+class OpenChildWorkflowRequestInfo extends OpenRequestInfo<byte[], String> {
 
-    CANCELED_BEFORE_INITIATED,
-    
-    INITIATED,
+    private final Consumer<WorkflowExecution> executionCallback;
 
-    STARTED,
-    
-    CANCELED_AFTER_INITIATED,
+    public OpenChildWorkflowRequestInfo(Consumer<WorkflowExecution> executionCallback) {
+        this.executionCallback = executionCallback;
+    }
 
-    CANCELED_AFTER_STARTED,
-
-    CANCELLATION_DECISION_SENT,
-
-    COMPLETED_AFTER_CANCELLATION_DECISION_SENT,
-
-    COMPLETED
-
+    public Consumer<WorkflowExecution> getExecutionCallback() {
+        return executionCallback;
+    }
 }

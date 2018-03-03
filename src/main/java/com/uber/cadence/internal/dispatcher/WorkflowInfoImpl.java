@@ -1,6 +1,6 @@
 package com.uber.cadence.internal.dispatcher;
 
-import com.uber.cadence.internal.worker.DecisionContext;
+import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.workflow.WorkflowInfo;
 
 import java.time.Duration;

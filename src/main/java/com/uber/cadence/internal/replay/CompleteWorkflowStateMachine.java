@@ -14,12 +14,15 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.internal.replay.DecisionId;
+import com.uber.cadence.internal.replay.DecisionState;
+import com.uber.cadence.internal.replay.DecisionStateMachine;
 
-public class CompleteWorkflowStateMachine implements DecisionStateMachine {
+final class CompleteWorkflowStateMachine implements DecisionStateMachine {
 
     private Decision decision;
     private final DecisionId id;

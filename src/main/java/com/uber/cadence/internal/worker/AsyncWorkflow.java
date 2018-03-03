@@ -18,6 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.internal.replay.DecisionContext;
 
 public interface AsyncWorkflow {
 

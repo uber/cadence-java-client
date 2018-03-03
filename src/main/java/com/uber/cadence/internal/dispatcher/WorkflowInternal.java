@@ -23,7 +23,7 @@ import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;

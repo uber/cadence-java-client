@@ -26,10 +26,10 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
-import com.uber.cadence.internal.generic.QueryWorkflowParameters;
+import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
-import com.uber.cadence.workflow.SignalExternalWorkflowParameters;
+import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;

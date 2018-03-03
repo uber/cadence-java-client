@@ -14,14 +14,12 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;

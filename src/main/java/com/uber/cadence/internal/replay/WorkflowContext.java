@@ -14,12 +14,11 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
 
 final class WorkflowContext {
 

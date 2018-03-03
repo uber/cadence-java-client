@@ -21,7 +21,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.internal.worker.DecisionContext;
+import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.worker.AsyncWorkflow;
 import com.uber.cadence.internal.worker.POJOWorkflowImplementationFactory;

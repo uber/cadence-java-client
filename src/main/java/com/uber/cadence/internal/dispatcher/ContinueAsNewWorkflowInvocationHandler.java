@@ -17,7 +17,7 @@
 package com.uber.cadence.internal.dispatcher;
 
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.WorkflowMethod;

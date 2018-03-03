@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -24,6 +24,9 @@ import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.internal.worker.AsyncWorkflowFactory;
+import com.uber.cadence.internal.worker.DecisionTaskHandler;
+import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -32,7 +35,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class ReplayDecisionTaskHandler implements DecisionTaskHandler {
+public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
     private static final Log log = LogFactory.getLog(ReplayDecisionTaskHandler.class);
 

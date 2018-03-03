@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
@@ -35,8 +35,6 @@ import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
-import com.uber.cadence.workflow.StartChildWorkflowExecutionParameters;
 
 import java.util.HashMap;
 import java.util.Map;

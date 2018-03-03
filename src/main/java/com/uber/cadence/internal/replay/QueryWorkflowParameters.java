@@ -14,19 +14,19 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.workflow;
+package com.uber.cadence.internal.replay;
 
-public final class SignalExternalWorkflowParameters implements Cloneable {
+public class QueryWorkflowParameters implements Cloneable {
 
     private byte[] input;
-    
+
     private String runId;
-    
-    private String signalName;
-    
+
+    private String queryType;
+
     private String workflowId;
-    
-    public SignalExternalWorkflowParameters() {
+
+    public QueryWorkflowParameters() {
     }
     
     public byte[] getInput() {
@@ -37,7 +37,7 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
         this.input = input;
     }
     
-    public SignalExternalWorkflowParameters withInput(byte[] input) {
+    public QueryWorkflowParameters withInput(byte[] input) {
         this.input = input;
         return this;
     }
@@ -50,21 +50,21 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
         this.runId = runId;
     }
     
-    public SignalExternalWorkflowParameters withRunId(String runId) {
+    public QueryWorkflowParameters withRunId(String runId) {
         this.runId = runId;
         return this;
     }
 
-    public String getSignalName() {
-        return signalName;
+    public String getQueryType() {
+        return queryType;
     }
     
-    public void setSignalName(String signalName) {
-        this.signalName = signalName;
+    public void setQueryType(String queryType) {
+        this.queryType = queryType;
     }
     
-    public SignalExternalWorkflowParameters withSignalName(String signalName) {
-        this.signalName = signalName;
+    public QueryWorkflowParameters withQueryType(String queryType) {
+        this.queryType = queryType;
         return this;
     }
     
@@ -76,7 +76,7 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
         this.workflowId = workflowId;
     }
     
-    public SignalExternalWorkflowParameters withWorkflowId(String workflowId) {
+    public QueryWorkflowParameters withWorkflowId(String workflowId) {
         this.workflowId = workflowId;
         return this;
     }
@@ -85,7 +85,7 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("{");
-        sb.append("SignalName: " + signalName + ", ");
+        sb.append("QueryName: " + queryType + ", ");
         sb.append("Input: " + input + ", ");
         sb.append("WorkflowId: " + workflowId + ", ");
         sb.append("RunId: " + runId + ", ");
@@ -93,11 +93,11 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
         return sb.toString();
     }
 
-    public SignalExternalWorkflowParameters clone() {
-        SignalExternalWorkflowParameters result = new SignalExternalWorkflowParameters();
+    public QueryWorkflowParameters clone() {
+        QueryWorkflowParameters result = new QueryWorkflowParameters();
         result.setInput(input);
         result.setRunId(runId);
-        result.setSignalName(signalName);
+        result.setQueryType(queryType);
         result.setWorkflowId(workflowId);
         return result;
     }

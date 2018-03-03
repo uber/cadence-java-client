@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
@@ -24,7 +24,8 @@ import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.workflow.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.worker.AsyncWorkflow;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
