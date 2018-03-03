@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class SyncWorkflowWorker extends GenericWorker {
+public class SyncWorkflowWorker {
 
     private static final String THREAD_NAME_PREFIX = "Cadence workflow poller ";
 
