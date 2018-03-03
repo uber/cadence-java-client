@@ -16,10 +16,10 @@
  */
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.ReplayWorkflow;
 import com.uber.cadence.internal.replay.ReplayWorkflowFactory;
-import com.uber.cadence.WorkflowType;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;

@@ -18,9 +18,6 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
 import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.internal.replay.DecisionId;
-import com.uber.cadence.internal.replay.DecisionState;
-import com.uber.cadence.internal.replay.DecisionStateMachine;
 
 final class CompleteWorkflowStateMachine implements DecisionStateMachine {
 

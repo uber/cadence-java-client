@@ -19,8 +19,8 @@ package com.uber.cadence.worker;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.internal.sync.SyncWorkflowWorker;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
+import com.uber.cadence.internal.sync.SyncWorkflowWorker;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 
 import java.time.Duration;

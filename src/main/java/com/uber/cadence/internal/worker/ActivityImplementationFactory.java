@@ -17,7 +17,6 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.activity.ActivityTask;
 
 public interface ActivityImplementationFactory {

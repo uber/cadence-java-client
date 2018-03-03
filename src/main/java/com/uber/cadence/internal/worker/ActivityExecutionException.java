@@ -18,7 +18,6 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.worker.ActivityImplementation;
 
 /**
  * This exception is expected to be thrown from

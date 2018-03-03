@@ -19,7 +19,6 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.ChildWorkflowExecutionFailedCause;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.workflow.ChildWorkflowException;
 
 /**
  * Indicates that child workflow failed to start.

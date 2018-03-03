@@ -16,11 +16,11 @@
  */
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.workflow.WorkflowOperationException;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowOperationException;
 
 import java.util.ArrayList;
 import java.util.List;

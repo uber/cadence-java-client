@@ -21,9 +21,6 @@ import com.uber.cadence.DecisionType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
-import com.uber.cadence.internal.replay.DecisionId;
-import com.uber.cadence.internal.replay.DecisionState;
-import com.uber.cadence.internal.replay.DecisionStateMachineBase;
 
 final class ActivityDecisionStateMachine extends DecisionStateMachineBase {
 

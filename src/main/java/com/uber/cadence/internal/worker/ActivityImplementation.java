@@ -16,10 +16,8 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.ActivityTask;
-import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
 
 /**
  * Base class for activity implementation.

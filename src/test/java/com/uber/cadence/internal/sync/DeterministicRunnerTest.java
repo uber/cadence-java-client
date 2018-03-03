@@ -16,12 +16,12 @@
  */
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowTest;
 import org.junit.After;

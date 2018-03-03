@@ -18,9 +18,9 @@ package com.uber.cadence.internal.common;
 
 import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
-import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.client.WorkflowTerminatedException;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.workflow.Workflow;
 import org.apache.thrift.TException;
 

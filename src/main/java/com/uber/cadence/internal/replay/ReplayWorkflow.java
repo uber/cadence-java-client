@@ -18,7 +18,6 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 
 public interface ReplayWorkflow {

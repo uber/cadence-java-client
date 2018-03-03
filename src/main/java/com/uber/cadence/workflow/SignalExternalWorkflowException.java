@@ -17,7 +17,6 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.workflow.WorkflowOperationException;
 
 /**
  * Exception used to communicate failure of a request to signal an external workflow.

@@ -21,9 +21,6 @@ import com.uber.cadence.DecisionType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.internal.replay.DecisionId;
-import com.uber.cadence.internal.replay.DecisionState;
-import com.uber.cadence.internal.replay.DecisionStateMachineBase;
 
 final class ChildWorkflowDecisionStateMachine extends DecisionStateMachineBase {
 

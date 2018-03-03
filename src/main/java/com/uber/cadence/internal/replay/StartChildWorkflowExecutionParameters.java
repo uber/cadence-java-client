@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.ChildPolicy;
+import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 
 import java.util.Arrays;

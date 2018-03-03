@@ -17,9 +17,6 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.workflow.Functions;
-
-import java.util.concurrent.CancellationException;
 
 class WorkflowRunnable implements Runnable {
     private final SyncDecisionContext context;
