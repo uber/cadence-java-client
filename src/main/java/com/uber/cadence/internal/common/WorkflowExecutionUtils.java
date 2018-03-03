@@ -110,6 +110,7 @@ public class WorkflowExecutionUtils {
             try {
                 response = getInstanceCloseEventRetryer.retryWithResult(() -> service.GetWorkflowExecutionHistory(r));
             } catch (TException e) {
+                // TODO: Refactor to avoid this ugly circular dependency.
                 throw Workflow.throwWrapped(e);
             }
             if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
