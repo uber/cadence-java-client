@@ -24,7 +24,6 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
-import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.replay.ActivityTaskFailedException;
 import com.uber.cadence.internal.replay.ExecuteActivityParameters;
 import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;

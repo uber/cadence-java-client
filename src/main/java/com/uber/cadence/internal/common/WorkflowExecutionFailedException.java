@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.sync;
+package com.uber.cadence.internal.common;
 
 /**
  * Framework level exception. Do not throw or catch in the application level code.
@@ -24,7 +24,7 @@ public final class WorkflowExecutionFailedException extends RuntimeException {
     private final byte[] details;
     private final long decisionTaskCompletedEventId;
 
-    public WorkflowExecutionFailedException(String reason, byte[] details, long decisionTaskCompletedEventId) {
+    WorkflowExecutionFailedException(String reason, byte[] details, long decisionTaskCompletedEventId) {
         super(reason);
         this.details = details;
         this.decisionTaskCompletedEventId = decisionTaskCompletedEventId;

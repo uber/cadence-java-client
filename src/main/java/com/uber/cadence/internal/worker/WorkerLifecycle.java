@@ -14,11 +14,11 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.worker;
 
 import java.util.concurrent.TimeUnit;
 
-public interface WorkerLifecycle {
+interface WorkerLifecycle {
 
     void start();
 

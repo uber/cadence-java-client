@@ -14,10 +14,9 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.sync.SyncActivityWorker;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 

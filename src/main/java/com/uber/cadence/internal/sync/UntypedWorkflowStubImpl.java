@@ -24,6 +24,7 @@ import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.WorkflowExecutionFailedException;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;

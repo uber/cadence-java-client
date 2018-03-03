@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
@@ -233,6 +234,10 @@ public final class AsyncInternal {
      */
     public static <A1, A2, A3, A4, A5, A6> Promise<Void> invoke(Functions.Proc6<A1, A2, A3, A4, A5, A6> procedure, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5, A6 arg6) {
         return invoke(isAsync(procedure), () -> procedure.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+    }
+
+    public static <R> Promise<R> retry(RetryOptions options, Functions.Func<Promise<R>> fn) {
+        return WorkflowRetryerInternal.retryAsync(options, fn);
     }
 
     private static <R> Promise<R> execute(boolean async, Functions.Func<R> func) {

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class POJOQueryImplementationFactory {
+final class POJOQueryImplementationFactory {
 
     private static final byte[] EMPTY_BLOB = {};
     private final DataConverter dataConverter;

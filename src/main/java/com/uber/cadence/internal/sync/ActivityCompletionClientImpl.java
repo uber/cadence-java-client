@@ -19,11 +19,9 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityCompletionException;
-import com.uber.cadence.internal.ManualActivityCompletionClientFactory;
+import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 
-import java.util.concurrent.CancellationException;
-
-class ActivityCompletionClientImpl implements ActivityCompletionClient {
+public class ActivityCompletionClientImpl implements ActivityCompletionClient {
 
     private final ManualActivityCompletionClientFactory factory;
 

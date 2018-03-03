@@ -18,11 +18,13 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
@@ -209,5 +211,9 @@ public final class WorkflowInternal {
 
     public static WorkflowInfo getWorkflowInfo() {
        return new WorkflowInfoImpl(getDecisionContext().getContext());
+    }
+
+    public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
+        return WorkflowRetryerInternal.validateOptionsAndRetry(options, fn);
     }
 }

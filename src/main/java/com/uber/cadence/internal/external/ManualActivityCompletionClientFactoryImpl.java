@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.external;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;

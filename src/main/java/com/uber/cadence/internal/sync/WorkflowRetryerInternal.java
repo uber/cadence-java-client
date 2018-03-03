@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal;
+package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.workflow.ActivityFailureException;
@@ -32,7 +32,7 @@ import java.time.Duration;
  * Use {@link Workflow#retry(RetryOptions, Functions.Func)} or
  * Async{@link #retry(RetryOptions, Functions.Func)}.
  */
-public final class WorkflowRetryerInternal {
+final class WorkflowRetryerInternal {
 
     private static final double DEFAULT_COEFFICIENT = 2.0;
     public static final int DEFAULT_MAXIMUM_MULTIPLIER = 100;

@@ -19,7 +19,6 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.internal.WorkflowRetryerInternal;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 
@@ -149,7 +148,7 @@ public final class Workflow {
      * @return result of the function or the last failure.
      */
     public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
-        return WorkflowRetryerInternal.validateOptionsAndRetry(options, fn);
+        return WorkflowInternal.retry(options, fn);
     }
 
     /**

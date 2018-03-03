@@ -21,7 +21,6 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.worker.GenericWorker;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
@@ -40,9 +39,9 @@ import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.function.Function;
 
-public class POJOWorkflowImplementationFactory implements Function<WorkflowType, SyncWorkflowDefinition> {
+final class POJOWorkflowImplementationFactory implements Function<WorkflowType, SyncWorkflowDefinition> {
 
-    private static final Log log = LogFactory.getLog(GenericWorker.class);
+    private static final Log log = LogFactory.getLog(POJOWorkflowImplementationFactory.class);
     private static final byte[] EMPTY_BLOB = {};
 
     private DataConverter dataConverter;
