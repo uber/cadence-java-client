@@ -18,7 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.internal.sync.ActivityExecutionException;
+import com.uber.cadence.activity.ActivityTask;
 
 public interface ActivityImplementationFactory {
 
@@ -32,5 +32,5 @@ public interface ActivityImplementationFactory {
     /**
      * Used by a low level worker code that is not aware about DataConverter to serialize unexpected exceptions.
      */
-    ActivityExecutionException serializeUnexpectedFailure(PollForActivityTaskResponse task, Throwable e);
+    ActivityExecutionException serializeUnexpectedFailure(ActivityTask task, Throwable e);
 }

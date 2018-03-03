@@ -18,6 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
 
 /**
@@ -37,5 +38,5 @@ public interface ActivityImplementation {
      * @return result of activity execution if {@link ActivityTypeExecutionOptions#isDoNotCompleteOnReturn()} is set
      *         to false.
      */
-    byte[] execute(WorkflowService.Iface service, String domain, PollForActivityTaskResponse task);
+    byte[] execute(WorkflowService.Iface service, String domain, ActivityTask task);
 }

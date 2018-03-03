@@ -18,11 +18,9 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowService.Iface;
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCancelledException;
@@ -50,22 +48,16 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
 
     private final String domain;
 
-    private final ActivityTaskImpl task;
+    private final ActivityTask task;
     private final DataConverter dataConverter;
 
     /**
      * Create an ActivityExecutionContextImpl with the given attributes.
-     *
-     * @param service  The {@link WorkflowService.Iface} this
-     *                 ActivityExecutionContextImpl will send service calls to.
-     * @param response The {@link PollForActivityTaskResponse} this ActivityExecutionContextImpl
-     *                 will be used for.
-     * @see ActivityExecutionContext
      */
-    ActivityExecutionContextImpl(Iface service, String domain, PollForActivityTaskResponse response, DataConverter dataConverter) {
+    ActivityExecutionContextImpl(Iface service, String domain, ActivityTask task, DataConverter dataConverter) {
         this.domain = domain;
         this.service = service;
-        this.task = new ActivityTaskImpl(response);
+        this.task = task;
         this.dataConverter = dataConverter;
     }
 

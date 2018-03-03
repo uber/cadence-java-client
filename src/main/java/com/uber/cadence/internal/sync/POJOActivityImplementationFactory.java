@@ -18,15 +18,16 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.activity.DoNotCompleteOnReturn;
 import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.worker.ActivityExecutionException;
 import com.uber.cadence.internal.worker.ActivityImplementation;
 import com.uber.cadence.internal.worker.ActivityImplementationFactory;
 import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
@@ -90,7 +91,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         }
     }
 
-    private ActivityExecutionException mapToActivityFailure(PollForActivityTaskResponse task, Throwable e) {
+    private ActivityExecutionException mapToActivityFailure(ActivityTask task, Throwable e) {
         if (e instanceof ActivityCancelledException) {
             throw new CancellationException(e.getMessage());
         }
@@ -114,7 +115,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
     }
 
     @Override
-    public ActivityExecutionException serializeUnexpectedFailure(PollForActivityTaskResponse task, Throwable e) {
+    public ActivityExecutionException serializeUnexpectedFailure(ActivityTask task, Throwable e) {
         return mapToActivityFailure(task, e);
     }
 
@@ -165,7 +166,7 @@ class POJOActivityImplementationFactory implements ActivityImplementationFactory
         }
 
         @Override
-        public byte[] execute(WorkflowService.Iface service, String domain, PollForActivityTaskResponse task) {
+        public byte[] execute(WorkflowService.Iface service, String domain, ActivityTask task) {
             ActivityExecutionContext context = new ActivityExecutionContextImpl(service, domain, task, dataConverter);
             byte[] input = task.getInput();
             Object[] args = dataConverter.fromDataArray(input, method.getParameterTypes());

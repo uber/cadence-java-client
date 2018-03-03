@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.sync;
+package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowService;
@@ -44,7 +44,7 @@ public final class ActivityExecutionException extends RuntimeException {
      * @param reason  value of reason field
      * @param details application specific failure details
      */
-    ActivityExecutionException(String message, String reason, byte[] details, Throwable cause) {
+    public ActivityExecutionException(String message, String reason, byte[] details, Throwable cause) {
         super(message, cause, false, false);
         this.reason = reason;
         this.details = details;

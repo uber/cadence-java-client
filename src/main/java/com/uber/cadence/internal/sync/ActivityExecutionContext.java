@@ -29,7 +29,7 @@ import java.util.concurrent.CancellationException;
  * @author fateev
  * @see ActivityImplementation
  */
-interface ActivityExecutionContext {
+public interface ActivityExecutionContext {
 
     /**
      * @return task token that is required to report task completion when
