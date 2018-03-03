@@ -31,8 +31,7 @@ import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.internal.ChildWorkflowTaskFailedException;
-import com.uber.cadence.internal.StartChildWorkflowFailedException;
+import com.uber.cadence.workflow.StartChildWorkflowFailedException;
 import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
 

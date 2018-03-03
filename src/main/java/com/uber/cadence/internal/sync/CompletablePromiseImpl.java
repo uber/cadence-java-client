@@ -16,7 +16,7 @@
  */
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.internal.WorkflowOperationException;
+import com.uber.cadence.workflow.WorkflowOperationException;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;

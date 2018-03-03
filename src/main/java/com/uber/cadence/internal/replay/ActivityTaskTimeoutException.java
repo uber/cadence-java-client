@@ -18,7 +18,6 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.TimeoutType;
-import com.uber.cadence.internal.ActivityException;
 
 /**
  * Exception that indicates Activity time out.
