@@ -19,7 +19,7 @@ package com.uber.cadence.internal.common;
 import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
 import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
-import com.uber.cadence.internal.dispatcher.WorkflowExecutionFailedException;
+import com.uber.cadence.internal.sync.WorkflowExecutionFailedException;
 import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.internal.worker.SynchronousRetrier;
 import com.uber.cadence.client.WorkflowTerminatedException;

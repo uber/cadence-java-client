@@ -17,7 +17,7 @@
 package com.uber.cadence.activity;
 
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.dispatcher.WorkflowInternal;
+import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.ActivityInternal;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 

@@ -20,7 +20,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
-import com.uber.cadence.internal.dispatcher.WorkflowInternal;
+import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 

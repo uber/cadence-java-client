@@ -26,7 +26,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TimeoutType;
-import com.uber.cadence.internal.dispatcher.ActivityTaskFailedException;
+import com.uber.cadence.internal.sync.ActivityTaskFailedException;
 
 import java.util.HashMap;
 import java.util.Map;

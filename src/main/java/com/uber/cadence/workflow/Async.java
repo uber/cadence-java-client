@@ -18,7 +18,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
-import com.uber.cadence.internal.dispatcher.AsyncInternal;
+import com.uber.cadence.internal.sync.AsyncInternal;
 
 /**
  * Supports invoking lambdas and activity and child workflow references asynchronously.

@@ -36,7 +36,7 @@ import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.dispatcher.DeterministicRunnerTest;
+import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.worker.Worker;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
