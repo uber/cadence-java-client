@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.sync;
 
 /**
  * Thread local store of the context object passed to an activity
@@ -22,7 +22,7 @@ package com.uber.cadence.internal.worker;
  *
  * @author fateev
  */
-public class CurrentActivityExecutionContext {
+final class CurrentActivityExecutionContext {
 
     private final static ThreadLocal<ActivityExecutionContext> CURRENT = new ThreadLocal<ActivityExecutionContext>();
 

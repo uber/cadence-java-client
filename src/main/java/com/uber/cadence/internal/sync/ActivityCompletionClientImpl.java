@@ -23,7 +23,7 @@ import com.uber.cadence.internal.ManualActivityCompletionClientFactory;
 
 import java.util.concurrent.CancellationException;
 
-public class ActivityCompletionClientImpl implements ActivityCompletionClient {
+class ActivityCompletionClientImpl implements ActivityCompletionClient {
 
     private final ManualActivityCompletionClientFactory factory;
 

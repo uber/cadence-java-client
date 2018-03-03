@@ -17,14 +17,14 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.worker.AsyncWorkflow;
-import com.uber.cadence.internal.worker.AsyncWorkflowFactory;
+import com.uber.cadence.internal.replay.ReplayWorkflow;
+import com.uber.cadence.internal.replay.ReplayWorkflowFactory;
 import com.uber.cadence.WorkflowType;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
-class SyncWorkflowFactory implements AsyncWorkflowFactory {
+class SyncWorkflowFactory implements ReplayWorkflowFactory {
     private final Function<WorkflowType, SyncWorkflowDefinition> factory;
     private final DataConverter converter;
     private final ExecutorService threadPool;
@@ -36,7 +36,7 @@ class SyncWorkflowFactory implements AsyncWorkflowFactory {
     }
 
     @Override
-    public AsyncWorkflow getWorkflow(WorkflowType workflowType) {
+    public ReplayWorkflow getWorkflow(WorkflowType workflowType) {
         return new SyncWorkflow(factory, converter, threadPool);
     }
 }

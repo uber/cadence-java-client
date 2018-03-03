@@ -28,7 +28,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class ActivityTaskPoller extends SynchronousActivityTaskPoller {
+final class ActivityTaskPoller extends SynchronousActivityTaskPoller {
 
     private static final Log log = LogFactory.getLog(ActivityTaskPoller.class);
 

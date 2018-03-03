@@ -20,9 +20,8 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.WorkflowRetryerInternal;
-import com.uber.cadence.internal.sync.WorkflowInternal;
-import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.sync.WorkflowInternal;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -112,7 +111,7 @@ public final class Workflow {
     }
 
     public static <E> Promise<E> newFailedPromise(Exception failure) {
-        return WorkflowInternal.newFailedPromise(CheckedExceptionWrapper.getWrapped(failure));
+        return WorkflowInternal.newFailedPromise(failure);
     }
 
     /**

@@ -14,16 +14,15 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.sync;
 
 import com.google.common.reflect.TypeToken;
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
-import com.uber.cadence.internal.sync.WorkflowInternal;
+import com.uber.cadence.internal.worker.GenericWorker;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;

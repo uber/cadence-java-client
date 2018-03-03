@@ -19,7 +19,6 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
@@ -72,9 +71,9 @@ public final class WorkflowInternal {
         return result;
     }
 
-    public static <E> Promise<E> newFailedPromise(RuntimeException failure) {
+    public static <E> Promise<E> newFailedPromise(Exception failure) {
         CompletablePromise<E> result = new CompletablePromiseImpl<>();
-        result.completeExceptionally(failure);
+        result.completeExceptionally(CheckedExceptionWrapper.getWrapped(failure));
         return result;
     }
 

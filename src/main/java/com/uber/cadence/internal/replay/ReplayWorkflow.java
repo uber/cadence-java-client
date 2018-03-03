@@ -14,13 +14,14 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.replay.DecisionContext;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 
-public interface AsyncWorkflow {
+public interface ReplayWorkflow {
 
     void start(HistoryEvent event, DecisionContext context) throws Exception;
 
@@ -59,7 +60,7 @@ public interface AsyncWorkflow {
 
     /**
      * Convert exception that happened in the framework code to the format
-     * that AsyncWorkflow implementation understands. The framework code is not aware of DataConverter so this is
+     * that ReplayWorkflow implementation understands. The framework code is not aware of DataConverter so this is
      * working around this layering.
      *
      * @param failure Unexpected failure cause

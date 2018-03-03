@@ -24,7 +24,6 @@ import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.internal.worker.AsyncWorkflowFactory;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import org.apache.commons.logging.Log;
@@ -39,10 +38,10 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
     private static final Log log = LogFactory.getLog(ReplayDecisionTaskHandler.class);
 
-    private final AsyncWorkflowFactory asyncWorkflowFactory;
+    private final ReplayWorkflowFactory asyncWorkflowFactory;
     private final String domain;
 
-    public ReplayDecisionTaskHandler(String domain, AsyncWorkflowFactory asyncWorkflowFactory) {
+    public ReplayDecisionTaskHandler(String domain, ReplayWorkflowFactory asyncWorkflowFactory) {
         this.domain = domain;
         this.asyncWorkflowFactory = asyncWorkflowFactory;
     }

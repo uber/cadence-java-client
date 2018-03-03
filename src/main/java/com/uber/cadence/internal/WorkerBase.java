@@ -17,6 +17,7 @@
 package com.uber.cadence.internal;
 
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.internal.sync.ActivityWorker;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
@@ -114,10 +115,10 @@ public interface WorkerBase extends SuspendableWorker {
     /**
      * Defines how many concurrent threads are used by the given worker to poll
      * the specified task list. Default is 1. Note that in case of
-     * {@link com.uber.cadence.internal.worker.ActivityWorker} two separate threads pools are used. One for
+     * {@link ActivityWorker} two separate threads pools are used. One for
      * polling and another one for executing activities. The size of the
      * activity execution thread pool is defined through
-     * {@link com.uber.cadence.internal.worker.ActivityWorker#setTaskExecutorThreadPoolSize(int)}.
+     * {@link ActivityWorker#setTaskExecutorThreadPoolSize(int)}.
      */
     void setPollThreadCount(int threadCount);
 

@@ -14,11 +14,12 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.worker.GenericActivityWorker;
 
 import java.util.concurrent.TimeUnit;
 
@@ -151,14 +152,6 @@ public class ActivityWorker {
 
     public void start() {
         worker.start();
-    }
-
-    public void checkRequiredProperty(Object value, String name) {
-        worker.checkRequiredProperty(value, name);
-    }
-
-    public void checkStarted() {
-        worker.checkStarted();
     }
 
     public void shutdown() {

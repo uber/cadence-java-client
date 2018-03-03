@@ -20,10 +20,9 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
-import com.uber.cadence.internal.worker.AsyncWorkflowFactory;
+import com.uber.cadence.internal.replay.ReplayWorkflowFactory;
 import com.uber.cadence.internal.worker.DecisionTaskPoller;
 import com.uber.cadence.internal.worker.GenericWorker;
-import com.uber.cadence.internal.worker.POJOWorkflowImplementationFactory;
 import com.uber.cadence.internal.worker.TaskPoller;
 
 import java.lang.management.ManagementFactory;
@@ -100,7 +99,7 @@ public class SyncWorkflowWorker extends GenericWorker {
             return;
         }
         decisionTaskPoller = new DecisionTaskPoller();
-        AsyncWorkflowFactory workflowFactory = new SyncWorkflowFactory(factory, dataConverter, workflowThreadPool);
+        ReplayWorkflowFactory workflowFactory = new SyncWorkflowFactory(factory, dataConverter, workflowThreadPool);
         decisionTaskPoller.setDecisionTaskHandler(new ReplayDecisionTaskHandler(domain, workflowFactory));
         decisionTaskPoller.setDomain(getDomain());
         decisionTaskPoller.setIdentity(getIdentity());

@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.workflow.Workflow;
 import org.junit.Assert;
 import org.junit.Test;

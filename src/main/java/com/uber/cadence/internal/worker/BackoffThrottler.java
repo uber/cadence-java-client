@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 
  * @author fateev
  */
-public class BackoffThrottler {
+final class BackoffThrottler {
 
     private final long initialSleep;
 

@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.sync;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -24,7 +24,7 @@ import java.lang.reflect.InvocationTargetException;
  * Use {@link com.uber.cadence.workflow.Workflow#throwWrapped(Throwable)} inside a workflow code and
  * {@link com.uber.cadence.activity.Activity#throwWrapped(Throwable)} inside an activity code instead.
  */
-public final class CheckedExceptionWrapper extends RuntimeException {
+final class CheckedExceptionWrapper extends RuntimeException {
 
     private final static Field causeField;
 

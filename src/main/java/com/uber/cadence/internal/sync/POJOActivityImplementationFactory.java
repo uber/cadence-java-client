@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.sync;
 
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.ActivityType;
@@ -29,6 +29,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.generic.ActivityImplementation;
 import com.uber.cadence.internal.generic.ActivityImplementationFactory;
+import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

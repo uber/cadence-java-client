@@ -24,7 +24,6 @@ import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.worker.AsyncWorkflow;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import org.apache.commons.logging.Log;
@@ -48,7 +47,7 @@ class ReplayDecider {
 
     private final DecisionContextImpl context;
 
-    private AsyncWorkflow workflow;
+    private ReplayWorkflow workflow;
 
     private boolean cancelRequested;
 
@@ -58,7 +57,7 @@ class ReplayDecider {
 
     private WorkflowExecutionException failure;
 
-    ReplayDecider(String domain, AsyncWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
+    ReplayDecider(String domain, ReplayWorkflow workflow, HistoryHelper historyHelper, DecisionsHelper decisionsHelper) {
         this.workflow = workflow;
         this.historyHelper = historyHelper;
         this.decisionsHelper = decisionsHelper;

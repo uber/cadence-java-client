@@ -18,12 +18,12 @@ package com.uber.cadence.internal.common;
 
 import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.Iface;
-import com.uber.cadence.internal.worker.CheckedExceptionWrapper;
 import com.uber.cadence.internal.sync.WorkflowExecutionFailedException;
 import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import com.uber.cadence.internal.worker.SynchronousRetrier;
 import com.uber.cadence.client.WorkflowTerminatedException;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.workflow.Workflow;
 import org.apache.thrift.TException;
 
 import java.lang.reflect.InvocationTargetException;
@@ -112,7 +112,7 @@ public class WorkflowExecutionUtils {
             try {
                 response = getInstanceCloseEventRetryer.retryWithResult(() -> service.GetWorkflowExecutionHistory(r));
             } catch (TException e) {
-                throw CheckedExceptionWrapper.throwWrapped(e);
+                throw Workflow.throwWrapped(e);
             }
             if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
                 throw new TimeoutException("WorkflowId=" + workflowExecution.getWorkflowId() +

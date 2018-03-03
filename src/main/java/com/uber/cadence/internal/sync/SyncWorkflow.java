@@ -23,8 +23,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.worker.AsyncWorkflow;
-import com.uber.cadence.internal.worker.POJOWorkflowImplementationFactory;
+import com.uber.cadence.internal.replay.ReplayWorkflow;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 
 import java.util.concurrent.ExecutorService;
@@ -34,9 +33,9 @@ import java.util.function.Function;
  * The best inheritance hierarchy :).
  * SyncWorkflow supports workflows that use blocking code.
  * <p>
- * TODO: rename AsyncWorkflow to something more reasonable.
+ * TODO: rename ReplayWorkflow to something more reasonable.
  */
-class SyncWorkflow implements AsyncWorkflow {
+class SyncWorkflow implements ReplayWorkflow {
 
     private final Function<WorkflowType, SyncWorkflowDefinition> factory;
     private final DataConverter dataConverter;

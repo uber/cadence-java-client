@@ -18,7 +18,7 @@ package com.uber.cadence.internal.generic;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.internal.worker.ActivityExecutionException;
+import com.uber.cadence.internal.sync.ActivityExecutionException;
 
 public interface ActivityImplementationFactory {
 
