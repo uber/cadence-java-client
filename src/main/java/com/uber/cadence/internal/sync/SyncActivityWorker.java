@@ -26,13 +26,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * TODO: Refactor all the old worker code to use Options instead of setters to configure.
  */
-public class ActivityWorker {
+public class SyncActivityWorker {
 
     private final GenericActivityWorker worker;
     private final POJOActivityImplementationFactory factory =
             new POJOActivityImplementationFactory(JsonDataConverter.getInstance());
 
-    public ActivityWorker(WorkflowService.Iface service, String domain, String taskList) {
+    public SyncActivityWorker(WorkflowService.Iface service, String domain, String taskList) {
         worker = new GenericActivityWorker(service, domain, taskList);
         worker.setActivityImplementationFactory(factory);
     }
