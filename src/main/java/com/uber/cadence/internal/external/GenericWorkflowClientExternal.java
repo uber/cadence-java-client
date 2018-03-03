@@ -14,11 +14,13 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.generic;
+package com.uber.cadence.internal.external;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
+import com.uber.cadence.internal.common.TerminateWorkflowExecutionParameters;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 

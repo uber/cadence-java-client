@@ -18,6 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.internal.WorkerBase;
+import com.uber.cadence.internal.common.BackoffThrottler;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

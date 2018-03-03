@@ -19,7 +19,7 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.WorkflowService.Iface;
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCompletionException;
-import com.uber.cadence.internal.generic.ActivityImplementation;
+import com.uber.cadence.internal.worker.ActivityImplementation;
 
 import java.util.concurrent.CancellationException;
 

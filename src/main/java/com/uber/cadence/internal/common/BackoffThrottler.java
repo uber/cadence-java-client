@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.common;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 
  * @author fateev
  */
-final class BackoffThrottler {
+public final class BackoffThrottler {
 
     private final long initialSleep;
 

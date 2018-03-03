@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.generic;
+package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;

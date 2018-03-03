@@ -27,8 +27,8 @@ import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.generic.ActivityImplementation;
-import com.uber.cadence.internal.generic.ActivityImplementationFactory;
+import com.uber.cadence.internal.worker.ActivityImplementation;
+import com.uber.cadence.internal.worker.ActivityImplementationFactory;
 import com.uber.cadence.internal.worker.ActivityTypeExecutionOptions;
 
 import java.lang.reflect.InvocationTargetException;

@@ -14,7 +14,7 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.external;
 
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
@@ -28,16 +28,15 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
-import com.uber.cadence.internal.generic.StartWorkflowExecutionParameters;
-import com.uber.cadence.internal.generic.TerminateWorkflowExecutionParameters;
+import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
+import com.uber.cadence.internal.common.TerminateWorkflowExecutionParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import org.apache.thrift.TException;
 
 import java.util.UUID;
 
-public class GenericWorkflowClientExternalImpl implements GenericWorkflowClientExternal {
+public final class GenericWorkflowClientExternalImpl implements GenericWorkflowClientExternal {
 
     private final String domain;
 

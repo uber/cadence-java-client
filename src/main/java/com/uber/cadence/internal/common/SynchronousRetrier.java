@@ -14,12 +14,13 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.worker;
+package com.uber.cadence.internal.common;
 
+import com.uber.cadence.internal.worker.ExponentialRetryParameters;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public class SynchronousRetrier<T extends Throwable> {
+public final class SynchronousRetrier<T extends Throwable> {
 
     public interface RetryableProc<E extends Throwable> {
         void apply() throws E;

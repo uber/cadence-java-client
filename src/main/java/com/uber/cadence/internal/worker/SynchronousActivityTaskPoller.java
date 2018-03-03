@@ -26,8 +26,7 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.generic.ActivityImplementation;
-import com.uber.cadence.internal.generic.ActivityImplementationFactory;
+import com.uber.cadence.internal.common.SynchronousRetrier;
 import com.uber.cadence.internal.sync.ActivityExecutionException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,7 +36,7 @@ import java.lang.management.ManagementFactory;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 
-public class SynchronousActivityTaskPoller implements TaskPoller {
+class SynchronousActivityTaskPoller implements TaskPoller {
 
     private static final Log log = LogFactory.getLog(SynchronousActivityTaskPoller.class);
 

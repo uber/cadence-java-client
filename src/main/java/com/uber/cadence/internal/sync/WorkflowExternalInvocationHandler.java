@@ -22,7 +22,7 @@ import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.generic.GenericWorkflowClientExternal;
+import com.uber.cadence.internal.external.GenericWorkflowClientExternal;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.WorkflowMethod;
