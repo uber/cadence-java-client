@@ -18,9 +18,11 @@ package com.uber.cadence.worker;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
+import com.uber.cadence.internal.worker.ActivityWorkerOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 
 import java.time.Duration;
@@ -35,6 +37,7 @@ public final class Worker {
     private final WorkerOptions options;
     private final SyncWorkflowWorker workflowWorker;
     private final SyncActivityWorker activityWorker;
+    private final ActivityWorkerOptions activityOptions;
 
     /**
      * Creates worker that connects to the local instance of the Cadence Service that listens
@@ -98,16 +101,9 @@ public final class Worker {
             options = new WorkerOptions.Builder().build();
         }
         this.options = options;
+        this.activityOptions = toActivityOptions(options);
         if (!options.isDisableActivityWorker()) {
-            activityWorker = new SyncActivityWorker(service, domain, taskList);
-            activityWorker.setMaximumPollRatePerSecond(options.getWorkerActivitiesPerSecond());
-            if (options.getIdentity() != null) {
-                activityWorker.setIdentity(options.getIdentity());
-            }
-            activityWorker.setDataConverter(options.getDataConverter());
-            if (options.getMaxConcurrentActivityExecutionSize() > 0) {
-                activityWorker.setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize());
-            }
+            activityWorker = new SyncActivityWorker(service, domain, taskList, activityOptions);
         } else {
             activityWorker = null;
         }
@@ -123,6 +119,17 @@ public final class Worker {
         } else {
             workflowWorker = null;
         }
+    }
+
+    private ActivityWorkerOptions toActivityOptions(WorkerOptions options) {
+        return new ActivityWorkerOptions.Builder()
+                .setDataConverter(options.getDataConverter())
+                .setIdentity(options.getIdentity())
+                .setPollerOptions(options.getActivityPollerOptions())
+                .setReportCompletionRetryOptions(options.getReportActivityCompletionRetryOptions())
+                .setReportFailureRetryOptions(options.getReportActivityFailureRetryOptions())
+                .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
+                .build();
     }
 
     /**
@@ -165,9 +172,7 @@ public final class Worker {
             throw new IllegalStateException("disableActivityWorker is set in worker options");
         }
         checkStarted();
-        for (Object implementation : activityImplementations) {
-            activityWorker.addActivityImplementation(implementation);
-        }
+        activityWorker.setActivitiesImplementation(activityImplementations);
     }
 
     private void checkStarted() {

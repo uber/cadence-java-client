@@ -26,7 +26,8 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.internal.common.SynchronousRetrier;
+import com.uber.cadence.internal.common.SynchronousRetryer;
+import com.uber.cadence.internal.sync.ActivityTaskImpl;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
@@ -49,9 +50,9 @@ class SynchronousActivityTaskPoller implements TaskPoller {
 
     private String identity;
 
-    private SynchronousRetrier<TException> reportCompletionRetrier;
+    private SynchronousRetryer<TException> reportCompletionRetrier;
 
-    private SynchronousRetrier<TException> reportFailureRetrier;
+    private SynchronousRetryer<TException> reportFailureRetrier;
 
     private boolean initialized;
 
@@ -117,7 +118,7 @@ class SynchronousActivityTaskPoller implements TaskPoller {
     }
 
     private void setReportCompletionRetryParameters(ExponentialRetryParameters reportCompletionRetryParameters) {
-        this.reportCompletionRetrier = new SynchronousRetrier<>(reportCompletionRetryParameters, EntityNotExistsError.class);
+        this.reportCompletionRetrier = new SynchronousRetryer<>(reportCompletionRetryParameters, EntityNotExistsError.class);
     }
 
     public ExponentialRetryParameters getReportFailureRetryParameters() {
@@ -125,7 +126,7 @@ class SynchronousActivityTaskPoller implements TaskPoller {
     }
 
     private void setReportFailureRetryParameters(ExponentialRetryParameters reportFailureRetryParameters) {
-        this.reportFailureRetrier = new SynchronousRetrier<>(reportFailureRetryParameters, EntityNotExistsError.class);
+        this.reportFailureRetrier = new SynchronousRetryer<>(reportFailureRetryParameters, EntityNotExistsError.class);
     }
 
     public String getTaskListToPoll() {

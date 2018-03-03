@@ -43,14 +43,14 @@ import java.util.concurrent.TimeoutException;
  */
 public class WorkflowExecutionUtils {
 
-    private static SynchronousRetrier<TException> getInstanceCloseEventRetryer;
+    private static SynchronousRetryer<TException> getInstanceCloseEventRetryer;
 
     static {
         ExponentialRetryParameters retryParameters = new ExponentialRetryParameters();
         retryParameters.setBackoffCoefficient(2);
         retryParameters.setInitialInterval(500);
         // Exceptions to NOT retry.
-        getInstanceCloseEventRetryer = new SynchronousRetrier<>(retryParameters,
+        getInstanceCloseEventRetryer = new SynchronousRetryer<>(retryParameters,
                 BadRequestError.class, EntityNotExistsError.class);
     }
 

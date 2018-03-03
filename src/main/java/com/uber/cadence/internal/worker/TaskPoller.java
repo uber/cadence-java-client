@@ -16,13 +16,10 @@
  */
 package com.uber.cadence.internal.worker;
 
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
 
 public interface TaskPoller {
-
-    Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
     boolean pollAndProcessSingleTask() throws Exception;
 

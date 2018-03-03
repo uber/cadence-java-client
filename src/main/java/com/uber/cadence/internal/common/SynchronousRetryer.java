@@ -16,11 +16,11 @@
  */
 package com.uber.cadence.internal.common;
 
-import com.uber.cadence.internal.worker.ExponentialRetryParameters;
+import com.uber.cadence.common.RetryOptions;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-public final class SynchronousRetrier<T extends Throwable> {
+public final class SynchronousRetryer {
 
     public interface RetryableProc<E extends Throwable> {
         void apply() throws E;
@@ -30,49 +30,21 @@ public final class SynchronousRetrier<T extends Throwable> {
         R apply() throws E;
     }
 
-    private static final Log log = LogFactory.getLog(SynchronousRetrier.class);
+    private static final Log log = LogFactory.getLog(SynchronousRetryer.class);
 
-    private final ExponentialRetryParameters retryParameters;
 
-    private final Class<?>[] exceptionsToNotRetry;
-
-    public SynchronousRetrier(ExponentialRetryParameters retryParameters, Class<?>... exceptionsToNotRetry) {
-        if (retryParameters.getBackoffCoefficient() < 0) {
-            throw new IllegalArgumentException("negative backoffCoefficient");
-        }
-        if (retryParameters.getInitialInterval() < 10) {
-            throw new IllegalArgumentException("initialInterval cannot be less then 10: " + retryParameters.getInitialInterval());
-        }
-        if (retryParameters.getExpirationInterval() < retryParameters.getInitialInterval()) {
-            throw new IllegalArgumentException("expirationInterval < initialInterval");
-        }
-        if (retryParameters.getMaximumRetries() < retryParameters.getMinimumRetries()) {
-            throw new IllegalArgumentException("maximumRetries < minimumRetries");
-        }
-        this.retryParameters = retryParameters;
-        this.exceptionsToNotRetry = exceptionsToNotRetry;
-    }
-
-    public ExponentialRetryParameters getRetryParameters() {
-        return retryParameters;
-    }
-
-    public Class<?>[] getExceptionsToNotRetry() {
-        return exceptionsToNotRetry;
-    }
-
-    public void retry(RetryableProc<T> r) throws T {
-        retryWithResult(() -> {
+    public static <T extends Throwable> void retry(RetryOptions options, RetryableProc<T> r) throws T {
+        retryWithResult(options, () -> {
             r.apply();
             return null;
         });
     }
 
-    public <R> R retryWithResult(RetryableFunc<R, T> r) throws T {
+    public static <R, T extends Throwable> R retryWithResult(RetryOptions options, RetryableFunc<R, T> r) throws T {
         int attempt = 0;
         long startTime = System.currentTimeMillis();
-        BackoffThrottler throttler = new BackoffThrottler(retryParameters.getInitialInterval(),
-                retryParameters.getMaximumRetryInterval(), retryParameters.getBackoffCoefficient());
+        BackoffThrottler throttler = new BackoffThrottler(options.getInitialInterval().toMillis(),
+                options.getMaximumInterval().toMillis(), options.getBackoffCoefficient());
         do {
             try {
                 attempt++;
@@ -85,14 +57,14 @@ public final class SynchronousRetrier<T extends Throwable> {
                 return null;
             } catch (Exception e) {
                 throttler.failure();
-                for (Class<?> exceptionToNotRetry : exceptionsToNotRetry) {
+                for (Class<?> exceptionToNotRetry : options.getDoNotRetry()) {
                     if (exceptionToNotRetry.isAssignableFrom(e.getClass())) {
                         rethrow(e);
                     }
                 }
                 long elapsed = System.currentTimeMillis() - startTime;
-                if (attempt > retryParameters.getMaximumRetries()
-                        || (elapsed >= retryParameters.getExpirationInterval() && attempt > retryParameters.getMinimumRetries())) {
+                if (attempt >= options.getMaximumAttempts()
+                        || (elapsed >= options.getExpiration().toMillis() && attempt >= options.getMinimumAttempts())) {
                     rethrow(e);
                 }
                 log.warn("Retrying after failure", e);
@@ -101,7 +73,7 @@ public final class SynchronousRetrier<T extends Throwable> {
         while (true);
     }
 
-    private void rethrow(Exception e) throws T {
+    private static <T extends Throwable> void rethrow(Exception e) throws T {
         if (e instanceof RuntimeException) {
             throw (RuntimeException) e;
         } else {
@@ -109,5 +81,12 @@ public final class SynchronousRetrier<T extends Throwable> {
             T toRethrow = (T) e;
             throw toRethrow;
         }
+    }
+
+    /**
+     * Prohibits instantiation.
+     */
+    private SynchronousRetryer() {
+
     }
 }
