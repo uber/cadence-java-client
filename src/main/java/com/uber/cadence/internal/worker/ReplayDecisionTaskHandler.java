@@ -32,14 +32,14 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-public class AsyncDecisionTaskHandler extends DecisionTaskHandler {
+public class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
-    private static final Log log = LogFactory.getLog(AsyncDecisionTaskHandler.class);
+    private static final Log log = LogFactory.getLog(ReplayDecisionTaskHandler.class);
 
     private final AsyncWorkflowFactory asyncWorkflowFactory;
     private final String domain;
 
-    public AsyncDecisionTaskHandler(String domain, AsyncWorkflowFactory asyncWorkflowFactory) {
+    public ReplayDecisionTaskHandler(String domain, AsyncWorkflowFactory asyncWorkflowFactory) {
         this.domain = domain;
         this.asyncWorkflowFactory = asyncWorkflowFactory;
     }
@@ -121,7 +121,6 @@ public class AsyncDecisionTaskHandler extends DecisionTaskHandler {
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         WorkflowType workflowType = decisionTask.getWorkflowType();
         DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask);
-        ReplayDecider decider = new ReplayDecider(domain, asyncWorkflowFactory.getWorkflow(workflowType), historyHelper, decisionsHelper);
-        return decider;
+        return new ReplayDecider(domain, asyncWorkflowFactory.getWorkflow(workflowType), historyHelper, decisionsHelper);
     }
 }
