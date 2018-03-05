@@ -710,8 +710,7 @@ public class WorkflowTest {
      */
     @Test
     public void testExceptionPropagation() {
-        worker.registerWorkflowImplementationTypes(ThrowingChild.class);
-        startWorkerFor(TestExceptionPropagationImpl.class);
+        startWorkerFor(ThrowingChild.class, TestExceptionPropagationImpl.class);
         TestExceptionPropagation client = workflowClient.newWorkflowStub(TestExceptionPropagation.class,
                 newWorkflowOptionsBuilder().build());
         try {

@@ -89,12 +89,12 @@ public final class WorkflowWorker implements SuspendableWorker {
         WorkflowQuery query = new WorkflowQuery();
         query.setQueryType(queryType).setQueryArgs(args);
         historyIterator.getDecisionTask().setQuery(query);
-        Object taskCompletedRequest = handler.handleDecisionTask(historyIterator);
-        if (taskCompletedRequest instanceof RespondQueryTaskCompletedRequest) {
-            RespondQueryTaskCompletedRequest r = (RespondQueryTaskCompletedRequest) taskCompletedRequest;
+        DecisionTaskHandler.Result result = handler.handleDecisionTask(historyIterator);
+        if (result.getQueryCompleted() != null) {
+            RespondQueryTaskCompletedRequest r = result.getQueryCompleted();
             return r.getQueryResult();
         }
-        throw new RuntimeException("Query returned wrong response: " + taskCompletedRequest);
+        throw new RuntimeException("Query returned wrong response: " + result);
     }
 
     public void shutdown() {

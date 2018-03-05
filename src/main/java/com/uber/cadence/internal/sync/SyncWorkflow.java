@@ -92,11 +92,6 @@ class SyncWorkflow implements ReplayWorkflow {
     }
 
     @Override
-    public boolean isCancelRequested() {
-        return workflowProc.isCancelRequested();
-    }
-
-    @Override
     public void close() {
         if (runner != null) {
             runner.close();

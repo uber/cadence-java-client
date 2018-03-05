@@ -59,6 +59,16 @@ public interface DecisionTaskHandler {
         public RetryOptions getRequestRetryOptions() {
             return requestRetryOptions;
         }
+
+        @Override
+        public String toString() {
+            return "Result{" +
+                    "taskCompleted=" + taskCompleted +
+                    ", taskFailed=" + taskFailed +
+                    ", queryCompleted=" + queryCompleted +
+                    ", requestRetryOptions=" + requestRetryOptions +
+                    '}';
+        }
     }
 
 

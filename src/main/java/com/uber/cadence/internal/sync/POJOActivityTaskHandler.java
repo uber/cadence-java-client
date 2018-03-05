@@ -94,8 +94,8 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
             throw new CancellationException(e.getMessage());
         }
         RespondActivityTaskFailedRequest result = new RespondActivityTaskFailedRequest();
-        result.setReason(e.getClass().getName());
         e = CheckedExceptionWrapper.unwrap(e);
+        result.setReason(e.getClass().getName());
         result.setDetails(dataConverter.toData(e));
         return new ActivityTaskHandler.Result(null, result, null, null);
     }
