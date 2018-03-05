@@ -55,8 +55,6 @@ class ReplayDecider {
 
     private boolean cancelRequested;
 
-    private boolean unhandledDecision;
-
     private boolean completed;
 
     private WorkflowExecutionException failure;
@@ -216,7 +214,7 @@ class ReplayDecider {
     }
 
     private void completeWorkflow() {
-        if (completed && !unhandledDecision) {
+        if (completed) {
             if (failure != null) {
                 decisionsHelper.failWorkflowExecution(failure);
             } else if (cancelRequested) {
@@ -335,10 +333,6 @@ class ReplayDecider {
                 completeWorkflow();
             }
             while (eventsIterator.hasNext());
-            if (unhandledDecision) {
-                unhandledDecision = false;
-                completeWorkflow();
-            }
             //TODO (Cadence): Handle Cadence exception gracefully.
 //        catch (AmazonServiceException e) {
 //            // We don't want to fail workflow on service exceptions like 500 or throttling
