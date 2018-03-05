@@ -16,6 +16,7 @@
  */
 package com.uber.cadence.internal.worker;
 
+import com.google.common.base.Throwables;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
@@ -37,6 +38,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -82,8 +85,7 @@ public final class WorkflowWorker implements SuspendableWorker {
         }
     }
 
-    public <R> byte[] queryWorkflowExecution(WorkflowExecution execution, String queryType, byte[] args) {
-        PollForDecisionTaskResponse task = new PollForDecisionTaskResponse();
+    public byte[] queryWorkflowExecution(WorkflowExecution execution, String queryType, byte[] args) {
         Iterator<HistoryEvent> history = WorkflowExecutionUtils.getHistory(service, domain, execution);
         DecisionTaskWithHistoryIterator historyIterator = new ReplayDecisionTaskWithHistoryIterator(execution, history);
         WorkflowQuery query = new WorkflowQuery();
@@ -222,17 +224,18 @@ public final class WorkflowWorker implements SuspendableWorker {
     }
 
     private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {
+        private long start = System.currentTimeMillis();
         private final PollForDecisionTaskResponse task;
         private Iterator<HistoryEvent> current;
         private byte[] nextPageToken;
-        private WorkflowExecutionStartedEventAttributes workflowExecutionStartedEventAttributes;
+        private WorkflowExecutionStartedEventAttributes startedEvent;
 
         DecisionTaskWithHistoryIteratorImpl(PollForDecisionTaskResponse task) {
             this.task = task;
             History history = task.getHistory();
             HistoryEvent firstEvent = history.getEvents().get(0);
-            this.workflowExecutionStartedEventAttributes = firstEvent.getWorkflowExecutionStartedEventAttributes();
-            if (this.workflowExecutionStartedEventAttributes == null) {
+            this.startedEvent = firstEvent.getWorkflowExecutionStartedEventAttributes();
+            if (this.startedEvent == null) {
                 throw new IllegalArgumentException("First event in the history is not WorkflowExecutionStarted");
             }
             current = history.getEventsIterator();
@@ -257,16 +260,28 @@ public final class WorkflowWorker implements SuspendableWorker {
                     if (current.hasNext()) {
                         return current.next();
                     }
+                    Duration passed = Duration.ofMillis(System.currentTimeMillis() - start);
+                    Duration timeout = Duration.ofSeconds(startedEvent.getTaskStartToCloseTimeoutSeconds());
+                    Duration expiration = timeout.minus(passed);
+                    if (expiration.isZero() || expiration.isNegative()) {
+                        throw new Error("History pagination time exceeded TaskStartToCloseTimeout");
+                    }
+                    RetryOptions retryOptions = new RetryOptions.Builder()
+                            .setExpiration(expiration)
+                            .setInitialInterval(Duration.ofMillis(50))
+                            .build();
+
                     GetWorkflowExecutionHistoryRequest request = new GetWorkflowExecutionHistoryRequest();
                     request.setDomain(domain);
                     request.setExecution(task.getWorkflowExecution());
                     request.setMaximumPageSize(MAXIMUM_PAGE_SIZE);
                     try {
-                        GetWorkflowExecutionHistoryResponse r = service.GetWorkflowExecutionHistory(request);
+                        GetWorkflowExecutionHistoryResponse r = SynchronousRetryer.retryWithResult(retryOptions,
+                                () -> service.GetWorkflowExecutionHistory(request));
                         current = r.getHistory().getEventsIterator();
                         nextPageToken = r.getNextPageToken();
                     } catch (TException e) {
-                        throw new RuntimeException(e);
+                        throw new Error(e);
                     }
                     return current.next();
                 }
@@ -274,8 +289,8 @@ public final class WorkflowWorker implements SuspendableWorker {
         }
 
         @Override
-        public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
-            return workflowExecutionStartedEventAttributes;
+        public WorkflowExecutionStartedEventAttributes getStartedEvent() {
+            return startedEvent;
         }
     }
 
@@ -326,7 +341,7 @@ public final class WorkflowWorker implements SuspendableWorker {
         }
 
         @Override
-        public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+        public WorkflowExecutionStartedEventAttributes getStartedEvent() {
             return startedEvent;
         }
     }

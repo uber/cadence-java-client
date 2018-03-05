@@ -303,6 +303,7 @@ class ReplayDecider {
             // instead of a partial one. For example if workflow waits on two activities to proceed and takes
             // different action if one of them is not ready it would behave differently if both activities
             // are completed before the event loop or if the event loop runs after every activity event.
+            // Looks ahead to the DecisionTaskStarted event to get current time before calling eventLoop.
             do {
                 List<HistoryEvent> decisionCompletionToStartEvents = new ArrayList<>();
                 while (eventsIterator.hasNext()) {
@@ -338,20 +339,6 @@ class ReplayDecider {
                 completeWorkflow();
             }
             while (eventsIterator.hasNext());
-            //TODO (Cadence): Handle Cadence exception gracefully.
-//        catch (AmazonServiceException e) {
-//            // We don't want to fail workflow on service exceptions like 500 or throttling
-//            // Throwing from here drops decision task which is OK as it is rescheduled after its StartToClose timeout.
-//            if (e.getErrorType() == ErrorType.Client && !"ThrottlingException".equals(e.getErrorCode())) {
-//                if (log.isErrorEnabled()) {
-//                    log.error("Failing workflow " + workflowContext.__getWorkflowExecution(), e);
-//                }
-//                decisionsHelper.failWorkflowDueToUnexpectedError(e);
-//            }
-//            else {
-//                throw e;
-//            }
-//        }
         } finally {
             if (query != null) {
                 query.apply();
