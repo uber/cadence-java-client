@@ -16,7 +16,6 @@
  */
 package com.uber.cadence.internal.worker;
 
-import com.google.common.base.Throwables;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
@@ -39,7 +38,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.thrift.TException;
 
 import java.time.Duration;
-import java.time.temporal.TemporalUnit;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
