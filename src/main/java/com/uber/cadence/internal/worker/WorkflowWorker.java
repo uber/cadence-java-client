@@ -269,6 +269,7 @@ public final class WorkflowWorker implements SuspendableWorker {
                     RetryOptions retryOptions = new RetryOptions.Builder()
                             .setExpiration(expiration)
                             .setInitialInterval(Duration.ofMillis(50))
+                            .setMaximumInterval(Duration.ofSeconds(1))
                             .build();
 
                     GetWorkflowExecutionHistoryRequest request = new GetWorkflowExecutionHistoryRequest();
