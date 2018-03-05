@@ -1,5 +1,7 @@
 package com.uber.cadence.internal.worker;
 
+import java.time.Duration;
+
 /**
  * TODO: Switch to Duration.
  */
@@ -13,19 +15,19 @@ public final class PollerOptions {
 
         private double pollBackoffCoefficient = 2;
 
-        private long pollBackoffInitialInterval = 100;
+        private Duration pollBackoffInitialInterval = Duration.ofMillis(100);
 
-        private long pollBackoffMaximumInterval = 60000;
+        private Duration pollBackoffMaximumInterval = Duration.ofMinutes(1);
 
         private int pollThreadCount = 1;
 
         private String pollThreadNamePrefix = "poller";
 
-        private Thread.UncaughtExceptionHandler uncaughtExceptionHandler = (t, e) -> e.printStackTrace();
+        private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
         public Builder() {
         }
-        
+
         public Builder(PollerOptions o) {
             if (o == null) {
                 return;
@@ -55,12 +57,12 @@ public final class PollerOptions {
             return this;
         }
 
-        public Builder setPollBackoffInitialInterval(long pollBackoffInitialInterval) {
+        public Builder setPollBackoffInitialInterval(Duration pollBackoffInitialInterval) {
             this.pollBackoffInitialInterval = pollBackoffInitialInterval;
             return this;
         }
 
-        public Builder setPollBackoffMaximumInterval(long pollBackoffMaximumInterval) {
+        public Builder setPollBackoffMaximumInterval(Duration pollBackoffMaximumInterval) {
             this.pollBackoffMaximumInterval = pollBackoffMaximumInterval;
             return this;
         }
@@ -81,6 +83,9 @@ public final class PollerOptions {
         }
 
         public PollerOptions build() {
+            if (uncaughtExceptionHandler == null) {
+                uncaughtExceptionHandler = (t, e) -> e.printStackTrace();
+            }
             return new PollerOptions(maximumPollRateIntervalMilliseconds, maximumPollRatePerSecond,
                     pollBackoffCoefficient, pollBackoffInitialInterval, pollBackoffMaximumInterval,
                     pollThreadCount, uncaughtExceptionHandler, pollThreadNamePrefix);
@@ -93,9 +98,9 @@ public final class PollerOptions {
 
     private final double pollBackoffCoefficient;
 
-    private final long pollBackoffInitialInterval;
+    private final Duration pollBackoffInitialInterval;
 
-    private final long pollBackoffMaximumInterval;
+    private final Duration pollBackoffMaximumInterval;
 
     private final int pollThreadCount;
 
@@ -104,8 +109,8 @@ public final class PollerOptions {
     private final String pollThreadNamePrefix;
 
     private PollerOptions(int maximumPollRateIntervalMilliseconds, double maximumPollRatePerSecond,
-                          double pollBackoffCoefficient, long pollBackoffInitialInterval,
-                          long pollBackoffMaximumInterval, int pollThreadCount,
+                          double pollBackoffCoefficient, Duration pollBackoffInitialInterval,
+                          Duration pollBackoffMaximumInterval, int pollThreadCount,
                           Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
                           String pollThreadNamePrefix) {
         this.maximumPollRateIntervalMilliseconds = maximumPollRateIntervalMilliseconds;
@@ -130,11 +135,11 @@ public final class PollerOptions {
         return pollBackoffCoefficient;
     }
 
-    public long getPollBackoffInitialInterval() {
+    public Duration getPollBackoffInitialInterval() {
         return pollBackoffInitialInterval;
     }
 
-    public long getPollBackoffMaximumInterval() {
+    public Duration getPollBackoffMaximumInterval() {
         return pollBackoffMaximumInterval;
     }
 

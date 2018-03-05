@@ -43,8 +43,8 @@ public final class SynchronousRetryer {
     public static <R, T extends Throwable> R retryWithResult(RetryOptions options, RetryableFunc<R, T> r) throws T {
         int attempt = 0;
         long startTime = System.currentTimeMillis();
-        BackoffThrottler throttler = new BackoffThrottler(options.getInitialInterval().toMillis(),
-                options.getMaximumInterval().toMillis(), options.getBackoffCoefficient());
+        BackoffThrottler throttler = new BackoffThrottler(options.getInitialInterval(),
+                options.getMaximumInterval(), options.getBackoffCoefficient());
         do {
             try {
                 attempt++;
@@ -57,9 +57,11 @@ public final class SynchronousRetryer {
                 return null;
             } catch (Exception e) {
                 throttler.failure();
-                for (Class<?> exceptionToNotRetry : options.getDoNotRetry()) {
-                    if (exceptionToNotRetry.isAssignableFrom(e.getClass())) {
-                        rethrow(e);
+                if (options.getDoNotRetry() != null) {
+                    for (Class<?> exceptionToNotRetry : options.getDoNotRetry()) {
+                        if (exceptionToNotRetry.isAssignableFrom(e.getClass())) {
+                            rethrow(e);
+                        }
                     }
                 }
                 long elapsed = System.currentTimeMillis() - startTime;

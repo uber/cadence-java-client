@@ -17,10 +17,8 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowService;
-import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.ActivityWorker;
-import com.uber.cadence.internal.worker.ActivityWorkerOptions;
+import com.uber.cadence.internal.worker.SingleWorkerOptions;
 
 import java.util.concurrent.TimeUnit;
 
@@ -32,7 +30,7 @@ public class SyncActivityWorker {
     private final ActivityWorker worker;
     private final POJOActivityTaskHandler taskHandler;
 
-    public SyncActivityWorker(WorkflowService.Iface service, String domain, String taskList, ActivityWorkerOptions options) {
+    public SyncActivityWorker(WorkflowService.Iface service, String domain, String taskList, SingleWorkerOptions options) {
         taskHandler = new POJOActivityTaskHandler(options.getDataConverter());
         worker = new ActivityWorker(service, domain, taskList, options, taskHandler);
     }

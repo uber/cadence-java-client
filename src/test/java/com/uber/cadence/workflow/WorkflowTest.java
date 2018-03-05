@@ -937,8 +937,7 @@ public class WorkflowTest {
 
     @Test
     public void testChildWorkflow() {
-        worker.registerWorkflowImplementationTypes(TestParentWorkflow.class, TestNamedChild.class);
-        startWorkerFor(TestChild.class);
+        startWorkerFor(TestParentWorkflow.class, TestNamedChild.class, TestChild.class);
 
         WorkflowOptions.Builder options = new WorkflowOptions.Builder();
         options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));

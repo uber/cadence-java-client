@@ -24,7 +24,7 @@ import com.uber.cadence.common.RetryOptions;
 import java.util.Iterator;
 
 /**
- * Base class for workflow task handlers.
+ * Interface of workflow task handlers.
  *
  * @author fateev, suskin
  */

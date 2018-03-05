@@ -38,12 +38,12 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
     private static final Log log = LogFactory.getLog(ReplayDecisionTaskHandler.class);
 
-    private final ReplayWorkflowFactory asyncWorkflowFactory;
+    private final ReplayWorkflowFactory workflowFactory;
     private final String domain;
 
     public ReplayDecisionTaskHandler(String domain, ReplayWorkflowFactory asyncWorkflowFactory) {
         this.domain = domain;
-        this.asyncWorkflowFactory = asyncWorkflowFactory;
+        this.workflowFactory = asyncWorkflowFactory;
     }
 
     @Override
@@ -112,13 +112,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
     @Override
     public boolean isAnyTypeSupported() {
-        return asyncWorkflowFactory.isAnyTypeSupported();
+        return workflowFactory.isAnyTypeSupported();
     }
 
     private ReplayDecider createDecider(HistoryHelper historyHelper) throws Exception {
         PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
         WorkflowType workflowType = decisionTask.getWorkflowType();
         DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask);
-        return new ReplayDecider(domain, asyncWorkflowFactory.getWorkflow(workflowType), historyHelper, decisionsHelper);
+        return new ReplayDecider(domain, workflowFactory.getWorkflow(workflowType), historyHelper, decisionsHelper);
     }
 }

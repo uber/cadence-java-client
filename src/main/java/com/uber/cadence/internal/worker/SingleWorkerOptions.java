@@ -4,7 +4,9 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 
-public final class WorkflowWorkerOptions {
+import java.time.Duration;
+
+public final class SingleWorkerOptions {
 
     public static final class Builder {
 
@@ -16,6 +18,9 @@ public final class WorkflowWorkerOptions {
 
         private PollerOptions pollerOptions;
 
+        /**
+         * TODO: Dynamic expiration based on activity timeout
+         */
         private RetryOptions reportCompletionRetryOptions;
 
         private RetryOptions reportFailureRetryOptions;
@@ -40,13 +45,35 @@ public final class WorkflowWorkerOptions {
             return this;
         }
 
-        public WorkflowWorkerOptions build() {
-            PollerOptions po = pollerOptions == null ? new PollerOptions.Builder().build() : pollerOptions;
+        public SingleWorkerOptions build() {
+            if (reportCompletionRetryOptions == null) {
+                reportCompletionRetryOptions = new RetryOptions.Builder()
+                        .setInitialInterval(Duration.ofMillis(50))
+                        .setMaximumInterval(Duration.ofSeconds(10))
+                        .setExpiration(Duration.ofMinutes(1))
+                        .build();
+            }
+
+            if (reportFailureRetryOptions == null) {
+                reportFailureRetryOptions = new RetryOptions.Builder()
+                        .setInitialInterval(Duration.ofMillis(50))
+                        .setMaximumInterval(Duration.ofSeconds(10))
+                        .setExpiration(Duration.ofMinutes(1))
+                        .build();
+            }
+
+            if (pollerOptions == null) {
+                pollerOptions = new PollerOptions.Builder()
+                        .setPollBackoffInitialInterval(Duration.ofMillis(200))
+                        .setPollBackoffMaximumInterval(Duration.ofSeconds(20))
+                        .setPollThreadCount(1)
+                        .build();
+            }
             DataConverter dc = dataConverter;
             if (dc == null) {
                 dc = JsonDataConverter.getInstance();
             }
-            return new WorkflowWorkerOptions(identity, dc, taskExecutorThreadPoolSize, po,
+            return new SingleWorkerOptions(identity, dc, taskExecutorThreadPoolSize, pollerOptions,
                     reportCompletionRetryOptions, reportFailureRetryOptions);
         }
 
@@ -73,9 +100,9 @@ public final class WorkflowWorkerOptions {
 
     private final RetryOptions reportFailureRetryOptions;
 
-    private WorkflowWorkerOptions(String identity, DataConverter dataConverter, int taskExecutorThreadPoolSize,
-                                  PollerOptions pollerOptions, RetryOptions reportCompletionRetryOptions,
-                                  RetryOptions reportFailureRetryOptions) {
+    private SingleWorkerOptions(String identity, DataConverter dataConverter, int taskExecutorThreadPoolSize,
+                                PollerOptions pollerOptions, RetryOptions reportCompletionRetryOptions,
+                                RetryOptions reportFailureRetryOptions) {
         this.identity = identity;
         this.dataConverter = dataConverter;
         this.taskExecutorThreadPoolSize = taskExecutorThreadPoolSize;
