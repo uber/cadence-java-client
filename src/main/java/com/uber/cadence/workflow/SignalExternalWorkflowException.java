@@ -39,17 +39,7 @@ public final class SignalExternalWorkflowException extends WorkflowOperationExce
         return failureCause;
     }
 
-    public SignalExternalWorkflowException setFailureCause(SignalExternalWorkflowExecutionFailedCause failureCause) {
-        this.failureCause = failureCause;
-        return this;
-    }
-
     public WorkflowExecution getSignaledExecution() {
         return signaledExecution;
-    }
-
-    public SignalExternalWorkflowException setSignaledExecution(WorkflowExecution signaledExecution) {
-        this.signaledExecution = signaledExecution;
-        return this;
     }
 }

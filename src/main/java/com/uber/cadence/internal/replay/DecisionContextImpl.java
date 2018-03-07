@@ -111,21 +111,21 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     }
 
     @Override
-    public Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters,
-                                                    BiConsumer<byte[], Throwable> callback) {
+    public Consumer<Exception> scheduleActivityTask(ExecuteActivityParameters parameters,
+                                                    BiConsumer<byte[], Exception> callback) {
         return activityClient.scheduleActivityTask(parameters, callback);
     }
 
     @Override
-    public Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
+    public Consumer<Exception> startChildWorkflow(StartChildWorkflowExecutionParameters parameters,
                                                   Consumer<WorkflowExecution> executionCallback,
-                                                  BiConsumer<byte[], Throwable> callback) {
+                                                  BiConsumer<byte[], Exception> callback) {
         return workflowClient.startChildWorkflow(parameters, executionCallback, callback);
     }
 
 
-    public Consumer<Throwable> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters,
-                                                       BiConsumer<Void, Throwable> callback) {
+    public Consumer<Exception> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters,
+                                                       BiConsumer<Void, Exception> callback) {
         return workflowClient.signalWorkflowExecution(signalParameters, callback);
     }
 
@@ -154,7 +154,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     }
 
     @Override
-    public Consumer<Throwable> createTimer(long delaySeconds, Consumer<Throwable> callback) {
+    public Consumer<Exception> createTimer(long delaySeconds, Consumer<Exception> callback) {
         return workflowClock.createTimer(delaySeconds, callback);
     }
 

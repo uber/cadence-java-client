@@ -69,8 +69,8 @@ public interface DecisionContext {
      * @param callback   Callback that is called upon activity completion or failure.
      * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
      */
-    Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters,
-                                             BiConsumer<byte[], Throwable> callback);
+    Consumer<Exception> scheduleActivityTask(ExecuteActivityParameters parameters,
+                                             BiConsumer<byte[], Exception> callback);
 
 
     /**
@@ -81,10 +81,10 @@ public interface DecisionContext {
      * @param callback   Callback that is called upon child workflow completion or failure.
      * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
      */
-    Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters, Consumer<WorkflowExecution> executionCallback,
-                                           BiConsumer<byte[], Throwable> callback);
+    Consumer<Exception> startChildWorkflow(StartChildWorkflowExecutionParameters parameters, Consumer<WorkflowExecution> executionCallback,
+                                           BiConsumer<byte[], Exception> callback);
 
-    Consumer<Throwable> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters, BiConsumer<Void, Throwable> callback);
+    Consumer<Exception> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters, BiConsumer<Void, Exception> callback);
 
     void requestCancelWorkflowExecution(WorkflowExecution execution);
 
@@ -118,7 +118,7 @@ public interface DecisionContext {
      *                     CancellationException is passed as a parameter in case of a cancellation.
      * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel timer.
      */
-    Consumer<Throwable>  createTimer(long delaySeconds, Consumer<Throwable> callback);
+    Consumer<Exception>  createTimer(long delaySeconds, Consumer<Exception> callback);
 
     void cancelAllTimers();
 

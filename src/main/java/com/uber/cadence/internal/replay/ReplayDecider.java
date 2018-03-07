@@ -179,6 +179,7 @@ class ReplayDecider {
                 break;
             case SignalExternalWorkflowExecutionFailed:
                 context.handleSignalExternalWorkflowExecutionFailed(event);
+                break;
             case RequestCancelExternalWorkflowExecutionInitiated:
                 decisionsHelper.handleRequestCancelExternalWorkflowExecutionInitiated(event);
                 break;
