@@ -28,6 +28,7 @@ import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.internal.replay.ExecuteActivityParameters;
+import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
@@ -120,12 +121,12 @@ class SyncDecisionContext {
         return result;
     }
 
-    private RuntimeException mapActivityException(RuntimeException failure) {
+    private RuntimeException mapActivityException(Throwable failure) {
         if (failure == null) {
             return null;
         }
         if (failure instanceof CancellationException) {
-            return failure;
+            return (CancellationException)failure;
         }
         if (failure instanceof ActivityTaskFailedException) {
             ActivityTaskFailedException taskFailed = (ActivityTaskFailedException) failure;
@@ -149,7 +150,7 @@ class SyncDecisionContext {
                     timedOut.getActivityId(), timedOut.getTimeoutType(), timedOut.getDetails(), getDataConverter());
         }
         if (failure instanceof ActivityException) {
-            return failure;
+            return (ActivityException)failure;
         }
         throw new IllegalArgumentException("Unexpected exception type: " + failure.getClass().getName(), failure);
     }
@@ -201,12 +202,12 @@ class SyncDecisionContext {
         return result;
     }
 
-    private RuntimeException mapChildWorkflowException(RuntimeException failure) {
+    private RuntimeException mapChildWorkflowException(Throwable failure) {
         if (failure == null) {
             return null;
         }
         if (failure instanceof CancellationException) {
-            return failure;
+            return Workflow.getWrapped(failure);
         }
 
         if (!(failure instanceof ChildWorkflowTaskFailedException)) {
@@ -293,5 +294,32 @@ class SyncDecisionContext {
 
     public DecisionContext getContext() {
         return context;
+    }
+
+    public Promise<Void> signalWorkflow(WorkflowExecution execution, String signalName, byte[] input) {
+        SignalExternalWorkflowParameters parameters = new SignalExternalWorkflowParameters();
+        parameters.setSignalName(signalName);
+        parameters.setWorkflowId(execution.getWorkflowId());
+        parameters.setRunId(execution.getRunId());
+        parameters.setInput(input);
+        CompletablePromise<Void> result = Workflow.newPromise();
+
+        Consumer<Throwable> cancellationCallback = context.signalWorkflowExecution(parameters,
+                (output, failure) -> {
+                    if (failure != null) {
+                        runner.executeInWorkflowThread("child workflow failure callback",
+                                () -> result.completeExceptionally(mapChildWorkflowException(failure)));
+                    } else {
+                        runner.executeInWorkflowThread("child workflow completion callback",
+                                () -> result.complete(output));
+                    }
+                });
+        CancellationScope.current().getCancellationRequest().thenApply((reason) ->
+        {
+            cancellationCallback.accept(new CancellationException(reason));
+            return null;
+        });
+
+        return result;
     }
 }

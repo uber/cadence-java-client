@@ -49,7 +49,7 @@ final class ClockDecisionContext {
         public void accept(Throwable reason) {
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-                BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
+                BiConsumer<?, Throwable> context = scheduled.getCompletionCallback();
                 CancellationException exception = new CancellationException("Cancelled by request");
                 exception.initCause(reason);
                 context.accept(null, exception);
@@ -114,11 +114,11 @@ final class ClockDecisionContext {
             timersByFiringTime.put(firingTime, timerId);
             result = new ClockDecisionContext.TimerCancellationHandler(timerId);
         }
-        SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0l, firingTime);
+        SortedMap<Long, String> toCancel = timersByFiringTime.subMap(0L, firingTime);
         for (String timerId : toCancel.values()) {
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-                BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
+               BiConsumer<?, Throwable> context = scheduled.getCompletionCallback();
                 CancellationException exception = new CancellationException("Cancelled as next unblock time changed");
                 context.accept(null, exception);
             });
@@ -131,7 +131,7 @@ final class ClockDecisionContext {
         for (String timerId : timersByFiringTime.values()) {
             decisions.cancelTimer(timerId, () -> {
                 OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-                BiConsumer<?, RuntimeException> context = scheduled.getCompletionCallback();
+               BiConsumer<?, Throwable> context = scheduled.getCompletionCallback();
                 CancellationException exception = new CancellationException("Cancelled as next unblock time changed");
                 context.accept(null, exception);
             });
@@ -148,7 +148,7 @@ final class ClockDecisionContext {
         if (decisions.handleTimerClosed(timerId)) {
             OpenRequestInfo<?, Long> scheduled = scheduledTimers.remove(timerId);
             if (scheduled != null) {
-                BiConsumer<?, RuntimeException>  completionCallback = scheduled.getCompletionCallback();
+               BiConsumer<?, Throwable>  completionCallback = scheduled.getCompletionCallback();
                 completionCallback.accept(null, null);
                 long firingTime = scheduled.getUserContext();
                 timersByFiringTime.remove(firingTime);
@@ -162,7 +162,7 @@ final class ClockDecisionContext {
         if (decisions.handleTimerCanceled(event)) {
             OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
             if (scheduled != null) {
-                BiConsumer<?, RuntimeException> completionCallback = scheduled.getCompletionCallback();
+               BiConsumer<?, Throwable> completionCallback = scheduled.getCompletionCallback();
                 CancellationException exception = new CancellationException("Cancelled by request");
                 completionCallback.accept(null, exception);
             }

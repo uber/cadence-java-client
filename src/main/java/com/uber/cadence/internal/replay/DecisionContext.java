@@ -70,7 +70,7 @@ public interface DecisionContext {
      * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
      */
     Consumer<Throwable> scheduleActivityTask(ExecuteActivityParameters parameters,
-                                             BiConsumer<byte[], RuntimeException> callback);
+                                             BiConsumer<byte[], Throwable> callback);
 
 
     /**
@@ -82,9 +82,9 @@ public interface DecisionContext {
      * @return cancellation handle. Invoke {@link Consumer#accept(Object)} to cancel activity task.
      */
     Consumer<Throwable> startChildWorkflow(StartChildWorkflowExecutionParameters parameters, Consumer<WorkflowExecution> executionCallback,
-                                           BiConsumer<byte[], RuntimeException> callback);
+                                           BiConsumer<byte[], Throwable> callback);
 
-// TODO(Cadence):   Promise<Void> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters);
+    Consumer<Throwable> signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters, BiConsumer<Void, Throwable> callback);
 
     void requestCancelWorkflowExecution(WorkflowExecution execution);
 

@@ -85,7 +85,12 @@ class ChildWorkflowInvocationHandler implements InvocationHandler {
     }
 
     private void signalWorkflow(Method method, SignalMethod signalMethod, Object[] args) {
-        throw new UnsupportedOperationException("not implemented yet");
+        String signalName = signalMethod.name();
+        if (signalName.isEmpty()) {
+            signalName = InternalUtils.getSimpleName(method);
+        }
+        byte[] input = dataConverter.toData(args);
+        decisionContext.signalWorkflow(execution.get(), signalName, input);
     }
 
     private Object queryWorkflow(Method method, QueryMethod queryMethod, Object[] args) {
