@@ -105,7 +105,8 @@ public final class Worker {
         }
         SingleWorkerOptions workflowOptions = toWorkflowOptions(options);
         if (!options.isDisableWorkflowWorker()) {
-            workflowWorker = new SyncWorkflowWorker(service, domain, taskList, workflowOptions);
+            workflowWorker = new SyncWorkflowWorker(service, domain, taskList, workflowOptions,
+                    options.getMaxWorkflowThreads());
         } else {
             workflowWorker = null;
         }
