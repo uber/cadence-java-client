@@ -1032,10 +1032,6 @@ public class WorkflowTest {
 
     public static class TestSignalExternalWorkflowFailure implements TestWorkflow1 {
 
-        private final SignalingChild child = Workflow.newWorkflowStub(SignalingChild.class);
-
-        private final CompletablePromise<Object> fromSignal = Workflow.newPromise();
-
         @Override
         public String execute() {
             WorkflowExecution parentExecution = new WorkflowExecution().setWorkflowId("invalid id");
@@ -1063,6 +1059,37 @@ public class WorkflowTest {
             assertEquals(SignalExternalWorkflowExecutionFailedCause.UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION,
                     ((SignalExternalWorkflowException) e.getCause()).getFailureCause());
         }
+    }
+
+    public static class TestSignalExternalWorkflowImmediateCancellation implements TestWorkflow1 {
+
+        @Override
+        public String execute() {
+            WorkflowExecution parentExecution = new WorkflowExecution().setWorkflowId("invalid id");
+            TestWorkflowSignaled workflow = Workflow.newWorkflowStub(TestWorkflowSignaled.class, parentExecution);
+            CompletablePromise<Void> signal = Workflow.newPromise();
+            CancellationScope scope = Workflow.newCancellationScope(() -> {
+                signal.completeFrom(Async.invoke(workflow::signal1, "World"));
+            });
+            scope.cancel();
+            try {
+                signal.get();
+            } catch (IllegalArgumentException e) {
+                // expected
+            }
+            return "result";
+        }
+    }
+
+    @Test
+    public void testSignalExternalWorkflowImmediateCancellation() {
+        startWorkerFor(TestSignalExternalWorkflowImmediateCancellation.class);
+        WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+        options.setExecutionStartToCloseTimeout(Duration.ofSeconds(20));
+        options.setTaskStartToCloseTimeout(Duration.ofSeconds(2));
+        options.setTaskList(taskList);
+        TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
+        assertEquals("result", client.execute());
     }
 
     public static class TestChildWorkflowAsyncRetryWorkflow implements TestWorkflow1 {
