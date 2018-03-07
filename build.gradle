@@ -42,7 +42,7 @@ license {
     mapping {
         java = 'SLASHSTAR_STYLE'
     }
-    include 'src/**/*.java'
+    exclude 'com/uber/cadence/*.java' // generated code
     strictCheck true
 }
 
