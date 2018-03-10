@@ -267,7 +267,7 @@ public interface FileProcessingWorkflow {
 ```
 ## Starting workflow executions
 
-A workflow interface executing a workflow requires initializing a `WorkflowClient` instance, creating
+Given a workflow interface executing a workflow requires initializing a `WorkflowClient` instance, creating
 a client side stub to the workflow, and then calling a method annotated with @WorkflowMethod.
 ```java
 WorkflowClient workflowClient = WorkflowClient.newClient(cadenceServiceHost, cadenceServicePort, domain);
@@ -530,7 +530,7 @@ executed one thread at a time and under a global lock.
 - Don’t access configuration APIs directly from a workflow because changes in the configuration might affect a workflow execution path.
 Pass it as an argument to a workflow function or use an activity to load it.
 
-Workflow method arguments and return values are serializable to byte arrays using the provided
+Workflow method arguments and return values are serializable to a byte array using the provided
 [DataConverter](src/main/java/com/uber/cadence/converter/DataConverter.java) interface. The default implementation uses
 JSON serializer, but any alternative serialization mechanism is pluggable.
 
