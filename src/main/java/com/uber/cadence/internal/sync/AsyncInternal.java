@@ -265,28 +265,49 @@ public final class AsyncInternal {
         }
     }
 
+    /**
+     * There are two separate code paths for Async.invoke. The first is using a workflow thread to execute the passed lambda.
+     * The second avoids use of threads when invoking activities and child workflows. This method determines if the
+     * passed lambda is a method call on a proxy to an activity or child workflow.
+     *
+     * @param func lambda passed to a Async.invoke call.
+     * @return true if lambda is a method call on a proxy.
+     */
     public static boolean isAsync(Object func) {
-        SerializedLambda lambda = getLambda(func);
+        SerializedLambda lambda = toSerializedLambda(func);
         Object target = getTarget(lambda);
         return target instanceof AsyncMarker && lambda.getImplMethodKind() == MethodHandleInfo.REF_invokeInterface;
     }
 
+    /**
+     * Get target of the method reference that was converted to a lambda.
+     *
+     * @param l lambda expression that could be a method reference.
+     * @return either target of the method reference or null if it is not reference in form object::method.
+     */
     private static Object getTarget(SerializedLambda l) {
         if (l == null) {
             return null;
         }
+        // If lambda is a method call on an object then the first captured argument is the object.
         if (l.getCapturedArgCount() > 0) {
             return l.getCapturedArg(0);
         }
-        return "0 arguments function";
+        return null;
     }
 
-    private static <R> SerializedLambda getLambda(Object setter) {
-        for (Class<?> cl = setter.getClass(); cl != null; cl = cl.getSuperclass()) {
+    /**
+     * Unfortunate sorcery to reflect on lambda. Works only if function that lambda implements is serializable.
+     * This is why {@link Functions} is needed as all its functions are serializable.
+     * @param lambda lambda that potentially implements {@link java.io.Serializable}.
+     * @return lambda in {@link SerializedLambda} form or null if its function doesn't implement Serializable.
+     */
+    private static SerializedLambda toSerializedLambda(Object lambda) {
+        for (Class<?> cl = lambda.getClass(); cl != null; cl = cl.getSuperclass()) {
             try {
                 Method m = cl.getDeclaredMethod("writeReplace");
                 m.setAccessible(true);
-                Object replacement = m.invoke(setter);
+                Object replacement = m.invoke(lambda);
                 if (!(replacement instanceof SerializedLambda))
                     break;// custom interface implementation
                 return (SerializedLambda) replacement;
