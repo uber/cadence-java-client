@@ -29,6 +29,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.uber.cadence.internal.common.LambdaUtils.getTarget;
+import static com.uber.cadence.internal.common.LambdaUtils.toSerializedLambda;
+
 /**
  * Contains support for asynchronous invocations. The basic idea is that any code is invoked in a separate
  * WorkflowThread. Internally it maps to a task executed by a thread pool, so there is not much overhead doing it if
@@ -275,50 +278,10 @@ public final class AsyncInternal {
      */
     public static boolean isAsync(Object func) {
         SerializedLambda lambda = toSerializedLambda(func);
+        System.err.println("isAsync method=" + lambda.getFunctionalInterfaceMethodName());
         Object target = getTarget(lambda);
         return target instanceof AsyncMarker && lambda.getImplMethodKind() == MethodHandleInfo.REF_invokeInterface;
     }
-
-    /**
-     * Get target of the method reference that was converted to a lambda.
-     *
-     * @param l lambda expression that could be a method reference.
-     * @return either target of the method reference or null if it is not reference in form object::method.
-     */
-    private static Object getTarget(SerializedLambda l) {
-        if (l == null) {
-            return null;
-        }
-        // If lambda is a method call on an object then the first captured argument is the object.
-        if (l.getCapturedArgCount() > 0) {
-            return l.getCapturedArg(0);
-        }
-        return null;
-    }
-
-    /**
-     * Unfortunate sorcery to reflect on lambda. Works only if function that lambda implements is serializable.
-     * This is why {@link Functions} is needed as all its functions are serializable.
-     * @param lambda lambda that potentially implements {@link java.io.Serializable}.
-     * @return lambda in {@link SerializedLambda} form or null if its function doesn't implement Serializable.
-     */
-    private static SerializedLambda toSerializedLambda(Object lambda) {
-        for (Class<?> cl = lambda.getClass(); cl != null; cl = cl.getSuperclass()) {
-            try {
-                Method m = cl.getDeclaredMethod("writeReplace");
-                m.setAccessible(true);
-                Object replacement = m.invoke(lambda);
-                if (!(replacement instanceof SerializedLambda))
-                    break;// custom interface implementation
-                return (SerializedLambda) replacement;
-            } catch (NoSuchMethodException e) {
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                break;
-            }
-        }
-        return null;
-    }
-
 
     private static boolean hasAsyncResult() {
         return asyncResult.get().get() != null;

@@ -48,4 +48,5 @@ public final class ActivityInternal {
     public static void doNotCompleteOnReturn() {
         getContext().doNotCompleteOnReturn();
     }
+
 }
