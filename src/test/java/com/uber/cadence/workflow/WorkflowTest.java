@@ -668,6 +668,7 @@ public class WorkflowTest {
   public static class ThrowingChild implements TestWorkflow1 {
 
     @Override
+    @SuppressWarnings("AssertionFailureIgnored")
     public String execute() {
       TestActivities testActivities =
           Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
@@ -693,6 +694,7 @@ public class WorkflowTest {
 
   public static class TestExceptionPropagationImpl implements TestExceptionPropagation {
     @Override
+    @SuppressWarnings("AssertionFailureIgnored")
     public void execute() {
       ChildWorkflowOptions options =
           new ChildWorkflowOptions.Builder()
@@ -1052,6 +1054,7 @@ public class WorkflowTest {
     TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
     try {
       client.execute();
+      fail("unreachable");
     } catch (WorkflowException e) {
       assertTrue(e.getCause() instanceof ChildWorkflowFailureException);
       assertTrue(e.getCause().getCause() instanceof UnsupportedOperationException);
@@ -1218,6 +1221,7 @@ public class WorkflowTest {
     TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
     try {
       client.execute();
+      fail("unreachable");
     } catch (WorkflowException e) {
       assertTrue(e.getCause() instanceof ChildWorkflowFailureException);
       assertTrue(e.getCause().getCause() instanceof UnsupportedOperationException);
@@ -1264,7 +1268,7 @@ public class WorkflowTest {
 
     @Override
     public String execute() {
-      StringBuffer result = new StringBuffer();
+      StringBuilder result = new StringBuilder();
       Async.procedure(
           () -> {
             while (true) {
@@ -1444,36 +1448,43 @@ public class WorkflowTest {
       return a1 + a2 + a3 + a4 + a5 + a6;
     }
 
+    @Override
     public void proc() {
       invocations.add("proc");
       procResult.add("proc");
     }
 
+    @Override
     public void proc1(String a1) {
       invocations.add("proc1");
       procResult.add(a1);
     }
 
+    @Override
     public void proc2(String a1, int a2) {
       invocations.add("proc2");
       procResult.add(a1 + a2);
     }
 
+    @Override
     public void proc3(String a1, int a2, int a3) {
       invocations.add("proc3");
       procResult.add(a1 + a2 + a3);
     }
 
+    @Override
     public void proc4(String a1, int a2, int a3, int a4) {
       invocations.add("proc4");
       procResult.add(a1 + a2 + a3 + a4);
     }
 
+    @Override
     public void proc5(String a1, int a2, int a3, int a4, int a5) {
       invocations.add("proc5");
       procResult.add(a1 + a2 + a3 + a4 + a5);
     }
 
+    @Override
     public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
       invocations.add("proc6");
       procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
@@ -1552,58 +1563,72 @@ public class WorkflowTest {
   public static class TestMultiargsWorkflowsImpl implements TestMultiargsWorkflows {
     static List<String> procResult = Collections.synchronizedList(new ArrayList<>());
 
+    @Override
     public String func() {
       return "func";
     }
 
+    @Override
     public String func1(String a1) {
       return a1;
     }
 
+    @Override
     public String func2(String a1, int a2) {
       return a1 + a2;
     }
 
+    @Override
     public String func3(String a1, int a2, int a3) {
       return a1 + a2 + a3;
     }
 
+    @Override
     public String func4(String a1, int a2, int a3, int a4) {
       return a1 + a2 + a3 + a4;
     }
 
+    @Override
     public String func5(String a1, int a2, int a3, int a4, int a5) {
       return a1 + a2 + a3 + a4 + a5;
     }
 
+    @Override
     public String func6(String a1, int a2, int a3, int a4, int a5, int a6) {
       return a1 + a2 + a3 + a4 + a5 + a6;
     }
 
+    @Override
     public void proc() {
       procResult.add("proc");
     }
 
+    @Override
     public void proc1(String a1) {
       procResult.add(a1);
     }
 
+    @Override
     public void proc2(String a1, int a2) {
       procResult.add(a1 + a2);
     }
 
+    @Override
     public void proc3(String a1, int a2, int a3) {
       procResult.add(a1 + a2 + a3);
     }
 
+    @Override
     public void proc4(String a1, int a2, int a3, int a4) {
       procResult.add(a1 + a2 + a3 + a4);
     }
 
+    @Override
     public void proc5(String a1, int a2, int a3, int a4, int a5) {
       procResult.add(a1 + a2 + a3 + a4 + a5);
     }
 
+    @Override
     public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
       procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
     }

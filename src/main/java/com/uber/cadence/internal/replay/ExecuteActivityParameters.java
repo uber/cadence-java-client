@@ -33,8 +33,7 @@ public class ExecuteActivityParameters implements Cloneable {
   private String taskList;
   //    private int taskPriority;
 
-  public ExecuteActivityParameters() {
-  }
+  public ExecuteActivityParameters() {}
 
   //    /**
   //     * Returns the value of the Control property for this object.
@@ -221,7 +220,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToStartTimeoutSeconds The new value for the ScheduleToStartTimeout property for
-   * this object.
+   *     this object.
    */
   public void setScheduleToStartTimeoutSeconds(long scheduleToStartTimeoutSeconds) {
     this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
@@ -236,7 +235,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToStartTimeoutSeconds The new value for the ScheduleToStartTimeout property for
-   * this object.
+   *     this object.
    * @return A reference to this updated object so that method calls can be chained together.
    */
   public ExecuteActivityParameters withScheduleToStartTimeoutSeconds(
@@ -264,7 +263,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToCloseTimeoutSeconds The new value for the ScheduleToCloseTimeout property for
-   * this object.
+   *     this object.
    */
   public void setScheduleToCloseTimeoutSeconds(long scheduleToCloseTimeoutSeconds) {
     this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
@@ -279,7 +278,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToCloseTimeoutSeconds The new value for the ScheduleToCloseTimeout property for
-   * this object.
+   *     this object.
    * @return A reference to this updated object so that method calls can be chained together.
    */
   public ExecuteActivityParameters withScheduleToCloseTimeoutSeconds(

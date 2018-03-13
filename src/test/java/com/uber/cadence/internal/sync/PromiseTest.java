@@ -37,8 +37,7 @@ import org.junit.Test;
 
 public class PromiseTest {
 
-  @Rule
-  public final Tracer trace = new Tracer();
+  @Rule public final Tracer trace = new Tracer();
 
   private long currentTime;
 
@@ -55,27 +54,27 @@ public class PromiseTest {
               CompletablePromise<Boolean> f = Workflow.newPromise();
               trace.add("root begin");
               WorkflowInternal.newThread(
-                  false, () -> f.completeExceptionally(new IllegalArgumentException("foo")))
+                      false, () -> f.completeExceptionally(new IllegalArgumentException("foo")))
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    try {
-                      f.get();
-                      trace.add("thread1 get success");
-                      fail("failure expected");
-                    } catch (Exception e) {
-                      assertEquals(IllegalArgumentException.class, e.getClass());
-                      trace.add("thread1 get failure");
-                    }
-                  })
+                      false,
+                      () -> {
+                        try {
+                          f.get();
+                          trace.add("thread1 get success");
+                          fail("failure expected");
+                        } catch (Exception e) {
+                          assertEquals(IllegalArgumentException.class, e.getClass());
+                          trace.add("thread1 get failure");
+                        }
+                      })
                   .start();
               trace.add("root done");
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin", "root done", "thread1 get failure",
+        new String[] {
+          "root begin", "root done", "thread1 get failure",
         };
     trace.setExpected(expected);
   }
@@ -94,30 +93,30 @@ public class PromiseTest {
               CompletablePromise<String> f = Workflow.newPromise();
               trace.add("root begin");
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    try {
-                      assertEquals("bar", f.get(10, TimeUnit.SECONDS));
-                      trace.add("thread1 get success");
-                      fail("failure expected");
-                    } catch (CancellationException e) {
-                      trace.add("thread1 get cancellation");
-                    } catch (TimeoutException e) {
-                      trace.add("thread1 get timeout");
-                      // Test default value
-                    } catch (Exception e) {
-                      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-                      trace.add("thread1 get failure");
-                    }
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        try {
+                          assertEquals("bar", f.get(10, TimeUnit.SECONDS));
+                          trace.add("thread1 get success");
+                          fail("failure expected");
+                        } catch (CancellationException e) {
+                          trace.add("thread1 get cancellation");
+                        } catch (TimeoutException e) {
+                          trace.add("thread1 get timeout");
+                          // Test default value
+                        } catch (Exception e) {
+                          assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+                          trace.add("thread1 get failure");
+                        }
+                      })
                   .start();
               trace.add("root done");
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin",
+        new String[] {
+          "root begin", "root done", "thread1 begin",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -125,8 +124,8 @@ public class PromiseTest {
     currentTime += 11000;
     r.runUntilAllBlocked();
     expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin", "thread1 get timeout",
+        new String[] {
+          "root begin", "root done", "thread1 begin", "thread1 get timeout",
         };
     trace.setExpected(expected);
     threadPool.shutdown();
@@ -147,24 +146,19 @@ public class PromiseTest {
               CompletablePromise<String> f = Workflow.newPromise();
               trace.add("root begin");
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    try {
-                      assertEquals("default", f.get(10, TimeUnit.SECONDS, "default"));
-                      trace.add("thread1 get success");
-                    } catch (Exception e) {
-                      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-                      trace.add("thread1 get failure");
-                    }
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertEquals("default", f.get(10, TimeUnit.SECONDS, "default"));
+                        trace.add("thread1 get success");
+                      })
                   .start();
               trace.add("root done");
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin",
+        new String[] {
+          "root begin", "root done", "thread1 begin",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -172,8 +166,8 @@ public class PromiseTest {
     currentTime += 11000;
     r.runUntilAllBlocked();
     expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin", "thread1 get success",
+        new String[] {
+          "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
     threadPool.shutdown();
@@ -194,17 +188,12 @@ public class PromiseTest {
               CompletablePromise<String> f = Workflow.newPromise();
               trace.add("root begin");
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    try {
-                      assertEquals("default", f.get(10, TimeUnit.SECONDS, "default"));
-                      trace.add("thread1 get success");
-                    } catch (Exception e) {
-                      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-                      trace.add("thread1 get failure");
-                    }
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertEquals("default", f.get(10, TimeUnit.SECONDS, "default"));
+                        trace.add("thread1 get success");
+                      })
                   .start();
               f.completeExceptionally(new RuntimeException("boo"));
               trace.add("root done");
@@ -212,8 +201,8 @@ public class PromiseTest {
     r.runUntilAllBlocked();
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin", "thread1 get success",
+        new String[] {
+          "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
     threadPool.shutdown();
@@ -234,17 +223,12 @@ public class PromiseTest {
               CompletablePromise<String> f = Workflow.newPromise();
               trace.add("root begin");
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    try {
-                      assertEquals("default", f.get("default"));
-                      trace.add("thread1 get success");
-                    } catch (Exception e) {
-                      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
-                      trace.add("thread1 get failure");
-                    }
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertEquals("default", f.get("default"));
+                        trace.add("thread1 get success");
+                      })
                   .start();
               f.completeExceptionally(new RuntimeException("boo"));
               trace.add("root done");
@@ -252,8 +236,8 @@ public class PromiseTest {
     r.runUntilAllBlocked();
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin", "root done", "thread1 begin", "thread1 get success",
+        new String[] {
+          "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
     threadPool.shutdown();
@@ -271,24 +255,24 @@ public class PromiseTest {
               CompletablePromise<Boolean> f3 = Workflow.newPromise();
 
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    assertTrue(f1.get());
-                    trace.add("thread1 f1");
-                    f2.complete(true);
-                    trace.add("thread1 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertTrue(f1.get());
+                        trace.add("thread1 f1");
+                        f2.complete(true);
+                        trace.add("thread1 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread2 begin");
-                    assertTrue(f2.get());
-                    trace.add("thread2 f2");
-                    f3.complete(true);
-                    trace.add("thread2 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        assertTrue(f2.get());
+                        trace.add("thread2 f2");
+                        f3.complete(true);
+                        trace.add("thread2 done");
+                      })
                   .start();
               f1.complete(true);
               assertFalse(f1.complete(false));
@@ -298,16 +282,16 @@ public class PromiseTest {
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin",
-            "root before f3",
-            "thread1 begin",
-            "thread1 f1",
-            "thread1 done",
-            "thread2 begin",
-            "thread2 f2",
-            "thread2 done",
-            "root done"
+        new String[] {
+          "root begin",
+          "root before f3",
+          "thread1 begin",
+          "thread1 f1",
+          "thread1 done",
+          "thread2 begin",
+          "thread2 f2",
+          "thread2 done",
+          "root done"
         };
 
     trace.setExpected(expected);
@@ -327,10 +311,10 @@ public class PromiseTest {
               CompletablePromise<String> f4 = Workflow.newPromise();
               f4.completeFrom(f3);
               f4.thenApply(
-                  (r) -> {
-                    trace.add(r);
-                    return null;
-                  })
+                      (r) -> {
+                        trace.add(r);
+                        return null;
+                      })
                   .exceptionally(
                       (e) -> {
                         trace.add("exceptionally");
@@ -341,7 +325,7 @@ public class PromiseTest {
               trace.add("root done");
             });
     runner.runUntilAllBlocked();
-    String[] expected = new String[]{"root begin", "value1.thenApply.f2Handle", "root done"};
+    String[] expected = new String[] {"root begin", "value1.thenApply.f2Handle", "root done"};
 
     trace.setExpected(expected);
   }
@@ -361,10 +345,10 @@ public class PromiseTest {
               f4.completeFrom(f3);
               Promise<String> f5 =
                   f4.thenApply(
-                      (r) -> {
-                        trace.add(r);
-                        return "ignored";
-                      })
+                          (r) -> {
+                            trace.add(r);
+                            return "ignored";
+                          })
                       .exceptionally(
                           (e) -> {
                             trace.add("exceptionally");
@@ -383,7 +367,7 @@ public class PromiseTest {
               trace.add("root done");
             });
     runner.runUntilAllBlocked();
-    String[] expected = new String[]{"root begin", "exceptionally", "failure caught", "root done"};
+    String[] expected = new String[] {"root begin", "exceptionally", "failure caught", "root done"};
 
     trace.setExpected(expected);
   }
@@ -399,28 +383,28 @@ public class PromiseTest {
               CompletablePromise<String> f3 = Workflow.newPromise();
 
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    f1.complete("value1");
-                    trace.add("thread1 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        f1.complete("value1");
+                        trace.add("thread1 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread3 begin");
-                    f3.complete("value3");
-                    trace.add("thread3 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread3 begin");
+                        f3.complete("value3");
+                        trace.add("thread3 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread2 begin");
-                    f2.complete("value2");
-                    trace.add("thread2 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f2.complete("value2");
+                        trace.add("thread2 done");
+                      })
                   .start();
               List<Promise<String>> promises = new ArrayList<>();
               promises.add(f1);
@@ -437,16 +421,16 @@ public class PromiseTest {
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin",
-            "root before allOf",
-            "thread1 begin",
-            "thread1 done",
-            "thread3 begin",
-            "thread3 done",
-            "thread2 begin",
-            "thread2 done",
-            "root done"
+        new String[] {
+          "root begin",
+          "root before allOf",
+          "thread1 begin",
+          "thread1 done",
+          "thread3 begin",
+          "thread3 done",
+          "thread2 begin",
+          "thread2 done",
+          "root done"
         };
     trace.setExpected(expected);
   }
@@ -462,28 +446,28 @@ public class PromiseTest {
               CompletablePromise<String> f3 = Workflow.newPromise();
 
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    f1.complete("value1");
-                    trace.add("thread1 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        f1.complete("value1");
+                        trace.add("thread1 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread3 begin");
-                    f3.complete("value3");
-                    trace.add("thread3 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread3 begin");
+                        f3.complete("value3");
+                        trace.add("thread3 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread2 begin");
-                    f2.complete("value2");
-                    trace.add("thread2 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f2.complete("value2");
+                        trace.add("thread2 done");
+                      })
                   .start();
               List<Promise<?>> promises = new ArrayList<>();
               promises.add(f1);
@@ -497,16 +481,16 @@ public class PromiseTest {
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin",
-            "root before anyOf",
-            "thread1 begin",
-            "thread1 done",
-            "thread3 begin",
-            "thread3 done",
-            "thread2 begin",
-            "thread2 done",
-            "root done"
+        new String[] {
+          "root begin",
+          "root before anyOf",
+          "thread1 begin",
+          "thread1 done",
+          "thread3 begin",
+          "thread3 done",
+          "thread2 begin",
+          "thread2 done",
+          "root done"
         };
     trace.setExpected(expected);
   }
@@ -522,28 +506,28 @@ public class PromiseTest {
               CompletablePromise<Boolean> f3 = Workflow.newPromise();
 
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    f1.complete("value1");
-                    trace.add("thread1 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        f1.complete("value1");
+                        trace.add("thread1 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread3 begin");
-                    f3.complete(true);
-                    trace.add("thread3 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread3 begin");
+                        f3.complete(true);
+                        trace.add("thread3 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread2 begin");
-                    f2.complete(111);
-                    trace.add("thread2 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f2.complete(111);
+                        trace.add("thread2 done");
+                      })
                   .start();
               trace.add("root before allOf");
               assertFalse(f1.isCompleted());
@@ -557,16 +541,16 @@ public class PromiseTest {
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin",
-            "root before allOf",
-            "thread1 begin",
-            "thread1 done",
-            "thread3 begin",
-            "thread3 done",
-            "thread2 begin",
-            "thread2 done",
-            "root done"
+        new String[] {
+          "root begin",
+          "root before allOf",
+          "thread1 begin",
+          "thread1 done",
+          "thread3 begin",
+          "thread3 done",
+          "thread2 begin",
+          "thread2 done",
+          "root done"
         };
     trace.setExpected(expected);
   }
@@ -582,28 +566,28 @@ public class PromiseTest {
               CompletablePromise<Boolean> f3 = Workflow.newPromise();
 
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread1 begin");
-                    f1.complete("value1");
-                    trace.add("thread1 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        f1.complete("value1");
+                        trace.add("thread1 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread3 begin");
-                    f3.complete(true);
-                    trace.add("thread3 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread3 begin");
+                        f3.complete(true);
+                        trace.add("thread3 done");
+                      })
                   .start();
               WorkflowInternal.newThread(
-                  false,
-                  () -> {
-                    trace.add("thread2 begin");
-                    f2.complete(111);
-                    trace.add("thread2 done");
-                  })
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f2.complete(111);
+                        trace.add("thread2 done");
+                      })
                   .start();
               trace.add("root before allOf");
               assertFalse(f1.isCompleted());
@@ -618,16 +602,16 @@ public class PromiseTest {
             });
     r.runUntilAllBlocked();
     String[] expected =
-        new String[]{
-            "root begin",
-            "root before allOf",
-            "thread1 begin",
-            "thread1 done",
-            "thread3 begin",
-            "thread3 done",
-            "thread2 begin",
-            "thread2 done",
-            "root done"
+        new String[] {
+          "root begin",
+          "root before allOf",
+          "thread1 begin",
+          "thread1 done",
+          "thread3 begin",
+          "thread3 done",
+          "thread2 begin",
+          "thread2 done",
+          "root done"
         };
     trace.setExpected(expected);
   }

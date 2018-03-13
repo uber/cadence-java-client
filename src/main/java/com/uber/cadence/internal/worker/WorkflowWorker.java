@@ -211,8 +211,8 @@ public final class WorkflowWorker implements SuspendableWorker {
                 + ", previousStartedEventId="
                 + result.getPreviousStartedEventId()
                 + (result.getQuery() != null
-                ? ", queryType=" + result.getQuery().getQueryType()
-                : ""));
+                    ? ", queryType=" + result.getQuery().getQueryType()
+                    : ""));
       }
 
       if (result == null || result.getTaskToken() == null) {

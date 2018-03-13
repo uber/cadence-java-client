@@ -80,9 +80,7 @@ class DecisionsHelper {
 
   private final Map<Long, String> signalInitiatedEventIdToSignalId = new HashMap<>();
 
-  /**
-   * Use access-order to ensure that decisions are emitted in order of their creation
-   */
+  /** Use access-order to ensure that decisions are emitted in order of their creation */
   private final Map<DecisionId, DecisionStateMachine> decisions =
       new LinkedHashMap<>(100, 0.75f, true);
 
@@ -101,7 +99,7 @@ class DecisionsHelper {
 
   /**
    * @return true if cancellation already happened as schedule event was found in the new decisions
-   * list
+   *     list
    */
   boolean requestCancelActivityTask(String activityId, Runnable immediateCancellationCallback) {
     DecisionStateMachine decision =
@@ -184,7 +182,7 @@ class DecisionsHelper {
 
   /**
    * @return true if cancellation already happened as schedule event was found in the new decisions
-   * list
+   *     list
    */
   boolean requestCancelExternalWorkflowExecution(
       boolean childWorkflow,
@@ -278,8 +276,7 @@ class DecisionsHelper {
     return decision.isDone();
   }
 
-  public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
-  }
+  public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {}
 
   public boolean handleChildWorkflowExecutionCanceled(String workflowId) {
     DecisionStateMachine decision =
@@ -375,7 +372,7 @@ class DecisionsHelper {
 
   /**
    * @return <code>false</code> means that cancel failed, <code>true</code> that
-   * CancelWorkflowExecution was created.
+   *     CancelWorkflowExecution was created.
    */
   void cancelWorkflowExecution() {
     Decision decision = new Decision();
@@ -467,9 +464,7 @@ class DecisionsHelper {
     this.workflowContextData = workflowState;
   }
 
-  /**
-   * @return new workflow state or null if it didn't change since the last decision completion
-   */
+  /** @return new workflow state or null if it didn't change since the last decision completion */
   byte[] getWorkflowContextDataToReturn() {
     if (workfowContextFromLastDecisionCompletion == null
         || !Arrays.equals(workfowContextFromLastDecisionCompletion, workflowContextData)) {

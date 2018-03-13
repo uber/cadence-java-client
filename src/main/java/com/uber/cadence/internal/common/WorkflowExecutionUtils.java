@@ -174,12 +174,13 @@ public class WorkflowExecutionUtils {
   }
 
   public static boolean isWorkflowExecutionCompletedEvent(HistoryEvent event) {
-    return ((event != null) && (event.getEventType() == EventType.WorkflowExecutionCompleted
-        || event.getEventType() == EventType.WorkflowExecutionCanceled
-        || event.getEventType() == EventType.WorkflowExecutionFailed
-        || event.getEventType() == EventType.WorkflowExecutionTimedOut
-        || event.getEventType() == EventType.WorkflowExecutionContinuedAsNew
-        || event.getEventType() == EventType.WorkflowExecutionTerminated));
+    return ((event != null)
+        && (event.getEventType() == EventType.WorkflowExecutionCompleted
+            || event.getEventType() == EventType.WorkflowExecutionCanceled
+            || event.getEventType() == EventType.WorkflowExecutionFailed
+            || event.getEventType() == EventType.WorkflowExecutionTimedOut
+            || event.getEventType() == EventType.WorkflowExecutionContinuedAsNew
+            || event.getEventType() == EventType.WorkflowExecutionTerminated));
   }
 
   public static boolean isActivityTaskClosedEvent(HistoryEvent event) {

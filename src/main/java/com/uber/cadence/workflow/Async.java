@@ -159,7 +159,8 @@ public final class Async {
    * @param arg2 second procedure argument
    * @return Promise that contains procedure result or failure
    */
-  public static <A1, A2> Promise<Void> procedure(Functions.Proc2<A1, A2> procedure, A1 arg1, A2 arg2) {
+  public static <A1, A2> Promise<Void> procedure(
+      Functions.Proc2<A1, A2> procedure, A1 arg1, A2 arg2) {
     return AsyncInternal.procedure(procedure, arg1, arg2);
   }
 

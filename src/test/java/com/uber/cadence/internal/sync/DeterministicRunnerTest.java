@@ -43,8 +43,7 @@ import org.junit.Test;
 
 public class DeterministicRunnerTest {
 
-  @Rule
-  public final Tracer trace = new Tracer();
+  @Rule public final Tracer trace = new Tracer();
 
   private String status;
   private boolean unblock1;
@@ -274,8 +273,8 @@ public class DeterministicRunnerTest {
     assertTrue(d.isDone());
     assertEquals("exitValue", d.getExitValue());
     String[] expected =
-        new String[]{
-            "root started", "child1 started", "child2 started", "child2 exiting",
+        new String[] {
+          "root started", "child1 started", "child2 started", "child2 exiting",
         };
     trace.setExpected(expected);
   }
@@ -300,8 +299,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.isDone());
     String[] expected =
-        new String[]{
-            "init", "root started", "second await: I just feel like it", "root done",
+        new String[] {
+          "init", "root started", "second await: I just feel like it", "root done",
         };
     trace.setExpected(expected);
   }
@@ -334,15 +333,15 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(trace.toString(), d.isDone());
     String[] expected =
-        new String[]{
-            "init",
-            "root started",
-            "scope started",
-            "scope done",
-            "root before cancel",
-            "timer cancelled",
-            "scope cancelled",
-            "root done",
+        new String[] {
+          "init",
+          "root started",
+          "scope started",
+          "scope done",
+          "root before cancel",
+          "timer cancelled",
+          "scope cancelled",
+          "root done",
         };
     trace.setExpected(expected);
   }
@@ -375,15 +374,15 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(trace.toString(), d.isDone());
     String[] expected =
-        new String[]{
-            "init",
-            "root started",
-            "scope started",
-            "scope done",
-            "root before cancel",
-            "timer cancelled",
-            "scope cancelled",
-            "root done",
+        new String[] {
+          "init",
+          "root started",
+          "scope started",
+          "scope done",
+          "root before cancel",
+          "timer cancelled",
+          "scope cancelled",
+          "root done",
         };
     trace.setExpected(expected);
   }
@@ -432,13 +431,13 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.stackTrace(), d.isDone());
     String[] expected =
-        new String[]{
-            "init",
-            "root started",
-            "root before cancel",
-            "thread started",
-            "thread done: from root",
-            "root done",
+        new String[] {
+          "init",
+          "root started",
+          "root before cancel",
+          "thread started",
+          "thread done: from root",
+          "root done",
         };
     trace.setExpected(expected);
   }
@@ -480,8 +479,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertFalse(d.isDone());
     String[] expected =
-        new String[]{
-            "init", "root started", "thread started",
+        new String[] {
+          "init", "root started", "thread started",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -489,8 +488,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.stackTrace(), d.isDone());
     expected =
-        new String[]{
-            "init", "root started", "thread started", "await done", "root done",
+        new String[] {
+          "init", "root started", "thread started", "await done", "root done",
         };
     trace.setExpected(expected);
   }
@@ -556,8 +555,8 @@ public class DeterministicRunnerTest {
     assertEquals(61000, d.getNextWakeUpTime());
     assertFalse(d.isDone());
     String[] expected =
-        new String[]{
-            "root started", "child started",
+        new String[] {
+          "root started", "child started",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -567,7 +566,7 @@ public class DeterministicRunnerTest {
     currentTime = 70000;
     d.runUntilAllBlocked();
     assertFalse(d.isDone());
-    expected = new String[]{"root started", "child started", "timeout exception", "root done"};
+    expected = new String[] {"root started", "child started", "timeout exception", "root done"};
     trace.setExpected(expected);
     d.close();
   }
