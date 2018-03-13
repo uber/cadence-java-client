@@ -18,8 +18,10 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ActivityType;
+import java.nio.charset.StandardCharsets;
 
 public class ExecuteActivityParameters implements Cloneable {
+
   private String activityId;
   private ActivityType activityType;
   //    private String control;
@@ -31,7 +33,8 @@ public class ExecuteActivityParameters implements Cloneable {
   private String taskList;
   //    private int taskPriority;
 
-  public ExecuteActivityParameters() {}
+  public ExecuteActivityParameters() {
+  }
 
   //    /**
   //     * Returns the value of the Control property for this object.
@@ -218,7 +221,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToStartTimeoutSeconds The new value for the ScheduleToStartTimeout property for
-   *     this object.
+   * this object.
    */
   public void setScheduleToStartTimeoutSeconds(long scheduleToStartTimeoutSeconds) {
     this.scheduleToStartTimeoutSeconds = scheduleToStartTimeoutSeconds;
@@ -233,7 +236,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToStartTimeoutSeconds The new value for the ScheduleToStartTimeout property for
-   *     this object.
+   * this object.
    * @return A reference to this updated object so that method calls can be chained together.
    */
   public ExecuteActivityParameters withScheduleToStartTimeoutSeconds(
@@ -261,7 +264,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToCloseTimeoutSeconds The new value for the ScheduleToCloseTimeout property for
-   *     this object.
+   * this object.
    */
   public void setScheduleToCloseTimeoutSeconds(long scheduleToCloseTimeoutSeconds) {
     this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
@@ -276,7 +279,7 @@ public class ExecuteActivityParameters implements Cloneable {
    * <b>Length: </b>1 - 64<br>
    *
    * @param scheduleToCloseTimeoutSeconds The new value for the ScheduleToCloseTimeout property for
-   *     this object.
+   * this object.
    * @return A reference to this updated object so that method calls can be chained together.
    */
   public ExecuteActivityParameters withScheduleToCloseTimeoutSeconds(
@@ -341,7 +344,7 @@ public class ExecuteActivityParameters implements Cloneable {
     sb.append("{");
     sb.append("ActivityType: " + activityType + ", ");
     sb.append("ActivityId: " + activityId + ", ");
-    sb.append("Input: " + input + ", ");
+    sb.append("Input: " + new String(input, 0, 512, StandardCharsets.UTF_8) + ", ");
     //        sb.append("Control: " + control + ", ");
     sb.append("HeartbeatTimeout: " + heartbeatTimeoutSeconds + ", ");
     sb.append("ScheduleToStartTimeout: " + scheduleToStartTimeoutSeconds + ", ");
@@ -353,7 +356,7 @@ public class ExecuteActivityParameters implements Cloneable {
     return sb.toString();
   }
 
-  public ExecuteActivityParameters clone() {
+  public ExecuteActivityParameters copy() {
     ExecuteActivityParameters result = new ExecuteActivityParameters();
     result.setActivityType(activityType);
     result.setActivityId(activityId);

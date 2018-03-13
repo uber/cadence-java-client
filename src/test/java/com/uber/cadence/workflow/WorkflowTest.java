@@ -158,8 +158,8 @@ public class WorkflowTest {
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1());
       // Invoke synchronously in a separate thread for testing purposes only.
       // In real workflows use
-      // Async.invoke(activities::activityWithDelay, 1000, true)
-      Promise<String> a1 = Async.invoke(() -> activities.activityWithDelay(1000, true));
+      // Async.procedure(activities::activityWithDelay, 1000, true)
+      Promise<String> a1 = Async.function(() -> activities.activityWithDelay(1000, true));
       Workflow.sleep(2000);
       return activities.activity2(a1.get(), 10);
     }
@@ -273,7 +273,7 @@ public class WorkflowTest {
 
     @Override
     public String execute() {
-      Async.invoke(activities::throwIO).get();
+      Async.procedure(activities::throwIO).get();
       return "ignored";
     }
   }
@@ -441,13 +441,13 @@ public class WorkflowTest {
     public String execute() {
       TestActivities testActivities =
           Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
-      Promise<String> a = Async.invoke(testActivities::activity);
-      Promise<String> a1 = Async.invoke(testActivities::activity1, "1");
-      Promise<String> a2 = Async.invoke(testActivities::activity2, "1", 2);
-      Promise<String> a3 = Async.invoke(testActivities::activity3, "1", 2, 3);
-      Promise<String> a4 = Async.invoke(testActivities::activity4, "1", 2, 3, 4);
-      Promise<String> a5 = Async.invoke(testActivities::activity5, "1", 2, 3, 4, 5);
-      Promise<String> a6 = Async.invoke(testActivities::activity6, "1", 2, 3, 4, 5, 6);
+      Promise<String> a = Async.function(testActivities::activity);
+      Promise<String> a1 = Async.function(testActivities::activity1, "1");
+      Promise<String> a2 = Async.function(testActivities::activity2, "1", 2);
+      Promise<String> a3 = Async.function(testActivities::activity3, "1", 2, 3);
+      Promise<String> a4 = Async.function(testActivities::activity4, "1", 2, 3, 4);
+      Promise<String> a5 = Async.function(testActivities::activity5, "1", 2, 3, 4, 5);
+      Promise<String> a6 = Async.function(testActivities::activity6, "1", 2, 3, 4, 5, 6);
       assertEquals("activity", a.get());
       assertEquals("1", a1.get());
       assertEquals("12", a2.get());
@@ -456,13 +456,13 @@ public class WorkflowTest {
       assertEquals("12345", a5.get());
       assertEquals("123456", a6.get());
 
-      Async.invoke(testActivities::proc).get();
-      Async.invoke(testActivities::proc1, "1").get();
-      Async.invoke(testActivities::proc2, "1", 2).get();
-      Async.invoke(testActivities::proc3, "1", 2, 3).get();
-      Async.invoke(testActivities::proc4, "1", 2, 3, 4).get();
-      Async.invoke(testActivities::proc5, "1", 2, 3, 4, 5).get();
-      Async.invoke(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
+      Async.procedure(testActivities::proc).get();
+      Async.procedure(testActivities::proc1, "1").get();
+      Async.procedure(testActivities::proc2, "1", 2).get();
+      Async.procedure(testActivities::proc3, "1", 2, 3).get();
+      Async.procedure(testActivities::proc4, "1", 2, 3, 4).get();
+      Async.procedure(testActivities::proc5, "1", 2, 3, 4, 5).get();
+      Async.procedure(testActivities::proc6, "1", 2, 3, 4, 5, 6).get();
       return "workflow";
     }
   }
@@ -967,7 +967,7 @@ public class WorkflowTest {
 
     @Override
     public String execute() {
-      Promise<String> r1 = Async.invoke(child1::execute, "Hello ");
+      Promise<String> r1 = Async.function(child1::execute, "Hello ");
       String r2 = child2.execute("World!");
       assertEquals(child2Id, Workflow.getChildWorkflowExecution(child2).get().getWorkflowId());
       return r1.get() + r2;
@@ -1069,7 +1069,7 @@ public class WorkflowTest {
     @Override
     public String execute() {
       Promise<String> result =
-          Async.invoke(child::execute, "Hello", Workflow.getWorkflowInfo().getWorkflowId());
+          Async.function(child::execute, "Hello", Workflow.getWorkflowInfo().getWorkflowId());
       return result.get() + " " + fromSignal.get() + "!";
     }
 
@@ -1152,9 +1152,7 @@ public class WorkflowTest {
       CompletablePromise<Void> signal = Workflow.newPromise();
       CancellationScope scope =
           Workflow.newCancellationScope(
-              () -> {
-                signal.completeFrom(Async.invoke(workflow::signal1, "World"));
-              });
+              () -> signal.completeFrom(Async.procedure(workflow::signal1, "World")));
       scope.cancel();
       try {
         signal.get();
@@ -1204,7 +1202,7 @@ public class WorkflowTest {
 
     @Override
     public String execute() {
-      return Async.invoke(child::execute, "wash dishes").get();
+      return Async.function(child::execute, "wash dishes").get();
     }
   }
 
@@ -1267,7 +1265,7 @@ public class WorkflowTest {
     @Override
     public String execute() {
       StringBuffer result = new StringBuffer();
-      Async.invoke(
+      Async.procedure(
           () -> {
             while (true) {
               Workflow.await(() -> i > j);

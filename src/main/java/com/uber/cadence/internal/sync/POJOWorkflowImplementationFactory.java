@@ -50,7 +50,9 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
 
   private DataConverter dataConverter;
 
-  /** Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance. */
+  /**
+   * Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance.
+   */
   private final Map<String, Functions.Func<SyncWorkflowDefinition>> workflowDefinitions =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -218,8 +220,11 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
     private void newInstance() {
       if (workflow == null) {
         try {
-          workflow = workflowImplementationClass.newInstance();
-        } catch (InstantiationException | IllegalAccessException e) {
+          workflow = workflowImplementationClass.getDeclaredConstructor().newInstance();
+        } catch (NoSuchMethodException
+            | InstantiationException
+            | IllegalAccessException
+            | InvocationTargetException e) {
           // Error to fail decision as this can be fixed by a new deployment.
           throw new Error(
               "Failure instantiating workflow implementation class "

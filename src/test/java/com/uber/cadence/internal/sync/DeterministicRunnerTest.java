@@ -43,7 +43,8 @@ import org.junit.Test;
 
 public class DeterministicRunnerTest {
 
-  @Rule public final Tracer trace = new Tracer();
+  @Rule
+  public final Tracer trace = new Tracer();
 
   private String status;
   private boolean unblock1;
@@ -146,7 +147,7 @@ public class DeterministicRunnerTest {
         new RetryOptions.Builder()
             .setInitialInterval(Duration.ofSeconds(10))
             .setMaximumInterval(Duration.ofSeconds(100))
-            .setExpiration(Duration.ofSeconds(300))
+            .setExpiration(Duration.ofMinutes(5))
             .setBackoffCoefficient(2.0)
             .build();
     DeterministicRunnerImpl d =
@@ -207,7 +208,7 @@ public class DeterministicRunnerTest {
     try {
       d.runUntilAllBlocked();
       fail("exception expected");
-    } catch (Throwable ignored) {
+    } catch (Exception ignored) {
     }
     assertTrue(d.isDone());
   }
@@ -247,14 +248,14 @@ public class DeterministicRunnerTest {
             () -> {
               trace.add("root started");
               Promise<Void> thread1 =
-                  Async.invoke(
+                  Async.procedure(
                       () -> {
                         trace.add("child1 started");
                         WorkflowInternal.await("reason1", () -> unblock1);
                         trace.add("child1 done");
                       });
               Promise<Void> thread2 =
-                  Async.invoke(
+                  Async.procedure(
                       () -> {
                         trace.add("child2 started");
                         WorkflowInternal.await("reason2", () -> unblock2);
@@ -273,8 +274,8 @@ public class DeterministicRunnerTest {
     assertTrue(d.isDone());
     assertEquals("exitValue", d.getExitValue());
     String[] expected =
-        new String[] {
-          "root started", "child1 started", "child2 started", "child2 exiting",
+        new String[]{
+            "root started", "child1 started", "child2 started", "child2 exiting",
         };
     trace.setExpected(expected);
   }
@@ -299,8 +300,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.isDone());
     String[] expected =
-        new String[] {
-          "init", "root started", "second await: I just feel like it", "root done",
+        new String[]{
+            "init", "root started", "second await: I just feel like it", "root done",
         };
     trace.setExpected(expected);
   }
@@ -333,15 +334,15 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(trace.toString(), d.isDone());
     String[] expected =
-        new String[] {
-          "init",
-          "root started",
-          "scope started",
-          "scope done",
-          "root before cancel",
-          "timer cancelled",
-          "scope cancelled",
-          "root done",
+        new String[]{
+            "init",
+            "root started",
+            "scope started",
+            "scope done",
+            "root before cancel",
+            "timer cancelled",
+            "scope cancelled",
+            "root done",
         };
     trace.setExpected(expected);
   }
@@ -374,21 +375,21 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(trace.toString(), d.isDone());
     String[] expected =
-        new String[] {
-          "init",
-          "root started",
-          "scope started",
-          "scope done",
-          "root before cancel",
-          "timer cancelled",
-          "scope cancelled",
-          "root done",
+        new String[]{
+            "init",
+            "root started",
+            "scope started",
+            "scope done",
+            "root before cancel",
+            "timer cancelled",
+            "scope cancelled",
+            "root done",
         };
     trace.setExpected(expected);
   }
 
   private Promise<Void> newTimer(int milliseconds) {
-    return Async.invoke(
+    return Async.procedure(
         () -> {
           try {
             Workflow.sleep(milliseconds);
@@ -411,7 +412,7 @@ public class DeterministicRunnerTest {
               CancellationScope scope =
                   Workflow.newCancellationScope(
                       () -> {
-                        Async.invoke(
+                        Async.procedure(
                             () -> {
                               trace.add("thread started");
                               Promise<String> cancellation =
@@ -431,13 +432,13 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.stackTrace(), d.isDone());
     String[] expected =
-        new String[] {
-          "init",
-          "root started",
-          "root before cancel",
-          "thread started",
-          "thread done: from root",
-          "root done",
+        new String[]{
+            "init",
+            "root started",
+            "root before cancel",
+            "thread started",
+            "thread done: from root",
+            "root done",
         };
     trace.setExpected(expected);
   }
@@ -452,7 +453,7 @@ public class DeterministicRunnerTest {
               CompletablePromise<Void> done = Workflow.newPromise();
               Workflow.newDetachedCancellationScope(
                   () -> {
-                    Async.invoke(
+                    Async.procedure(
                         () -> {
                           trace.add("thread started");
                           WorkflowInternal.await(
@@ -479,8 +480,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertFalse(d.isDone());
     String[] expected =
-        new String[] {
-          "init", "root started", "thread started",
+        new String[]{
+            "init", "root started", "thread started",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -488,8 +489,8 @@ public class DeterministicRunnerTest {
     d.runUntilAllBlocked();
     assertTrue(d.stackTrace(), d.isDone());
     expected =
-        new String[] {
-          "init", "root started", "thread started", "await done", "root done",
+        new String[]{
+            "init", "root started", "thread started", "await done", "root done",
         };
     trace.setExpected(expected);
   }
@@ -500,7 +501,7 @@ public class DeterministicRunnerTest {
         new DeterministicRunnerImpl(
             () -> {
               Promise<Void> async =
-                  Async.invoke(
+                  Async.procedure(
                       () -> {
                         status = "started";
                         WorkflowInternal.await("reason1", () -> unblock1);
@@ -537,7 +538,7 @@ public class DeterministicRunnerTest {
               trace.add("root started");
 
               Promise<Void> thread =
-                  Async.invoke(
+                  Async.procedure(
                       () -> {
                         trace.add("child started");
                         WorkflowInternal.await("blockForever", () -> false);
@@ -555,8 +556,8 @@ public class DeterministicRunnerTest {
     assertEquals(61000, d.getNextWakeUpTime());
     assertFalse(d.isDone());
     String[] expected =
-        new String[] {
-          "root started", "child started",
+        new String[]{
+            "root started", "child started",
         };
     trace.setExpected(expected);
     trace.assertExpected();
@@ -566,7 +567,7 @@ public class DeterministicRunnerTest {
     currentTime = 70000;
     d.runUntilAllBlocked();
     assertFalse(d.isDone());
-    expected = new String[] {"root started", "child started", "timeout exception", "root done"};
+    expected = new String[]{"root started", "child started", "timeout exception", "root done"};
     trace.setExpected(expected);
     d.close();
   }
@@ -574,6 +575,7 @@ public class DeterministicRunnerTest {
   private static final int CHILDREN = 10;
 
   private class TestChildTreeRunnable implements Functions.Proc {
+
     final int depth;
 
     private TestChildTreeRunnable(int depth) {
@@ -587,7 +589,7 @@ public class DeterministicRunnerTest {
         trace.add("child " + depth + " done");
         return;
       }
-      Promise<Void> thread = Async.invoke(new TestChildTreeRunnable(depth + 1));
+      Promise<Void> thread = Async.procedure(new TestChildTreeRunnable(depth + 1));
       WorkflowInternal.await("reason1", () -> unblock1);
       thread.get();
       trace.add("child " + depth + " done");
