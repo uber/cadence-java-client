@@ -40,12 +40,11 @@ import java.util.concurrent.CompletableFuture;
  * asynchronously. Do not create this object for each request, keep it for the duration of the
  * process.
  *
- * <p>Use {@link #newInstance(IWorkflowService, String, WorkflowClientOptions)} method to create an
- * instance. Example usage:
+ * <p>Use {@link #newInstance(String)} method to create an instance. Example usage:
  *
  * <pre>
  * // Create cadence client using cadence service host and port.
- * WorkflowClient client = WorkflowClient.newInstance(host, port);
+ * WorkflowClient client = WorkflowClient.newInstance(host, port, domain);
  *
  * // Create client side stub to the workflow execution.
  * HelloWorldWorkflow workflow = client.newWorkflowStub(HelloWorldWorkflow.class);
@@ -56,6 +55,18 @@ import java.util.concurrent.CompletableFuture;
  * // started.getWorkflowId() should match the one in the options: "MyHelloWorld1"
  * System.out.println("Started helloWorld workflow with workflowId=\"" + started.getWorkflowId()
  *                     + "\" and runId=\"" + started.getRunId() + "\"");
+ * </pre>
+ *
+ * Synchronously waiting for workflow completion:
+ *
+ * <pre>
+ * String result = workflow.helloWorld("User");
+ * </pre>
+ *
+ * Asynchronously waiting for workflow completion:
+ *
+ * <pre>
+ * CompletableFuture&lt;String&gt; result = WorkflowClient.execute(workflow::helloWorld, "User");
  * </pre>
  */
 public interface WorkflowClient {
