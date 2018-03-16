@@ -41,7 +41,7 @@ import com.uber.cadence.workflow.Functions;
  * HelloWorldWorkflow workflow = client.newWorkflowStub(HelloWorldWorkflow.class);
  *
  * // Start Workflow Execution
- * WorkflowExecution started = WorkflowClient.asyncStart(workflow::helloWorld, "User");
+ * WorkflowExecution started = WorkflowClient.start(workflow::helloWorld, "User");
  *
  * // started.getWorkflowId() should match the one in the options: "MyHelloWorld1"
  * System.out.println("Started helloWorld workflow with workflowId=\"" + started.getWorkflowId()
@@ -198,8 +198,8 @@ public interface WorkflowClient {
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static WorkflowExecution asyncStart(Functions.Proc workflow) {
-    return WorkflowClientInternal.asyncStart(workflow);
+  static WorkflowExecution start(Functions.Proc workflow) {
+    return WorkflowClientInternal.start(workflow);
   }
 
   /**
@@ -210,8 +210,8 @@ public interface WorkflowClient {
    * @param arg1 first workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1> WorkflowExecution asyncStart(Functions.Proc1<A1> workflow, A1 arg1) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1);
+  static <A1> WorkflowExecution start(Functions.Proc1<A1> workflow, A1 arg1) {
+    return WorkflowClientInternal.start(workflow, arg1);
   }
 
   /**
@@ -223,8 +223,8 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2> WorkflowExecution asyncStart(Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2);
+  static <A1, A2> WorkflowExecution start(Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+    return WorkflowClientInternal.start(workflow, arg1, arg2);
   }
 
   /**
@@ -237,9 +237,9 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3> WorkflowExecution asyncStart(
+  static <A1, A2, A3> WorkflowExecution start(
       Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3);
   }
 
   /**
@@ -253,9 +253,9 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4> WorkflowExecution start(
       Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4);
   }
 
   /**
@@ -270,9 +270,9 @@ public interface WorkflowClient {
    * @param arg5 fifth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4, A5> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4, A5> WorkflowExecution start(
       Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4, arg5);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4, arg5);
   }
 
   /**
@@ -288,7 +288,7 @@ public interface WorkflowClient {
    * @param arg6 sixth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4, A5, A6> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4, A5, A6> WorkflowExecution start(
       Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
       A1 arg1,
       A2 arg2,
@@ -296,7 +296,7 @@ public interface WorkflowClient {
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
 
   /**
@@ -306,8 +306,8 @@ public interface WorkflowClient {
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @return future that contains workflow result or failure
    */
-  static <R> WorkflowExecution asyncStart(Functions.Func<R> workflow) {
-    return WorkflowClientInternal.asyncStart(workflow);
+  static <R> WorkflowExecution start(Functions.Func<R> workflow) {
+    return WorkflowClientInternal.start(workflow);
   }
 
   /**
@@ -318,8 +318,8 @@ public interface WorkflowClient {
    * @param arg1 first workflow argument
    * @return future that contains workflow result or failure
    */
-  static <A1, R> WorkflowExecution asyncStart(Functions.Func1<A1, R> workflow, A1 arg1) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1);
+  static <A1, R> WorkflowExecution start(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return WorkflowClientInternal.start(workflow, arg1);
   }
 
   /**
@@ -331,9 +331,9 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, R> WorkflowExecution asyncStart(
+  static <A1, A2, R> WorkflowExecution start(
       Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2);
+    return WorkflowClientInternal.start(workflow, arg1, arg2);
   }
 
   /**
@@ -346,9 +346,9 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, R> WorkflowExecution asyncStart(
+  static <A1, A2, A3, R> WorkflowExecution start(
       Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3);
   }
 
   /**
@@ -362,9 +362,9 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, R> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4, R> WorkflowExecution start(
       Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4);
   }
 
   /**
@@ -379,14 +379,14 @@ public interface WorkflowClient {
    * @param arg5 sixth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, A5, R> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4, A5, R> WorkflowExecution start(
       Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
       A1 arg1,
       A2 arg2,
       A3 arg3,
       A4 arg4,
       A5 arg5) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4, arg5);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4, arg5);
   }
 
   /**
@@ -402,7 +402,7 @@ public interface WorkflowClient {
    * @param arg6 sixth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution asyncStart(
+  static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution start(
       Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -410,6 +410,229 @@ public interface WorkflowClient {
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    return WorkflowClientInternal.asyncStart(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+    return WorkflowClientInternal.start(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
+
+  /**
+   * Starts zero argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static WorkflowExecution execute(Functions.Proc workflow) {
+    return WorkflowClientInternal.execute(workflow);
+  }
+
+  /**
+   * Starts one argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1> WorkflowExecution execute(Functions.Proc1<A1> workflow, A1 arg1) {
+    return WorkflowClientInternal.execute(workflow, arg1);
+  }
+
+  /**
+   * Starts two argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1, A2> WorkflowExecution execute(Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2);
+  }
+
+  /**
+   * Starts three argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1, A2, A3> WorkflowExecution execute(
+      Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3);
+  }
+
+  /**
+   * Starts four argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1, A2, A3, A4> WorkflowExecution execute(
+      Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4);
+  }
+
+  /**
+   * Starts zero argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 fifth workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1, A2, A3, A4, A5> WorkflowExecution execute(
+      Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5);
+  }
+
+  /**
+   * Starts zero argument workflow with void return type
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 sixth workflow function parameter
+   * @param arg6 sixth workflow function parameter
+   * @return future becomes ready upon workflow completion with null value or failure
+   */
+  static <A1, A2, A3, A4, A5, A6> WorkflowExecution execute(
+      Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+  }
+
+  /**
+   * Starts zero argument workflow.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @return future that contains workflow result or failure
+   */
+  static <R> WorkflowExecution execute(Functions.Func<R> workflow) {
+    return WorkflowClientInternal.execute(workflow);
+  }
+
+  /**
+   * Invokes one argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow argument
+   * @return future that contains workflow result or failure
+   */
+  static <A1, R> WorkflowExecution execute(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return WorkflowClientInternal.execute(workflow, arg1);
+  }
+
+  /**
+   * Invokes two argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @return future that contains workflow result or failure
+   */
+  static <A1, A2, R> WorkflowExecution execute(
+      Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2);
+  }
+
+  /**
+   * Invokes two argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @return future that contains workflow result or failure
+   */
+  static <A1, A2, A3, R> WorkflowExecution execute(
+      Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3);
+  }
+
+  /**
+   * Invokes two argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @return future that contains workflow result or failure
+   */
+  static <A1, A2, A3, A4, R> WorkflowExecution execute(
+      Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4);
+  }
+
+  /**
+   * Invokes two argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 sixth workflow function parameter
+   * @return future that contains workflow result or failure
+   */
+  static <A1, A2, A3, A4, A5, R> WorkflowExecution execute(
+      Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5);
+  }
+
+  /**
+   * Invokes two argument workflow asynchronously.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow argument
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 sixth workflow function parameter
+   * @param arg6 sixth workflow function parameter
+   * @return future that contains workflow result or failure
+   */
+  static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution execute(
+      Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+  }
+
 }

@@ -25,6 +25,7 @@ import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
@@ -36,6 +37,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 
 public final class WorkflowClientInternal implements WorkflowClient {
 
@@ -120,7 +122,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return new ActivityCompletionClientImpl(manualActivityCompletionClientFactory);
   }
 
-  public static WorkflowExecution asyncStart(Functions.Proc workflow) {
+  public static WorkflowExecution start(Functions.Proc workflow) {
     WorkflowExternalInvocationHandler.initAsyncInvocation();
     try {
       workflow.apply();
@@ -130,31 +132,31 @@ public final class WorkflowClientInternal implements WorkflowClient {
     }
   }
 
-  public static <A1> WorkflowExecution asyncStart(Functions.Proc1<A1> workflow, A1 arg1) {
-    return asyncStart(() -> workflow.apply(arg1));
+  public static <A1> WorkflowExecution start(Functions.Proc1<A1> workflow, A1 arg1) {
+    return start(() -> workflow.apply(arg1));
   }
 
-  public static <A1, A2> WorkflowExecution asyncStart(
+  public static <A1, A2> WorkflowExecution start(
       Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
-    return asyncStart(() -> workflow.apply(arg1, arg2));
+    return start(() -> workflow.apply(arg1, arg2));
   }
 
-  public static <A1, A2, A3> WorkflowExecution asyncStart(
+  public static <A1, A2, A3> WorkflowExecution start(
       Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3));
+    return start(() -> workflow.apply(arg1, arg2, arg3));
   }
 
-  public static <A1, A2, A3, A4> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4> WorkflowExecution start(
       Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4));
   }
 
-  public static <A1, A2, A3, A4, A5> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4, A5> WorkflowExecution start(
       Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
   }
 
-  public static <A1, A2, A3, A4, A5, A6> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4, A5, A6> WorkflowExecution start(
       Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
       A1 arg1,
       A2 arg2,
@@ -162,46 +164,46 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  public static <R> WorkflowExecution asyncStart(Functions.Func<R> workflow) {
-    return asyncStart(
-        () -> { // Need {} to call asyncStart(Proc...)
+  public static <R> WorkflowExecution start(Functions.Func<R> workflow) {
+    return start(
+        () -> { // Need {} to call start(Proc...)
           workflow.apply();
         });
   }
 
-  public static <A1, R> WorkflowExecution asyncStart(Functions.Func1<A1, R> workflow, A1 arg1) {
-    return asyncStart(() -> workflow.apply(arg1));
+  public static <A1, R> WorkflowExecution start(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return start(() -> workflow.apply(arg1));
   }
 
-  public static <A1, A2, R> WorkflowExecution asyncStart(
+  public static <A1, A2, R> WorkflowExecution start(
       Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
-    return asyncStart(() -> workflow.apply(arg1, arg2));
+    return start(() -> workflow.apply(arg1, arg2));
   }
 
-  public static <A1, A2, A3, R> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, R> WorkflowExecution start(
       Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3));
+    return start(() -> workflow.apply(arg1, arg2, arg3));
   }
 
-  public static <A1, A2, A3, A4, R> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4, R> WorkflowExecution start(
       Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4));
   }
 
-  public static <A1, A2, A3, A4, A5, R> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4, A5, R> WorkflowExecution start(
       Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
       A1 arg1,
       A2 arg2,
       A3 arg3,
       A4 arg4,
       A5 arg5) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
   }
 
-  public static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution asyncStart(
+  public static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution start(
       Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -209,6 +211,108 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    return asyncStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+    return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
+
+
+
+
+
+
+
+
+
+  public static CompletableFuture<Void> execute(Functions.Proc workflow) {
+    WorkflowExternalInvocationHandler.initAsyncInvocation();
+    try {
+      workflow.apply();
+      WorkflowExecution execution = WorkflowExternalInvocationHandler.getAsyncInvocationResult();
+      return WorkflowExecutionUtils.getR
+    } finally {
+      WorkflowExternalInvocationHandler.closeAsyncInvocation();
+    }
+  }
+
+  public static <A1> CompletableFuture<Void> execute(Functions.Proc1<A1> workflow, A1 arg1) {
+    return execute(() -> workflow.apply(arg1));
+  }
+
+  public static <A1, A2> CompletableFuture<Void> execute(
+      Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+    return execute(() -> workflow.apply(arg1, arg2));
+  }
+
+  public static <A1, A2, A3> CompletableFuture<Void> execute(
+      Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3));
+  }
+
+  public static <A1, A2, A3, A4> CompletableFuture<Void> execute(
+      Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4));
+  }
+
+  public static <A1, A2, A3, A4, A5> CompletableFuture<Void> execute(
+      Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+  }
+
+  public static <A1, A2, A3, A4, A5, A6> CompletableFuture<Void> execute(
+      Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
+  public static <R>CompletableFuture<R> execute(Functions.Func<R> workflow) {
+    return execute(
+        () -> { // Need {} to call execute(Proc...)
+          workflow.apply();
+        });
+  }
+
+  public static <A1, R>CompletableFuture<R> execute(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return execute(() -> workflow.apply(arg1));
+  }
+
+  public static <A1, A2, R>CompletableFuture<R> execute(
+      Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
+    return execute(() -> workflow.apply(arg1, arg2));
+  }
+
+  public static <A1, A2, A3, R>CompletableFuture<R> execute(
+      Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3));
+  }
+
+  public static <A1, A2, A3, A4, R>CompletableFuture<R> execute(
+      Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4));
+  }
+
+  public static <A1, A2, A3, A4, A5, R>CompletableFuture<R> execute(
+      Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+  }
+
+  public static <A1, A2, A3, A4, A5, A6, R>CompletableFuture<R> execute(
+      Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
 }

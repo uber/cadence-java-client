@@ -44,7 +44,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
   /** Must call {@link #closeAsyncInvocation()} if this one was called. */
   public static void initAsyncInvocation() {
     if (asyncResult.get() != null) {
-      throw new IllegalStateException("already in asyncStart invocation");
+      throw new IllegalStateException("already in start invocation");
     }
     asyncResult.set(new AtomicReference<>());
   }
@@ -58,7 +58,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     if (result == null) {
       throw new IllegalStateException(
           "Only methods of a stub created through WorkflowClient.newWorkflowStub "
-              + "can be used as a parameter to the asyncStart.");
+              + "can be used as a parameter to the start.");
     }
     return result;
   }

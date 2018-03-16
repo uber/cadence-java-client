@@ -34,6 +34,8 @@ import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -171,6 +173,9 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
             unit)
         .handle(
             (r, e) -> {
+              if (e instanceof CompletionException) {
+                e = e.getCause();
+              }
               if (e instanceof WorkflowExecutionFailedException) {
                 return mapToWorkflowFailureException(
                     (WorkflowExecutionFailedException) e, returnType);
