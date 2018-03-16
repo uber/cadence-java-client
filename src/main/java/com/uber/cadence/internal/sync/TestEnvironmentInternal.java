@@ -10,12 +10,12 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
+import com.uber.cadence.internal.testing.TestEnvironment;
 import com.uber.cadence.internal.testing.TestEnvironmentOptions;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.workflow.ActivityFailureException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.SynchronousQueue;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
-public class TestEnvironmentInternal {
+public class TestEnvironmentInternal implements TestEnvironment {
 
   private static final int WORKFLOW_THREAD_POOL_SIZE = 1000;
   private final POJOActivityTaskHandler activityTaskHandler;
@@ -34,9 +34,12 @@ public class TestEnvironmentInternal {
   private final TestEnvironmentOptions testEnvironmentOptions;
   private final AtomicInteger idSequencer = new AtomicInteger();
 
-  TestEnvironmentInternal(TestEnvironmentOptions options) {
-    Objects.requireNonNull(options);
-    this.testEnvironmentOptions = options;
+  public TestEnvironmentInternal(TestEnvironmentOptions options) {
+    if (options == null) {
+      this.testEnvironmentOptions = new TestEnvironmentOptions.Builder().build();
+    } else {
+      this.testEnvironmentOptions = options;
+    }
     ThreadPoolExecutor workflowThreadPool =
         new ThreadPoolExecutor(
             WORKFLOW_THREAD_POOL_SIZE,
@@ -46,12 +49,13 @@ public class TestEnvironmentInternal {
             new SynchronousQueue<>());
 
     workflowImplementationFactory = new POJOWorkflowImplementationFactory(
-        options.getDataConverter(), workflowThreadPool);
-    decisionTaskHandler = new ReplayDecisionTaskHandler(options.getDomain(),
+        testEnvironmentOptions.getDataConverter(), workflowThreadPool);
+    decisionTaskHandler = new ReplayDecisionTaskHandler(testEnvironmentOptions.getDomain(),
         workflowImplementationFactory);
-    activityTaskHandler = new POJOActivityTaskHandler(options.getDataConverter());
+    activityTaskHandler = new POJOActivityTaskHandler(testEnvironmentOptions.getDataConverter());
   }
 
+  @Override
   public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
     workflowImplementationFactory.setWorkflowImplementationTypes(workflowImplementationClasses);
   }
@@ -66,6 +70,7 @@ public class TestEnvironmentInternal {
    *
    * <p>
    */
+  @Override
   public void registerActivitiesImplementations(Object... activityImplementations) {
     activityTaskHandler.setActivitiesImplementation(activityImplementations);
   }
@@ -75,8 +80,12 @@ public class TestEnvironmentInternal {
    *
    * @param activityInterface interface type implemented by activities
    */
+  @Override
   public <T> T newActivityStub(Class<T> activityInterface) {
-    return ActivityInvocationHandler.newInstance(activityInterface, null,
+    ActivityOptions options = new ActivityOptions.Builder()
+        .setScheduleToCloseTimeout(Duration.ofDays(1))
+        .build();
+    return ActivityInvocationHandler.newInstance(activityInterface, options,
         new TestActivityExecutor(activityTaskHandler));
   }
 
