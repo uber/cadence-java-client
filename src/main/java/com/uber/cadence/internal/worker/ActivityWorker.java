@@ -26,7 +26,7 @@ import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.internal.common.SynchronousRetryer;
+import com.uber.cadence.internal.common.Retryer;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
@@ -204,21 +204,21 @@ public final class ActivityWorker implements SuspendableWorker {
         ro = options.getReportCompletionRetryOptions().merge(ro);
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
-        SynchronousRetryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
+        Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
       } else {
         RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
           ro = options.getReportFailureRetryOptions().merge(ro);
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
-          SynchronousRetryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
+          Retryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
             taskCancelled.setTaskToken(task.getTaskToken());
             taskCancelled.setIdentity(options.getIdentity());
             ro = options.getReportFailureRetryOptions().merge(ro);
-            SynchronousRetryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
+            Retryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
           }
         }
       }

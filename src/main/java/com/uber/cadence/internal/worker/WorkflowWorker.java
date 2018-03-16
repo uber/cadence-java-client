@@ -32,7 +32,7 @@ import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.internal.common.SynchronousRetryer;
+import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import java.time.Duration;
 import java.util.Iterator;
@@ -241,14 +241,14 @@ public final class WorkflowWorker implements SuspendableWorker {
         ro = options.getReportCompletionRetryOptions().merge(ro);
         taskCompleted.setIdentity(options.getIdentity());
         taskCompleted.setTaskToken(taskToken);
-        SynchronousRetryer.retry(ro, () -> service.RespondDecisionTaskCompleted(taskCompleted));
+        Retryer.retry(ro, () -> service.RespondDecisionTaskCompleted(taskCompleted));
       } else {
         RespondDecisionTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
           ro = options.getReportFailureRetryOptions().merge(ro);
           taskFailed.setIdentity(options.getIdentity());
           taskFailed.setTaskToken(taskToken);
-          SynchronousRetryer.retry(ro, () -> service.RespondDecisionTaskFailed(taskFailed));
+          Retryer.retry(ro, () -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
           if (queryCompleted != null) {
@@ -320,7 +320,7 @@ public final class WorkflowWorker implements SuspendableWorker {
           request.setMaximumPageSize(MAXIMUM_PAGE_SIZE);
           try {
             GetWorkflowExecutionHistoryResponse r =
-                SynchronousRetryer.retryWithResult(
+                Retryer.retryWithResult(
                     retryOptions, () -> service.GetWorkflowExecutionHistory(request));
             current = r.getHistory().getEventsIterator();
             nextPageToken = r.getNextPageToken();

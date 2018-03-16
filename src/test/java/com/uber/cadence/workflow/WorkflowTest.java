@@ -242,7 +242,6 @@ public class WorkflowTest {
       workflowStub.execute();
       fail("unreachable");
     } catch (WorkflowException e) {
-      e.printStackTrace();
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());

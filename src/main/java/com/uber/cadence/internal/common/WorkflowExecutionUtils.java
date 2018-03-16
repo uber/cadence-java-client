@@ -132,8 +132,7 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       try {
         response =
-            SynchronousRetryer.retryWithResult(
-                retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
       } catch (TException e) {
         throw CheckedExceptionWrapper.wrap(e);
       }
