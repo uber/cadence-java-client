@@ -15,23 +15,9 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.workflow;
+package com.uber.cadence.serviceclient;
 
-/**
- * Base exception used to communicate a failure that can be thrown by operations requested by a
- * workflow code.
- */
-@SuppressWarnings("serial")
-public abstract class WorkflowOperationException extends RuntimeException {
+import com.uber.cadence.WorkflowService.AsyncIface;
+import com.uber.cadence.WorkflowService.Iface;
 
-  private long eventId;
-
-  protected WorkflowOperationException(String message, long eventId) {
-    super(message);
-    this.eventId = eventId;
-  }
-
-  public long getEventId() {
-    return eventId;
-  }
-}
+public interface IWorkflowService extends Iface, AsyncIface {}

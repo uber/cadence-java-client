@@ -17,36 +17,34 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.ActivityTask;
+import com.uber.cadence.serviceclient.IWorkflowService;
 
 public final class ActivityInternal {
 
-    private ActivityInternal() {
-    }
+  private ActivityInternal() {}
 
-    static ActivityExecutionContext getContext() {
-        return CurrentActivityExecutionContext.get();
-    }
+  static ActivityExecutionContext getContext() {
+    return CurrentActivityExecutionContext.get();
+  }
 
-    public static void recordActivityHeartbeat(Object details) {
-        getContext().recordActivityHeartbeat(details);
-    }
+  public static void recordActivityHeartbeat(Object details) {
+    getContext().recordActivityHeartbeat(details);
+  }
 
-    public static ActivityTask getTask() {
-        return getContext().getTask();
-    }
+  public static ActivityTask getTask() {
+    return getContext().getTask();
+  }
 
-    public static String getDomain() {
-        return getContext().getDomain();
-    }
+  public static String getDomain() {
+    return getContext().getDomain();
+  }
 
-    public static WorkflowService.Iface getService() {
-        return getContext().getService();
-    }
+  public static IWorkflowService getService() {
+    return getContext().getService();
+  }
 
-    public static void doNotCompleteOnReturn() {
-        getContext().doNotCompleteOnReturn();
-    }
-
+  public static void doNotCompleteOnReturn() {
+    getContext().doNotCompleteOnReturn();
+  }
 }

@@ -6,6 +6,8 @@ buildscript {
 
 plugins {
     id 'net.minecrell.licenser' version '0.3'
+    id "com.github.sherter.google-java-format" version "0.6"
+    id "net.ltgt.errorprone" version "0.0.13"
 }
 
 repositories {
@@ -19,6 +21,13 @@ apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: "org.jruyi.thrift"
 apply plugin: 'maven-publish'
+apply plugin: 'com.github.sherter.google-java-format'
+
+googleJavaFormat {
+    toolVersion '1.3'
+    include '**/*.java'
+    exclude '**/generated-sources/*'
+}
 
 group = 'com.uber'
 version = '0.2.0-SNAPSHOT'
@@ -43,8 +52,10 @@ license {
 }
 
 compileJava {
+    dependsOn 'googleJavaFormat'
     options.encoding = 'UTF-8'
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
+            ".*/generated-sources/.*"
 }
 
 license {
@@ -52,10 +63,10 @@ license {
     exclude '**/com/uber/cadence/*.java'
 }
 
-
 compileTestJava {
     options.encoding = 'UTF-8'
-    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
+            ".*/generated-sources/.*"
 }
 
 if (JavaVersion.current().isJava8Compatible()) {
