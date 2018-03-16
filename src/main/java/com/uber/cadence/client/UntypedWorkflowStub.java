@@ -18,6 +18,7 @@
 package com.uber.cadence.client;
 
 import com.uber.cadence.WorkflowExecution;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -39,6 +40,8 @@ public interface UntypedWorkflowStub {
    */
   <R> R getResult(Class<R> returnType);
 
+  <R> CompletableFuture<R> getResultAsync(Class<R> returnType);
+
   /**
    * Returns workflow result potentially waiting for workflow to complete. Behind the scene this
    * call performs long poll on Cadence service waiting for workflow completion notification.
@@ -51,6 +54,8 @@ public interface UntypedWorkflowStub {
    * @throws TimeoutException if workflow is not completed after the timeout time.
    */
   <R> R getResult(long timeout, TimeUnit unit, Class<R> returnType) throws TimeoutException;
+
+  <R> CompletableFuture<R> getResultAsync(long timeout, TimeUnit unit, Class<R> returnType);
 
   <R> R query(String queryType, Class<R> returnType, Object... args);
 

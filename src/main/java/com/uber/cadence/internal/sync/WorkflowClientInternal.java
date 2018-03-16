@@ -19,7 +19,6 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowClient;
@@ -29,6 +28,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.WorkflowMethod;
@@ -44,7 +44,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
   private final DataConverter dataConverter;
 
   public WorkflowClientInternal(
-      WorkflowService.Iface service, String domain, WorkflowClientOptions options) {
+      IWorkflowService service, String domain, WorkflowClientOptions options) {
     this.genericClient = new GenericWorkflowClientExternalImpl(service, domain);
     if (options == null) {
       options = new WorkflowClientOptions.Builder().build();

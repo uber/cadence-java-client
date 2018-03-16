@@ -18,9 +18,9 @@
 package com.uber.cadence.client;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.internal.sync.WorkflowClientInternal;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.workflow.Functions;
 
@@ -30,8 +30,8 @@ import com.uber.cadence.workflow.Functions;
  * asynchronously. Do not create this object for each request, keep it for the duration of the
  * process.
  *
- * <p>Use {@link #newInstance(WorkflowService.Iface, String, WorkflowClientOptions)} method to
- * create an instance. Example usage:
+ * <p>Use {@link #newInstance(IWorkflowService, String, WorkflowClientOptions)} method to create an
+ * instance. Example usage:
  *
  * <pre>
  * // Create cadence client using cadence service host and port.
@@ -110,7 +110,7 @@ public interface WorkflowClient {
    * @param service client to the Cadence Service endpoint.
    * @param domain domain that worker uses to poll.
    */
-  static WorkflowClient newInstance(WorkflowService.Iface service, String domain) {
+  static WorkflowClient newInstance(IWorkflowService service, String domain) {
     return new WorkflowClientInternal(service, domain, null);
   }
 
@@ -123,7 +123,7 @@ public interface WorkflowClient {
    *     configuring client.
    */
   static WorkflowClient newInstance(
-      WorkflowService.Iface service, String domain, WorkflowClientOptions options) {
+      IWorkflowService service, String domain, WorkflowClientOptions options) {
     return new WorkflowClientInternal(service, domain, options);
   }
 

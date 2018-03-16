@@ -24,9 +24,9 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowService;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
@@ -41,13 +41,13 @@ public final class ActivityWorker implements SuspendableWorker {
 
   private Poller poller;
   private final ActivityTaskHandler handler;
-  private final WorkflowService.Iface service;
+  private final IWorkflowService service;
   private final String domain;
   private final String taskList;
   private final SingleWorkerOptions options;
 
   public ActivityWorker(
-      WorkflowService.Iface service,
+      IWorkflowService service,
       String domain,
       String taskList,
       SingleWorkerOptions options,
@@ -149,10 +149,7 @@ public final class ActivityWorker implements SuspendableWorker {
 
     @Override
     public void handle(
-        WorkflowService.Iface service,
-        String domain,
-        String taskList,
-        PollForActivityTaskResponse task)
+        IWorkflowService service, String domain, String taskList, PollForActivityTaskResponse task)
         throws Exception {
       ActivityTaskHandler.Result response = handler.handle(service, domain, task);
       sendReply(task, response);
@@ -160,7 +157,7 @@ public final class ActivityWorker implements SuspendableWorker {
 
     @Override
     public PollForActivityTaskResponse poll(
-        WorkflowService.Iface service, String domain, String taskList) throws TException {
+        IWorkflowService service, String domain, String taskList) throws TException {
       PollForActivityTaskRequest pollRequest = new PollForActivityTaskRequest();
       pollRequest.setDomain(domain);
       pollRequest.setIdentity(options.getIdentity());
