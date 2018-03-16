@@ -202,50 +202,50 @@ public interface WorkflowClient {
   ActivityCompletionClient newActivityCompletionClient();
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static WorkflowExecution start(Functions.Proc workflow) {
     return WorkflowClientInternal.start(workflow);
   }
 
   /**
-   * Starts one argument workflow with void return type
+   * Executes one argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1> WorkflowExecution start(Functions.Proc1<A1> workflow, A1 arg1) {
     return WorkflowClientInternal.start(workflow, arg1);
   }
 
   /**
-   * Starts two argument workflow with void return type
+   * Executes two argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow function parameter
    * @param arg2 second workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2> WorkflowExecution start(Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
     return WorkflowClientInternal.start(workflow, arg1, arg2);
   }
 
   /**
-   * Starts three argument workflow with void return type
+   * Executes three argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow function parameter
    * @param arg2 second workflow function parameter
    * @param arg3 third workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3> WorkflowExecution start(
       Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
@@ -253,7 +253,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts four argument workflow with void return type
+   * Executes four argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -261,7 +261,7 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @param arg3 third workflow function parameter
    * @param arg4 fourth workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4> WorkflowExecution start(
       Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
@@ -269,7 +269,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -278,7 +278,7 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @param arg4 fourth workflow function parameter
    * @param arg5 fifth workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4, A5> WorkflowExecution start(
       Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
@@ -286,7 +286,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -296,7 +296,7 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @param arg5 sixth workflow function parameter
    * @param arg6 sixth workflow function parameter
-   * @return future becomes ready upon workflow completion with null value or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4, A5, A6> WorkflowExecution start(
       Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
@@ -310,36 +310,36 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow.
+   * Executes zero argument workflow.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <R> WorkflowExecution start(Functions.Func<R> workflow) {
     return WorkflowClientInternal.start(workflow);
   }
 
   /**
-   * Invokes one argument workflow asynchronously.
+   * Executes one argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow argument
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, R> WorkflowExecution start(Functions.Func1<A1, R> workflow, A1 arg1) {
     return WorkflowClientInternal.start(workflow, arg1);
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow function parameter
    * @param arg2 second workflow function parameter
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, R> WorkflowExecution start(
       Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
@@ -347,14 +347,14 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @param arg1 first workflow function parameter
    * @param arg2 second workflow function parameter
    * @param arg3 third workflow function parameter
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, R> WorkflowExecution start(
       Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
@@ -362,7 +362,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -370,7 +370,7 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @param arg3 third workflow function parameter
    * @param arg4 fourth workflow function parameter
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4, R> WorkflowExecution start(
       Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
@@ -378,7 +378,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -387,7 +387,7 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @param arg4 fourth workflow function parameter
    * @param arg5 sixth workflow function parameter
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4, A5, R> WorkflowExecution start(
       Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
@@ -400,7 +400,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -410,7 +410,7 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @param arg5 sixth workflow function parameter
    * @param arg6 sixth workflow function parameter
-   * @return future that contains workflow result or failure
+   * @return WorkflowExecution that contains WorkflowID and RunID of the started workflow.
    */
   static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution start(
       Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
@@ -424,7 +424,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -435,7 +435,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts one argument workflow with void return type
+   * Executes one argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -447,7 +447,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts two argument workflow with void return type
+   * Executes two argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -460,7 +460,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts three argument workflow with void return type
+   * Executes three argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -475,7 +475,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts four argument workflow with void return type
+   * Executes four argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -491,7 +491,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -508,7 +508,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow with void return type
+   * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -532,7 +532,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Starts zero argument workflow.
+   * Executes zero argument workflow.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -543,7 +543,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes one argument workflow asynchronously.
+   * Executes one argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -555,7 +555,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -569,7 +569,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -584,7 +584,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -600,7 +600,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
@@ -622,7 +622,7 @@ public interface WorkflowClient {
   }
 
   /**
-   * Invokes two argument workflow asynchronously.
+   * Executes two argument workflow asynchronously.
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
    *     #newWorkflowStub(Class, WorkflowOptions)}.
