@@ -66,31 +66,6 @@ public final class LambdaUtils {
     return null;
   }
 
-  //    private static Method getMethodFromLambda(Object lambda) throws Exception {
-  //        Constructor<?> c = Method.class.getDeclaredConstructors()[0];
-  //        c.setAccessible(true);
-  //        Method m = (Method) c.newInstance(null, null, null, null, null, 0, 0, null, null, null, null);
-  //        m.setAccessible(true); //sets override field to true
-  //
-  //        //m.methodAccessor = new LambdaAccessor(...)
-  //        Field ma = Method.class.getDeclaredField("methodAccessor");
-  //        ma.setAccessible(true);
-  //        ma.set(m, new LambdaAccessor(array -> lambda.apply((String) array[0])));
-  //
-  //        return m;
-  //    }
-  //
-  //    static class LambdaAccessor implements MethodAccessor {
-  //        private final Object lambda;
-  //        public LambdaAccessor(Function<Object[], Object> lambda) {
-  //            this.lambda = lambda;
-  //        }
-  //
-  //        @Override public Object invoke(Object o, Object[] os) {
-  //            return lambda.apply(os);
-  //        }
-  //    }
-
   /** Prohibits instantiation. */
   private LambdaUtils() {}
 }
