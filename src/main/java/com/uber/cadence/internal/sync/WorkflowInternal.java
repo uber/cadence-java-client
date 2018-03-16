@@ -90,7 +90,9 @@ public final class WorkflowInternal {
     getDecisionContext().registerQuery(queryImplementation);
   }
 
-  /** Should be used to get current time instead of {@link System#currentTimeMillis()} */
+  /**
+   * Should be used to get current time instead of {@link System#currentTimeMillis()}
+   */
   public static long currentTimeMillis() {
     return DeterministicRunnerImpl.currentThreadInternal().getRunner().currentTimeMillis();
   }
@@ -100,13 +102,11 @@ public final class WorkflowInternal {
    *
    * @param activityInterface interface type implemented by activities
    */
-  @SuppressWarnings("unchecked")
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
-    return (T)
-        Proxy.newProxyInstance(
-            WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {activityInterface, AsyncMarker.class},
-            new ActivityInvocationHandler(options));
+    SyncDecisionContext decisionContext =
+        DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
+    return ActivityInvocationHandler.newInstance(activityInterface, options,
+        decisionContext);
   }
 
   @SuppressWarnings("unchecked")
@@ -115,7 +115,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
+            new Class<?>[]{workflowInterface, WorkflowStub.class, AsyncMarker.class},
             new ChildWorkflowInvocationHandler(options, getDecisionContext()));
   }
 
@@ -125,7 +125,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
+            new Class<?>[]{workflowInterface, WorkflowStub.class, AsyncMarker.class},
             new ChildWorkflowInvocationHandler(execution, getDecisionContext()));
   }
 
@@ -148,7 +148,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {workflowInterface},
+            new Class<?>[]{workflowInterface},
             new ContinueAsNewWorkflowInvocationHandler(parameters, getDecisionContext()));
   }
 
@@ -163,7 +163,14 @@ public final class WorkflowInternal {
    */
   public static <R> R executeActivity(
       String name, ActivityOptions options, Class<R> returnType, Object... args) {
-    Promise<R> result = getDecisionContext().executeActivity(name, options, args, returnType);
+    CompletablePromise<R> result = Workflow.newPromise();
+    getDecisionContext().executeActivity(name, options, args, returnType, (r, e) -> {
+      if (e == null) {
+        result.complete(r);
+      } else {
+        result.completeExceptionally(e);
+      }
+    });
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return null; // ignored
@@ -220,8 +227,11 @@ public final class WorkflowInternal {
     return CheckedExceptionWrapper.unwrap(e);
   }
 
-  /** Prohibit instantiation */
-  private WorkflowInternal() {}
+  /**
+   * Prohibit instantiation
+   */
+  private WorkflowInternal() {
+  }
 
   public static boolean isReplaying() {
     return getDecisionContext().isReplaying();

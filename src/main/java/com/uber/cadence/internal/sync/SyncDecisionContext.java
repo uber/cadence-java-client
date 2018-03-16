@@ -46,10 +46,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-class SyncDecisionContext {
+class SyncDecisionContext implements ActivityExecutor {
+
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
@@ -73,14 +76,21 @@ class SyncDecisionContext {
     return runner;
   }
 
-  public <T> Promise<T> executeActivity(
-      String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+  @Override
+  public <T> void executeActivity(String name, ActivityOptions options, Object[] args,
+      Class<T> returnType, BiConsumer<T, RuntimeException> resultCallback) {
     RetryOptions retryOptions = options.getRetryOptions();
+    Promise<T> result;
     if (retryOptions != null) {
-      return WorkflowRetryerInternal.retryAsync(
+      result = WorkflowRetryerInternal.retryAsync(
           retryOptions, () -> executeActivityOnce(name, options, args, returnType));
+    } else {
+      result = executeActivityOnce(name, options, args, returnType);
     }
-    return executeActivityOnce(name, options, args, returnType);
+    result.handle((r, e) -> {
+      resultCallback.accept(r, e);
+      return null;
+    });
   }
 
   private <T> Promise<T> executeActivityOnce(
@@ -146,7 +156,8 @@ class SyncDecisionContext {
       Exception cause;
       try {
         @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-        Class<? extends Exception> cc = (Class<? extends Exception>) Class.forName(causeClassName);
+            Class<? extends Exception> cc = (Class<? extends Exception>) Class
+            .forName(causeClassName);
         causeClass = cc;
         cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
       } catch (Exception e) {
@@ -185,7 +196,9 @@ class SyncDecisionContext {
     return executeChildWorkflowOnce(name, options, input, executionResult);
   }
 
-  /** @param executionResult promise that is set bu this method when child workflow is started. */
+  /**
+   * @param executionResult promise that is set bu this method when child workflow is started.
+   */
   private Promise<byte[]> executeChildWorkflowOnce(
       String name,
       ChildWorkflowOptions options,

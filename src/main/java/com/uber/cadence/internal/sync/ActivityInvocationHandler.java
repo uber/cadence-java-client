@@ -22,19 +22,37 @@ import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 import com.uber.cadence.workflow.ActivityException;
+import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 
-/** Dynamic implementation of a strongly typed child workflow interface. */
+/**
+ * Dynamic implementation of a strongly typed child workflow interface.
+ */
 class ActivityInvocationHandler implements InvocationHandler {
 
   private final ActivityOptions options;
+  private final ActivityExecutor activityExecutor;
 
-  ActivityInvocationHandler(ActivityOptions options) {
+  @SuppressWarnings("unchecked")
+  static <T> T newInstance(Class<T> activityInterface,
+      ActivityOptions options, ActivityExecutor activityExecutor) {
+    return (T)
+        Proxy.newProxyInstance(
+            WorkflowInternal.class.getClassLoader(),
+            new Class<?>[]{activityInterface, AsyncMarker.class},
+            new ActivityInvocationHandler(options, activityExecutor));
+  }
+
+  private ActivityInvocationHandler(ActivityOptions options,
+      ActivityExecutor activityExecutor) {
     this.options = options;
+    this.activityExecutor = activityExecutor;
   }
 
   @Override
@@ -60,10 +78,15 @@ class ActivityInvocationHandler implements InvocationHandler {
     }
     MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
     ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-    SyncDecisionContext decisionContext =
-        DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
-    Promise<?> result =
-        decisionContext.executeActivity(activityName, mergedOptions, args, method.getReturnType());
+    CompletablePromise<Object> result = Workflow.newPromise();
+    activityExecutor.executeActivity(activityName, mergedOptions, args, method.getReturnType
+        (), (r, e) -> {
+      if (e == null) {
+        result.complete(r);
+      } else {
+        result.completeExceptionally(e);
+      }
+    });
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return Defaults.defaultValue(method.getReturnType());
