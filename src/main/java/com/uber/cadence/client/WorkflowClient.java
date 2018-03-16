@@ -23,6 +23,16 @@ import com.uber.cadence.internal.sync.WorkflowClientInternal;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.workflow.Functions;
+import com.uber.cadence.workflow.Functions.Func;
+import com.uber.cadence.workflow.Functions.Func1;
+import com.uber.cadence.workflow.Functions.Proc;
+import com.uber.cadence.workflow.Functions.Proc1;
+import com.uber.cadence.workflow.Functions.Proc2;
+import com.uber.cadence.workflow.Functions.Proc3;
+import com.uber.cadence.workflow.Functions.Proc4;
+import com.uber.cadence.workflow.Functions.Proc5;
+import com.uber.cadence.workflow.Functions.Proc6;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Client to Cadence service used to start and query workflows by external processes. Also can be
@@ -420,7 +430,7 @@ public interface WorkflowClient {
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static WorkflowExecution execute(Functions.Proc workflow) {
+  static CompletableFuture<Void> execute(Proc workflow) {
     return WorkflowClientInternal.execute(workflow);
   }
 
@@ -432,7 +442,7 @@ public interface WorkflowClient {
    * @param arg1 first workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1> WorkflowExecution execute(Functions.Proc1<A1> workflow, A1 arg1) {
+  static <A1> CompletableFuture<Void> execute(Proc1<A1> workflow, A1 arg1) {
     return WorkflowClientInternal.execute(workflow, arg1);
   }
 
@@ -445,7 +455,7 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2> WorkflowExecution execute(Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+  static <A1, A2> CompletableFuture<Void> execute(Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2);
   }
 
@@ -459,8 +469,8 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3> WorkflowExecution execute(
-      Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
+  static <A1, A2, A3> CompletableFuture<Void> execute(
+      Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3);
   }
 
@@ -475,8 +485,8 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4> WorkflowExecution execute(
-      Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+  static <A1, A2, A3, A4> CompletableFuture<Void> execute(
+      Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4);
   }
 
@@ -492,8 +502,8 @@ public interface WorkflowClient {
    * @param arg5 fifth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4, A5> WorkflowExecution execute(
-      Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+  static <A1, A2, A3, A4, A5> CompletableFuture<Void> execute(
+      Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5);
   }
 
@@ -510,8 +520,8 @@ public interface WorkflowClient {
    * @param arg6 sixth workflow function parameter
    * @return future becomes ready upon workflow completion with null value or failure
    */
-  static <A1, A2, A3, A4, A5, A6> WorkflowExecution execute(
-      Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
+  static <A1, A2, A3, A4, A5, A6> CompletableFuture<Void> execute(
+      Proc6<A1, A2, A3, A4, A5, A6> workflow,
       A1 arg1,
       A2 arg2,
       A3 arg3,
@@ -528,7 +538,7 @@ public interface WorkflowClient {
    *     #newWorkflowStub(Class, WorkflowOptions)}.
    * @return future that contains workflow result or failure
    */
-  static <R> WorkflowExecution execute(Functions.Func<R> workflow) {
+  static <R> CompletableFuture<R> execute(Func<R> workflow) {
     return WorkflowClientInternal.execute(workflow);
   }
 
@@ -540,7 +550,7 @@ public interface WorkflowClient {
    * @param arg1 first workflow argument
    * @return future that contains workflow result or failure
    */
-  static <A1, R> WorkflowExecution execute(Functions.Func1<A1, R> workflow, A1 arg1) {
+  static <A1, R> CompletableFuture<R> execute(Func1<A1, R> workflow, A1 arg1) {
     return WorkflowClientInternal.execute(workflow, arg1);
   }
 
@@ -553,7 +563,7 @@ public interface WorkflowClient {
    * @param arg2 second workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, R> WorkflowExecution execute(
+  static <A1, A2, R> CompletableFuture<R> execute(
       Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2);
   }
@@ -568,7 +578,7 @@ public interface WorkflowClient {
    * @param arg3 third workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, R> WorkflowExecution execute(
+  static <A1, A2, A3, R> CompletableFuture<R> execute(
       Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3);
   }
@@ -584,7 +594,7 @@ public interface WorkflowClient {
    * @param arg4 fourth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, R> WorkflowExecution execute(
+  static <A1, A2, A3, A4, R> CompletableFuture<R> execute(
       Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4);
   }
@@ -601,7 +611,7 @@ public interface WorkflowClient {
    * @param arg5 sixth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, A5, R> WorkflowExecution execute(
+  static <A1, A2, A3, A4, A5, R> CompletableFuture<R> execute(
       Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -624,7 +634,7 @@ public interface WorkflowClient {
    * @param arg6 sixth workflow function parameter
    * @return future that contains workflow result or failure
    */
-  static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution execute(
+  static <A1, A2, A3, A4, A5, A6, R> CompletableFuture<R> execute(
       Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -634,5 +644,4 @@ public interface WorkflowClient {
       A6 arg6) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
-
 }

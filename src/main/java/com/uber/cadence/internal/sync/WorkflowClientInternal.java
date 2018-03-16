@@ -25,10 +25,10 @@ import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
+import com.uber.cadence.internal.sync.WorkflowExternalInvocationHandler.InvocationType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
@@ -123,10 +123,10 @@ public final class WorkflowClientInternal implements WorkflowClient {
   }
 
   public static WorkflowExecution start(Functions.Proc workflow) {
-    WorkflowExternalInvocationHandler.initAsyncInvocation();
+    WorkflowExternalInvocationHandler.initAsyncInvocation(InvocationType.START);
     try {
       workflow.apply();
-      return WorkflowExternalInvocationHandler.getAsyncInvocationResult();
+      return WorkflowExternalInvocationHandler.getAsyncInvocationResult(WorkflowExecution.class);
     } finally {
       WorkflowExternalInvocationHandler.closeAsyncInvocation();
     }
@@ -214,20 +214,12 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-
-
-
-
-
-
-
-
+  @SuppressWarnings("unchecked")
   public static CompletableFuture<Void> execute(Functions.Proc workflow) {
-    WorkflowExternalInvocationHandler.initAsyncInvocation();
+    WorkflowExternalInvocationHandler.initAsyncInvocation(InvocationType.EXECUTE);
     try {
       workflow.apply();
-      WorkflowExecution execution = WorkflowExternalInvocationHandler.getAsyncInvocationResult();
-      return WorkflowExecutionUtils.getR
+      return WorkflowExternalInvocationHandler.getAsyncInvocationResult(CompletableFuture.class);
     } finally {
       WorkflowExternalInvocationHandler.closeAsyncInvocation();
     }
@@ -268,33 +260,36 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  public static <R>CompletableFuture<R> execute(Functions.Func<R> workflow) {
-    return execute(
-        () -> { // Need {} to call execute(Proc...)
-          workflow.apply();
-        });
+  @SuppressWarnings("unchecked")
+  public static <R> CompletableFuture<R> execute(Functions.Func<R> workflow) {
+    return (CompletableFuture<R>)
+        execute(
+            () -> {
+              // Need {} to call execute(Proc...)
+              workflow.apply();
+            });
   }
 
-  public static <A1, R>CompletableFuture<R> execute(Functions.Func1<A1, R> workflow, A1 arg1) {
+  public static <A1, R> CompletableFuture<R> execute(Functions.Func1<A1, R> workflow, A1 arg1) {
     return execute(() -> workflow.apply(arg1));
   }
 
-  public static <A1, A2, R>CompletableFuture<R> execute(
+  public static <A1, A2, R> CompletableFuture<R> execute(
       Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
     return execute(() -> workflow.apply(arg1, arg2));
   }
 
-  public static <A1, A2, A3, R>CompletableFuture<R> execute(
+  public static <A1, A2, A3, R> CompletableFuture<R> execute(
       Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
     return execute(() -> workflow.apply(arg1, arg2, arg3));
   }
 
-  public static <A1, A2, A3, A4, R>CompletableFuture<R> execute(
+  public static <A1, A2, A3, A4, R> CompletableFuture<R> execute(
       Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4));
   }
 
-  public static <A1, A2, A3, A4, A5, R>CompletableFuture<R> execute(
+  public static <A1, A2, A3, A4, A5, R> CompletableFuture<R> execute(
       Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -304,7 +299,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
   }
 
-  public static <A1, A2, A3, A4, A5, A6, R>CompletableFuture<R> execute(
+  public static <A1, A2, A3, A4, A5, A6, R> CompletableFuture<R> execute(
       Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
       A1 arg1,
       A2 arg2,
@@ -314,5 +309,4 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A6 arg6) {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
-
 }

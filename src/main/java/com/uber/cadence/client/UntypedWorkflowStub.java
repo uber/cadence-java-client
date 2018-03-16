@@ -28,6 +28,8 @@ public interface UntypedWorkflowStub {
 
   WorkflowExecution start(Object... args);
 
+  String getWorkflowType();
+
   WorkflowExecution getExecution();
 
   /**
