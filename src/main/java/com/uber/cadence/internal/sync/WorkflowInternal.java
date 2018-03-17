@@ -34,6 +34,7 @@ import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
 import com.uber.cadence.workflow.WorkflowQueue;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Collection;
@@ -105,8 +106,9 @@ public final class WorkflowInternal {
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     SyncDecisionContext decisionContext =
         DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
-    return ActivityInvocationHandler.newInstance(activityInterface, options,
-        decisionContext);
+    InvocationHandler invocationHandler = ActivityInvocationHandler
+        .newInstance(options, decisionContext);
+    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
   }
 
   @SuppressWarnings("unchecked")
@@ -163,14 +165,7 @@ public final class WorkflowInternal {
    */
   public static <R> R executeActivity(
       String name, ActivityOptions options, Class<R> returnType, Object... args) {
-    CompletablePromise<R> result = Workflow.newPromise();
-    getDecisionContext().executeActivity(name, options, args, returnType, (r, e) -> {
-      if (e == null) {
-        result.complete(r);
-      } else {
-        result.completeExceptionally(e);
-      }
-    });
+    Promise<R> result = getDecisionContext().executeActivity(name, options, args, returnType);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return null; // ignored

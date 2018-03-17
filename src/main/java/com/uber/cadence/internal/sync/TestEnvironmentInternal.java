@@ -12,8 +12,12 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.testing.TestEnvironment;
 import com.uber.cadence.internal.testing.TestEnvironmentOptions;
+import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.workflow.ActivityFailureException;
+import com.uber.cadence.workflow.Promise;
+import com.uber.cadence.workflow.Workflow;
+import java.lang.reflect.InvocationHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
@@ -22,7 +26,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 
 public class TestEnvironmentInternal implements TestEnvironment {
 
@@ -85,8 +88,11 @@ public class TestEnvironmentInternal implements TestEnvironment {
     ActivityOptions options = new ActivityOptions.Builder()
         .setScheduleToCloseTimeout(Duration.ofDays(1))
         .build();
-    return ActivityInvocationHandler.newInstance(activityInterface, options,
-        new TestActivityExecutor(activityTaskHandler));
+    InvocationHandler invocationHandler = ActivityInvocationHandler
+        .newInstance(options, new TestActivityExecutor(activityTaskHandler));
+    invocationHandler = new DeterministicRunnerWrapper(invocationHandler);
+    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+
   }
 
   private class TestActivityExecutor implements ActivityExecutor {
@@ -97,8 +103,9 @@ public class TestEnvironmentInternal implements TestEnvironment {
       this.taskHandler = activityTaskHandler;
     }
 
-    public <T> void executeActivity(String activityType, ActivityOptions options, Object[] args,
-        Class<T> returnType, BiConsumer<T, RuntimeException> resultCallback) {
+    public <T> Promise<T> executeActivity(String activityType, ActivityOptions options,
+        Object[] args,
+        Class<T> returnType) {
       PollForActivityTaskResponse task = new PollForActivityTaskResponse();
       task.setScheduleToCloseTimeoutSeconds((int) options.getScheduleToCloseTimeout().getSeconds());
       task.setHeartbeatTimeoutSeconds((int) options.getHeartbeatTimeout().getSeconds());
@@ -113,18 +120,17 @@ public class TestEnvironmentInternal implements TestEnvironment {
       task.setActivityType(new ActivityType().setName(activityType));
       Result taskResult = activityTaskHandler
           .handle(null, testEnvironmentOptions.getDomain(), task);
-      getReply(task, taskResult, returnType, resultCallback);
+      return Workflow.newPromise(getReply(task, taskResult, returnType));
     }
 
-    private <T> void getReply(PollForActivityTaskResponse task, Result
-        response, Class<T> returnType,
-        BiConsumer<T, RuntimeException> resultCallback) {
+    private <T> T getReply(PollForActivityTaskResponse task, ActivityTaskHandler.Result
+        response, Class<T> returnType) {
       RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
 
-        resultCallback.accept(testEnvironmentOptions.getDataConverter()
-            .fromData(taskCompleted.getResult(), returnType), null);
+        return testEnvironmentOptions.getDataConverter().fromData(taskCompleted.getResult(),
+            returnType);
       } else {
         RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
@@ -141,18 +147,18 @@ public class TestEnvironmentInternal implements TestEnvironment {
           } catch (Exception e) {
             cause = e;
           }
-          resultCallback.accept(null,
-              new ActivityFailureException(0, task.getActivityType(), task.getActivityId(), cause));
+          throw new ActivityFailureException(
+              0, task.getActivityType(), task.getActivityId(), cause);
 
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
-            resultCallback.accept(null, new CancellationException(
-                new String(taskCancelled.getDetails(), StandardCharsets.UTF_8)));
+            throw new CancellationException(new String(taskCancelled.getDetails(),
+                StandardCharsets.UTF_8));
           }
         }
       }
-      resultCallback.accept(Defaults.defaultValue(returnType), null);
+      return Defaults.defaultValue(returnType);
     }
   }
 }

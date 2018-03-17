@@ -39,14 +39,18 @@ class ActivityInvocationHandler implements InvocationHandler {
   private final ActivityOptions options;
   private final ActivityExecutor activityExecutor;
 
+  static InvocationHandler newInstance(ActivityOptions options, ActivityExecutor activityExecutor) {
+    return new ActivityInvocationHandler(options, activityExecutor);
+  }
+
   @SuppressWarnings("unchecked")
-  static <T> T newInstance(Class<T> activityInterface,
-      ActivityOptions options, ActivityExecutor activityExecutor) {
+  static <T> T newProxy(Class<T> activityInterface,
+      InvocationHandler invocationHandler) {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[]{activityInterface, AsyncMarker.class},
-            new ActivityInvocationHandler(options, activityExecutor));
+            invocationHandler);
   }
 
   private ActivityInvocationHandler(ActivityOptions options,
@@ -78,15 +82,8 @@ class ActivityInvocationHandler implements InvocationHandler {
     }
     MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
     ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-    CompletablePromise<Object> result = Workflow.newPromise();
-    activityExecutor.executeActivity(activityName, mergedOptions, args, method.getReturnType
-        (), (r, e) -> {
-      if (e == null) {
-        result.complete(r);
-      } else {
-        result.completeExceptionally(e);
-      }
-    });
+    Promise<?> result =
+        activityExecutor.executeActivity(activityName, mergedOptions, args, method.getReturnType());
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return Defaults.defaultValue(method.getReturnType());
