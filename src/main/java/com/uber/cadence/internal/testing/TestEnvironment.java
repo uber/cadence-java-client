@@ -1,6 +1,7 @@
 package com.uber.cadence.internal.testing;
 
 import com.uber.cadence.internal.sync.TestEnvironmentInternal;
+import java.util.function.Consumer;
 
 public interface TestEnvironment {
 
@@ -18,4 +19,5 @@ public interface TestEnvironment {
 
   <T> T newActivityStub(Class<T> activityInterface);
 
+  <T> void setActivityHeartbeatListener(Class<T> detailsClass, Consumer<T> listener);
 }

@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.workflow.ActivityFailureException;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 
 public class ActivityTestingTest {
@@ -69,9 +70,13 @@ public class ActivityTestingTest {
   public void testHeartbeat() {
     TestEnvironment env = TestEnvironment.newInstance(null);
     env.registerActivitiesImplementations(new HeartbeatActivityImpl());
+    AtomicReference<String> details = new AtomicReference<>();
+    env.setActivityHeartbeatListener(String.class, (d) -> {
+      details.set(d);
+    });
     TestActivity activity = env.newActivityStub(TestActivity.class);
     String result = activity.activity1("input1");
     assertEquals("input1", result);
+    assertEquals("details1", details.get());
   }
-
 }

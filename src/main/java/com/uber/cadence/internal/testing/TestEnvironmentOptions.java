@@ -2,6 +2,7 @@ package com.uber.cadence.internal.testing;
 
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.Objects;
 
 public class TestEnvironmentOptions {
@@ -13,6 +14,8 @@ public class TestEnvironmentOptions {
     private String domain = "unit-test";
 
     private String taskList = "unit-test";
+
+    private IWorkflowService service;
 
     public Builder setDataConverter(DataConverter dataConverter) {
       Objects.requireNonNull(dataConverter);
@@ -32,8 +35,13 @@ public class TestEnvironmentOptions {
       return this;
     }
 
+    public Builder setService(IWorkflowService service) {
+      this.service = service;
+      return this;
+    }
+
     public TestEnvironmentOptions build() {
-      return new TestEnvironmentOptions(dataConverter, domain, taskList);
+      return new TestEnvironmentOptions(dataConverter, domain, taskList, service);
     }
   }
 
@@ -43,10 +51,14 @@ public class TestEnvironmentOptions {
 
   private final String taskList;
 
-  private TestEnvironmentOptions(DataConverter dataConverter, String domain, String taskList) {
+  private final IWorkflowService service;
+
+  private TestEnvironmentOptions(DataConverter dataConverter, String domain, String taskList,
+      IWorkflowService service) {
     this.dataConverter = dataConverter;
     this.domain = domain;
     this.taskList = taskList;
+    this.service = service;
   }
 
   public DataConverter getDataConverter() {
@@ -61,12 +73,17 @@ public class TestEnvironmentOptions {
     return taskList;
   }
 
+  public IWorkflowService getService() {
+    return service;
+  }
+
   @Override
   public String toString() {
     return "TestEnvironmentOptions{" +
         "dataConverter=" + dataConverter +
         ", domain='" + domain + '\'' +
         ", taskList='" + taskList + '\'' +
+        ", service=" + service +
         '}';
   }
 }
