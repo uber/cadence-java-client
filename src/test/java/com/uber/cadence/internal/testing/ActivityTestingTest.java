@@ -5,12 +5,22 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.testing.TestActivityEnvironment;
+import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ActivityTestingTest {
+
+  private static TestEnvironment testEnvironment;
+
+  @BeforeClass
+  public static void setUp() {
+    testEnvironment = TestEnvironment.newInstance();
+  }
 
   public interface TestActivity {
 
@@ -27,7 +37,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testSuccess() {
-    TestEnvironment env = TestEnvironment.newInstance(null);
+    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
     env.registerActivitiesImplementations(new ActivityImpl());
     TestActivity activity = env.newActivityStub(TestActivity.class);
     String result = activity.activity1("input1");
@@ -44,7 +54,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testFailure() {
-    TestEnvironment env = TestEnvironment.newInstance(null);
+    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
     env.registerActivitiesImplementations(new AngryActivityImpl());
     TestActivity activity = env.newActivityStub(TestActivity.class);
     try {
@@ -68,7 +78,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testHeartbeat() {
-    TestEnvironment env = TestEnvironment.newInstance(null);
+    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
     env.registerActivitiesImplementations(new HeartbeatActivityImpl());
     AtomicReference<String> details = new AtomicReference<>();
     env.setActivityHeartbeatListener(String.class, (d) -> {

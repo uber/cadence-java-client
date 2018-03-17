@@ -1,4 +1,4 @@
-package com.uber.cadence.internal.testing;
+package com.uber.cadence.testing;
 
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
