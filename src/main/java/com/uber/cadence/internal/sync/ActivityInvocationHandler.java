@@ -24,16 +24,13 @@ import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 import com.uber.cadence.workflow.ActivityException;
-import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
-/**
- * Dynamic implementation of a strongly typed child workflow interface.
- */
+/** Dynamic implementation of a strongly typed child workflow interface. */
 class ActivityInvocationHandler implements InvocationHandler {
 
   private final ActivityOptions options;
@@ -44,17 +41,15 @@ class ActivityInvocationHandler implements InvocationHandler {
   }
 
   @SuppressWarnings("unchecked")
-  static <T> T newProxy(Class<T> activityInterface,
-      InvocationHandler invocationHandler) {
+  static <T> T newProxy(Class<T> activityInterface, InvocationHandler invocationHandler) {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[]{activityInterface, AsyncMarker.class},
+            new Class<?>[] {activityInterface, AsyncMarker.class},
             invocationHandler);
   }
 
-  private ActivityInvocationHandler(ActivityOptions options,
-      ActivityExecutor activityExecutor) {
+  private ActivityInvocationHandler(ActivityOptions options, ActivityExecutor activityExecutor) {
     this.options = options;
     this.activityExecutor = activityExecutor;
   }

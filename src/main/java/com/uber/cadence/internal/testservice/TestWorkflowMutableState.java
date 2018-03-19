@@ -15,21 +15,16 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.testing;
+package com.uber.cadence.internal.testservice;
 
-import com.uber.cadence.internal.sync.TestEnvironmentInternal;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.PollForDecisionTaskRequest;
+import com.uber.cadence.PollForDecisionTaskResponse;
 
-public interface TestEnvironment {
+interface TestWorkflowMutableState {
 
-  static TestEnvironment newInstance() {
-    return newInstance(null);
-  }
+  ExecutionId getExecutionId();
 
-  static TestEnvironment newInstance(TestEnvironmentOptions options) {
-    return new TestEnvironmentInternal(options);
-  }
-
-  TestActivityEnvironment newActivityEnvironment();
-
-  TestWorkflowEnvironment newWorkflowEnvironment();
+  void startDecisionTask(PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
+      throws InternalServiceError;
 }

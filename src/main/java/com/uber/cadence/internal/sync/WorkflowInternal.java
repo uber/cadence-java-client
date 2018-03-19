@@ -91,9 +91,7 @@ public final class WorkflowInternal {
     getDecisionContext().registerQuery(queryImplementation);
   }
 
-  /**
-   * Should be used to get current time instead of {@link System#currentTimeMillis()}
-   */
+  /** Should be used to get current time instead of {@link System#currentTimeMillis()} */
   public static long currentTimeMillis() {
     return DeterministicRunnerImpl.currentThreadInternal().getRunner().currentTimeMillis();
   }
@@ -106,8 +104,8 @@ public final class WorkflowInternal {
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     SyncDecisionContext decisionContext =
         DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
-    InvocationHandler invocationHandler = ActivityInvocationHandler
-        .newInstance(options, decisionContext);
+    InvocationHandler invocationHandler =
+        ActivityInvocationHandler.newInstance(options, decisionContext);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
   }
 
@@ -117,7 +115,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[]{workflowInterface, WorkflowStub.class, AsyncMarker.class},
+            new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
             new ChildWorkflowInvocationHandler(options, getDecisionContext()));
   }
 
@@ -127,7 +125,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[]{workflowInterface, WorkflowStub.class, AsyncMarker.class},
+            new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
             new ChildWorkflowInvocationHandler(execution, getDecisionContext()));
   }
 
@@ -150,7 +148,7 @@ public final class WorkflowInternal {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[]{workflowInterface},
+            new Class<?>[] {workflowInterface},
             new ContinueAsNewWorkflowInvocationHandler(parameters, getDecisionContext()));
   }
 
@@ -222,11 +220,8 @@ public final class WorkflowInternal {
     return CheckedExceptionWrapper.unwrap(e);
   }
 
-  /**
-   * Prohibit instantiation
-   */
-  private WorkflowInternal() {
-  }
+  /** Prohibit instantiation */
+  private WorkflowInternal() {}
 
   public static boolean isReplaying() {
     return getDecisionContext().isReplaying();

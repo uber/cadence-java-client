@@ -17,8 +17,6 @@
 
 package com.uber.cadence.testing;
 
-import com.uber.cadence.workflow.Functions;
-import com.uber.cadence.workflow.Promise;
 import java.util.function.Consumer;
 
 public interface TestActivityEnvironment {

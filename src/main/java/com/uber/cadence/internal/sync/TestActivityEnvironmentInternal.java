@@ -68,11 +68,11 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
@@ -125,14 +125,13 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
    */
   @Override
   public <T> T newActivityStub(Class<T> activityInterface) {
-    ActivityOptions options = new ActivityOptions.Builder()
-        .setScheduleToCloseTimeout(Duration.ofDays(1))
-        .build();
-    InvocationHandler invocationHandler = ActivityInvocationHandler
-        .newInstance(options, new TestActivityExecutor(activityTaskHandler));
+    ActivityOptions options =
+        new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofDays(1)).build();
+    InvocationHandler invocationHandler =
+        ActivityInvocationHandler.newInstance(
+            options, new TestActivityExecutor(activityTaskHandler));
     invocationHandler = new DeterministicRunnerWrapper(invocationHandler);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
-
   }
 
   @Override
@@ -149,9 +148,9 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
       this.taskHandler = activityTaskHandler;
     }
 
-    public <T> Promise<T> executeActivity(String activityType, ActivityOptions options,
-        Object[] args,
-        Class<T> returnType) {
+    @Override
+    public <T> Promise<T> executeActivity(
+        String activityType, ActivityOptions options, Object[] args, Class<T> returnType) {
       PollForActivityTaskResponse task = new PollForActivityTaskResponse();
       task.setScheduleToCloseTimeoutSeconds((int) options.getScheduleToCloseTimeout().getSeconds());
       task.setHeartbeatTimeoutSeconds((int) options.getHeartbeatTimeout().getSeconds());
@@ -159,25 +158,30 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
       task.setScheduledTimestamp(Duration.ofMillis(System.currentTimeMillis()).toNanos());
       task.setStartedTimestamp(Duration.ofMillis(System.currentTimeMillis()).toNanos());
       task.setInput(testEnvironmentOptions.getDataConverter().toData(args));
-      task.setTaskToken("test-task-token".getBytes());
+      task.setTaskToken("test-task-token".getBytes(StandardCharsets.UTF_8));
       task.setActivityId(String.valueOf(idSequencer.incrementAndGet()));
-      task.setWorkflowExecution(new WorkflowExecution().setWorkflowId("test-workflow-id")
-          .setRunId(UUID.randomUUID().toString()));
+      task.setWorkflowExecution(
+          new WorkflowExecution()
+              .setWorkflowId("test-workflow-id")
+              .setRunId(UUID.randomUUID().toString()));
       task.setActivityType(new ActivityType().setName(activityType));
       IWorkflowService service = new WorkflowServiceWrapper(testEnvironmentOptions.getService());
-      Result taskResult = activityTaskHandler
-          .handle(service, testEnvironmentOptions.getDomain(), task);
+      Result taskResult =
+          activityTaskHandler.handle(service, testEnvironmentOptions.getDomain(), task);
       return Workflow.newPromise(getReply(task, taskResult, returnType));
     }
 
-    private <T> T getReply(PollForActivityTaskResponse task, ActivityTaskHandler.Result
-        response, Class<T> returnType) {
+    private <T> T getReply(
+        PollForActivityTaskResponse task,
+        ActivityTaskHandler.Result response,
+        Class<T> returnType) {
       RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
 
-        return testEnvironmentOptions.getDataConverter().fromData(taskCompleted.getResult(),
-            returnType);
+        return testEnvironmentOptions
+            .getDataConverter()
+            .fromData(taskCompleted.getResult(), returnType);
       } else {
         RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
@@ -186,11 +190,13 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
           Exception cause;
           try {
             @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-                Class<? extends Exception> cc = (Class<? extends Exception>) Class
-                .forName(causeClassName);
+                Class<? extends Exception> cc =
+                (Class<? extends Exception>) Class.forName(causeClassName);
             causeClass = cc;
-            cause = testEnvironmentOptions.getDataConverter().fromData(taskFailed.getDetails(),
-                causeClass);
+            cause =
+                testEnvironmentOptions
+                    .getDataConverter()
+                    .fromData(taskFailed.getDetails(), causeClass);
           } catch (Exception e) {
             cause = e;
           }
@@ -200,8 +206,8 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
-            throw new CancellationException(new String(taskCancelled.getDetails(),
-                StandardCharsets.UTF_8));
+            throw new CancellationException(
+                new String(taskCancelled.getDetails(), StandardCharsets.UTF_8));
           }
         }
       }
@@ -227,13 +233,15 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     private WorkflowServiceWrapper(IWorkflowService impl) {
       if (impl == null) {
         // Create empty implementation that just ignores all requests.
-        this.impl = (IWorkflowService) Proxy.newProxyInstance(
-            WorkflowServiceWrapper.class.getClassLoader(),
-            new Class<?>[]{IWorkflowService.class},
-            (proxy, method, args) -> {
-              // noop
-              return Defaults.defaultValue(method.getReturnType());
-            });
+        this.impl =
+            (IWorkflowService)
+                Proxy.newProxyInstance(
+                    WorkflowServiceWrapper.class.getClassLoader(),
+                    new Class<?>[]{IWorkflowService.class},
+                    (proxy, method, args) -> {
+                      // noop
+                      return method.getReturnType().newInstance();
+                    });
       } else {
         this.impl = impl;
       }
@@ -244,18 +252,18 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
         RecordActivityTaskHeartbeatRequest heartbeatRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       if (activityHeartbetListener != null) {
-        Object details = testEnvironmentOptions.getDataConverter().fromData(heartbeatRequest
-                .getDetails(),
-            activityHeartbetListener.valueType);
+        Object details =
+            testEnvironmentOptions
+                .getDataConverter()
+                .fromData(heartbeatRequest.getDetails(), activityHeartbetListener.valueType);
         activityHeartbetListener.consumer.accept(details);
       }
       // TODO: Cancellation
-      return new RecordActivityTaskHeartbeatResponse();
+      return impl.RecordActivityTaskHeartbeat(heartbeatRequest);
     }
 
     @Override
-    public void RespondActivityTaskCompleted(
-        RespondActivityTaskCompletedRequest completeRequest)
+    public void RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest completeRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondActivityTaskCompleted(completeRequest);
     }
@@ -274,15 +282,13 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     }
 
     @Override
-    public void RespondActivityTaskFailedByID(
-        RespondActivityTaskFailedByIDRequest failRequest)
+    public void RespondActivityTaskFailedByID(RespondActivityTaskFailedByIDRequest failRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondActivityTaskFailedByID(failRequest);
     }
 
     @Override
-    public void RespondActivityTaskCanceled(
-        RespondActivityTaskCanceledRequest canceledRequest)
+    public void RespondActivityTaskCanceled(RespondActivityTaskCanceledRequest canceledRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondActivityTaskCanceled(canceledRequest);
     }
@@ -295,49 +301,52 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     }
 
     @Override
-    public void RequestCancelWorkflowExecution(
-        RequestCancelWorkflowExecutionRequest cancelRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, CancellationAlreadyRequestedError, ServiceBusyError, TException {
+    public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+        CancellationAlreadyRequestedError, ServiceBusyError, TException {
       impl.RequestCancelWorkflowExecution(cancelRequest);
     }
 
     @Override
     public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+        TException {
       impl.SignalWorkflowExecution(signalRequest);
     }
 
     @Override
-    public void TerminateWorkflowExecution(
-        TerminateWorkflowExecutionRequest terminateRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError, TException {
+    public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+        TException {
       impl.TerminateWorkflowExecution(terminateRequest);
     }
 
     @Override
     public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
         ListOpenWorkflowExecutionsRequest listRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+        TException {
       return impl.ListOpenWorkflowExecutions(listRequest);
     }
 
     @Override
     public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
         ListClosedWorkflowExecutionsRequest listRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+        TException {
       return impl.ListClosedWorkflowExecutions(listRequest);
     }
 
     @Override
-    public void RespondQueryTaskCompleted(
-        RespondQueryTaskCompletedRequest completeRequest)
+    public void RespondQueryTaskCompleted(RespondQueryTaskCompletedRequest completeRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondQueryTaskCompleted(completeRequest);
     }
 
     @Override
     public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError,
+        TException {
       return impl.QueryWorkflow(queryRequest);
     }
 
@@ -355,173 +364,181 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     }
 
     @Override
-    public void RegisterDomain(RegisterDomainRequest registerRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void RegisterDomain(
+        RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RegisterDomain(registerRequest, resultHandler);
     }
 
     @Override
-    public void DescribeDomain(DescribeDomainRequest describeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void DescribeDomain(
+        DescribeDomainRequest describeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.DescribeDomain(describeRequest, resultHandler);
     }
 
     @Override
-    public void UpdateDomain(UpdateDomainRequest updateRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void UpdateDomain(UpdateDomainRequest updateRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.UpdateDomain(updateRequest, resultHandler);
     }
 
     @Override
-    public void DeprecateDomain(DeprecateDomainRequest deprecateRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void DeprecateDomain(
+        DeprecateDomainRequest deprecateRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.DeprecateDomain(deprecateRequest, resultHandler);
     }
 
     @Override
-    public void StartWorkflowExecution(StartWorkflowExecutionRequest startRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void StartWorkflowExecution(
+        StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.StartWorkflowExecution(startRequest, resultHandler);
     }
 
     @Override
     public void GetWorkflowExecutionHistory(
-        GetWorkflowExecutionHistoryRequest getRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.GetWorkflowExecutionHistory(getRequest, resultHandler);
     }
 
     @Override
-    public void PollForDecisionTask(PollForDecisionTaskRequest pollRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void PollForDecisionTask(
+        PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.PollForDecisionTask(pollRequest, resultHandler);
     }
 
     @Override
     public void RespondDecisionTaskCompleted(
-        RespondDecisionTaskCompletedRequest completeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondDecisionTaskCompletedRequest completeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondDecisionTaskCompleted(completeRequest, resultHandler);
     }
 
     @Override
     public void RespondDecisionTaskFailed(
-        RespondDecisionTaskFailedRequest failedRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondDecisionTaskFailedRequest failedRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondDecisionTaskFailed(failedRequest, resultHandler);
     }
 
     @Override
-    public void PollForActivityTask(PollForActivityTaskRequest pollRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void PollForActivityTask(
+        PollForActivityTaskRequest pollRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.PollForActivityTask(pollRequest, resultHandler);
     }
 
     @Override
     public void RecordActivityTaskHeartbeat(
-        RecordActivityTaskHeartbeatRequest heartbeatRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RecordActivityTaskHeartbeatRequest heartbeatRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RecordActivityTaskHeartbeat(heartbeatRequest, resultHandler);
     }
 
     @Override
     public void RespondActivityTaskCompleted(
-        RespondActivityTaskCompletedRequest completeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondActivityTaskCompletedRequest completeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskCompleted(completeRequest, resultHandler);
     }
 
     @Override
     public void RespondActivityTaskCompletedByID(
-        RespondActivityTaskCompletedByIDRequest completeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondActivityTaskCompletedByIDRequest completeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskCompletedByID(completeRequest, resultHandler);
     }
 
     @Override
-    public void RespondActivityTaskFailed(RespondActivityTaskFailedRequest failRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void RespondActivityTaskFailed(
+        RespondActivityTaskFailedRequest failRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskFailed(failRequest, resultHandler);
     }
 
     @Override
     public void RespondActivityTaskFailedByID(
-        RespondActivityTaskFailedByIDRequest failRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondActivityTaskFailedByIDRequest failRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskFailedByID(failRequest, resultHandler);
     }
 
     @Override
     public void RespondActivityTaskCanceled(
-        RespondActivityTaskCanceledRequest canceledRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondActivityTaskCanceledRequest canceledRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskCanceled(canceledRequest, resultHandler);
     }
 
     @Override
     public void RespondActivityTaskCanceledByID(
-        RespondActivityTaskCanceledByIDRequest canceledRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondActivityTaskCanceledByIDRequest canceledRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondActivityTaskCanceledByID(canceledRequest, resultHandler);
     }
 
     @Override
     public void RequestCancelWorkflowExecution(
-        RequestCancelWorkflowExecutionRequest cancelRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RequestCancelWorkflowExecutionRequest cancelRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RequestCancelWorkflowExecution(cancelRequest, resultHandler);
     }
 
     @Override
-    public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void SignalWorkflowExecution(
+        SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.SignalWorkflowExecution(signalRequest, resultHandler);
     }
 
     @Override
     public void TerminateWorkflowExecution(
-        TerminateWorkflowExecutionRequest terminateRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        TerminateWorkflowExecutionRequest terminateRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.TerminateWorkflowExecution(terminateRequest, resultHandler);
     }
 
     @Override
     public void ListOpenWorkflowExecutions(
-        ListOpenWorkflowExecutionsRequest listRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        ListOpenWorkflowExecutionsRequest listRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.ListOpenWorkflowExecutions(listRequest, resultHandler);
     }
 
     @Override
     public void ListClosedWorkflowExecutions(
-        ListClosedWorkflowExecutionsRequest listRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        ListClosedWorkflowExecutionsRequest listRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.ListClosedWorkflowExecutions(listRequest, resultHandler);
     }
 
     @Override
     public void RespondQueryTaskCompleted(
-        RespondQueryTaskCompletedRequest completeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        RespondQueryTaskCompletedRequest completeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.RespondQueryTaskCompleted(completeRequest, resultHandler);
     }
 
     @Override
-    public void QueryWorkflow(QueryWorkflowRequest queryRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void QueryWorkflow(QueryWorkflowRequest queryRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.QueryWorkflow(queryRequest, resultHandler);
     }
 
     @Override
     public void DescribeWorkflowExecution(
-        DescribeWorkflowExecutionRequest describeRequest,
-        AsyncMethodCallback resultHandler) throws TException {
+        DescribeWorkflowExecutionRequest describeRequest, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.DescribeWorkflowExecution(describeRequest, resultHandler);
     }
 
     @Override
-    public void DescribeTaskList(DescribeTaskListRequest request,
-        AsyncMethodCallback resultHandler) throws TException {
+    public void DescribeTaskList(DescribeTaskListRequest request, AsyncMethodCallback resultHandler)
+        throws TException {
       impl.DescribeTaskList(request, resultHandler);
     }
 
@@ -552,41 +569,39 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     @Override
     public StartWorkflowExecutionResponse StartWorkflowExecution(
         StartWorkflowExecutionRequest startRequest)
-        throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
+        ServiceBusyError, TException {
       return impl.StartWorkflowExecution(startRequest);
     }
 
     @Override
     public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+        TException {
       return impl.GetWorkflowExecutionHistory(getRequest);
     }
 
     @Override
-    public PollForDecisionTaskResponse PollForDecisionTask(
-        PollForDecisionTaskRequest pollRequest)
+    public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForDecisionTask(pollRequest);
     }
 
     @Override
-    public void RespondDecisionTaskCompleted(
-        RespondDecisionTaskCompletedRequest completeRequest)
+    public void RespondDecisionTaskCompleted(RespondDecisionTaskCompletedRequest completeRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondDecisionTaskCompleted(completeRequest);
     }
 
     @Override
-    public void RespondDecisionTaskFailed(
-        RespondDecisionTaskFailedRequest failedRequest)
+    public void RespondDecisionTaskFailed(RespondDecisionTaskFailedRequest failedRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.RespondDecisionTaskFailed(failedRequest);
     }
 
     @Override
-    public PollForActivityTaskResponse PollForActivityTask(
-        PollForActivityTaskRequest pollRequest)
+    public PollForActivityTaskResponse PollForActivityTask(PollForActivityTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForActivityTask(pollRequest);
     }
