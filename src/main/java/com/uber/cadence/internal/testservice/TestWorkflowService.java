@@ -242,7 +242,9 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RespondActivityTaskFailed(RespondActivityTaskFailedRequest failRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId = ActivityId.fromBytes(failRequest.getTaskToken());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    mutableState.failActivityTask(activityId.getId(), failRequest);
   }
 
   @Override

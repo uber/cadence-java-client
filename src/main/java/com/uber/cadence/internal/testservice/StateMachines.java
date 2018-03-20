@@ -18,11 +18,13 @@
 package com.uber.cadence.internal.testservice;
 
 import static com.uber.cadence.internal.testservice.StateMachine.State.COMPLETED;
+import static com.uber.cadence.internal.testservice.StateMachine.State.FAILED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.NONE;
 import static com.uber.cadence.internal.testservice.StateMachine.State.SCHEDULED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.STARTED;
 
 import com.uber.cadence.ActivityTaskCompletedEventAttributes;
+import com.uber.cadence.ActivityTaskFailedEventAttributes;
 import com.uber.cadence.ActivityTaskScheduledEventAttributes;
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
@@ -39,6 +41,7 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
@@ -86,6 +89,7 @@ class StateMachines {
     result.addTransition(NONE, SCHEDULED, StateMachines::scheduleActivityTask);
     result.addTransition(SCHEDULED, STARTED, StateMachines::startActivityTask);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeActivityTask);
+    result.addTransition(STARTED, FAILED, StateMachines::failActivityTask);
     return result;
   }
 
@@ -237,6 +241,24 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.ActivityTaskCompleted)
             .setActivityTaskCompletedEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.onCommit(() -> {});
+  }
+
+  private static void failActivityTask(
+      RequestContext ctx, ActivityTaskData data, RespondActivityTaskFailedRequest request) {
+    ActivityTaskFailedEventAttributes a =
+        new ActivityTaskFailedEventAttributes()
+            .setIdentity(request.getIdentity())
+            .setScheduledEventId(data.scheduledEventId)
+            .setDetails(request.getDetails())
+            .setReason(request.getReason())
+            .setIdentity(request.getIdentity())
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ActivityTaskFailed)
+            .setActivityTaskFailedEventAttributes(a);
     ctx.addEvent(event);
     ctx.onCommit(() -> {});
   }

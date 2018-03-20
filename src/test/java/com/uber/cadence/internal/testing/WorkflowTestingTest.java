@@ -103,11 +103,10 @@ public class WorkflowTestingTest {
     worker.registerWorkflowImplementationTypes(FailingWorkflowImpl.class);
     worker.start();
     WorkflowClient client = env.newWorkflowClient();
-    TestWorkflow activity = client.newWorkflowStub(TestWorkflow.class);
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
 
-    String result = null;
     try {
-      result = activity.workflow1("input1");
+      workflow.workflow1("input1");
       fail("unreacheable");
     } catch (WorkflowException e) {
       assertEquals("TestWorkflow::workflow1-input1", e.getCause().getMessage());
@@ -138,7 +137,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 2000)
   public void testActivity() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -146,9 +145,35 @@ public class WorkflowTestingTest {
     worker.registerActivitiesImplementations(new ActivityImpl());
     worker.start();
     WorkflowClient client = env.newWorkflowClient();
-    TestWorkflow activity = client.newWorkflowStub(TestWorkflow.class);
-    String result = activity.workflow1("input1");
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    String result = workflow.workflow1("input1");
     assertEquals("TestActivity::activity1-input1", result);
+  }
+
+  private static class FailingActivityImpl implements TestActivity {
+
+    @Override
+    public String activity1(String input) {
+      throw new IllegalThreadStateException(
+          Activity.getTask().getActivityType().getName() + "-" + input);
+    }
+  }
+
+  @Test(timeout = 2000)
+  public void testActivityFailure() {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(ActivityWorkflow.class);
+    worker.registerActivitiesImplementations(new FailingActivityImpl());
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    try {
+      workflow.workflow1("input1");
+      fail("unreacheable");
+    } catch (WorkflowException e) {
+      assertEquals("TestActivity::activity1-input1", e.getCause().getCause().getMessage());
+    }
   }
 
   //  private static class AngryWorkflowImpl implements TestWorkflow {

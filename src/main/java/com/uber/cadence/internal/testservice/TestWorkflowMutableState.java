@@ -23,6 +23,7 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 
 interface TestWorkflowMutableState {
@@ -39,5 +40,8 @@ interface TestWorkflowMutableState {
       throws InternalServiceError;
 
   void completeActivityTask(String activityId, RespondActivityTaskCompletedRequest request)
+      throws InternalServiceError;
+
+  void failActivityTask(String activityId, RespondActivityTaskFailedRequest request)
       throws InternalServiceError;
 }

@@ -30,6 +30,7 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
@@ -301,6 +302,18 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
           activity.complete(ctx, request);
+          activities.remove(activityId);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void failActivityTask(String activityId, RespondActivityTaskFailedRequest request)
+      throws InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<?> activity = getActivity(activityId);
+          activity.fail(ctx, request);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
