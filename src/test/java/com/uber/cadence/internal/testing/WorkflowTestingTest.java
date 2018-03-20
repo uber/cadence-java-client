@@ -29,6 +29,9 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowException;
+import com.uber.cadence.client.WorkflowFailureException;
+import com.uber.cadence.client.WorkflowOptions;
+import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
@@ -50,7 +53,8 @@ import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
 
-  @Rule public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =
@@ -286,6 +290,37 @@ public class WorkflowTestingTest {
       assertEquals(
           TimeoutType.SCHEDULE_TO_CLOSE,
           ((ActivityTimeoutException) e.getCause()).getTimeoutType());
+    }
+  }
+
+  public static class TimeoutWorkflow implements TestWorkflow {
+
+    @Override
+    public String workflow1(String input) {
+      Workflow.await(() -> false); // forever
+      return "foo";
+    }
+  }
+
+  @Test
+  public void testWorkflowTimeout() {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TimeoutWorkflow.class);
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    WorkflowOptions options = new WorkflowOptions.Builder()
+        .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+        .build();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
+    try {
+      workflow.workflow1("bar");
+      fail("unreacheable");
+    } catch (WorkflowException e) {
+      assertTrue(e instanceof WorkflowTimedOutException);
+      assertEquals(
+          TimeoutType.START_TO_CLOSE,
+          ((WorkflowTimedOutException) e).getTimeoutType());
     }
   }
 

@@ -292,6 +292,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           ctx -> {
             workflow.start(ctx, startRequest, 0);
             scheduleDecision(ctx);
+            ctx.addTimer(
+                startRequest.getExecutionStartToCloseTimeoutSeconds(), this::timeoutWorkflow);
           });
     } catch (EntityNotExistsError entityNotExistsError) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(entityNotExistsError));
@@ -430,37 +432,34 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     return result;
   }
 
-  @Override
-  public void timeoutActivity(String activityId, TimeoutType timeoutType) {
+  private void timeoutActivity(String activityId, TimeoutType timeoutType) {
     try {
       update(
           ctx -> {
             StateMachine<?> activity = getActivity(activityId);
-            switch (timeoutType) {
-              case START_TO_CLOSE:
-                break;
-              case SCHEDULE_TO_START:
-                if (activity.getState() != State.SCHEDULED) {
-                  log.trace("Ignoring SCHEDULE_TO_START timeout for activityId:" + activityId);
-                  return;
-                }
-                break;
-              case SCHEDULE_TO_CLOSE:
-                break;
-              case HEARTBEAT:
-                break;
+            if (timeoutType == TimeoutType.SCHEDULE_TO_START
+                && activity.getState() != State.SCHEDULED) {
+              return;
             }
             activity.timeout(ctx, timeoutType);
             activities.remove(activityId);
             scheduleDecision(ctx);
           });
     } catch (EntityNotExistsError e) {
-      if (log.isTraceEnabled()) {
-        log.trace("Ignoring activity timeout for activityId:" + activityId);
-      }
+      // Expected as timers are not removed
     } catch (Exception e) {
       // Cannot fail to timer threads
       log.error("Failure trying to timeout an activity", e);
+    }
+  }
+
+  private void timeoutWorkflow() {
+    try {
+      update(
+          ctx -> workflow.timeout(ctx, TimeoutType.START_TO_CLOSE));
+    } catch (InternalServiceError | EntityNotExistsError e) {
+      // Cannot fail to timer threads
+      log.error("Failure trying to timeout a workflow", e);
     }
   }
 

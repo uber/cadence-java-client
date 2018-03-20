@@ -67,6 +67,7 @@ import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
@@ -74,7 +75,9 @@ import java.util.List;
 
 class StateMachines {
 
-  static final class WorkflowData {}
+  static final class WorkflowData {
+
+  }
 
   static final class DecisionTaskData {
 
@@ -106,17 +109,18 @@ class StateMachines {
     result.addTransition(NONE, STARTED, StateMachines::startWorkflow);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeWorkflow);
     result.addTransition(STARTED, FAILED, StateMachines::failWorkflow);
-    result.addTransition(
-        STARTED, CANCELLATION_REQUESTED, StateMachines::requestWorkflowCancellation);
+    result.addTransition(STARTED, TIMED_OUT, StateMachines::timeoutWorkflow);
+    result.addTransition(STARTED, CANCELLATION_REQUESTED,
+        StateMachines::requestWorkflowCancellation);
     result.addTransition(CANCELLATION_REQUESTED, COMPLETED, StateMachines::completeWorkflow);
     result.addTransition(CANCELLATION_REQUESTED, CANCELED, StateMachines::cancelWorkflow);
     result.addTransition(CANCELLATION_REQUESTED, FAILED, StateMachines::failWorkflow);
+    result.addTransition(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutWorkflow);
     return result;
   }
 
   static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
     StateMachine<DecisionTaskData> result = new StateMachine<>(new DecisionTaskData(store));
-
     result.addTransition(NONE, SCHEDULED, StateMachines::scheduleDecisionTask);
     result.addTransition(SCHEDULED, STARTED, StateMachines::startDecisionTask);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeDecisionTask);
@@ -130,15 +134,17 @@ class StateMachines {
     result.addTransition(SCHEDULED, TIMED_OUT, StateMachines::timeoutActivityTask);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeActivityTask);
     result.addTransition(STARTED, FAILED, StateMachines::failActivityTask);
-    result.addTransition(STARTED, STARTED, StateMachines::heartbeatActivityTask);
-    result.addTransition(
-        CANCELLATION_REQUESTED, CANCELLATION_REQUESTED, StateMachines::heartbeatActivityTask);
     result.addTransition(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask);
-    result.addTransition(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutActivityTask);
-    result.addTransition(
-        CANCELLATION_REQUESTED, CANCELED, StateMachines::reportActivityTaskCancellation);
-    result.addTransition(
-        STARTED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation);
+    result.addTransition(STARTED, STARTED, StateMachines::heartbeatActivityTask);
+    result.addTransition(STARTED, CANCELLATION_REQUESTED,
+        StateMachines::requestActivityCancellation);
+    result.addTransition(CANCELLATION_REQUESTED, CANCELLATION_REQUESTED,
+        StateMachines::heartbeatActivityTask);
+    result.addTransition(CANCELLATION_REQUESTED, TIMED_OUT,
+        StateMachines::timeoutActivityTask);
+    result.addTransition(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
+    result.addTransition(CANCELLATION_REQUESTED, CANCELED,
+        StateMachines::reportActivityTaskCancellation);
     return result;
   }
 
@@ -191,6 +197,21 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionFailed)
             .setWorkflowExecutionFailedEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.completeWorkflow();
+  }
+
+  private static void timeoutWorkflow(
+      RequestContext ctx,
+      WorkflowData data,
+      TimeoutType timeoutType,
+      long notUsed) {
+    WorkflowExecutionTimedOutEventAttributes a =
+        new WorkflowExecutionTimedOutEventAttributes().setTimeoutType(timeoutType);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionTimedOut)
+            .setWorkflowExecutionTimedOutEventAttributes(a);
     ctx.addEvent(event);
     ctx.completeWorkflow();
   }

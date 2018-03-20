@@ -65,8 +65,6 @@ interface TestWorkflowMutableState {
       String activityId, RecordActivityTaskHeartbeatRequest request)
       throws InternalServiceError, EntityNotExistsError;
 
-  void timeoutActivity(String activityId, TimeoutType startToClose);
-
   void signal(SignalWorkflowExecutionRequest signalRequest)
       throws EntityNotExistsError, InternalServiceError;
 
