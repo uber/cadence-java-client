@@ -32,7 +32,7 @@ public final class ActivityTimeoutException extends ActivityException {
   private final TimeoutType timeoutType;
 
   private final byte[] details;
-  private final DataConverter dataConverter;
+  private final transient DataConverter dataConverter;
 
   public ActivityTimeoutException(
       long eventId,

@@ -17,31 +17,45 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
+import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.TimeoutType;
 
 interface TestWorkflowMutableState {
 
   ExecutionId getExecutionId();
 
   void startDecisionTask(PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
-      throws InternalServiceError;
+      throws InternalServiceError, EntityNotExistsError;
 
   void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
-      throws InternalServiceError;
+      throws InternalServiceError, EntityNotExistsError;
 
   void startActivityTask(PollForActivityTaskResponse task, PollForActivityTaskRequest pollRequest)
-      throws InternalServiceError;
+      throws InternalServiceError, EntityNotExistsError;
 
   void completeActivityTask(String activityId, RespondActivityTaskCompletedRequest request)
-      throws InternalServiceError;
+      throws InternalServiceError, EntityNotExistsError;
+
+  void completeActivityTaskById(String activityId, RespondActivityTaskCompletedByIDRequest request)
+      throws InternalServiceError, EntityNotExistsError;
 
   void failActivityTask(String activityId, RespondActivityTaskFailedRequest request)
-      throws InternalServiceError;
+      throws InternalServiceError, EntityNotExistsError;
+
+  RecordActivityTaskHeartbeatResponse heartbeatActivityTask(
+      String activityId, RecordActivityTaskHeartbeatRequest request)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void timeoutActivity(String activityId, TimeoutType startToClose);
 }

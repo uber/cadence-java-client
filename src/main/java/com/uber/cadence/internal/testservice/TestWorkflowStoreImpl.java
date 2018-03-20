@@ -30,6 +30,7 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.testservice.RequestContext.Timer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +38,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -136,18 +141,17 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   private final Map<TaskListId, BlockingQueue<PollForDecisionTaskResponse>> decisionTaskLists =
       new HashMap<>();
 
+  private final ScheduledExecutorService timerService =
+      new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "TestWorkflowStoreImpl timers"));
+
   @Override
-  public long save(
-      ExecutionId executionId,
-      long nextEventId,
-      boolean complete,
-      List<HistoryEvent> events,
-      DecisionTask decisionTask,
-      List<ActivityTask> activityTasks) {
+  public long save(RequestContext ctx) {
     long result;
     lock.lock();
     try {
+      ExecutionId executionId = ctx.getExecutionId();
       HistoryStore history = histories.get(executionId);
+      List<HistoryEvent> events = ctx.getEvents();
       if (history == null) {
         if (events.isEmpty()
             || events.get(0).getEventType() != EventType.WorkflowExecutionStarted) {
@@ -156,13 +160,14 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         history = new HistoryStore(executionId, lock);
         histories.put(executionId, history);
       }
-      history.checkNextEventId(nextEventId);
-      history.addAllLocked(events, complete);
+      history.checkNextEventId(ctx.getInitialEventId());
+      history.addAllLocked(events, ctx.isWorkflowCompleted());
       result = history.getNextEventIdLocked();
     } finally {
       lock.unlock();
     }
     // Push tasks to the queues out of locks
+    DecisionTask decisionTask = ctx.getDecisionTask();
     if (decisionTask != null) {
       BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
           getDecisionTaskListQueue(decisionTask.getTaskListId());
@@ -171,11 +176,20 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       }
       decisionsQueue.add(decisionTask.getTask());
     }
+    List<ActivityTask> activityTasks = ctx.getActivityTasks();
     if (activityTasks != null) {
       for (ActivityTask activityTask : activityTasks) {
         BlockingQueue<PollForActivityTaskResponse> activitiesQueue =
             getActivityTaskListQueue(activityTask.getTaskListId());
         activitiesQueue.add(activityTask.getTask());
+      }
+    }
+    List<Timer> timers = ctx.getTimers();
+    if (timers != null) {
+      for (Timer t : timers) {
+        @SuppressWarnings("FutureReturnValueIgnored")
+        ScheduledFuture<?> ignored =
+            timerService.schedule(t.getCallback(), t.getDelaySeconds(), TimeUnit.SECONDS);
       }
     }
     return result;
@@ -288,5 +302,10 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     } finally {
       lock.unlock();
     }
+  }
+
+  @Override
+  public void close() {
+    timerService.shutdownNow();
   }
 }

@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +33,8 @@ class StateMachine<Data> {
     INITIATED,
     STARTED,
     FAILED,
+    TIMED_OUT,
+    CANCELED,
     COMPLETED
   }
 
@@ -122,6 +125,20 @@ class StateMachine<Data> {
 
   public <V> void complete(RequestContext ctx, V request) throws InternalServiceError {
     applyEvent(State.COMPLETED, ctx, request);
+  }
+
+  public <V> void timeout(RequestContext ctx, V timeoutType) throws InternalServiceError {
+    applyEvent(State.TIMED_OUT, ctx, timeoutType);
+  }
+
+  public <V> void update(V request) throws EntityNotExistsError, InternalServiceError {
+    Transition transition = new Transition(State.STARTED, State.STARTED);
+    @SuppressWarnings("unchecked")
+    Callback<Data, V> callback = (Callback<Data, V>) allowedTransitions.get(transition);
+    if (callback == null) {
+      throw new EntityNotExistsError("Not in running state: " + state);
+    }
+    callback.apply(null, data, request);
   }
 
   private <V> void applyEvent(State toState, RequestContext context, V request)

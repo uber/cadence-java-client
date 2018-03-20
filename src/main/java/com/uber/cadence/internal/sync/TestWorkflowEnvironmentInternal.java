@@ -131,6 +131,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     for (Worker w : workers) {
       w.shutdown(Duration.ofMillis(1));
     }
+    service.close();
   }
 
   private static class WorkflowServiceWrapper implements IWorkflowService {
@@ -494,6 +495,10 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
     public void getDiagnostics(StringBuilder result) {
       impl.getDiagnostics(result);
+    }
+
+    public void close() {
+      impl.close();
     }
   }
 }

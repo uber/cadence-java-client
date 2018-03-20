@@ -90,6 +90,10 @@ public final class TestWorkflowService implements IWorkflowService {
   // key->WorkflowId
   private final Map<WorkflowId, TestWorkflowMutableState> openExecutions = new HashMap<>();
 
+  public void close() {
+    store.close();
+  }
+
   @Override
   public void RegisterDomain(RegisterDomainRequest registerRequest)
       throws BadRequestError, InternalServiceError, DomainAlreadyExistsError, TException {
@@ -221,7 +225,9 @@ public final class TestWorkflowService implements IWorkflowService {
   public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeat(
       RecordActivityTaskHeartbeatRequest heartbeatRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId = ActivityId.fromBytes(heartbeatRequest.getTaskToken());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    return mutableState.heartbeatActivityTask(activityId.getId(), heartbeatRequest);
   }
 
   @Override
@@ -236,7 +242,14 @@ public final class TestWorkflowService implements IWorkflowService {
   public void RespondActivityTaskCompletedByID(
       RespondActivityTaskCompletedByIDRequest completeRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId =
+        new ActivityId(
+            completeRequest.getDomain(),
+            completeRequest.getWorkflowID(),
+            completeRequest.getRunID(),
+            completeRequest.getActivityID());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    mutableState.completeActivityTaskById(activityId.getId(), completeRequest);
   }
 
   @Override

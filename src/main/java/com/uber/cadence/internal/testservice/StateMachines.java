@@ -22,11 +22,13 @@ import static com.uber.cadence.internal.testservice.StateMachine.State.FAILED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.NONE;
 import static com.uber.cadence.internal.testservice.StateMachine.State.SCHEDULED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.STARTED;
+import static com.uber.cadence.internal.testservice.StateMachine.State.TIMED_OUT;
 
 import com.uber.cadence.ActivityTaskCompletedEventAttributes;
 import com.uber.cadence.ActivityTaskFailedEventAttributes;
 import com.uber.cadence.ActivityTaskScheduledEventAttributes;
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
+import com.uber.cadence.ActivityTaskTimedOutEventAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
 import com.uber.cadence.DecisionTaskScheduledEventAttributes;
 import com.uber.cadence.DecisionTaskStartedEventAttributes;
@@ -40,11 +42,14 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
+import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.TimeoutType;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
@@ -54,25 +59,26 @@ class StateMachines {
 
   static class DecisionTaskData {
 
-    final TestWorkflowStore store;
+    private final TestWorkflowStore store;
 
-    long previousStartedEventId = -1;
+    private long previousStartedEventId = -1;
 
-    PollForDecisionTaskResponse decisionTask;
+    private PollForDecisionTaskResponse decisionTask;
 
-    long scheduledEventId = -1;
+    private long scheduledEventId = -1;
 
     DecisionTaskData(TestWorkflowStore store) {
       this.store = store;
     }
   }
 
-  static class ActivityTaskData {
+  private static class ActivityTaskData {
 
     PollForActivityTaskResponse activityTask;
 
     long scheduledEventId = -1;
     long startedEventId = -1;
+    byte[] heartbeatDetails;
   }
 
   static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
@@ -90,6 +96,8 @@ class StateMachines {
     result.addTransition(SCHEDULED, STARTED, StateMachines::startActivityTask);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeActivityTask);
     result.addTransition(STARTED, FAILED, StateMachines::failActivityTask);
+    result.addTransition(STARTED, STARTED, StateMachines::heartbeatActivityTask);
+    result.addTransition(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask);
     return result;
   }
 
@@ -122,7 +130,7 @@ class StateMachines {
             .setHeartbeatTimeoutSeconds(d.getHeartbeatTimeoutSeconds())
             .setScheduleToCloseTimeoutSeconds(d.getScheduleToCloseTimeoutSeconds())
             .setStartToCloseTimeoutSeconds(d.getStartToCloseTimeoutSeconds())
-            .setScheduledTimestamp(currentTimestamp());
+            .setScheduledTimestamp(ctx.currentTimeInNanoseconds());
 
     TaskListId taskListId = new TaskListId(ctx.getDomain(), d.getTaskList().getName());
     ActivityTask activityTask = new ActivityTask(taskListId, taskResponse);
@@ -132,11 +140,6 @@ class StateMachines {
           data.scheduledEventId = scheduledEventId;
           data.activityTask = taskResponse;
         });
-  }
-
-  private static long currentTimestamp() {
-    // Cadence timestamp is in nanoseconds
-    return System.currentTimeMillis() * 1_000_000;
   }
 
   private static void scheduleDecisionTask(
@@ -210,7 +213,7 @@ class StateMachines {
           data.startedEventId = startedEventId;
           data.activityTask.setTaskToken(
               new ActivityId(ctx.getExecutionId(), data.activityTask.getActivityId()).toBytes());
-          data.activityTask.setStartedTimestamp(currentTimestamp());
+          data.activityTask.setStartedTimestamp(ctx.currentTimeInNanoseconds());
         });
   }
 
@@ -229,7 +232,33 @@ class StateMachines {
   }
 
   private static void completeActivityTask(
+      RequestContext ctx, ActivityTaskData data, Object request) {
+    if (request instanceof RespondActivityTaskCompletedRequest) {
+      completeActivityTaskByTaskToken(ctx, data, (RespondActivityTaskCompletedRequest) request);
+    } else if (request instanceof RespondActivityTaskCompletedByIDRequest) {
+      completeActivityTaskById(ctx, data, (RespondActivityTaskCompletedByIDRequest) request);
+    }
+  }
+
+  private static void completeActivityTaskByTaskToken(
       RequestContext ctx, ActivityTaskData data, RespondActivityTaskCompletedRequest request) {
+    ActivityTaskCompletedEventAttributes a =
+        new ActivityTaskCompletedEventAttributes()
+            .setIdentity(request.getIdentity())
+            .setScheduledEventId(data.scheduledEventId)
+            .setResult(request.getResult())
+            .setIdentity(request.getIdentity())
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ActivityTaskCompleted)
+            .setActivityTaskCompletedEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.onCommit(() -> {});
+  }
+
+  private static void completeActivityTaskById(
+      RequestContext ctx, ActivityTaskData data, RespondActivityTaskCompletedByIDRequest request) {
     ActivityTaskCompletedEventAttributes a =
         new ActivityTaskCompletedEventAttributes()
             .setIdentity(request.getIdentity())
@@ -261,5 +290,26 @@ class StateMachines {
             .setActivityTaskFailedEventAttributes(a);
     ctx.addEvent(event);
     ctx.onCommit(() -> {});
+  }
+
+  private static void timeoutActivityTask(
+      RequestContext ctx, ActivityTaskData data, TimeoutType timeoutType) {
+    ActivityTaskTimedOutEventAttributes a =
+        new ActivityTaskTimedOutEventAttributes()
+            .setScheduledEventId(data.scheduledEventId)
+            .setDetails(data.heartbeatDetails)
+            .setTimeoutType(timeoutType)
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ActivityTaskTimedOut)
+            .setActivityTaskTimedOutEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.onCommit(() -> {});
+  }
+
+  private static void heartbeatActivityTask(
+      RequestContext nullCtx, ActivityTaskData data, RecordActivityTaskHeartbeatRequest request) {
+    data.heartbeatDetails = request.getDetails();
   }
 }

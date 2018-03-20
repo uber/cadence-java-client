@@ -18,8 +18,10 @@
 package com.uber.cadence.internal.testing;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.uber.cadence.TimeoutType;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.WorkflowClient;
@@ -27,6 +29,7 @@ import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
+import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import org.junit.After;
@@ -115,7 +118,7 @@ public class WorkflowTestingTest {
 
   public interface TestActivity {
 
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1)
     String activity1(String input);
   }
 
@@ -173,6 +176,37 @@ public class WorkflowTestingTest {
       fail("unreacheable");
     } catch (WorkflowException e) {
       assertEquals("TestActivity::activity1-input1", e.getCause().getCause().getMessage());
+    }
+  }
+
+  private static class TimingOutActivityImpl implements TestActivity {
+
+    @Override
+    public String activity1(String input) {
+      long start = System.currentTimeMillis();
+      while (true) {
+        Activity.heartbeat(System.currentTimeMillis() - start);
+      }
+    }
+  }
+
+  @Test
+  public void testActivityTimeout() {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(ActivityWorkflow.class);
+    worker.registerActivitiesImplementations(new TimingOutActivityImpl());
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    try {
+      workflow.workflow1("input1");
+      fail("unreacheable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause() instanceof ActivityTimeoutException);
+      assertEquals(
+          TimeoutType.SCHEDULE_TO_CLOSE,
+          ((ActivityTimeoutException) e.getCause()).getTimeoutType());
     }
   }
 

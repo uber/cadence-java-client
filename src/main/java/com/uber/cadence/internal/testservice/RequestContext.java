@@ -25,6 +25,7 @@ import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 final class RequestContext {
 
@@ -34,6 +35,29 @@ final class RequestContext {
     void apply() throws InternalServiceError;
   }
 
+  static final class Timer {
+
+    private final long delaySeconds;
+    private final Runnable callback;
+
+    Timer(long delaySeconds, Runnable callback) {
+      this.delaySeconds = delaySeconds;
+      this.callback = callback;
+    }
+
+    long getDelaySeconds() {
+      return delaySeconds;
+    }
+
+    Runnable getCallback() {
+      return callback;
+    }
+  }
+
+  private static final long NANOS_PER_MILLIS = 1_000_000;
+
+  private final LongSupplier clock;
+
   private final ExecutionId executionId;
 
   private final long initialEventId;
@@ -42,12 +66,18 @@ final class RequestContext {
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
   private DecisionTask decisionTask;
   private final List<ActivityTask> activityTasks = new ArrayList<>();
+  private final List<Timer> timers = new ArrayList<>();
   private boolean workflowCompleted;
   private boolean needDecision;
 
-  RequestContext(ExecutionId executionId, long initialEventId) {
+  RequestContext(LongSupplier clock, ExecutionId executionId, long initialEventId) {
+    this.clock = clock;
     this.executionId = Objects.requireNonNull(executionId);
     this.initialEventId = initialEventId;
+  }
+
+  long currentTimeInNanoseconds() {
+    return clock.getAsLong() * NANOS_PER_MILLIS;
   }
 
   /** Returns eventId of the added event; */
@@ -73,15 +103,19 @@ final class RequestContext {
     return executionId.getDomain();
   }
 
+  public long getInitialEventId() {
+    return initialEventId;
+  }
+
   /**
    * Decision needed, but there is one already running. So initiate another one as soon as it
    * completes.
    */
-  public void setNeedDecision(boolean needDecision) {
+  void setNeedDecision(boolean needDecision) {
     this.needDecision = needDecision;
   }
 
-  public boolean isNeedDecision() {
+  boolean isNeedDecision() {
     return needDecision;
   }
 
@@ -90,19 +124,28 @@ final class RequestContext {
     this.decisionTask = Objects.requireNonNull(decisionTask);
   }
 
-  public void addActivityTask(ActivityTask activityTask) {
+  void addActivityTask(ActivityTask activityTask) {
     this.activityTasks.add(activityTask);
   }
 
-  public List<ActivityTask> getActivityTasks() {
+  void addTimer(long delaySeconds, Runnable callback) {
+    Timer timer = new Timer(delaySeconds, callback);
+    this.timers.add(timer);
+  }
+
+  public List<Timer> getTimers() {
+    return timers;
+  }
+
+  List<ActivityTask> getActivityTasks() {
     return activityTasks;
   }
 
-  public void completeWorkflow() {
+  void completeWorkflow() {
     workflowCompleted = true;
   }
 
-  public boolean isWorkflowCompleted() {
+  boolean isWorkflowCompleted() {
     return workflowCompleted;
   }
 
@@ -120,9 +163,7 @@ final class RequestContext {
 
   /** @return nextEventId */
   long commitChanges(TestWorkflowStore store) throws InternalServiceError {
-    long result =
-        store.save(
-            executionId, initialEventId, workflowCompleted, events, decisionTask, activityTasks);
+    long result = store.save(this);
     fireCallbacks();
     return result;
   }
@@ -133,7 +174,7 @@ final class RequestContext {
     }
   }
 
-  public ExecutionId getExecutionId() {
+  ExecutionId getExecutionId() {
     return executionId;
   }
 }
