@@ -238,6 +238,19 @@ public class WorkflowTestingTest {
     }
   }
 
+  @Test(timeout = 1500)
+  public void testSignal() throws ExecutionException, InterruptedException {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(SignaledWorkflowImpl.class);
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    SignaledWorkflow workflow = client.newWorkflowStub(SignaledWorkflow.class);
+    CompletableFuture<String> result = WorkflowClient.execute(workflow::workflow1, "input1");
+    workflow.ProcessSignal("signalInput");
+    assertEquals("signalInput-input1", result.get());
+  }
+
   public static class ConcurrentDecisionWorkflowImpl implements SignaledWorkflow {
 
     private String signalInput;
@@ -252,7 +265,8 @@ public class WorkflowTestingTest {
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
-      return Workflow.getWorkflowInfo().getWorkflowType() + "-" + input;
+      Workflow.await(() -> signalInput != null);
+      return signalInput + "-" + input;
     }
 
     @Override
@@ -261,11 +275,11 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 1500)
-  public void testSignal() throws ExecutionException, InterruptedException {
+  @Test//(timeout = 1500)
+  public void tesConcurrentDecision() throws ExecutionException, InterruptedException {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
-    worker.registerWorkflowImplementationTypes(SignaledWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(ConcurrentDecisionWorkflowImpl.class);
     worker.start();
     WorkflowClient client = env.newWorkflowClient();
     SignaledWorkflow workflow = client.newWorkflowStub(SignaledWorkflow.class);
