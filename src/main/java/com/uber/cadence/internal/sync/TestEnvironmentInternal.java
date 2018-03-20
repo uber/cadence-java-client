@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -25,6 +26,8 @@ import com.uber.cadence.testing.TestWorkflowEnvironment;
 public class TestEnvironmentInternal implements TestEnvironment {
 
   private final TestEnvironmentOptions testEnvironmentOptions;
+  TestActivityEnvironmentInternal activityEnvironment;
+  TestWorkflowEnvironmentInternal workflowEnvironment;
 
   public TestEnvironmentInternal(TestEnvironmentOptions options) {
     if (options == null) {
@@ -32,15 +35,27 @@ public class TestEnvironmentInternal implements TestEnvironment {
     } else {
       this.testEnvironmentOptions = options;
     }
+    activityEnvironment = new TestActivityEnvironmentInternal(testEnvironmentOptions);
+    workflowEnvironment =  new TestWorkflowEnvironmentInternal(testEnvironmentOptions);
   }
 
   @Override
-  public TestActivityEnvironment newActivityEnvironment() {
-    return new TestActivityEnvironmentInternal(testEnvironmentOptions);
+  public TestActivityEnvironment activityEnvironment() {
+    return activityEnvironment;
   }
 
   @Override
-  public TestWorkflowEnvironment newWorkflowEnvironment() {
-    return new TestWorkflowEnvironmentInternal(testEnvironmentOptions);
+  public TestWorkflowEnvironment workflowEnvironment() {
+    return workflowEnvironment;
+  }
+
+  @Override
+  public IWorkflowService getWorkflowService() {
+    return workflowEnvironment.getWorkflowService();
+  }
+
+  @Override
+  public String getDiagnostics() {
+    return workflowEnvironment.getDiagnostics();
   }
 }

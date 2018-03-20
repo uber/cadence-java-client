@@ -106,9 +106,19 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     return WorkflowClientInternal.newInstance(service, testEnvironmentOptions.getDomain(), options);
   }
 
+  public IWorkflowService getWorkflowService() {
+    return service;
+  }
+
+  public String getDiagnostics() {
+    StringBuilder result = new StringBuilder();
+    service.getDiagnostics(result);
+    return result.toString();
+  }
+
   private static class WorkflowServiceWrapper implements IWorkflowService {
 
-    private final IWorkflowService impl;
+    private final TestWorkflowService impl;
 
     private WorkflowServiceWrapper() {
       impl = new TestWorkflowService();
@@ -463,6 +473,10 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public PollForActivityTaskResponse PollForActivityTask(PollForActivityTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForActivityTask(pollRequest);
+    }
+
+    public void getDiagnostics(StringBuilder result) {
+      impl.getDiagnostics(result);
     }
   }
 }

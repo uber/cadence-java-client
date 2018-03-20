@@ -18,6 +18,7 @@
 package com.uber.cadence.testing;
 
 import com.uber.cadence.internal.sync.TestEnvironmentInternal;
+import com.uber.cadence.serviceclient.IWorkflowService;
 
 public interface TestEnvironment {
 
@@ -29,7 +30,11 @@ public interface TestEnvironment {
     return new TestEnvironmentInternal(options);
   }
 
-  TestActivityEnvironment newActivityEnvironment();
+  TestActivityEnvironment activityEnvironment();
 
-  TestWorkflowEnvironment newWorkflowEnvironment();
+  TestWorkflowEnvironment workflowEnvironment();
+
+  IWorkflowService getWorkflowService();
+
+  String getDiagnostics();
 }

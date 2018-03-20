@@ -17,9 +17,11 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.google.common.base.Throwables;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.EventType;
+import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForDecisionTaskRequest;
@@ -27,6 +29,7 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import java.util.HashMap;
 import java.util.List;
@@ -89,6 +92,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         updater.apply(ctx);
         nextEventId = ctx.commitChanges(store);
       }
+    } catch (InternalServiceError e) {
+      throw e;
+    } catch (Exception e) {
+      throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     } finally {
       lock.unlock();
     }
@@ -121,32 +128,35 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private void processDecision(RequestContext ctx, Decision d) {
     switch (d.getDecisionType()) {
-      case ScheduleActivityTask:
-        break;
-      case RequestCancelActivityTask:
-        break;
-      case StartTimer:
-        break;
       case CompleteWorkflowExecution:
         processCompleteWorkflowExecution(ctx, d.getCompleteWorkflowExecutionDecisionAttributes());
         break;
       case FailWorkflowExecution:
+        processFailWorkflowExecution(ctx, d.getFailWorkflowExecutionDecisionAttributes());
         break;
+      case ScheduleActivityTask:
+      case RequestCancelActivityTask:
+      case StartTimer:
       case CancelTimer:
-        break;
       case CancelWorkflowExecution:
-        break;
       case RequestCancelExternalWorkflowExecution:
-        break;
       case RecordMarker:
-        break;
       case ContinueAsNewWorkflowExecution:
-        break;
       case StartChildWorkflowExecution:
-        break;
       case SignalExternalWorkflowExecution:
-        break;
+        throw new UnsupportedOperationException("Decision " + d.getDecisionType() + " is not yet "
+            + "implemented");
     }
+  }
+
+  private void processFailWorkflowExecution(RequestContext ctx,
+      FailWorkflowExecutionDecisionAttributes d) {
+    WorkflowExecutionFailedEventAttributes a = new WorkflowExecutionFailedEventAttributes()
+        .setDetails(d.getDetails())
+        .setReason(d.getReason());
+    ctx.addEvents(new HistoryEvent().setEventType(EventType.WorkflowExecutionFailed)
+        .setWorkflowExecutionFailedEventAttributes(a));
+    ctx.completeWorkflow();
   }
 
   private void processCompleteWorkflowExecution(

@@ -496,4 +496,8 @@ public final class TestWorkflowService implements IWorkflowService {
     }
     return value;
   }
+
+  public void getDiagnostics(StringBuilder result) {
+    store.getDiagnostics(result);
+  }
 }

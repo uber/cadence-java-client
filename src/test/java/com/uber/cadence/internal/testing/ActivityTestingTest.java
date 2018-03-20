@@ -54,7 +54,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testSuccess() {
-    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
+    TestActivityEnvironment env = testEnvironment.activityEnvironment();
     env.registerActivitiesImplementations(new ActivityImpl());
     TestActivity activity = env.newActivityStub(TestActivity.class);
     String result = activity.activity1("input1");
@@ -71,7 +71,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testFailure() {
-    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
+    TestActivityEnvironment env = testEnvironment.activityEnvironment();
     env.registerActivitiesImplementations(new AngryActivityImpl());
     TestActivity activity = env.newActivityStub(TestActivity.class);
     try {
@@ -95,7 +95,7 @@ public class ActivityTestingTest {
 
   @Test
   public void testHeartbeat() {
-    TestActivityEnvironment env = testEnvironment.newActivityEnvironment();
+    TestActivityEnvironment env = testEnvironment.activityEnvironment();
     env.registerActivitiesImplementations(new HeartbeatActivityImpl());
     AtomicReference<String> details = new AtomicReference<>();
     env.setActivityHeartbeatListener(

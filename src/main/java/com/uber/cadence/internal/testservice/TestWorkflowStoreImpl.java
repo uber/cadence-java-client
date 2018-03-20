@@ -28,10 +28,12 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
@@ -255,5 +257,24 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       result.setHistory(new History().setEvents(events));
     }
     return result;
+  }
+
+  @Override
+  public void getDiagnostics(StringBuilder result) {
+    result.append("Stored Workflows:\n");
+    lock.lock();
+    try {
+      {
+        for (Entry<ExecutionId, HistoryStore> entry : this.histories.entrySet()) {
+          result.append(entry.getKey());
+          result.append("\n");
+          result.append(WorkflowExecutionUtils.prettyPrintHistory(entry.getValue().getEventsLocked()
+              .iterator(), true));
+          result.append("\n");
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 }
