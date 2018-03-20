@@ -207,7 +207,10 @@ public final class TestWorkflowService implements IWorkflowService {
     try {
       mutableState.startDecisionTask(task, pollRequest);
       return task;
-    } catch (EntityNotExistsError entityNotExistsError) {
+    } catch (EntityNotExistsError e) {
+      if (log.isDebugEnabled()) {
+        log.debug("Skipping outdated decision task for " + executionId, e);
+      }
       // skip the task
     }
     return task;

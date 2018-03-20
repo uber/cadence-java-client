@@ -58,8 +58,6 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     private final Condition newEventsCondition;
     private final ExecutionId id;
     private final List<HistoryEvent> history = new ArrayList<>();
-    // Events that are added while decision is going
-    private List<HistoryEvent> deferred = new ArrayList<>();
     private boolean completed;
 
     private HistoryStore(ExecutionId id, Lock lock) {
@@ -87,29 +85,15 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       newEventsCondition.signal();
     }
 
-    void addDeferredLocked(List<HistoryEvent> events) {
-      if (completed) {
-        throw new IllegalStateException("Already completed");
-      }
-      deferred.addAll(events);
-    }
-
-    public long getNextEventIdLocked() {
+    long getNextEventIdLocked() {
       return history.size();
     }
 
-    public List<HistoryEvent> getEventsLocked() {
+    List<HistoryEvent> getEventsLocked() {
       return history;
     }
 
-    /** Returns deferred records and sets deferred to empty list. */
-    public List<HistoryEvent> getAndCleanDeferred() {
-      List<HistoryEvent> result = deferred;
-      deferred = new ArrayList<>();
-      return result;
-    }
-
-    public List<HistoryEvent> waitForNewEvents(
+    List<HistoryEvent> waitForNewEvents(
         long expectedNextEventId, HistoryEventFilterType filterType) {
       lock.lock();
       try {
@@ -140,14 +124,6 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       } finally {
         lock.unlock();
       }
-    }
-
-    public boolean isCompletedLocked() {
-      return completed;
-    }
-
-    public boolean hasDeferred() {
-      return !deferred.isEmpty();
     }
   }
 
@@ -181,26 +157,12 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         histories.put(executionId, history);
       }
       history.checkNextEventId(ctx.getInitialEventId());
-      if (ctx.isConcurrentDecision()) {
-        history.addDeferredLocked(events);
-        result = ctx.getInitialEventId();
-      } else {
-        List<HistoryEvent> deferred = history.getAndCleanDeferred();
-        if (deferred.isEmpty()) {
-          history.addAllLocked(events, ctx.isWorkflowCompleted());
-        } else {
-          history.addAllLocked(events, false);
-          long nextEventId = history.getNextEventIdLocked();
-          for (HistoryEvent event : deferred) {
-            event.setEventId(nextEventId++);
-          }
-          history.addAllLocked(deferred, ctx.isWorkflowCompleted());
-        }
-        result = history.getNextEventIdLocked();
-      }
+      history.addAllLocked(events, ctx.isWorkflowCompleted());
+      result = history.getNextEventIdLocked();
     } finally {
       lock.unlock();
     }
+
     // Push tasks to the queues out of locks
     DecisionTask decisionTask = ctx.getDecisionTask();
     if (decisionTask != null) {
@@ -211,6 +173,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       }
       decisionsQueue.add(decisionTask.getTask());
     }
+
     List<ActivityTask> activityTasks = ctx.getActivityTasks();
     if (activityTasks != null) {
       for (ActivityTask activityTask : activityTasks) {
@@ -219,6 +182,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         activitiesQueue.add(activityTask.getTask());
       }
     }
+
     List<Timer> timers = ctx.getTimers();
     if (timers != null) {
       for (Timer t : timers) {
@@ -311,12 +275,6 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       result.setHistory(new History().setEvents(events));
     }
     return result;
-  }
-
-  @Override
-  public boolean hasDeferred(ExecutionId executionId) throws EntityNotExistsError {
-    HistoryStore historyStore = getHistoryStore(executionId);
-    return historyStore.hasDeferred();
   }
 
   private HistoryStore getHistoryStore(ExecutionId executionId) throws EntityNotExistsError {

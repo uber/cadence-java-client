@@ -132,8 +132,6 @@ interface TestWorkflowStore {
   GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError;
 
-  boolean hasDeferred(ExecutionId id) throws EntityNotExistsError;
-
   void getDiagnostics(StringBuilder result);
 
   void close();

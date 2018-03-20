@@ -62,7 +62,6 @@ final class RequestContext {
   private final ExecutionId executionId;
 
   private final long initialEventId;
-  private final boolean concurrentDecision;
 
   private final List<HistoryEvent> events = new ArrayList<>();
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
@@ -78,25 +77,21 @@ final class RequestContext {
    * @param clock clock used to timestamp events and schedule timers.
    * @param executionId id of the execution being updated
    * @param initialEventId expected id of the next event added to the history
-   * @param concurrentDecision if this update happens there is started decision task.
    */
-  RequestContext(
-      LongSupplier clock,
-      ExecutionId executionId,
-      long initialEventId,
-      boolean concurrentDecision) {
+  RequestContext(LongSupplier clock, ExecutionId executionId, long initialEventId) {
     this.clock = clock;
     this.executionId = Objects.requireNonNull(executionId);
     this.initialEventId = initialEventId;
-    this.concurrentDecision = concurrentDecision;
+  }
+
+  void add(RequestContext ctx) {
+    this.activityTasks.addAll(ctx.getActivityTasks());
+    this.timers.addAll(ctx.getTimers());
+    this.events.addAll(ctx.getEvents());
   }
 
   long currentTimeInNanoseconds() {
     return clock.getAsLong() * NANOS_PER_MILLIS;
-  }
-
-  public boolean isConcurrentDecision() {
-    return concurrentDecision;
   }
 
   /** Returns eventId of the added event; */
@@ -134,8 +129,8 @@ final class RequestContext {
     this.needDecision = needDecision;
   }
 
-  boolean isNeedDecision(TestWorkflowStore store) throws EntityNotExistsError {
-    return needDecision || store.hasDeferred(executionId);
+  boolean isNeedDecision() throws EntityNotExistsError {
+    return needDecision;
   }
 
   void setDecisionTask(DecisionTask decisionTask) {

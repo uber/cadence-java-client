@@ -40,9 +40,13 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
+import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
+
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(2);
 
   @Rule
   public TestWatcher watchman =
@@ -143,7 +147,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 2000)
+  @Test
   public void testActivity() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -165,7 +169,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 2000)
+  @Test
   public void testActivityFailure() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -193,7 +197,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test
+  @Test(timeout = 2000)
   public void testActivityTimeout() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -238,7 +242,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 1500)
+  @Test(timeout = 1000)
   public void testSignal() throws ExecutionException, InterruptedException {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -275,7 +279,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test//(timeout = 1500)
+  @Test
   public void tesConcurrentDecision() throws ExecutionException, InterruptedException {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);

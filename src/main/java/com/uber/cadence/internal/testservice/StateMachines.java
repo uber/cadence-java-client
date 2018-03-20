@@ -155,7 +155,9 @@ class StateMachines {
             .setDecisionTaskScheduledEventAttributes(a);
     long scheduledEventId = ctx.addEvent(event);
     PollForDecisionTaskResponse decisionTaskResponse = new PollForDecisionTaskResponse();
-    decisionTaskResponse.setPreviousStartedEventId(data.previousStartedEventId);
+    if (data.previousStartedEventId > 0) {
+      decisionTaskResponse.setPreviousStartedEventId(data.previousStartedEventId);
+    }
     decisionTaskResponse.setWorkflowExecution(ctx.getExecution());
     decisionTaskResponse.setWorkflowType(request.getWorkflowType());
     TaskListId taskListId = new TaskListId(ctx.getDomain(), request.getTaskList().getName());

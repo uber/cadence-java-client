@@ -46,6 +46,7 @@ import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.testservice.StateMachine.State;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +74,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final TestWorkflowStore store;
   private final StartWorkflowExecutionRequest startRequest;
   private long nextEventId;
-
+  private final List<RequestContext> concurrentToDecision = new ArrayList<>();
   private final Map<String, StateMachine<?>> activities = new HashMap<>();
 
   private StateMachine<?> decision;
@@ -105,9 +106,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       boolean concurrentDecision =
           !completeDecisionUpdate && (decision != null && decision.getState() == State.STARTED);
-      RequestContext ctx = new RequestContext(clock, executionId, nextEventId, concurrentDecision);
+      RequestContext ctx = new RequestContext(clock, executionId, nextEventId);
       updater.apply(ctx);
-      nextEventId = ctx.commitChanges(store);
+      if (concurrentDecision) {
+        concurrentToDecision.add(ctx);
+      } else {
+        nextEventId = ctx.commitChanges(store);
+      }
     } catch (InternalServiceError | EntityNotExistsError e) {
       throw e;
     } catch (Exception e) {
@@ -141,9 +146,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             processDecision(ctx, d);
           }
           decision = null;
-          if (ctx.isNeedDecision(store)) {
+          for (RequestContext deferredCtx : this.concurrentToDecision) {
+            ctx.add(deferredCtx);
+          }
+          if (ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty()) {
             scheduleDecision(ctx);
           }
+          this.concurrentToDecision.clear();
         });
   }
 
