@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.Decision;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
@@ -24,17 +26,19 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
-
-  private static final Logger log = LoggerFactory.getLogger(TestWorkflowMutableStateImpl.class);
 
   private enum DecisionTaskState {
     NONE,
@@ -50,8 +54,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     void apply(RequestContext ctx) throws InternalServiceError;
   }
 
+  private static final Logger log = LoggerFactory.getLogger(TestWorkflowMutableStateImpl.class);
   private static final long NANOS_PER_MILLIS = 1_000_000;
 
+  private final Lock lock = new ReentrantLock();
   private final LongSupplier clock;
   private final ExecutionId executionId;
   private final TestWorkflowStore store;
@@ -77,8 +83,15 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private void update(UpdateProcedure updater) throws InternalServiceError {
     RequestContext ctx = new RequestContext(executionId, nextEventId);
-    updater.apply(ctx);
-    nextEventId = ctx.commitChanges(store);
+    lock.lock();
+    try {
+      {
+        updater.apply(ctx);
+        nextEventId = ctx.commitChanges(store);
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 
   @Override
@@ -96,7 +109,55 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   @Override
   public void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError {
-    update(ctx -> decision.complete(ctx, request));
+    List<Decision> decisions = request.getDecisions();
+    update(
+        ctx -> {
+          decision.complete(ctx, request);
+          for (Decision d : decisions) {
+            processDecision(ctx, d);
+          }
+        });
+  }
+
+  private void processDecision(RequestContext ctx, Decision d) {
+    switch (d.getDecisionType()) {
+      case ScheduleActivityTask:
+        break;
+      case RequestCancelActivityTask:
+        break;
+      case StartTimer:
+        break;
+      case CompleteWorkflowExecution:
+        processCompleteWorkflowExecution(ctx, d.getCompleteWorkflowExecutionDecisionAttributes());
+        break;
+      case FailWorkflowExecution:
+        break;
+      case CancelTimer:
+        break;
+      case CancelWorkflowExecution:
+        break;
+      case RequestCancelExternalWorkflowExecution:
+        break;
+      case RecordMarker:
+        break;
+      case ContinueAsNewWorkflowExecution:
+        break;
+      case StartChildWorkflowExecution:
+        break;
+      case SignalExternalWorkflowExecution:
+        break;
+    }
+  }
+
+  private void processCompleteWorkflowExecution(
+      RequestContext ctx, CompleteWorkflowExecutionDecisionAttributes d) {
+    WorkflowExecutionCompletedEventAttributes a =
+        new WorkflowExecutionCompletedEventAttributes().setResult(d.getResult());
+    ctx.addEvents(
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionCompleted)
+            .setWorkflowExecutionCompletedEventAttributes(a));
+    ctx.completeWorkflow();
   }
 
   private void startWorkflow() throws InternalServiceError {

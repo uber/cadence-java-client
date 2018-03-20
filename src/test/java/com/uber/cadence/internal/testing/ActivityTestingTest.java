@@ -58,7 +58,7 @@ public class ActivityTestingTest {
     env.registerActivitiesImplementations(new ActivityImpl());
     TestActivity activity = env.newActivityStub(TestActivity.class);
     String result = activity.activity1("input1");
-    assertEquals("TestWorkflow::workflow1-input1", result);
+    assertEquals("TestActivity::activity1-input1", result);
   }
 
   private static class AngryActivityImpl implements TestActivity {
@@ -78,7 +78,7 @@ public class ActivityTestingTest {
       activity.activity1("input1");
       fail("unreachable");
     } catch (ActivityFailureException e) {
-      assertTrue(e.getMessage().contains("TestWorkflow::workflow1"));
+      assertTrue(e.getMessage().contains("TestActivity::activity1"));
       assertTrue(e.getCause() instanceof IOException);
       assertEquals("simulated", e.getCause().getMessage());
     }

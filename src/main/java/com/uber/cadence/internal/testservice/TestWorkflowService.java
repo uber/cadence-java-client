@@ -67,6 +67,8 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
@@ -76,6 +78,8 @@ import org.slf4j.LoggerFactory;
 public final class TestWorkflowService implements IWorkflowService {
 
   private static final Logger log = LoggerFactory.getLogger(TestWorkflowService.class);
+
+  private final Lock lock = new ReentrantLock();
 
   private final TestWorkflowStore store = new TestWorkflowStoreImpl();
 
@@ -115,27 +119,34 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
           ServiceBusyError, TException {
-    String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
-    String domain = requireNotNull("Domain", startRequest.getDomain());
-    WorkflowId workflowId = new WorkflowId(domain, requestWorkflowId);
-    TestWorkflowMutableState running = openExecutions.get(workflowId);
-    if (running != null) {
-      WorkflowExecutionAlreadyStartedError error = new WorkflowExecutionAlreadyStartedError();
-      WorkflowExecution execution = running.getExecutionId().getExecution();
-      error.setMessage(
-          String.format(
-              "Workflow execution already running. WorkflowId: %s, " + "RunId: %s",
-              execution.getWorkflowId(), execution.getRunId()));
-      error.setRunId(execution.getRunId());
-      error.setStartRequestId(startRequest.getRequestId());
-      throw error;
+    lock.lock();
+    try {
+      {
+        String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
+        String domain = requireNotNull("Domain", startRequest.getDomain());
+        WorkflowId workflowId = new WorkflowId(domain, requestWorkflowId);
+        TestWorkflowMutableState running = openExecutions.get(workflowId);
+        if (running != null) {
+          WorkflowExecutionAlreadyStartedError error = new WorkflowExecutionAlreadyStartedError();
+          WorkflowExecution execution = running.getExecutionId().getExecution();
+          error.setMessage(
+              String.format(
+                  "Workflow execution already running. WorkflowId: %s, " + "RunId: %s",
+                  execution.getWorkflowId(), execution.getRunId()));
+          error.setRunId(execution.getRunId());
+          error.setStartRequestId(startRequest.getRequestId());
+          throw error;
+        }
+        running = new TestWorkflowMutableStateImpl(startRequest, store, clock);
+        WorkflowExecution execution = running.getExecutionId().getExecution();
+        ExecutionId executionId = new ExecutionId(domain, execution);
+        openExecutions.put(workflowId, running);
+        executions.put(executionId, running);
+        return new StartWorkflowExecutionResponse().setRunId(execution.getRunId());
+      }
+    } finally {
+      lock.unlock();
     }
-    running = new TestWorkflowMutableStateImpl(startRequest, store, clock);
-    WorkflowExecution execution = running.getExecutionId().getExecution();
-    ExecutionId executionId = new ExecutionId(domain, execution);
-    openExecutions.put(workflowId, running);
-    executions.put(executionId, running);
-    return new StartWorkflowExecutionResponse().setRunId(execution.getRunId());
   }
 
   @Override
@@ -164,11 +175,16 @@ public final class TestWorkflowService implements IWorkflowService {
 
   private TestWorkflowMutableState getMutableState(ExecutionId executionId)
       throws InternalServiceError {
-    TestWorkflowMutableState mutableState = executions.get(executionId);
-    if (mutableState == null) {
-      throw new InternalServiceError("Execution not found in mutable state: " + executionId);
+    lock.lock();
+    try {
+      TestWorkflowMutableState mutableState = executions.get(executionId);
+      if (mutableState == null) {
+        throw new InternalServiceError("Execution not found in mutable state: " + executionId);
+      }
+      return mutableState;
+    } finally {
+      lock.unlock();
     }
-    return mutableState;
   }
 
   @Override

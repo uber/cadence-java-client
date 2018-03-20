@@ -40,7 +40,7 @@ final class RequestContext {
   private final List<HistoryEvent> events = new ArrayList<>();
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
   private DecisionTask decisionTask;
-  private boolean complete;
+  private boolean workflowCompleted;
 
   RequestContext(ExecutionId executionId, long initialEventId) {
     this.executionId = Objects.requireNonNull(executionId);
@@ -49,8 +49,15 @@ final class RequestContext {
 
   /** Returns eventId of the added event; */
   long addEvents(HistoryEvent event) {
+    requireNotCompleted();
     events.add(event);
     return initialEventId + events.size() - 1;
+  }
+
+  private void requireNotCompleted() {
+    if (workflowCompleted) {
+      throw new IllegalStateException("workflow completed");
+    }
   }
 
   WorkflowExecution getExecution() {
@@ -62,16 +69,16 @@ final class RequestContext {
   }
 
   void setDecisionTask(DecisionTask decisionTask) {
+    requireNotCompleted();
     this.decisionTask = Objects.requireNonNull(decisionTask);
   }
 
-  public boolean isComplete() {
-    return complete;
+  public void completeWorkflow() {
+    workflowCompleted = true;
   }
 
-  public RequestContext setComplete(boolean complete) {
-    this.complete = complete;
-    return this;
+  public boolean isWorkflowCompleted() {
+    return workflowCompleted;
   }
 
   DecisionTask getDecisionTask() {
@@ -88,7 +95,8 @@ final class RequestContext {
 
   /** @return nextEventId */
   long commitChanges(TestWorkflowStore store) throws InternalServiceError {
-    long result = store.save(executionId, initialEventId, complete, events, decisionTask, null);
+    long result =
+        store.save(executionId, initialEventId, workflowCompleted, events, decisionTask, null);
     fireCallbacks();
     return result;
   }

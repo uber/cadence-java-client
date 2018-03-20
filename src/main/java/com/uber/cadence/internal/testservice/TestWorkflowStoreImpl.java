@@ -37,8 +37,12 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class TestWorkflowStoreImpl implements TestWorkflowStore {
+
+  private static final Logger log = LoggerFactory.getLogger(TestWorkflowStoreImpl.class);
 
   private static class HistoryStore {
 
@@ -137,48 +141,59 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       List<HistoryEvent> events,
       DecisionTask decisionTask,
       List<ActivityTask> activityTasks) {
+    long result;
     lock.lock();
     try {
-      return saveLocked(executionId, nextEventId, complete, events, decisionTask, activityTasks);
+      HistoryStore history = histories.get(executionId);
+      if (history == null) {
+        if (events.isEmpty()
+            || events.get(0).getEventType() != EventType.WorkflowExecutionStarted) {
+          throw new IllegalStateException("No history found for " + executionId);
+        }
+        history = new HistoryStore(executionId, lock);
+        histories.put(executionId, history);
+      }
+      history.checkNextEventId(nextEventId);
+      history.addAllLocked(events, complete);
+      result = history.getNextEventIdLocked();
     } finally {
       lock.unlock();
     }
-  }
-
-  private long saveLocked(
-      ExecutionId executionId,
-      long nextEventId,
-      boolean complete,
-      List<HistoryEvent> events,
-      DecisionTask decisionTask,
-      List<ActivityTask> activityTasks) {
-    HistoryStore history = histories.get(executionId);
-    if (history == null) {
-      if (events.isEmpty() || events.get(0).getEventType() != EventType.WorkflowExecutionStarted) {
-        throw new IllegalStateException("No history found for " + executionId);
-      }
-      history = new HistoryStore(executionId, lock);
-      histories.put(executionId, history);
-    }
-    history.checkNextEventId(nextEventId);
-    history.addAllLocked(events, complete);
+    // Push tasks to the queues out of locks
     if (decisionTask != null) {
       BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
           getDecisionTaskListQueue(decisionTask.getTaskListId());
+      if (!decisionsQueue.isEmpty()) {
+        log.error("Duplicated decision task");
+      }
       decisionsQueue.add(decisionTask.getTask());
     }
     if (activityTasks != null) {
       for (ActivityTask activityTask : activityTasks) {
+        BlockingQueue<PollForActivityTaskResponse> activitiesQueue =
+            getActivityTaskListQueue(activityTask);
+        activitiesQueue.add(activityTask.getTask());
+      }
+    }
+    return result;
+  }
+
+  private BlockingQueue<PollForActivityTaskResponse> getActivityTaskListQueue(
+      ActivityTask activityTask) {
+    lock.lock();
+    try {
+      {
         BlockingQueue<PollForActivityTaskResponse> activitiesQueue =
             activityTaskLists.get(activityTask.getTaskListId());
         if (activitiesQueue == null) {
           activitiesQueue = new LinkedBlockingQueue<>();
           activityTaskLists.put(activityTask.getTaskListId(), activitiesQueue);
         }
-        activitiesQueue.add(activityTask.getTask());
+        return activitiesQueue;
       }
+    } finally {
+      lock.unlock();
     }
-    return history.getNextEventIdLocked();
   }
 
   private BlockingQueue<PollForDecisionTaskResponse> getDecisionTaskListQueue(
