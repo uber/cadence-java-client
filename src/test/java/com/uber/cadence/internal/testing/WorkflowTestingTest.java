@@ -22,8 +22,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.uber.cadence.TimeoutType;
+import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.testing.TestEnvironment;
@@ -33,6 +35,7 @@ import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.junit.After;
@@ -45,8 +48,7 @@ import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
 
-  @Rule
-  public Timeout globalTimeout = Timeout.seconds(2);
+  @Rule public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =
@@ -197,7 +199,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 2000)
+  @Test
   public void testActivityTimeout() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -242,7 +244,7 @@ public class WorkflowTestingTest {
     }
   }
 
-  @Test(timeout = 1000)
+  @Test
   public void testSignal() throws ExecutionException, InterruptedException {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
@@ -280,7 +282,7 @@ public class WorkflowTestingTest {
   }
 
   @Test
-  public void tesConcurrentDecision() throws ExecutionException, InterruptedException {
+  public void testConcurrentDecision() throws ExecutionException, InterruptedException {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
     worker.registerWorkflowImplementationTypes(ConcurrentDecisionWorkflowImpl.class);
@@ -290,6 +292,53 @@ public class WorkflowTestingTest {
     CompletableFuture<String> result = WorkflowClient.execute(workflow::workflow1, "input1");
     workflow.ProcessSignal("signalInput");
     assertEquals("signalInput-input1", result.get());
+  }
+
+  public interface TestCancellationActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1000)
+    String activity1(String input);
+  }
+
+  private static class TestCancellationActivityImpl implements TestCancellationActivity {
+
+    @Override
+    public String activity1(String input) {
+      long start = System.currentTimeMillis();
+      while (true) {
+        Activity.heartbeat(System.currentTimeMillis() - start);
+      }
+    }
+  }
+
+  public static class TestCancellationWorkflow implements TestWorkflow {
+
+    private final TestCancellationActivity activity =
+        Workflow.newActivityStub(TestCancellationActivity.class);
+
+    @Override
+    public String workflow1(String input) {
+      return activity.activity1(input);
+    }
+  }
+
+  @Test
+  public void testActivityCancellation() throws InterruptedException {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TestCancellationWorkflow.class);
+    worker.registerActivitiesImplementations(new TestCancellationActivityImpl());
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    try {
+      WorkflowExecution execution = WorkflowClient.start(workflow::workflow1, "input1");
+      UntypedWorkflowStub untyped = client.newUntypedWorkflowStub(execution);
+      untyped.cancel();
+      untyped.getResult(String.class);
+      fail("unreacheable");
+    } catch (CancellationException e) {
+    }
   }
 
   //  private static class AngryWorkflowImpl implements TestWorkflow {

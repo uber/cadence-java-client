@@ -19,6 +19,7 @@ package com.uber.cadence.internal.testservice;
 
 import com.google.common.base.Throwables;
 import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.EntityNotExistsError;
@@ -32,6 +33,10 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
+import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
@@ -41,10 +46,7 @@ import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.testservice.StateMachine.State;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,9 +76,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final TestWorkflowStore store;
   private final StartWorkflowExecutionRequest startRequest;
   private long nextEventId;
+  private boolean cancelRequested;
   private final List<RequestContext> concurrentToDecision = new ArrayList<>();
   private final Map<String, StateMachine<?>> activities = new HashMap<>();
-
+  private StateMachine<?> workflow;
   private StateMachine<?> decision;
 
   TestWorkflowMutableStateImpl(
@@ -88,6 +91,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
     this.store = store;
     this.clock = clock;
+    this.workflow = StateMachines.newWorkflowStateMachine();
     startWorkflow();
   }
 
@@ -110,6 +114,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       updater.apply(ctx);
       if (concurrentDecision) {
         concurrentToDecision.add(ctx);
+        ctx.fireCallbacks();
       } else {
         nextEventId = ctx.commitChanges(store);
       }
@@ -131,7 +136,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError {
-    update(ctx -> decision.start(ctx, pollRequest));
+    update(ctx -> decision.start(ctx, pollRequest, 0));
   }
 
   @Override
@@ -141,37 +146,51 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     log.info("Decisions: " + decisions);
     completeDecisionUpdate(
         ctx -> {
-          decision.complete(ctx, request);
+          decision.complete(ctx, request, 0);
+          long decisionTaskCompletedId = ctx.getNextEventId() - 1;
           for (Decision d : decisions) {
-            processDecision(ctx, d);
+            processDecision(ctx, d, decisionTaskCompletedId);
           }
-          decision = null;
           for (RequestContext deferredCtx : this.concurrentToDecision) {
             ctx.add(deferredCtx);
           }
-          if (ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty()) {
+          this.decision = null;
+          boolean completed =
+              workflow.getState() == State.COMPLETED
+                  || workflow.getState() == State.FAILED
+                  || workflow.getState() == State.CANCELED;
+          if (!completed && (ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty())) {
             scheduleDecision(ctx);
           }
           this.concurrentToDecision.clear();
         });
   }
 
-  private void processDecision(RequestContext ctx, Decision d)
-      throws BadRequestError, InternalServiceError {
+  private void processDecision(RequestContext ctx, Decision d, long decisionTaskCompletedId)
+      throws BadRequestError, InternalServiceError, EntityNotExistsError {
     switch (d.getDecisionType()) {
       case CompleteWorkflowExecution:
-        processCompleteWorkflowExecution(ctx, d.getCompleteWorkflowExecutionDecisionAttributes());
+        processCompleteWorkflowExecution(
+            ctx, d.getCompleteWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
         break;
       case FailWorkflowExecution:
-        processFailWorkflowExecution(ctx, d.getFailWorkflowExecutionDecisionAttributes());
+        processFailWorkflowExecution(
+            ctx, d.getFailWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
+        break;
+      case CancelWorkflowExecution:
+        processCancelWorkflowExecution(
+            ctx, d.getCancelWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
         break;
       case ScheduleActivityTask:
-        processScheduleActivityTask(ctx, d.getScheduleActivityTaskDecisionAttributes());
+        processScheduleActivityTask(
+            ctx, d.getScheduleActivityTaskDecisionAttributes(), decisionTaskCompletedId);
         break;
       case RequestCancelActivityTask:
+        processRequestCancelActivityTask(
+            ctx, d.getRequestCancelActivityTaskDecisionAttributes(), decisionTaskCompletedId);
+        break;
       case StartTimer:
       case CancelTimer:
-      case CancelWorkflowExecution:
       case RequestCancelExternalWorkflowExecution:
       case RecordMarker:
       case ContinueAsNewWorkflowExecution:
@@ -182,8 +201,21 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
   }
 
+  private void processRequestCancelActivityTask(
+      RequestContext ctx,
+      RequestCancelActivityTaskDecisionAttributes a,
+      long decisionTaskCompletedId)
+      throws EntityNotExistsError, InternalServiceError {
+    String activityId = a.getActivityId();
+    StateMachine<?> activity = activities.get(activityId);
+    if (activity == null) {
+      throw new EntityNotExistsError("ActivityId: " + activityId);
+    }
+    activity.requestCancellation(ctx, a, decisionTaskCompletedId);
+  }
+
   private void processScheduleActivityTask(
-      RequestContext ctx, ScheduleActivityTaskDecisionAttributes a)
+      RequestContext ctx, ScheduleActivityTaskDecisionAttributes a, long decisionTaskCompletedId)
       throws BadRequestError, InternalServiceError {
     validateScheduleActivityTask(a);
     String activityId = a.getActivityId();
@@ -193,7 +225,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     activity = StateMachines.newActivityStateMachine();
     activities.put(activityId, activity);
-    activity.schedule(ctx, a);
+    activity.schedule(ctx, a, decisionTaskCompletedId);
     ctx.addTimer(
         a.getScheduleToCloseTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_CLOSE));
@@ -231,34 +263,30 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   private void processFailWorkflowExecution(
-      RequestContext ctx, FailWorkflowExecutionDecisionAttributes d) {
-    WorkflowExecutionFailedEventAttributes a =
-        new WorkflowExecutionFailedEventAttributes()
-            .setDetails(d.getDetails())
-            .setReason(d.getReason());
-    ctx.addEvent(
-        new HistoryEvent()
-            .setEventType(EventType.WorkflowExecutionFailed)
-            .setWorkflowExecutionFailedEventAttributes(a));
-    ctx.completeWorkflow();
+      RequestContext ctx, FailWorkflowExecutionDecisionAttributes d, long decisionTaskCompletedId)
+      throws InternalServiceError {
+    workflow.fail(ctx, d, decisionTaskCompletedId);
   }
 
   private void processCompleteWorkflowExecution(
-      RequestContext ctx, CompleteWorkflowExecutionDecisionAttributes d) {
-    WorkflowExecutionCompletedEventAttributes a =
-        new WorkflowExecutionCompletedEventAttributes().setResult(d.getResult());
-    ctx.addEvent(
-        new HistoryEvent()
-            .setEventType(EventType.WorkflowExecutionCompleted)
-            .setWorkflowExecutionCompletedEventAttributes(a));
-    ctx.completeWorkflow();
+      RequestContext ctx,
+      CompleteWorkflowExecutionDecisionAttributes d,
+      long decisionTaskCompletedId)
+      throws InternalServiceError {
+    workflow.complete(ctx, d, decisionTaskCompletedId);
+  }
+
+  private void processCancelWorkflowExecution(
+      RequestContext ctx, CancelWorkflowExecutionDecisionAttributes d, long decisionTaskCompletedId)
+      throws InternalServiceError {
+    workflow.reportCancellation(ctx, d, decisionTaskCompletedId);
   }
 
   private void startWorkflow() throws InternalServiceError {
     try {
       update(
           ctx -> {
-            addExecutionStartedEvent(ctx);
+            workflow.start(ctx, startRequest, 0);
             scheduleDecision(ctx);
           });
     } catch (EntityNotExistsError entityNotExistsError) {
@@ -276,30 +304,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         return;
       }
       if (decision.getState() == State.FAILED || decision.getState() == State.COMPLETED) {
-        decision.schedule(ctx, startRequest);
+        decision.schedule(ctx, startRequest, 0);
         return;
       }
       throw new InternalServiceError("unexpected decision state: " + decision.getState());
     }
     this.decision = StateMachines.newDecisionStateMachine(store);
-    decision.schedule(ctx, startRequest);
-  }
-
-  private void addExecutionStartedEvent(RequestContext ctx) {
-    WorkflowExecutionStartedEventAttributes a =
-        new WorkflowExecutionStartedEventAttributes()
-            .setInput(startRequest.getInput())
-            .setExecutionStartToCloseTimeoutSeconds(
-                startRequest.getExecutionStartToCloseTimeoutSeconds())
-            .setIdentity(startRequest.getIdentity())
-            .setTaskList(startRequest.getTaskList())
-            .setWorkflowType(startRequest.getWorkflowType())
-            .setTaskStartToCloseTimeoutSeconds(startRequest.getTaskStartToCloseTimeoutSeconds());
-    HistoryEvent executionStarted =
-        new HistoryEvent()
-            .setEventType(EventType.WorkflowExecutionStarted)
-            .setWorkflowExecutionStartedEventAttributes(a);
-    ctx.addEvent(executionStarted);
+    decision.schedule(ctx, startRequest, 0);
   }
 
   @Override
@@ -309,7 +320,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(task.getActivityId());
-          activity.start(ctx, pollRequest);
+          activity.start(ctx, pollRequest, 0);
         });
   }
 
@@ -319,7 +330,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.complete(ctx, request);
+          activity.complete(ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -332,7 +343,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.complete(ctx, request);
+          activity.complete(ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -344,7 +355,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.fail(ctx, request);
+          activity.fail(ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -356,7 +367,32 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.fail(ctx, request);
+          activity.fail(ctx, request, 0);
+          activities.remove(activityId);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void cancelActivityTask(String activityId, RespondActivityTaskCanceledRequest request)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<?> activity = getActivity(activityId);
+          activity.reportCancellation(ctx, request, 0);
+          activities.remove(activityId);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void cancelActivityTaskById(
+      String activityId, RespondActivityTaskCanceledByIDRequest request)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<?> activity = getActivity(activityId);
+          activity.reportCancellation(ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -371,7 +407,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       StateMachine<?> activity = getActivity(activityId);
       activity.update(request);
-      if (activity.getState() == State.CANCELED) {
+      if (activity.getState() == State.CANCELLATION_REQUESTED) {
         result.setCancelRequested(true);
       }
     } catch (InternalServiceError | EntityNotExistsError e) {
@@ -406,6 +442,17 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           addExecutionSignaledEvent(ctx, signalRequest);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          cancelRequested = true;
+          workflow.requestCancellation(ctx, cancelRequest, 0);
           scheduleDecision(ctx);
         });
   }

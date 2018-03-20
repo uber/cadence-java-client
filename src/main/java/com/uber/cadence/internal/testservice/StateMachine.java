@@ -34,6 +34,7 @@ class StateMachine<Data> {
     STARTED,
     FAILED,
     TIMED_OUT,
+    CANCELLATION_REQUESTED,
     CANCELED,
     COMPLETED
   }
@@ -41,7 +42,7 @@ class StateMachine<Data> {
   @FunctionalInterface
   interface Callback<D, R> {
 
-    void apply(RequestContext ctx, D data, R request) throws InternalServiceError;
+    void apply(RequestContext ctx, D data, R request, long referenceId) throws InternalServiceError;
   }
 
   private static class Transition {
@@ -111,24 +112,38 @@ class StateMachine<Data> {
     allowedTransitions.put(new Transition(from, to), callback);
   }
 
-  public <V> void schedule(RequestContext ctx, V request) throws InternalServiceError {
-    applyEvent(State.SCHEDULED, ctx, request);
+  public <V> void schedule(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.SCHEDULED, ctx, request, referenceId);
   }
 
-  public <V> void start(RequestContext ctx, V request) throws InternalServiceError {
-    applyEvent(State.STARTED, ctx, request);
+  public <V> void start(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.STARTED, ctx, request, referenceId);
   }
 
-  public <V> void fail(RequestContext ctx, V request) throws InternalServiceError {
-    applyEvent(State.FAILED, ctx, request);
+  public <V> void fail(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.FAILED, ctx, request, referenceId);
   }
 
-  public <V> void complete(RequestContext ctx, V request) throws InternalServiceError {
-    applyEvent(State.COMPLETED, ctx, request);
+  public <V> void complete(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.COMPLETED, ctx, request, referenceId);
   }
 
   public <V> void timeout(RequestContext ctx, V timeoutType) throws InternalServiceError {
-    applyEvent(State.TIMED_OUT, ctx, timeoutType);
+    applyEvent(State.TIMED_OUT, ctx, timeoutType, 0);
+  }
+
+  public <V> void requestCancellation(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.CANCELLATION_REQUESTED, ctx, request, referenceId);
+  }
+
+  public <V> void reportCancellation(RequestContext ctx, V request, long referenceId)
+      throws InternalServiceError {
+    applyEvent(State.CANCELED, ctx, request, referenceId);
   }
 
   public <V> void update(V request) throws EntityNotExistsError, InternalServiceError {
@@ -138,10 +153,10 @@ class StateMachine<Data> {
     if (callback == null) {
       throw new EntityNotExistsError("Not in running state: " + state);
     }
-    callback.apply(null, data, request);
+    callback.apply(null, data, request, 0);
   }
 
-  private <V> void applyEvent(State toState, RequestContext context, V request)
+  private <V> void applyEvent(State toState, RequestContext context, V request, long referenceId)
       throws InternalServiceError {
     Transition transition = new Transition(state, toState);
     @SuppressWarnings("unchecked")
@@ -150,7 +165,7 @@ class StateMachine<Data> {
       throw new InternalServiceError(
           "Invalid transition " + transition + ", history: " + transitionHistory);
     }
-    callback.apply(context, data, request);
+    callback.apply(context, data, request, referenceId);
     transitionHistory.add(transition.getTo());
     state = transition.getTo();
   }

@@ -98,7 +98,6 @@ final class RequestContext {
   long addEvent(HistoryEvent event) {
     requireNotCompleted();
     long eventId = initialEventId + events.size();
-    event.setEventId(eventId);
     events.add(event);
     return eventId;
   }
@@ -119,6 +118,10 @@ final class RequestContext {
 
   public long getInitialEventId() {
     return initialEventId;
+  }
+
+  public long getNextEventId() {
+    return initialEventId + events.size();
   }
 
   /**
@@ -177,12 +180,11 @@ final class RequestContext {
 
   /** @return nextEventId */
   long commitChanges(TestWorkflowStore store) throws InternalServiceError {
-    long result = store.save(this);
-    fireCallbacks();
-    return result;
+    return store.save(this);
   }
 
-  private void fireCallbacks() throws InternalServiceError {
+  /** Called by {@link TestWorkflowStore#save(RequestContext)} */
+  void fireCallbacks() throws InternalServiceError {
     for (CommitCallback callback : commitCallbacks) {
       callback.apply();
     }

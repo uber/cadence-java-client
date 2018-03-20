@@ -24,6 +24,7 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
+import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
@@ -77,7 +78,10 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       if (completed) {
         throw new IllegalStateException("Already completed");
       }
-      history.addAll(events);
+      for (HistoryEvent event : events) {
+        event.setEventId(history.size());
+        history.add(event);
+      }
       if (history.isEmpty() && complete) {
         throw new IllegalStateException("Cannot complete with empty history");
       }
@@ -141,7 +145,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "TestWorkflowStoreImpl timers"));
 
   @Override
-  public long save(RequestContext ctx) {
+  public long save(RequestContext ctx) throws InternalServiceError {
     long result;
     lock.lock();
     try {
@@ -159,10 +163,10 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       history.checkNextEventId(ctx.getInitialEventId());
       history.addAllLocked(events, ctx.isWorkflowCompleted());
       result = history.getNextEventIdLocked();
+      ctx.fireCallbacks();
     } finally {
       lock.unlock();
     }
-
     // Push tasks to the queues out of locks
     DecisionTask decisionTask = ctx.getDecisionTask();
     if (decisionTask != null) {

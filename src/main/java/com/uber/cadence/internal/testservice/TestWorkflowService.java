@@ -246,8 +246,10 @@ public final class TestWorkflowService implements IWorkflowService {
       try {
         mutableState.startActivityTask(task, pollRequest);
         return task;
-      } catch (EntityNotExistsError entityNotExistsError) {
-        // skip the task
+      } catch (EntityNotExistsError e) {
+        if (log.isDebugEnabled()) {
+          log.debug("Skipping outdated activity task for " + executionId, e);
+        }
       }
     }
   }
@@ -307,21 +309,33 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RespondActivityTaskCanceled(RespondActivityTaskCanceledRequest canceledRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId = ActivityId.fromBytes(canceledRequest.getTaskToken());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    mutableState.cancelActivityTask(activityId.getId(), canceledRequest);
   }
 
   @Override
   public void RespondActivityTaskCanceledByID(
       RespondActivityTaskCanceledByIDRequest canceledRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId =
+        new ActivityId(
+            canceledRequest.getDomain(),
+            canceledRequest.getWorkflowID(),
+            canceledRequest.getRunID(),
+            canceledRequest.getActivityID());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getWorkflowId());
+    mutableState.cancelActivityTaskById(activityId.getId(), canceledRequest);
   }
 
   @Override
   public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError,
           CancellationAlreadyRequestedError, ServiceBusyError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ExecutionId executionId =
+        new ExecutionId(cancelRequest.getDomain(), cancelRequest.getWorkflowExecution());
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
+    mutableState.requestCancelWorkflowExecution(cancelRequest);
   }
 
   @Override

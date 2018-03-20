@@ -25,6 +25,9 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
@@ -65,5 +68,14 @@ interface TestWorkflowMutableState {
   void timeoutActivity(String activityId, TimeoutType startToClose);
 
   void signal(SignalWorkflowExecutionRequest signalRequest)
+      throws EntityNotExistsError, InternalServiceError;
+
+  void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
+      throws EntityNotExistsError, InternalServiceError;
+
+  void cancelActivityTask(String id, RespondActivityTaskCanceledRequest canceledRequest)
+      throws EntityNotExistsError, InternalServiceError;
+
+  void cancelActivityTaskById(String id, RespondActivityTaskCanceledByIDRequest canceledRequest)
       throws EntityNotExistsError, InternalServiceError;
 }
