@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.WorkflowExecution;
@@ -61,6 +62,7 @@ final class RequestContext {
   private final ExecutionId executionId;
 
   private final long initialEventId;
+  private final boolean concurrentDecision;
 
   private final List<HistoryEvent> events = new ArrayList<>();
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
@@ -70,14 +72,31 @@ final class RequestContext {
   private boolean workflowCompleted;
   private boolean needDecision;
 
-  RequestContext(LongSupplier clock, ExecutionId executionId, long initialEventId) {
+  /**
+   * Creates an instance of the RequestContext
+   *
+   * @param clock clock used to timestamp events and schedule timers.
+   * @param executionId id of the execution being updated
+   * @param initialEventId expected id of the next event added to the history
+   * @param concurrentDecision if this update happens there is started decision task.
+   */
+  RequestContext(
+      LongSupplier clock,
+      ExecutionId executionId,
+      long initialEventId,
+      boolean concurrentDecision) {
     this.clock = clock;
     this.executionId = Objects.requireNonNull(executionId);
     this.initialEventId = initialEventId;
+    this.concurrentDecision = concurrentDecision;
   }
 
   long currentTimeInNanoseconds() {
     return clock.getAsLong() * NANOS_PER_MILLIS;
+  }
+
+  public boolean isConcurrentDecision() {
+    return concurrentDecision;
   }
 
   /** Returns eventId of the added event; */
@@ -115,8 +134,8 @@ final class RequestContext {
     this.needDecision = needDecision;
   }
 
-  boolean isNeedDecision() {
-    return needDecision;
+  boolean isNeedDecision(TestWorkflowStore store) throws EntityNotExistsError {
+    return needDecision || store.hasDeferred(executionId);
   }
 
   void setDecisionTask(DecisionTask decisionTask) {

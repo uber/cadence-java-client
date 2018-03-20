@@ -58,6 +58,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     private final Condition newEventsCondition;
     private final ExecutionId id;
     private final List<HistoryEvent> history = new ArrayList<>();
+    // Events that are added while decision is going
+    private List<HistoryEvent> deferred = new ArrayList<>();
     private boolean completed;
 
     private HistoryStore(ExecutionId id, Lock lock) {
@@ -78,11 +80,18 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         throw new IllegalStateException("Already completed");
       }
       history.addAll(events);
-      if (history.isEmpty()) {
+      if (history.isEmpty() && complete) {
         throw new IllegalStateException("Cannot complete with empty history");
       }
       completed = complete;
       newEventsCondition.signal();
+    }
+
+    void addDeferredLocked(List<HistoryEvent> events) {
+      if (completed) {
+        throw new IllegalStateException("Already completed");
+      }
+      deferred.addAll(events);
     }
 
     public long getNextEventIdLocked() {
@@ -91,6 +100,13 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
 
     public List<HistoryEvent> getEventsLocked() {
       return history;
+    }
+
+    /** Returns deferred records and sets deferred to empty list. */
+    public List<HistoryEvent> getAndCleanDeferred() {
+      List<HistoryEvent> result = deferred;
+      deferred = new ArrayList<>();
+      return result;
     }
 
     public List<HistoryEvent> waitForNewEvents(
@@ -129,6 +145,10 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     public boolean isCompletedLocked() {
       return completed;
     }
+
+    public boolean hasDeferred() {
+      return !deferred.isEmpty();
+    }
   }
 
   private final Lock lock = new ReentrantLock();
@@ -161,8 +181,23 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         histories.put(executionId, history);
       }
       history.checkNextEventId(ctx.getInitialEventId());
-      history.addAllLocked(events, ctx.isWorkflowCompleted());
-      result = history.getNextEventIdLocked();
+      if (ctx.isConcurrentDecision()) {
+        history.addDeferredLocked(events);
+        result = ctx.getInitialEventId();
+      } else {
+        List<HistoryEvent> deferred = history.getAndCleanDeferred();
+        if (deferred.isEmpty()) {
+          history.addAllLocked(events, ctx.isWorkflowCompleted());
+        } else {
+          history.addAllLocked(events, false);
+          long nextEventId = history.getNextEventIdLocked();
+          for (HistoryEvent event : deferred) {
+            event.setEventId(nextEventId++);
+          }
+          history.addAllLocked(deferred, ctx.isWorkflowCompleted());
+        }
+        result = history.getNextEventIdLocked();
+      }
     } finally {
       lock.unlock();
     }
@@ -259,13 +294,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     long expectedNextEventId;
     lock.lock();
     try {
-      history = histories.get(executionId);
-      if (history == null) {
-        throw new EntityNotExistsError(
-            String.format(
-                "Workflow execution history not found.  " + "WorkflowId: %s, RunId: %s",
-                execution.getWorkflowId(), execution.getRunId()));
-      }
+      history = getHistoryStore(executionId);
       if (!getRequest.isWaitForNewEvent()
           && getRequest.getHistoryEventFilterType() != HistoryEventFilterType.CLOSE_EVENT) {
         return new GetWorkflowExecutionHistoryResponse()
@@ -280,6 +309,24 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     GetWorkflowExecutionHistoryResponse result = new GetWorkflowExecutionHistoryResponse();
     if (events != null) {
       result.setHistory(new History().setEvents(events));
+    }
+    return result;
+  }
+
+  @Override
+  public boolean hasDeferred(ExecutionId executionId) throws EntityNotExistsError {
+    HistoryStore historyStore = getHistoryStore(executionId);
+    return historyStore.hasDeferred();
+  }
+
+  private HistoryStore getHistoryStore(ExecutionId executionId) throws EntityNotExistsError {
+    HistoryStore result = histories.get(executionId);
+    if (result == null) {
+      WorkflowExecution execution = executionId.getExecution();
+      throw new EntityNotExistsError(
+          String.format(
+              "Workflow execution result not found.  " + "WorkflowId: %s, RunId: %s",
+              execution.getWorkflowId(), execution.getRunId()));
     }
     return result;
   }

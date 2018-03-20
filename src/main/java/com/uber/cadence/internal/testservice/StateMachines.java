@@ -45,6 +45,7 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
@@ -274,8 +275,34 @@ class StateMachines {
     ctx.onCommit(() -> {});
   }
 
-  private static void failActivityTask(
+  private static void failActivityTask(RequestContext ctx, ActivityTaskData data, Object request) {
+    if (request instanceof RespondActivityTaskFailedRequest) {
+      failActivityTaskByTaskToken(ctx, data, (RespondActivityTaskFailedRequest) request);
+    } else if (request instanceof RespondActivityTaskFailedByIDRequest) {
+      failActivityTaskById(ctx, data, (RespondActivityTaskFailedByIDRequest) request);
+    }
+  }
+
+  private static void failActivityTaskByTaskToken(
       RequestContext ctx, ActivityTaskData data, RespondActivityTaskFailedRequest request) {
+    ActivityTaskFailedEventAttributes a =
+        new ActivityTaskFailedEventAttributes()
+            .setIdentity(request.getIdentity())
+            .setScheduledEventId(data.scheduledEventId)
+            .setDetails(request.getDetails())
+            .setReason(request.getReason())
+            .setIdentity(request.getIdentity())
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ActivityTaskFailed)
+            .setActivityTaskFailedEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.onCommit(() -> {});
+  }
+
+  private static void failActivityTaskById(
+      RequestContext ctx, ActivityTaskData data, RespondActivityTaskFailedByIDRequest request) {
     ActivityTaskFailedEventAttributes a =
         new ActivityTaskFailedEventAttributes()
             .setIdentity(request.getIdentity())

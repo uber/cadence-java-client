@@ -113,4 +113,8 @@ final class ActivityId {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     }
   }
+
+  public WorkflowId getWorkflowId() {
+    return new WorkflowId(executionId.getDomain(), executionId.getExecution().getWorkflowId());
+  }
 }

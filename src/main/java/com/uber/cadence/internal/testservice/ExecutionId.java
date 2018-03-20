@@ -38,7 +38,9 @@ final class ExecutionId {
   }
 
   ExecutionId(String domain, String workflowId, String runId) {
-    this(domain, new WorkflowExecution().setWorkflowId(workflowId).setRunId(runId));
+    this(
+        domain,
+        new WorkflowExecution().setWorkflowId(Objects.requireNonNull(workflowId)).setRunId(runId));
   }
 
   public String getDomain() {
@@ -85,7 +87,9 @@ final class ExecutionId {
     try {
       out.writeUTF(domain);
       out.writeUTF(execution.getWorkflowId());
-      out.writeUTF(execution.getRunId());
+      if (execution.getRunId() != null) {
+        out.writeUTF(execution.getRunId());
+      }
       return bout.toByteArray();
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
@@ -98,10 +102,17 @@ final class ExecutionId {
     try {
       String domain = in.readUTF();
       String workflowId = in.readUTF();
-      String runId = in.readUTF();
+      String runId = null;
+      if (in.available() > 0) {
+        runId = in.readUTF();
+      }
       return new ExecutionId(domain, workflowId, runId);
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     }
+  }
+
+  public WorkflowId getWorkflowId() {
+    return new WorkflowId(domain, execution.getWorkflowId());
   }
 }

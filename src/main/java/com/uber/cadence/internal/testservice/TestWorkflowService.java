@@ -67,6 +67,7 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
@@ -92,6 +93,37 @@ public final class TestWorkflowService implements IWorkflowService {
 
   public void close() {
     store.close();
+  }
+
+  private TestWorkflowMutableState getMutableState(ExecutionId executionId)
+      throws InternalServiceError {
+    lock.lock();
+    try {
+      if (executionId.getExecution().getRunId() == null) {
+        return getMutableState(executionId.getWorkflowId());
+      }
+      TestWorkflowMutableState mutableState = executions.get(executionId);
+      if (mutableState == null) {
+        throw new InternalServiceError("Execution not found in mutable state: " + executionId);
+      }
+      return mutableState;
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  private TestWorkflowMutableState getMutableState(WorkflowId workflowId)
+      throws InternalServiceError {
+    lock.lock();
+    try {
+      TestWorkflowMutableState mutableState = openExecutions.get(workflowId);
+      if (mutableState == null) {
+        throw new InternalServiceError("Execution not found in mutable state: " + workflowId);
+      }
+      return mutableState;
+    } finally {
+      lock.unlock();
+    }
   }
 
   @Override
@@ -172,23 +204,13 @@ public final class TestWorkflowService implements IWorkflowService {
     }
     ExecutionId executionId = new ExecutionId(pollRequest.getDomain(), task.getWorkflowExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
-    // As there are no duplicates it is not expected to start to fail.
-    mutableState.startDecisionTask(task, pollRequest);
-    return task;
-  }
-
-  private TestWorkflowMutableState getMutableState(ExecutionId executionId)
-      throws InternalServiceError {
-    lock.lock();
     try {
-      TestWorkflowMutableState mutableState = executions.get(executionId);
-      if (mutableState == null) {
-        throw new InternalServiceError("Execution not found in mutable state: " + executionId);
-      }
-      return mutableState;
-    } finally {
-      lock.unlock();
+      mutableState.startDecisionTask(task, pollRequest);
+      return task;
+    } catch (EntityNotExistsError entityNotExistsError) {
+      // skip the task
     }
+    return task;
   }
 
   @Override
@@ -209,16 +231,22 @@ public final class TestWorkflowService implements IWorkflowService {
   public PollForActivityTaskResponse PollForActivityTask(PollForActivityTaskRequest pollRequest)
       throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
     PollForActivityTaskResponse task;
-    try {
-      task = store.pollForActivityTask(pollRequest);
-    } catch (InterruptedException e) {
-      return new PollForActivityTaskResponse();
+    while (true) {
+      try {
+        task = store.pollForActivityTask(pollRequest);
+      } catch (InterruptedException e) {
+        return new PollForActivityTaskResponse();
+      }
+      ExecutionId executionId =
+          new ExecutionId(pollRequest.getDomain(), task.getWorkflowExecution());
+      TestWorkflowMutableState mutableState = getMutableState(executionId);
+      try {
+        mutableState.startActivityTask(task, pollRequest);
+        return task;
+      } catch (EntityNotExistsError entityNotExistsError) {
+        // skip the task
+      }
     }
-    ExecutionId executionId = new ExecutionId(pollRequest.getDomain(), task.getWorkflowExecution());
-    TestWorkflowMutableState mutableState = getMutableState(executionId);
-    // As there are no duplicates it is not expected to start to fail.
-    mutableState.startActivityTask(task, pollRequest);
-    return task;
   }
 
   @Override
@@ -248,7 +276,7 @@ public final class TestWorkflowService implements IWorkflowService {
             completeRequest.getWorkflowID(),
             completeRequest.getRunID(),
             completeRequest.getActivityID());
-    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getWorkflowId());
     mutableState.completeActivityTaskById(activityId.getId(), completeRequest);
   }
 
@@ -263,7 +291,14 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RespondActivityTaskFailedByID(RespondActivityTaskFailedByIDRequest failRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId =
+        new ActivityId(
+            failRequest.getDomain(),
+            failRequest.getWorkflowID(),
+            failRequest.getRunID(),
+            failRequest.getActivityID());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getWorkflowId());
+    mutableState.failActivityTaskById(activityId.getId(), failRequest);
   }
 
   @Override
@@ -290,7 +325,10 @@ public final class TestWorkflowService implements IWorkflowService {
   public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
           TException {
-    throw new UnsupportedOperationException("not implemented");
+    ExecutionId executionId =
+        new ExecutionId(signalRequest.getDomain(), signalRequest.getWorkflowExecution());
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
+    mutableState.signal(signalRequest);
   }
 
   @Override
@@ -374,11 +412,22 @@ public final class TestWorkflowService implements IWorkflowService {
     throw new UnsupportedOperationException("not implemented");
   }
 
+  @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic
   @Override
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new UnsupportedOperationException("not implemented");
+    ForkJoinPool.commonPool()
+        .execute(
+            () -> {
+              try {
+                GetWorkflowExecutionHistoryResponse result =
+                    GetWorkflowExecutionHistory(getRequest);
+                resultHandler.onComplete(result);
+              } catch (TException e) {
+                resultHandler.onError(e);
+              }
+            });
   }
 
   @Override

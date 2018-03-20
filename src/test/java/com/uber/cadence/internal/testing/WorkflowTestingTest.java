@@ -30,8 +30,11 @@ import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.ActivityTimeoutException;
+import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -70,7 +73,7 @@ public class WorkflowTestingTest {
     String workflow1(String input);
   }
 
-  public static class WorkflowImpl implements TestWorkflow {
+  public static class EmptyWorkflowImpl implements TestWorkflow {
 
     @Override
     public String workflow1(String input) {
@@ -79,14 +82,14 @@ public class WorkflowTestingTest {
   }
 
   @Test
-  public void testSuccess() {
+  public void testEmptyWorkflow() {
     TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
     Worker worker = env.newWorker(TASK_LIST);
-    worker.registerWorkflowImplementationTypes(WorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(EmptyWorkflowImpl.class);
     worker.start();
     WorkflowClient client = env.newWorkflowClient();
-    TestWorkflow activity = client.newWorkflowStub(TestWorkflow.class);
-    String result = activity.workflow1("input1");
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    String result = workflow.workflow1("input1");
     assertEquals("TestWorkflow::workflow1-input1", result);
   }
 
@@ -208,6 +211,67 @@ public class WorkflowTestingTest {
           TimeoutType.SCHEDULE_TO_CLOSE,
           ((ActivityTimeoutException) e.getCause()).getTimeoutType());
     }
+  }
+
+  public interface SignaledWorkflow {
+
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 10, taskList = TASK_LIST)
+    String workflow1(String input);
+
+    @SignalMethod
+    void ProcessSignal(String input);
+  }
+
+  public static class SignaledWorkflowImpl implements SignaledWorkflow {
+
+    private String signalInput;
+
+    @Override
+    public String workflow1(String input) {
+      Workflow.await(() -> signalInput != null);
+      return signalInput + "-" + input;
+    }
+
+    @Override
+    public void ProcessSignal(String input) {
+      signalInput = input;
+    }
+  }
+
+  public static class ConcurrentDecisionWorkflowImpl implements SignaledWorkflow {
+
+    private String signalInput;
+
+    @Override
+    public String workflow1(String input) {
+      // Never call Thread.sleep inside a workflow.
+      // Call Workflow.sleep instead.
+      // Thread.sleep here to test a race condition.
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+      return Workflow.getWorkflowInfo().getWorkflowType() + "-" + input;
+    }
+
+    @Override
+    public void ProcessSignal(String input) {
+      signalInput = input;
+    }
+  }
+
+  @Test(timeout = 1500)
+  public void testSignal() throws ExecutionException, InterruptedException {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(SignaledWorkflowImpl.class);
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    SignaledWorkflow workflow = client.newWorkflowStub(SignaledWorkflow.class);
+    CompletableFuture<String> result = WorkflowClient.execute(workflow::workflow1, "input1");
+    workflow.ProcessSignal("signalInput");
+    assertEquals("signalInput-input1", result.get());
   }
 
   //  private static class AngryWorkflowImpl implements TestWorkflow {

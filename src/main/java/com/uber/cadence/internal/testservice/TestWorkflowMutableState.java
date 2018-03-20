@@ -27,8 +27,10 @@ import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 
 interface TestWorkflowMutableState {
@@ -53,9 +55,15 @@ interface TestWorkflowMutableState {
   void failActivityTask(String activityId, RespondActivityTaskFailedRequest request)
       throws InternalServiceError, EntityNotExistsError;
 
+  void failActivityTaskById(String id, RespondActivityTaskFailedByIDRequest failRequest)
+      throws EntityNotExistsError, InternalServiceError;
+
   RecordActivityTaskHeartbeatResponse heartbeatActivityTask(
       String activityId, RecordActivityTaskHeartbeatRequest request)
       throws InternalServiceError, EntityNotExistsError;
 
   void timeoutActivity(String activityId, TimeoutType startToClose);
+
+  void signal(SignalWorkflowExecutionRequest signalRequest)
+      throws EntityNotExistsError, InternalServiceError;
 }
