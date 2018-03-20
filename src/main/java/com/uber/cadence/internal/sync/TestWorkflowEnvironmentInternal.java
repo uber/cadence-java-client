@@ -72,6 +72,10 @@ import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
@@ -83,6 +87,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
   private final TestEnvironmentOptions testEnvironmentOptions;
   private final WorkflowServiceWrapper service;
+  private final List<Worker> workers = Collections.synchronizedList(new ArrayList<>());
 
   TestWorkflowEnvironmentInternal(TestEnvironmentOptions options) {
     if (options == null) {
@@ -95,8 +100,14 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
   @Override
   public Worker newWorker(String taskList) {
-    return new Worker(
-        service, testEnvironmentOptions.getDomain(), taskList, new WorkerOptions.Builder().build());
+    Worker result =
+        new Worker(
+            service,
+            testEnvironmentOptions.getDomain(),
+            taskList,
+            new WorkerOptions.Builder().build());
+    workers.add(result);
+    return result;
   }
 
   @Override
@@ -114,6 +125,12 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     StringBuilder result = new StringBuilder();
     service.getDiagnostics(result);
     return result.toString();
+  }
+
+  public void shutdown() {
+    for (Worker w : workers) {
+      w.shutdown(Duration.ofMillis(1));
+    }
   }
 
   private static class WorkflowServiceWrapper implements IWorkflowService {

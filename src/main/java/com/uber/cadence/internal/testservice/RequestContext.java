@@ -20,6 +20,7 @@ package com.uber.cadence.internal.testservice;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +41,9 @@ final class RequestContext {
   private final List<HistoryEvent> events = new ArrayList<>();
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
   private DecisionTask decisionTask;
+  private final List<ActivityTask> activityTasks = new ArrayList<>();
   private boolean workflowCompleted;
+  private boolean needDecision;
 
   RequestContext(ExecutionId executionId, long initialEventId) {
     this.executionId = Objects.requireNonNull(executionId);
@@ -48,10 +51,12 @@ final class RequestContext {
   }
 
   /** Returns eventId of the added event; */
-  long addEvents(HistoryEvent event) {
+  long addEvent(HistoryEvent event) {
     requireNotCompleted();
+    long eventId = initialEventId + events.size();
+    event.setEventId(eventId);
     events.add(event);
-    return initialEventId + events.size() - 1;
+    return eventId;
   }
 
   private void requireNotCompleted() {
@@ -68,9 +73,29 @@ final class RequestContext {
     return executionId.getDomain();
   }
 
+  /**
+   * Decision needed, but there is one already running. So initiate another one as soon as it
+   * completes.
+   */
+  public void setNeedDecision(boolean needDecision) {
+    this.needDecision = needDecision;
+  }
+
+  public boolean isNeedDecision() {
+    return needDecision;
+  }
+
   void setDecisionTask(DecisionTask decisionTask) {
     requireNotCompleted();
     this.decisionTask = Objects.requireNonNull(decisionTask);
+  }
+
+  public void addActivityTask(ActivityTask activityTask) {
+    this.activityTasks.add(activityTask);
+  }
+
+  public List<ActivityTask> getActivityTasks() {
+    return activityTasks;
   }
 
   public void completeWorkflow() {
@@ -96,7 +121,8 @@ final class RequestContext {
   /** @return nextEventId */
   long commitChanges(TestWorkflowStore store) throws InternalServiceError {
     long result =
-        store.save(executionId, initialEventId, workflowCompleted, events, decisionTask, null);
+        store.save(
+            executionId, initialEventId, workflowCompleted, events, decisionTask, activityTasks);
     fireCallbacks();
     return result;
   }
@@ -104,7 +130,6 @@ final class RequestContext {
   private void fireCallbacks() throws InternalServiceError {
     for (CommitCallback callback : commitCallbacks) {
       callback.apply();
-      ;
     }
   }
 

@@ -20,6 +20,8 @@ package com.uber.cadence.internal.testing;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.testing.TestEnvironment;
@@ -27,7 +29,8 @@ import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -36,20 +39,26 @@ import org.junit.runner.Description;
 public class WorkflowTestingTest {
 
   @Rule
-  public TestWatcher watchman= new TestWatcher() {
-    @Override
-    protected void failed(Throwable e, Description description) {
-      System.err.println(testEnvironment.getDiagnostics());
-    }
-  };
+  public TestWatcher watchman =
+      new TestWatcher() {
+        @Override
+        protected void failed(Throwable e, Description description) {
+          System.err.println(testEnvironment.getDiagnostics());
+        }
+      };
 
   private static final String TASK_LIST = "test-workflow";
 
   private static TestEnvironment testEnvironment;
 
-  @BeforeClass
-  public static void setUp() {
+  @Before
+  public void setUp() {
     testEnvironment = TestEnvironment.newInstance();
+  }
+
+  @After
+  public void tearDown() {
+    testEnvironment.shutdown();
   }
 
   public interface TestWorkflow {
@@ -82,8 +91,8 @@ public class WorkflowTestingTest {
 
     @Override
     public String workflow1(String input) {
-      throw new IllegalThreadStateException(Workflow.getWorkflowInfo().getWorkflowType() + "-"
-          + input);
+      throw new IllegalThreadStateException(
+          Workflow.getWorkflowInfo().getWorkflowType() + "-" + input);
     }
   }
 
@@ -103,6 +112,43 @@ public class WorkflowTestingTest {
     } catch (WorkflowException e) {
       assertEquals("TestWorkflow::workflow1-input1", e.getCause().getMessage());
     }
+  }
+
+  public interface TestActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 10)
+    String activity1(String input);
+  }
+
+  private static class ActivityImpl implements TestActivity {
+
+    @Override
+    public String activity1(String input) {
+      return Activity.getTask().getActivityType().getName() + "-" + input;
+    }
+  }
+
+  public static class ActivityWorkflow implements TestWorkflow {
+
+    private final TestActivity activity = Workflow.newActivityStub(TestActivity.class);
+
+    @Override
+    public String workflow1(String input) {
+      return activity.activity1(input);
+    }
+  }
+
+  @Test(timeout = 5000)
+  public void testActivity() {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(ActivityWorkflow.class);
+    worker.registerActivitiesImplementations(new ActivityImpl());
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow activity = client.newWorkflowStub(TestWorkflow.class);
+    String result = activity.workflow1("input1");
+    assertEquals("TestActivity::activity1-input1", result);
   }
 
   //  private static class AngryWorkflowImpl implements TestWorkflow {

@@ -24,6 +24,7 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
+import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -173,7 +174,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     if (activityTasks != null) {
       for (ActivityTask activityTask : activityTasks) {
         BlockingQueue<PollForActivityTaskResponse> activitiesQueue =
-            getActivityTaskListQueue(activityTask);
+            getActivityTaskListQueue(activityTask.getTaskListId());
         activitiesQueue.add(activityTask.getTask());
       }
     }
@@ -181,15 +182,15 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   private BlockingQueue<PollForActivityTaskResponse> getActivityTaskListQueue(
-      ActivityTask activityTask) {
+      TaskListId taskListId) {
     lock.lock();
     try {
       {
         BlockingQueue<PollForActivityTaskResponse> activitiesQueue =
-            activityTaskLists.get(activityTask.getTaskListId());
+            activityTaskLists.get(taskListId);
         if (activitiesQueue == null) {
           activitiesQueue = new LinkedBlockingQueue<>();
-          activityTaskLists.put(activityTask.getTaskListId(), activitiesQueue);
+          activityTaskLists.put(taskListId, activitiesQueue);
         }
         return activitiesQueue;
       }
@@ -221,6 +222,16 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
         getDecisionTaskListQueue(taskListId);
     return decisionsQueue.take();
+  }
+
+  @Override
+  public PollForActivityTaskResponse pollForActivityTask(PollForActivityTaskRequest pollRequest)
+      throws InterruptedException {
+    TaskListId taskListId =
+        new TaskListId(pollRequest.getDomain(), pollRequest.getTaskList().getName());
+    BlockingQueue<PollForActivityTaskResponse> activityTaskQueue =
+        getActivityTaskListQueue(taskListId);
+    return activityTaskQueue.take();
   }
 
   @Override
@@ -268,8 +279,9 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         for (Entry<ExecutionId, HistoryStore> entry : this.histories.entrySet()) {
           result.append(entry.getKey());
           result.append("\n");
-          result.append(WorkflowExecutionUtils.prettyPrintHistory(entry.getValue().getEventsLocked()
-              .iterator(), true));
+          result.append(
+              WorkflowExecutionUtils.prettyPrintHistory(
+                  entry.getValue().getEventsLocked().iterator(), true));
           result.append("\n");
         }
       }

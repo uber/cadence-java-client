@@ -27,26 +27,32 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
-final class ExecutionId {
+final class ActivityId {
 
-  private final String domain;
-  private final WorkflowExecution execution;
+  private final ExecutionId executionId;
+  private final String id;
 
-  ExecutionId(String domain, WorkflowExecution execution) {
-    this.domain = Objects.requireNonNull(domain);
-    this.execution = Objects.requireNonNull(execution);
+  ActivityId(String domain, WorkflowExecution execution, String id) {
+    this.executionId =
+        new ExecutionId(Objects.requireNonNull(domain), Objects.requireNonNull(execution));
+    this.id = Objects.requireNonNull(id);
   }
 
-  ExecutionId(String domain, String workflowId, String runId) {
-    this(domain, new WorkflowExecution().setWorkflowId(workflowId).setRunId(runId));
+  ActivityId(String domain, String workflowId, String runId, String id) {
+    this(domain, new WorkflowExecution().setWorkflowId(workflowId).setRunId(runId), id);
   }
 
-  public String getDomain() {
-    return domain;
+  public ActivityId(ExecutionId executionId, String id) {
+    this.executionId = executionId;
+    this.id = id;
   }
 
-  public WorkflowExecution getExecution() {
-    return execution;
+  public ExecutionId getExecutionId() {
+    return executionId;
+  }
+
+  public String getId() {
+    return id;
   }
 
   @Override
@@ -58,24 +64,24 @@ final class ExecutionId {
       return false;
     }
 
-    ExecutionId that = (ExecutionId) o;
+    ActivityId that = (ActivityId) o;
 
-    if (!domain.equals(that.domain)) {
+    if (!executionId.equals(that.executionId)) {
       return false;
     }
-    return execution.equals(that.execution);
+    return id.equals(that.id);
   }
 
   @Override
   public int hashCode() {
-    int result = domain.hashCode();
-    result = 31 * result + execution.hashCode();
+    int result = executionId.hashCode();
+    result = 31 * result + id.hashCode();
     return result;
   }
 
   @Override
   public String toString() {
-    return "ExecutionId{" + "domain='" + domain + '\'' + ", execution=" + execution + '}';
+    return "ActivityId{" + "executionId=" + executionId + ", id='" + id + '\'' + '}';
   }
 
   /** Used for task tokens. */
@@ -83,23 +89,26 @@ final class ExecutionId {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(bout);
     try {
-      out.writeUTF(domain);
+      out.writeUTF(executionId.getDomain());
+      WorkflowExecution execution = executionId.getExecution();
       out.writeUTF(execution.getWorkflowId());
       out.writeUTF(execution.getRunId());
+      out.writeUTF(id);
       return bout.toByteArray();
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     }
   }
 
-  static ExecutionId fromBytes(byte[] serialized) throws InternalServiceError {
+  static ActivityId fromBytes(byte[] serialized) throws InternalServiceError {
     ByteArrayInputStream bin = new ByteArrayInputStream(serialized);
     DataInputStream in = new DataInputStream(bin);
     try {
       String domain = in.readUTF();
       String workflowId = in.readUTF();
       String runId = in.readUTF();
-      return new ExecutionId(domain, workflowId, runId);
+      String id = in.readUTF();
+      return new ActivityId(domain, workflowId, runId, id);
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     }

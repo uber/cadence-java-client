@@ -37,4 +37,6 @@ public interface TestEnvironment {
   IWorkflowService getWorkflowService();
 
   String getDiagnostics();
+
+  void shutdown();
 }

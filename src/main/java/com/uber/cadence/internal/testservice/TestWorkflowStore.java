@@ -21,6 +21,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -133,9 +134,11 @@ interface TestWorkflowStore {
   PollForDecisionTaskResponse pollForDecisionTask(PollForDecisionTaskRequest pollRequest)
       throws InterruptedException;
 
+  PollForActivityTaskResponse pollForActivityTask(PollForActivityTaskRequest pollRequest)
+      throws InterruptedException;
+
   GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError;
 
   void getDiagnostics(StringBuilder result);
-
 }

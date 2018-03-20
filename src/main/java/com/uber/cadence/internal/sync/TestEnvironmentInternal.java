@@ -36,7 +36,7 @@ public class TestEnvironmentInternal implements TestEnvironment {
       this.testEnvironmentOptions = options;
     }
     activityEnvironment = new TestActivityEnvironmentInternal(testEnvironmentOptions);
-    workflowEnvironment =  new TestWorkflowEnvironmentInternal(testEnvironmentOptions);
+    workflowEnvironment = new TestWorkflowEnvironmentInternal(testEnvironmentOptions);
   }
 
   @Override
@@ -57,5 +57,10 @@ public class TestEnvironmentInternal implements TestEnvironment {
   @Override
   public String getDiagnostics() {
     return workflowEnvironment.getDiagnostics();
+  }
+
+  @Override
+  public void shutdown() {
+    workflowEnvironment.shutdown();
   }
 }

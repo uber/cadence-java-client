@@ -18,19 +18,25 @@
 package com.uber.cadence.internal.testservice;
 
 import com.google.common.base.Throwables;
+import com.uber.cadence.BadRequestError;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.EventType;
 import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.PollForActivityTaskRequest;
+import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.internal.testservice.StateMachine.State;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +60,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   @FunctionalInterface
   private interface UpdateProcedure {
 
-    void apply(RequestContext ctx) throws InternalServiceError;
+    void apply(RequestContext ctx) throws InternalServiceError, BadRequestError;
   }
 
   private static final Logger log = LoggerFactory.getLogger(TestWorkflowMutableStateImpl.class);
@@ -80,7 +86,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
     this.store = store;
     this.clock = clock;
-    this.decision = StateMachines.newDecisionStateMachine(store);
     startWorkflow();
   }
 
@@ -117,16 +122,22 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   public void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError {
     List<Decision> decisions = request.getDecisions();
+    log.info("Decisions: " + decisions);
     update(
         ctx -> {
           decision.complete(ctx, request);
           for (Decision d : decisions) {
             processDecision(ctx, d);
           }
+          decision = null;
+          if (ctx.isNeedDecision()) {
+            scheduleDecision(ctx);
+          }
         });
   }
 
-  private void processDecision(RequestContext ctx, Decision d) {
+  private void processDecision(RequestContext ctx, Decision d)
+      throws BadRequestError, InternalServiceError {
     switch (d.getDecisionType()) {
       case CompleteWorkflowExecution:
         processCompleteWorkflowExecution(ctx, d.getCompleteWorkflowExecutionDecisionAttributes());
@@ -135,6 +146,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         processFailWorkflowExecution(ctx, d.getFailWorkflowExecutionDecisionAttributes());
         break;
       case ScheduleActivityTask:
+        processScheduleActivityTask(ctx, d.getScheduleActivityTaskDecisionAttributes());
+        break;
       case RequestCancelActivityTask:
       case StartTimer:
       case CancelTimer:
@@ -144,18 +157,66 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       case ContinueAsNewWorkflowExecution:
       case StartChildWorkflowExecution:
       case SignalExternalWorkflowExecution:
-        throw new UnsupportedOperationException("Decision " + d.getDecisionType() + " is not yet "
-            + "implemented");
+        throw new InternalServiceError(
+            "Decision " + d.getDecisionType() + " is not yet " + "implemented");
     }
   }
 
-  private void processFailWorkflowExecution(RequestContext ctx,
-      FailWorkflowExecutionDecisionAttributes d) {
-    WorkflowExecutionFailedEventAttributes a = new WorkflowExecutionFailedEventAttributes()
-        .setDetails(d.getDetails())
-        .setReason(d.getReason());
-    ctx.addEvents(new HistoryEvent().setEventType(EventType.WorkflowExecutionFailed)
-        .setWorkflowExecutionFailedEventAttributes(a));
+  private void processScheduleActivityTask(
+      RequestContext ctx, ScheduleActivityTaskDecisionAttributes a)
+      throws BadRequestError, InternalServiceError {
+    validateScheduleActivityTask(a);
+    String activityId = a.getActivityId();
+    StateMachine<?> activity = activities.get(activityId);
+    if (activity != null) {
+      throw new BadRequestError("Already open activity with " + activityId);
+    }
+    activity = StateMachines.newActivityStateMachine();
+    activities.put(activityId, activity);
+    activity.schedule(ctx, a);
+  }
+
+  private void validateScheduleActivityTask(ScheduleActivityTaskDecisionAttributes a)
+      throws BadRequestError {
+    if (a == null) {
+      throw new BadRequestError("ScheduleActivityTaskDecisionAttributes is not set on decision.");
+    }
+
+    if (a.getTaskList() == null || a.getTaskList().getName().isEmpty()) {
+      throw new BadRequestError("TaskList is not set on decision.");
+    }
+    if (a.getActivityId() == null || a.getActivityId().isEmpty()) {
+      throw new BadRequestError("ActivityId is not set on decision.");
+    }
+    if (a.getActivityType() == null
+        || a.getActivityType().getName() == null
+        || a.getActivityType().getName().isEmpty()) {
+      throw new BadRequestError("ActivityType is not set on decision.");
+    }
+    if (a.getStartToCloseTimeoutSeconds() <= 0) {
+      throw new BadRequestError("A valid StartToCloseTimeoutSeconds is not set on decision.");
+    }
+    if (a.getScheduleToStartTimeoutSeconds() <= 0) {
+      throw new BadRequestError("A valid ScheduleToStartTimeoutSeconds is not set on decision.");
+    }
+    if (a.getScheduleToCloseTimeoutSeconds() <= 0) {
+      throw new BadRequestError("A valid ScheduleToCloseTimeoutSeconds is not set on decision.");
+    }
+    if (a.getHeartbeatTimeoutSeconds() < 0) {
+      throw new BadRequestError("Ac valid HeartbeatTimeoutSeconds is not set on decision.");
+    }
+  }
+
+  private void processFailWorkflowExecution(
+      RequestContext ctx, FailWorkflowExecutionDecisionAttributes d) {
+    WorkflowExecutionFailedEventAttributes a =
+        new WorkflowExecutionFailedEventAttributes()
+            .setDetails(d.getDetails())
+            .setReason(d.getReason());
+    ctx.addEvent(
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionFailed)
+            .setWorkflowExecutionFailedEventAttributes(a));
     ctx.completeWorkflow();
   }
 
@@ -163,7 +224,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       RequestContext ctx, CompleteWorkflowExecutionDecisionAttributes d) {
     WorkflowExecutionCompletedEventAttributes a =
         new WorkflowExecutionCompletedEventAttributes().setResult(d.getResult());
-    ctx.addEvents(
+    ctx.addEvent(
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionCompleted)
             .setWorkflowExecutionCompletedEventAttributes(a));
@@ -174,8 +235,27 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           addExecutionStartedEvent(ctx);
-          decision.schedule(ctx, startRequest);
+          scheduleDecision(ctx);
         });
+  }
+
+  private void scheduleDecision(RequestContext ctx) throws InternalServiceError {
+    if (decision != null) {
+      if (decision.getState() == State.SCHEDULED) {
+        return; // No need to schedule again
+      }
+      if (decision.getState() == State.STARTED) {
+        ctx.setNeedDecision(true);
+        return;
+      }
+      if (decision.getState() == State.FAILED) {
+        decision.schedule(ctx, startRequest);
+        return;
+      }
+      throw new InternalServiceError("unexpected decision state: " + decision.getState());
+    }
+    this.decision = StateMachines.newDecisionStateMachine(store);
+    decision.schedule(ctx, startRequest);
   }
 
   private void addExecutionStartedEvent(RequestContext ctx) {
@@ -192,6 +272,37 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionStarted)
             .setWorkflowExecutionStartedEventAttributes(a);
-    ctx.addEvents(executionStarted);
+    ctx.addEvent(executionStarted);
+  }
+
+  @Override
+  public void startActivityTask(
+      PollForActivityTaskResponse task, PollForActivityTaskRequest pollRequest)
+      throws InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<?> activity = getActivity(task.getActivityId());
+          activity.start(ctx, pollRequest);
+        });
+  }
+
+  private StateMachine<?> getActivity(String activityId) throws InternalServiceError {
+    StateMachine<?> activity = activities.get(activityId);
+    if (activity == null) {
+      throw new InternalServiceError("unknown activityId: " + activityId);
+    }
+    return activity;
+  }
+
+  @Override
+  public void completeActivityTask(String activityId, RespondActivityTaskCompletedRequest request)
+      throws InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<?> activity = getActivity(activityId);
+          activity.complete(ctx, request);
+          activities.remove(activityId);
+          scheduleDecision(ctx);
+        });
   }
 }

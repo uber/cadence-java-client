@@ -204,7 +204,17 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public PollForActivityTaskResponse PollForActivityTask(PollForActivityTaskRequest pollRequest)
       throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    PollForActivityTaskResponse task;
+    try {
+      task = store.pollForActivityTask(pollRequest);
+    } catch (InterruptedException e) {
+      return new PollForActivityTaskResponse();
+    }
+    ExecutionId executionId = new ExecutionId(pollRequest.getDomain(), task.getWorkflowExecution());
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
+    // As there are no duplicates it is not expected to start to fail.
+    mutableState.startActivityTask(task, pollRequest);
+    return task;
   }
 
   @Override
@@ -217,7 +227,9 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest completeRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ActivityId activityId = ActivityId.fromBytes(completeRequest.getTaskToken());
+    TestWorkflowMutableState mutableState = getMutableState(activityId.getExecutionId());
+    mutableState.completeActivityTask(activityId.getId(), completeRequest);
   }
 
   @Override
