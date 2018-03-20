@@ -25,26 +25,38 @@ import static com.uber.cadence.internal.testservice.StateMachine.State.STARTED;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
 import com.uber.cadence.DecisionTaskScheduledEventAttributes;
 import com.uber.cadence.DecisionTaskStartedEventAttributes;
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
+import java.util.List;
 
 class StateMachines {
 
   static class DecisionTaskData {
+    final TestWorkflowStore store;
 
     long previousStartedEventId = -1;
+
     PollForDecisionTaskResponse decisionTask;
+
     long scheduledEventId = -1;
+
+    DecisionTaskData(TestWorkflowStore store) {
+      this.store = store;
+    }
   }
 
-  static StateMachine<DecisionTaskData> newDecisionStateMachine() {
-    StateMachine<DecisionTaskData> result = new StateMachine<>(new DecisionTaskData());
+  static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
+    StateMachine<DecisionTaskData> result = new StateMachine<>(new DecisionTaskData(store));
 
     result.addTransition(NONE, SCHEDULED, StateMachines::scheduleDecisionTask);
     result.addTransition(SCHEDULED, STARTED, StateMachines::startDecisionTask);
@@ -53,13 +65,11 @@ class StateMachines {
   }
 
   private static void scheduleDecisionTask(
-      RequestContext ctx,
-      DecisionTaskData data,
-      WorkflowExecutionStartedEventAttributes startedEvent) {
+      RequestContext ctx, DecisionTaskData data, StartWorkflowExecutionRequest request) {
     DecisionTaskScheduledEventAttributes a =
         new DecisionTaskScheduledEventAttributes()
-            .setStartToCloseTimeoutSeconds(startedEvent.getTaskStartToCloseTimeoutSeconds())
-            .setTaskList(startedEvent.getTaskList());
+            .setStartToCloseTimeoutSeconds(request.getTaskStartToCloseTimeoutSeconds())
+            .setTaskList(request.getTaskList());
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.DecisionTaskScheduled)
@@ -68,12 +78,14 @@ class StateMachines {
     PollForDecisionTaskResponse decisionTaskResponse = new PollForDecisionTaskResponse();
     decisionTaskResponse.setPreviousStartedEventId(data.previousStartedEventId);
     decisionTaskResponse.setWorkflowExecution(ctx.getExecution());
-    decisionTaskResponse.setWorkflowType(startedEvent.getWorkflowType());
-    TaskListId taskListId = new TaskListId(ctx.getDomain(), startedEvent.getTaskList().getName());
-    ctx.setDecisionTask(new DecisionTask(taskListId, decisionTaskResponse));
+    decisionTaskResponse.setWorkflowType(request.getWorkflowType());
+    TaskListId taskListId = new TaskListId(ctx.getDomain(), request.getTaskList().getName());
+    DecisionTask decisionTask = new DecisionTask(taskListId, decisionTaskResponse);
+    ctx.setDecisionTask(decisionTask);
     ctx.onCommit(
         () -> {
           data.scheduledEventId = scheduledEventId;
+          data.decisionTask = decisionTaskResponse;
         });
   }
 
@@ -92,6 +104,17 @@ class StateMachines {
         () -> {
           data.decisionTask.setStartedEventId(startedEventId);
           data.decisionTask.setTaskToken(ctx.getExecutionId().toBytes());
+          GetWorkflowExecutionHistoryRequest getRequest =
+              new GetWorkflowExecutionHistoryRequest()
+                  .setDomain(request.getDomain())
+                  .setExecution(ctx.getExecution());
+          List<HistoryEvent> events = null;
+          try {
+            events = data.store.getWorkflowExecutionHistory(getRequest).getHistory().getEvents();
+          } catch (EntityNotExistsError entityNotExistsError) {
+            throw new InternalServiceError(entityNotExistsError.toString());
+          }
+          data.decisionTask.setHistory(new History().setEvents(events));
           data.previousStartedEventId = startedEventId;
         });
   }

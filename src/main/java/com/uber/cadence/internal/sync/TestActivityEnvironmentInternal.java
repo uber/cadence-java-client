@@ -190,7 +190,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
           Exception cause;
           try {
             @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-                Class<? extends Exception> cc =
+            Class<? extends Exception> cc =
                 (Class<? extends Exception>) Class.forName(causeClassName);
             causeClass = cc;
             cause =
@@ -237,10 +237,10 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
             (IWorkflowService)
                 Proxy.newProxyInstance(
                     WorkflowServiceWrapper.class.getClassLoader(),
-                    new Class<?>[]{IWorkflowService.class},
+                    new Class<?>[] {IWorkflowService.class},
                     (proxy, method, args) -> {
                       // noop
-                      return method.getReturnType().newInstance();
+                      return method.getReturnType().getDeclaredConstructor().newInstance();
                     });
       } else {
         this.impl = impl;
@@ -303,21 +303,21 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     @Override
     public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError,
-        CancellationAlreadyRequestedError, ServiceBusyError, TException {
+            CancellationAlreadyRequestedError, ServiceBusyError, TException {
       impl.RequestCancelWorkflowExecution(cancelRequest);
     }
 
     @Override
     public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       impl.SignalWorkflowExecution(signalRequest);
     }
 
     @Override
     public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       impl.TerminateWorkflowExecution(terminateRequest);
     }
 
@@ -325,7 +325,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
         ListOpenWorkflowExecutionsRequest listRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.ListOpenWorkflowExecutions(listRequest);
     }
 
@@ -333,7 +333,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
         ListClosedWorkflowExecutionsRequest listRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.ListClosedWorkflowExecutions(listRequest);
     }
 
@@ -346,7 +346,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     @Override
     public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError,
-        TException {
+            TException {
       return impl.QueryWorkflow(queryRequest);
     }
 
@@ -570,7 +570,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     public StartWorkflowExecutionResponse StartWorkflowExecution(
         StartWorkflowExecutionRequest startRequest)
         throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
-        ServiceBusyError, TException {
+            ServiceBusyError, TException {
       return impl.StartWorkflowExecution(startRequest);
     }
 
@@ -578,7 +578,7 @@ class TestActivityEnvironmentInternal implements TestActivityEnvironment {
     public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.GetWorkflowExecutionHistory(getRequest);
     }
 

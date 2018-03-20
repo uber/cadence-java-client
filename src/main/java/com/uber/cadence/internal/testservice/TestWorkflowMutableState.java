@@ -20,11 +20,15 @@ package com.uber.cadence.internal.testservice;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 
 interface TestWorkflowMutableState {
 
   ExecutionId getExecutionId();
 
   void startDecisionTask(PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
+      throws InternalServiceError;
+
+  void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError;
 }

@@ -30,8 +30,6 @@ public class TestEnvironmentOptions {
 
     private String domain = "unit-test";
 
-    private String taskList = "unit-test";
-
     private IWorkflowService service;
 
     public Builder setDataConverter(DataConverter dataConverter) {
@@ -46,19 +44,13 @@ public class TestEnvironmentOptions {
       return this;
     }
 
-    public Builder setTaskList(String taskList) {
-      Objects.requireNonNull(taskList);
-      this.taskList = taskList;
-      return this;
-    }
-
     public Builder setService(IWorkflowService service) {
       this.service = service;
       return this;
     }
 
     public TestEnvironmentOptions build() {
-      return new TestEnvironmentOptions(dataConverter, domain, taskList, service);
+      return new TestEnvironmentOptions(dataConverter, domain, service);
     }
   }
 
@@ -66,15 +58,12 @@ public class TestEnvironmentOptions {
 
   private final String domain;
 
-  private final String taskList;
-
   private final IWorkflowService service;
 
   private TestEnvironmentOptions(
-      DataConverter dataConverter, String domain, String taskList, IWorkflowService service) {
+      DataConverter dataConverter, String domain, IWorkflowService service) {
     this.dataConverter = dataConverter;
     this.domain = domain;
-    this.taskList = taskList;
     this.service = service;
   }
 
@@ -84,10 +73,6 @@ public class TestEnvironmentOptions {
 
   public String getDomain() {
     return domain;
-  }
-
-  public String getTaskList() {
-    return taskList;
   }
 
   public IWorkflowService getService() {
@@ -101,9 +86,6 @@ public class TestEnvironmentOptions {
         + dataConverter
         + ", domain='"
         + domain
-        + '\''
-        + ", taskList='"
-        + taskList
         + '\''
         + ", service="
         + service

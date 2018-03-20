@@ -143,7 +143,7 @@ public final class TestWorkflowService implements IWorkflowService {
       GetWorkflowExecutionHistoryRequest getRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
           TException {
-    throw new UnsupportedOperationException("not implemented");
+    return store.getWorkflowExecutionHistory(getRequest);
   }
 
   @Override
@@ -156,16 +156,27 @@ public final class TestWorkflowService implements IWorkflowService {
       return new PollForDecisionTaskResponse();
     }
     ExecutionId executionId = new ExecutionId(pollRequest.getDomain(), task.getWorkflowExecution());
-    TestWorkflowMutableState mutableState = executions.get(executionId);
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
     // As there are no duplicates it is not expected to start to fail.
     mutableState.startDecisionTask(task, pollRequest);
     return task;
   }
 
+  private TestWorkflowMutableState getMutableState(ExecutionId executionId)
+      throws InternalServiceError {
+    TestWorkflowMutableState mutableState = executions.get(executionId);
+    if (mutableState == null) {
+      throw new InternalServiceError("Execution not found in mutable state: " + executionId);
+    }
+    return mutableState;
+  }
+
   @Override
-  public void RespondDecisionTaskCompleted(RespondDecisionTaskCompletedRequest completeRequest)
+  public void RespondDecisionTaskCompleted(RespondDecisionTaskCompletedRequest request)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    TestWorkflowMutableState mutableState =
+        getMutableState(ExecutionId.fromBytes(request.getTaskToken()));
+    mutableState.completeDecisionTask(request);
   }
 
   @Override

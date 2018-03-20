@@ -17,7 +17,12 @@
 
 package com.uber.cadence.testing;
 
+import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.worker.Worker;
+
 public interface TestWorkflowEnvironment {
 
-  void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses);
+  Worker newWorker(String taskList);
+
+  WorkflowClient newWorkflowClient();
 }

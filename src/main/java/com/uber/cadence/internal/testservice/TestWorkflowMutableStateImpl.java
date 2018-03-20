@@ -17,10 +17,14 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.EventType;
+import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -42,6 +46,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @FunctionalInterface
   private interface UpdateProcedure {
+
     void apply(RequestContext ctx) throws InternalServiceError;
   }
 
@@ -55,7 +60,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private final Map<String, StateMachine<?>> activities = new HashMap<>();
 
-  private StateMachine<?> decision = StateMachines.newDecisionStateMachine();
+  private StateMachine<?> decision;
 
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest, TestWorkflowStore store, LongSupplier clock)
@@ -66,6 +71,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
     this.store = store;
     this.clock = clock;
+    this.decision = StateMachines.newDecisionStateMachine(store);
     startWorkflow();
   }
 
@@ -84,10 +90,37 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError {
-    update((ctx) -> decision.start(ctx, pollRequest));
+    update(ctx -> decision.start(ctx, pollRequest));
+  }
+
+  @Override
+  public void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
+      throws InternalServiceError {
+    update(ctx -> decision.complete(ctx, request));
   }
 
   private void startWorkflow() throws InternalServiceError {
-    update((ctx) -> decision.schedule(ctx, startRequest));
+    update(
+        ctx -> {
+          addExecutionStartedEvent(ctx);
+          decision.schedule(ctx, startRequest);
+        });
+  }
+
+  private void addExecutionStartedEvent(RequestContext ctx) {
+    WorkflowExecutionStartedEventAttributes a =
+        new WorkflowExecutionStartedEventAttributes()
+            .setInput(startRequest.getInput())
+            .setExecutionStartToCloseTimeoutSeconds(
+                startRequest.getExecutionStartToCloseTimeoutSeconds())
+            .setIdentity(startRequest.getIdentity())
+            .setTaskList(startRequest.getTaskList())
+            .setWorkflowType(startRequest.getWorkflowType())
+            .setTaskStartToCloseTimeoutSeconds(startRequest.getTaskStartToCloseTimeoutSeconds());
+    HistoryEvent executionStarted =
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionStarted)
+            .setWorkflowExecutionStartedEventAttributes(a);
+    ctx.addEvents(executionStarted);
   }
 }

@@ -29,6 +29,7 @@ final class RequestContext {
 
   @FunctionalInterface
   interface CommitCallback {
+
     void apply() throws InternalServiceError;
   }
 
@@ -39,6 +40,7 @@ final class RequestContext {
   private final List<HistoryEvent> events = new ArrayList<>();
   private final List<CommitCallback> commitCallbacks = new ArrayList<>();
   private DecisionTask decisionTask;
+  private boolean complete;
 
   RequestContext(ExecutionId executionId, long initialEventId) {
     this.executionId = Objects.requireNonNull(executionId);
@@ -63,6 +65,15 @@ final class RequestContext {
     this.decisionTask = Objects.requireNonNull(decisionTask);
   }
 
+  public boolean isComplete() {
+    return complete;
+  }
+
+  public RequestContext setComplete(boolean complete) {
+    this.complete = complete;
+    return this;
+  }
+
   DecisionTask getDecisionTask() {
     return decisionTask;
   }
@@ -77,7 +88,7 @@ final class RequestContext {
 
   /** @return nextEventId */
   long commitChanges(TestWorkflowStore store) throws InternalServiceError {
-    long result = store.save(executionId, initialEventId, events, decisionTask, null);
+    long result = store.save(executionId, initialEventId, complete, events, decisionTask, null);
     fireCallbacks();
     return result;
   }

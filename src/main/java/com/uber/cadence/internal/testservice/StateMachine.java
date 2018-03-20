@@ -131,5 +131,6 @@ class StateMachine<Data> {
     }
     callback.apply(context, data, request);
     transitionHistory.add(transition.getTo());
+    state = transition.getTo();
   }
 }

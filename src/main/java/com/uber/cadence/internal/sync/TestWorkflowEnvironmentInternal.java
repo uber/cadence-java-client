@@ -66,15 +66,12 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowClientOptions.Builder;
-import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerOptions;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
@@ -84,12 +81,8 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
   private static final Logger log = LoggerFactory.getLogger(TestWorkflowEnvironmentInternal.class);
 
-  private static final int WORKFLOW_THREAD_POOL_SIZE = 1000;
-
-  private final ReplayDecisionTaskHandler decisionTaskHandler;
-  private final POJOWorkflowImplementationFactory workflowFactory;
   private final TestEnvironmentOptions testEnvironmentOptions;
-  private final AtomicInteger idSequencer = new AtomicInteger();
+  private final WorkflowServiceWrapper service;
 
   TestWorkflowEnvironmentInternal(TestEnvironmentOptions options) {
     if (options == null) {
@@ -97,34 +90,23 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     } else {
       this.testEnvironmentOptions = options;
     }
-    ThreadPoolExecutor workflowThreadPool =
-        new ThreadPoolExecutor(
-            WORKFLOW_THREAD_POOL_SIZE,
-            WORKFLOW_THREAD_POOL_SIZE,
-            10,
-            TimeUnit.SECONDS,
-            new SynchronousQueue<>());
-
-    workflowFactory =
-        new POJOWorkflowImplementationFactory(
-            testEnvironmentOptions.getDataConverter(), workflowThreadPool);
-    decisionTaskHandler =
-        new ReplayDecisionTaskHandler(testEnvironmentOptions.getDomain(), workflowFactory);
+    service = new WorkflowServiceWrapper();
   }
 
   @Override
-  public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
-    workflowFactory.setWorkflowImplementationTypes(workflowImplementationClasses);
+  public Worker newWorker(String taskList) {
+    return new Worker(
+        service, testEnvironmentOptions.getDomain(), taskList, new WorkerOptions.Builder().build());
   }
 
-  WorkflowClient newWorkflowClient() {
+  @Override
+  public WorkflowClient newWorkflowClient() {
     WorkflowClientOptions options =
         new Builder().setDataConverter(testEnvironmentOptions.getDataConverter()).build();
-    return new WorkflowClientInternal(
-        new WorkflowServiceWrapper(), testEnvironmentOptions.getDomain(), options);
+    return WorkflowClientInternal.newInstance(service, testEnvironmentOptions.getDomain(), options);
   }
 
-  private class WorkflowServiceWrapper implements IWorkflowService {
+  private static class WorkflowServiceWrapper implements IWorkflowService {
 
     private final IWorkflowService impl;
 
