@@ -108,6 +108,10 @@ class StateMachine<Data> {
     return state;
   }
 
+  public Data getData() {
+    return data;
+  }
+
   <V> void addTransition(State from, State to, Callback<Data, V> callback) {
     allowedTransitions.put(new Transition(from, to), callback);
   }

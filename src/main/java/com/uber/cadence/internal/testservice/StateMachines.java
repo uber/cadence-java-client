@@ -76,30 +76,6 @@ class StateMachines {
 
   static final class WorkflowData {}
 
-  static final class CompleteWorkflowRequest {
-
-    private final CompleteWorkflowExecutionDecisionAttributes attributes;
-    private final long decisionTaskCompletedEventId;
-
-    CompleteWorkflowRequest(
-        CompleteWorkflowExecutionDecisionAttributes attributes, long decisionTaskCompletedEventId) {
-      this.attributes = attributes;
-      this.decisionTaskCompletedEventId = decisionTaskCompletedEventId;
-    }
-  }
-
-  static final class CancelWorkflowRequest {
-
-    private final CancelWorkflowExecutionDecisionAttributes attributes;
-    private final long decisionTaskCompletedEventId;
-
-    CancelWorkflowRequest(
-        CancelWorkflowExecutionDecisionAttributes attributes, long decisionTaskCompletedEventId) {
-      this.attributes = attributes;
-      this.decisionTaskCompletedEventId = decisionTaskCompletedEventId;
-    }
-  }
-
   static final class DecisionTaskData {
 
     private final TestWorkflowStore store;
@@ -115,8 +91,9 @@ class StateMachines {
     }
   }
 
-  private static final class ActivityTaskData {
+  static final class ActivityTaskData {
 
+    ActivityTaskScheduledEventAttributes scheduledEvent;
     PollForActivityTaskResponse activityTask;
 
     long scheduledEventId = -1;
@@ -150,6 +127,7 @@ class StateMachines {
     StateMachine<ActivityTaskData> result = new StateMachine<>(new ActivityTaskData());
     result.addTransition(NONE, SCHEDULED, StateMachines::scheduleActivityTask);
     result.addTransition(SCHEDULED, STARTED, StateMachines::startActivityTask);
+    result.addTransition(SCHEDULED, TIMED_OUT, StateMachines::timeoutActivityTask);
     result.addTransition(STARTED, COMPLETED, StateMachines::completeActivityTask);
     result.addTransition(STARTED, FAILED, StateMachines::failActivityTask);
     result.addTransition(STARTED, STARTED, StateMachines::heartbeatActivityTask);
@@ -288,6 +266,7 @@ class StateMachines {
     ctx.addActivityTask(activityTask);
     ctx.onCommit(
         () -> {
+          data.scheduledEvent = a;
           data.scheduledEventId = scheduledEventId;
           data.activityTask = taskResponse;
         });

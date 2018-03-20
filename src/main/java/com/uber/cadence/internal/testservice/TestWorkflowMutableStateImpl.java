@@ -48,6 +48,7 @@ import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.internal.testservice.StateMachine.State;
+import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -229,6 +230,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     ctx.addTimer(
         a.getScheduleToCloseTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_CLOSE));
+    ctx.addTimer(
+        a.getScheduleToStartTimeoutSeconds(),
+        () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_START));
   }
 
   private void validateScheduleActivityTask(ScheduleActivityTaskDecisionAttributes a)
@@ -319,8 +323,14 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError {
     update(
         ctx -> {
-          StateMachine<?> activity = getActivity(task.getActivityId());
+          String activityId = task.getActivityId();
+          StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.start(ctx, pollRequest, 0);
+          int timeoutSeconds = activity.getData().scheduledEvent.getStartToCloseTimeoutSeconds();
+          if (timeoutSeconds > 0) {
+            ctx.addTimer(
+                timeoutSeconds, () -> timeoutActivity(activityId, TimeoutType.START_TO_CLOSE));
+          }
         });
   }
 
@@ -426,10 +436,28 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       update(
           ctx -> {
             StateMachine<?> activity = getActivity(activityId);
+            switch (timeoutType) {
+              case START_TO_CLOSE:
+                break;
+              case SCHEDULE_TO_START:
+                if (activity.getState() != State.SCHEDULED) {
+                  log.trace("Ignoring SCHEDULE_TO_START timeout for activityId:" + activityId);
+                  return;
+                }
+                break;
+              case SCHEDULE_TO_CLOSE:
+                break;
+              case HEARTBEAT:
+                break;
+            }
             activity.timeout(ctx, timeoutType);
             activities.remove(activityId);
             scheduleDecision(ctx);
           });
+    } catch (EntityNotExistsError e) {
+      if (log.isTraceEnabled()) {
+        log.trace("Ignoring activity timeout for activityId:" + activityId);
+      }
     } catch (Exception e) {
       // Cannot fail to timer threads
       log.error("Failure trying to timeout an activity", e);
@@ -472,11 +500,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     ctx.addEvent(executionSignaled);
   }
 
-  private StateMachine<?> getActivity(String activityId) throws EntityNotExistsError {
+  @SuppressWarnings("unchecked")
+  private StateMachine<ActivityTaskData> getActivity(String activityId)
+      throws EntityNotExistsError {
     StateMachine<?> activity = activities.get(activityId);
     if (activity == null) {
       throw new EntityNotExistsError("unknown activityId: " + activityId);
     }
-    return activity;
+    return (StateMachine<ActivityTaskData>) activity;
   }
 }
