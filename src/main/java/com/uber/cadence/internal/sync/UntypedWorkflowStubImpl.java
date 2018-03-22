@@ -39,6 +39,7 @@ import com.uber.cadence.internal.external.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
@@ -223,6 +224,8 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
           execution.get(), workflowType, executionFailed.getDecisionTaskCompletedEventId(), cause);
     } else if (failure instanceof EntityNotExistsError) {
       throw new WorkflowNotFoundException(execution.get(), workflowType, failure.getMessage());
+    } else if (failure instanceof CancellationException) {
+      throw (CancellationException) failure;
     } else {
       throw new WorkflowFailureException(execution.get(), workflowType, 0, failure);
     }

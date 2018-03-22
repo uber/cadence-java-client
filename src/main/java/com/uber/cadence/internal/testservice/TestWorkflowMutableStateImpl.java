@@ -67,7 +67,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,6 +84,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
+
+  public static final int MILLISECONDS_IN_SECOND = 1000;
 
   @FunctionalInterface
   private interface UpdateProcedure {
@@ -445,12 +446,25 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           String activityId = task.getActivityId();
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.start(ctx, pollRequest, 0);
-          int timeoutSeconds = activity.getData().scheduledEvent.getStartToCloseTimeoutSeconds();
-          if (timeoutSeconds > 0) {
+          ActivityTaskData data = activity.getData();
+          int startToCloseTimeout = data.scheduledEvent
+              .getStartToCloseTimeoutSeconds();
+          int heartbeatTimeout = data.scheduledEvent.getHeartbeatTimeoutSeconds();
+          if (startToCloseTimeout > 0) {
             ctx.addTimer(
-                timeoutSeconds, () -> timeoutActivity(activityId, TimeoutType.START_TO_CLOSE));
+                startToCloseTimeout, () -> timeoutActivity(activityId, TimeoutType.START_TO_CLOSE));
           }
+          updateHeartbeatTimer(ctx, activityId, activity, startToCloseTimeout, heartbeatTimeout);
         });
+  }
+
+  private void updateHeartbeatTimer(RequestContext ctx, String activityId,
+      StateMachine<ActivityTaskData> activity, int startToCloseTimeout, int heartbeatTimeout) {
+    if (heartbeatTimeout > 0 && heartbeatTimeout < startToCloseTimeout) {
+      activity.getData().lastHeartbeatTime = clock.getAsLong();
+      ctx.addTimer(
+          heartbeatTimeout, () -> timeoutActivity(activityId, TimeoutType.HEARTBEAT));
+    }
   }
 
   @Override
@@ -532,19 +546,26 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       String activityId, RecordActivityTaskHeartbeatRequest request)
       throws InternalServiceError, EntityNotExistsError {
     RecordActivityTaskHeartbeatResponse result = new RecordActivityTaskHeartbeatResponse();
-    lock.lock();
     try {
-      StateMachine<?> activity = getActivity(activityId);
-      activity.update(request);
-      if (activity.getState() == State.CANCELLATION_REQUESTED) {
-        result.setCancelRequested(true);
-      }
+      update(
+          ctx -> {
+            StateMachine<ActivityTaskData> activity = getActivity(activityId);
+            activity.update(request);
+            if (activity.getState() == State.CANCELLATION_REQUESTED) {
+              result.setCancelRequested(true);
+            }
+            ActivityTaskData data = activity.getData();
+            data.lastHeartbeatTime = clock.getAsLong();
+            int startToCloseTimeout = data.scheduledEvent
+                .getStartToCloseTimeoutSeconds();
+            int heartbeatTimeout = data.scheduledEvent.getHeartbeatTimeoutSeconds();
+            updateHeartbeatTimer(ctx, activityId, activity, startToCloseTimeout, heartbeatTimeout);
+          });
+
     } catch (InternalServiceError | EntityNotExistsError e) {
       throw e;
     } catch (Exception e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
-    } finally {
-      lock.unlock();
     }
     return result;
   }
@@ -553,10 +574,17 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       update(
           ctx -> {
-            StateMachine<?> activity = getActivity(activityId);
+            StateMachine<ActivityTaskData> activity = getActivity(activityId);
             if (timeoutType == TimeoutType.SCHEDULE_TO_START
                 && activity.getState() != State.SCHEDULED) {
               return;
+            }
+            if (timeoutType == TimeoutType.HEARTBEAT) {
+              // Deal with timers which are never cancelled
+              if (clock.getAsLong() - activity.getData().lastHeartbeatTime < activity.getData()
+                  .scheduledEvent.getHeartbeatTimeoutSeconds() * MILLISECONDS_IN_SECOND) {
+                return;
+              }
             }
             activity.timeout(ctx, timeoutType);
             activities.remove(activityId);
@@ -620,7 +648,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       if (cause instanceof TException) {
-        throw (TException)cause;
+        throw (TException) cause;
       }
       throw new InternalServiceError(Throwables.getStackTraceAsString(cause));
     }

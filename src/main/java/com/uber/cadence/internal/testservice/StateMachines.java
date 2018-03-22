@@ -53,6 +53,8 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
@@ -78,7 +80,9 @@ import java.util.List;
 
 class StateMachines {
 
-  static final class WorkflowData {}
+  static final class WorkflowData {
+
+  }
 
   static final class DecisionTaskData {
 
@@ -103,6 +107,7 @@ class StateMachines {
     long scheduledEventId = -1;
     long startedEventId = -1;
     byte[] heartbeatDetails;
+    long lastHeartbeatTime;
   }
 
   static final class TimerData {
@@ -509,12 +514,20 @@ class StateMachines {
   }
 
   private static void reportActivityTaskCancellation(
-      RequestContext ctx, ActivityTaskData data, Object ignored, long notUsed) {
+      RequestContext ctx, ActivityTaskData data, Object request, long notUsed) {
+    byte[] details = null;
+    if (request instanceof RespondActivityTaskCanceledRequest) {
+      details = ((RespondActivityTaskCanceledRequest) request).getDetails();
+    } else if (request instanceof RespondActivityTaskCanceledByIDRequest) {
+      details = ((RespondActivityTaskCanceledByIDRequest) request).getDetails();
+    }
     ActivityTaskCanceledEventAttributes a =
         new ActivityTaskCanceledEventAttributes()
             .setScheduledEventId(data.scheduledEventId)
-            .setDetails(data.heartbeatDetails)
             .setStartedEventId(data.startedEventId);
+    if (details != null) {
+      a.setDetails(details);
+    }
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.ActivityTaskCanceled)

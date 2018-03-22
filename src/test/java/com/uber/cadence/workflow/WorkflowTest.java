@@ -80,7 +80,7 @@ public class WorkflowTest {
   @Rule
   public TestName testName = new TestName();
   @Rule
-  public Timeout globalTimeout = Timeout.seconds(5);
+  public Timeout globalTimeout = Timeout.seconds(6);
 
   @Rule
   public TestWatcher watchman =
