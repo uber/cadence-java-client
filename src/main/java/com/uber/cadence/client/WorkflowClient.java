@@ -143,6 +143,8 @@ public interface WorkflowClient {
     return WorkflowClientInternal.newInstance(service, domain, options);
   }
 
+  String getDomain();
+
   /**
    * Creates workflow client stub that can be used to start a single workflow execution. The first
    * call must be to a method annotated with @WorkflowMethod. After workflow is started it can be

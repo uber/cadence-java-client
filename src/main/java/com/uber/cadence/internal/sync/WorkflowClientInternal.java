@@ -137,6 +137,11 @@ public final class WorkflowClientInternal implements WorkflowClient {
   }
 
   @Override
+  public String getDomain() {
+    return genericClient.getDomain();
+  }
+
+  @Override
   @SuppressWarnings("unchecked")
   public <T> T newWorkflowStub(Class<T> workflowInterface, WorkflowOptions options) {
     checkAnnotation(workflowInterface, WorkflowMethod.class);

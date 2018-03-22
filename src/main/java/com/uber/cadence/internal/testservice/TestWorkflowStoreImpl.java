@@ -74,12 +74,13 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       }
     }
 
-    void addAllLocked(List<HistoryEvent> events, boolean complete) {
+    void addAllLocked(List<HistoryEvent> events, boolean complete, long timeInNanos) {
       if (completed) {
         throw new IllegalStateException("Already completed");
       }
       for (HistoryEvent event : events) {
         event.setEventId(history.size());
+        event.setTimestamp(timeInNanos);
         history.add(event);
       }
       if (history.isEmpty() && complete) {
@@ -161,7 +162,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         histories.put(executionId, history);
       }
       history.checkNextEventId(ctx.getInitialEventId());
-      history.addAllLocked(events, ctx.isWorkflowCompleted());
+      history.addAllLocked(events, ctx.isWorkflowCompleted(), ctx.currentTimeInNanoseconds());
       result = history.getNextEventIdLocked();
       ctx.fireCallbacks();
     } finally {

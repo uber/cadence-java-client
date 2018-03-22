@@ -34,7 +34,6 @@ import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
-import com.uber.cadence.TimeoutType;
 
 interface TestWorkflowMutableState {
 

@@ -21,6 +21,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.uber.cadence.EventType;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.History;
+import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
@@ -29,20 +33,24 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowException;
-import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.testing.TestEnvironment;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.ActivityTimeoutException;
+import com.uber.cadence.workflow.Async;
+import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,8 +61,7 @@ import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
 
-  @Rule
-  public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =
@@ -309,19 +316,41 @@ public class WorkflowTestingTest {
     worker.registerWorkflowImplementationTypes(TimeoutWorkflow.class);
     worker.start();
     WorkflowClient client = env.newWorkflowClient();
-    WorkflowOptions options = new WorkflowOptions.Builder()
-        .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
-        .build();
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+            .build();
     TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
     try {
       workflow.workflow1("bar");
       fail("unreacheable");
     } catch (WorkflowException e) {
       assertTrue(e instanceof WorkflowTimedOutException);
-      assertEquals(
-          TimeoutType.START_TO_CLOSE,
-          ((WorkflowTimedOutException) e).getTimeoutType());
+      assertEquals(TimeoutType.START_TO_CLOSE, ((WorkflowTimedOutException) e).getTimeoutType());
     }
+  }
+
+  public static class TimerWorkflow implements TestWorkflow {
+
+    @Override
+    public String workflow1(String input) {
+      Workflow.newTimer(Duration.ofSeconds(1)).get();
+      return Workflow.getWorkflowInfo().getWorkflowType() + "-" + input;
+    }
+  }
+
+  @Test
+  public void testTimer() {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TimerWorkflow.class);
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    long start = System.currentTimeMillis();
+    String result = workflow.workflow1("input1");
+    assertEquals("TestWorkflow::workflow1-input1", result);
+    assertTrue(System.currentTimeMillis() - start > 1000);
   }
 
   public interface SignaledWorkflow {
@@ -444,6 +473,52 @@ public class WorkflowTestingTest {
       fail("unreacheable");
     } catch (CancellationException e) {
     }
+  }
+
+  public static class TestTimerCancellationWorkflow implements TestWorkflow {
+
+    @Override
+    public String workflow1(String input) {
+      Promise<Void> s = Async.procedure(() -> Workflow.sleep(Duration.ofDays(1)));
+      TestActivity activity = Workflow.newActivityStub(TestActivity.class);
+      try {
+        activity.activity1("input");
+        Workflow.sleep(Duration.ofDays(3));
+      } finally {
+        s.get();
+      }
+      return "result";
+    }
+  }
+
+  @Test
+  public void testTimerCancellation() throws TException {
+    TestWorkflowEnvironment env = testEnvironment.workflowEnvironment();
+    Worker worker = env.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TestTimerCancellationWorkflow.class);
+    worker.start();
+    WorkflowClient client = env.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    WorkflowExecution execution = WorkflowClient.start(workflow::workflow1, "input1");
+    UntypedWorkflowStub untyped = client.newUntypedWorkflowStub(execution);
+    untyped.cancel();
+    try {
+      untyped.getResult(String.class);
+      fail("unreacheable");
+    } catch (CancellationException e) {
+    }
+    History history =
+        testEnvironment
+            .getWorkflowService()
+            .GetWorkflowExecutionHistory(
+                new GetWorkflowExecutionHistoryRequest()
+                    .setExecution(execution)
+                    .setDomain(client.getDomain()))
+            .getHistory();
+    List<HistoryEvent> historyEvents = history.getEvents();
+    assertTrue(
+        WorkflowExecutionUtils.prettyPrintHistory(history, false),
+        WorkflowExecutionUtils.containsEvent(historyEvents, EventType.TimerCanceled));
   }
 
   //  private static class AngryWorkflowImpl implements TestWorkflow {

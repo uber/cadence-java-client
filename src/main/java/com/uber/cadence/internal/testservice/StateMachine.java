@@ -25,7 +25,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-class StateMachine<Data> {
+/**
+ * State machine of a single server side entity like activity, decision or the whole workflow.
+ *
+ * <p>Based on the idea that each entity goes through state transitions and the same operation like
+ * timeout is applicable to some states only and can lead to different actions in each state. Each
+ * valid state transition should be registered through {@link #add(State, State, Callback)}. The
+ * associated callback is invoked when the state transition is requested.
+ *
+ * @see StateMachines for entity factories.
+ * @param <Data>
+ */
+final class StateMachine<Data> {
 
   enum State {
     NONE,
@@ -112,8 +123,18 @@ class StateMachine<Data> {
     return data;
   }
 
-  <V> void addTransition(State from, State to, Callback<Data, V> callback) {
+  /**
+   * Registers a transition between states.
+   *
+   * @param from initial state that transition applies to
+   * @param to destination state of a transition.
+   * @param callback callback to invoke upon transition
+   * @param <V> type of callback parameter.
+   * @return the current StateMachine instance for fluid pattern.
+   */
+  <V> StateMachine<Data> add(State from, State to, Callback<Data, V> callback) {
     allowedTransitions.put(new Transition(from, to), callback);
+    return this;
   }
 
   public <V> void schedule(RequestContext ctx, V request, long referenceId)

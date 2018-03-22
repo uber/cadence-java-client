@@ -33,6 +33,7 @@ import com.uber.cadence.ActivityTaskFailedEventAttributes;
 import com.uber.cadence.ActivityTaskScheduledEventAttributes;
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.ActivityTaskTimedOutEventAttributes;
+import com.uber.cadence.CancelTimerDecisionAttributes;
 import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
@@ -52,16 +53,18 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
-import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
-import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
+import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
+import com.uber.cadence.TimerCanceledEventAttributes;
+import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes;
 import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
@@ -75,9 +78,7 @@ import java.util.List;
 
 class StateMachines {
 
-  static final class WorkflowData {
-
-  }
+  static final class WorkflowData {}
 
   static final class DecisionTaskData {
 
@@ -104,48 +105,54 @@ class StateMachines {
     byte[] heartbeatDetails;
   }
 
+  static final class TimerData {
+
+    TimerStartedEventAttributes startedEvent;
+    public long startedEventId;
+  }
+
   static StateMachine<WorkflowData> newWorkflowStateMachine() {
-    StateMachine<WorkflowData> result = new StateMachine<>(new WorkflowData());
-    result.addTransition(NONE, STARTED, StateMachines::startWorkflow);
-    result.addTransition(STARTED, COMPLETED, StateMachines::completeWorkflow);
-    result.addTransition(STARTED, FAILED, StateMachines::failWorkflow);
-    result.addTransition(STARTED, TIMED_OUT, StateMachines::timeoutWorkflow);
-    result.addTransition(STARTED, CANCELLATION_REQUESTED,
-        StateMachines::requestWorkflowCancellation);
-    result.addTransition(CANCELLATION_REQUESTED, COMPLETED, StateMachines::completeWorkflow);
-    result.addTransition(CANCELLATION_REQUESTED, CANCELED, StateMachines::cancelWorkflow);
-    result.addTransition(CANCELLATION_REQUESTED, FAILED, StateMachines::failWorkflow);
-    result.addTransition(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutWorkflow);
-    return result;
+    return new StateMachine<>(new WorkflowData())
+        .add(NONE, STARTED, StateMachines::startWorkflow)
+        .add(STARTED, COMPLETED, StateMachines::completeWorkflow)
+        .add(STARTED, FAILED, StateMachines::failWorkflow)
+        .add(STARTED, TIMED_OUT, StateMachines::timeoutWorkflow)
+        .add(STARTED, CANCELLATION_REQUESTED, StateMachines::requestWorkflowCancellation)
+        .add(CANCELLATION_REQUESTED, COMPLETED, StateMachines::completeWorkflow)
+        .add(CANCELLATION_REQUESTED, CANCELED, StateMachines::cancelWorkflow)
+        .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failWorkflow)
+        .add(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutWorkflow);
   }
 
   static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
-    StateMachine<DecisionTaskData> result = new StateMachine<>(new DecisionTaskData(store));
-    result.addTransition(NONE, SCHEDULED, StateMachines::scheduleDecisionTask);
-    result.addTransition(SCHEDULED, STARTED, StateMachines::startDecisionTask);
-    result.addTransition(STARTED, COMPLETED, StateMachines::completeDecisionTask);
-    return result;
+    return new StateMachine<>(new DecisionTaskData(store))
+        .add(NONE, SCHEDULED, StateMachines::scheduleDecisionTask)
+        .add(SCHEDULED, STARTED, StateMachines::startDecisionTask)
+        .add(STARTED, COMPLETED, StateMachines::completeDecisionTask);
   }
 
-  public static StateMachine<?> newActivityStateMachine() {
-    StateMachine<ActivityTaskData> result = new StateMachine<>(new ActivityTaskData());
-    result.addTransition(NONE, SCHEDULED, StateMachines::scheduleActivityTask);
-    result.addTransition(SCHEDULED, STARTED, StateMachines::startActivityTask);
-    result.addTransition(SCHEDULED, TIMED_OUT, StateMachines::timeoutActivityTask);
-    result.addTransition(STARTED, COMPLETED, StateMachines::completeActivityTask);
-    result.addTransition(STARTED, FAILED, StateMachines::failActivityTask);
-    result.addTransition(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask);
-    result.addTransition(STARTED, STARTED, StateMachines::heartbeatActivityTask);
-    result.addTransition(STARTED, CANCELLATION_REQUESTED,
-        StateMachines::requestActivityCancellation);
-    result.addTransition(CANCELLATION_REQUESTED, CANCELLATION_REQUESTED,
-        StateMachines::heartbeatActivityTask);
-    result.addTransition(CANCELLATION_REQUESTED, TIMED_OUT,
-        StateMachines::timeoutActivityTask);
-    result.addTransition(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
-    result.addTransition(CANCELLATION_REQUESTED, CANCELED,
-        StateMachines::reportActivityTaskCancellation);
-    return result;
+  public static StateMachine<ActivityTaskData> newActivityStateMachine() {
+    return new StateMachine<>(new ActivityTaskData())
+        .add(NONE, SCHEDULED, StateMachines::scheduleActivityTask)
+        .add(SCHEDULED, STARTED, StateMachines::startActivityTask)
+        .add(SCHEDULED, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(SCHEDULED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
+        .add(STARTED, COMPLETED, StateMachines::completeActivityTask)
+        .add(STARTED, FAILED, StateMachines::failActivityTask)
+        .add(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(STARTED, STARTED, StateMachines::heartbeatActivityTask)
+        .add(STARTED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
+        .add(CANCELLATION_REQUESTED, CANCELED, StateMachines::reportActivityTaskCancellation)
+        .add(CANCELLATION_REQUESTED, CANCELLATION_REQUESTED, StateMachines::heartbeatActivityTask)
+        .add(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
+  }
+
+  public static StateMachine<TimerData> newTimerStateMachine() {
+    return new StateMachine<>(new TimerData())
+        .add(NONE, STARTED, StateMachines::startTimer)
+        .add(STARTED, COMPLETED, StateMachines::fireTimer)
+        .add(STARTED, CANCELED, StateMachines::cancelTimer);
   }
 
   private static void startWorkflow(
@@ -202,10 +209,7 @@ class StateMachines {
   }
 
   private static void timeoutWorkflow(
-      RequestContext ctx,
-      WorkflowData data,
-      TimeoutType timeoutType,
-      long notUsed) {
+      RequestContext ctx, WorkflowData data, TimeoutType timeoutType, long notUsed) {
     WorkflowExecutionTimedOutEventAttributes a =
         new WorkflowExecutionTimedOutEventAttributes().setTimeoutType(timeoutType);
     HistoryEvent event =
@@ -505,30 +509,7 @@ class StateMachines {
   }
 
   private static void reportActivityTaskCancellation(
-      RequestContext ctx, ActivityTaskData data, Object d, long notUsed) {
-    if (d instanceof RespondActivityTaskCanceledRequest) {
-      reportActivityTaskCancellationByTaskToken(ctx, data, (RespondActivityTaskCanceledRequest) d);
-    } else {
-      reportActivityTaskCancellationById(ctx, data, (RespondActivityTaskCanceledByIDRequest) d);
-    }
-  }
-
-  private static void reportActivityTaskCancellationByTaskToken(
-      RequestContext ctx, ActivityTaskData data, RespondActivityTaskCanceledRequest d) {
-    ActivityTaskCanceledEventAttributes a =
-        new ActivityTaskCanceledEventAttributes()
-            .setScheduledEventId(data.scheduledEventId)
-            .setDetails(data.heartbeatDetails)
-            .setStartedEventId(data.startedEventId);
-    HistoryEvent event =
-        new HistoryEvent()
-            .setEventType(EventType.ActivityTaskCanceled)
-            .setActivityTaskCanceledEventAttributes(a);
-    ctx.addEvent(event);
-  }
-
-  private static void reportActivityTaskCancellationById(
-      RequestContext ctx, ActivityTaskData data, RespondActivityTaskCanceledByIDRequest d) {
+      RequestContext ctx, ActivityTaskData data, Object ignored, long notUsed) {
     ActivityTaskCanceledEventAttributes a =
         new ActivityTaskCanceledEventAttributes()
             .setScheduledEventId(data.scheduledEventId)
@@ -547,5 +528,50 @@ class StateMachines {
       RecordActivityTaskHeartbeatRequest request,
       long notUsed) {
     data.heartbeatDetails = request.getDetails();
+  }
+
+  private static void startTimer(
+      RequestContext ctx,
+      TimerData data,
+      StartTimerDecisionAttributes d,
+      long decisionTaskCompletedEventId) {
+    TimerStartedEventAttributes a =
+        new TimerStartedEventAttributes()
+            .setDecisionTaskCompletedEventId(decisionTaskCompletedEventId)
+            .setStartToFireTimeoutSeconds(d.getStartToFireTimeoutSeconds())
+            .setTimerId(d.getTimerId());
+    HistoryEvent event =
+        new HistoryEvent().setEventType(EventType.TimerStarted).setTimerStartedEventAttributes(a);
+    long startedEventId = ctx.addEvent(event);
+    ctx.onCommit(
+        () -> {
+          data.startedEvent = a;
+          data.startedEventId = startedEventId;
+        });
+  }
+
+  private static void fireTimer(RequestContext ctx, TimerData data, Object ignored, long notUsed) {
+    TimerFiredEventAttributes a =
+        new TimerFiredEventAttributes()
+            .setTimerId(data.startedEvent.getTimerId())
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent().setEventType(EventType.TimerFired).setTimerFiredEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void cancelTimer(
+      RequestContext ctx,
+      TimerData data,
+      CancelTimerDecisionAttributes d,
+      long decisionTaskCompletedEventId) {
+    TimerCanceledEventAttributes a =
+        new TimerCanceledEventAttributes()
+            .setDecisionTaskCompletedEventId(decisionTaskCompletedEventId)
+            .setTimerId(d.getTimerId())
+            .setStartedEventId(data.startedEventId);
+    HistoryEvent event =
+        new HistoryEvent().setEventType(EventType.TimerCanceled).setTimerCanceledEventAttributes(a);
+    ctx.addEvent(event);
   }
 }

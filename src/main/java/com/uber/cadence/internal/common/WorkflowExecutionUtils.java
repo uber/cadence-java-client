@@ -51,6 +51,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -616,6 +617,7 @@ public class WorkflowExecutionUtils {
     StringBuilder result = new StringBuilder();
     result.append("{");
     boolean first = true;
+    long firstTimestamp = 0;
     while (events.hasNext()) {
       HistoryEvent event = events.next();
       if (!showWorkflowTasks && event.getEventType().toString().startsWith("WorkflowTask")) {
@@ -623,11 +625,12 @@ public class WorkflowExecutionUtils {
       }
       if (first) {
         first = false;
+        firstTimestamp = event.getTimestamp();
       } else {
         result.append(",");
       }
       result.append("\n    ");
-      result.append(prettyPrintHistoryEvent(event));
+      result.append(prettyPrintHistoryEvent(event, firstTimestamp));
     }
     result.append("\n}");
     return result.toString();
@@ -656,11 +659,20 @@ public class WorkflowExecutionUtils {
    * @param event event to pretty print
    */
   public static String prettyPrintHistoryEvent(HistoryEvent event) {
+    return prettyPrintHistoryEvent(event, -1);
+  }
+
+  private static String prettyPrintHistoryEvent(HistoryEvent event, long firstTimestamp) {
     String eventType = event.getEventType().toString();
     StringBuilder result = new StringBuilder();
     result.append(event.getEventId());
     result.append(": ");
     result.append(eventType);
+    if (firstTimestamp > 0) {
+      // timestamp is in nanos
+      long timestamp = (event.getTimestamp() - firstTimestamp) / 1_000_000;
+      result.append(String.format(" [%s ms]", timestamp));
+    }
     result.append(" ");
     result.append(
         prettyPrintObject(getEventAttributes(event), "getFieldValue", true, "    ", false, false));
@@ -813,5 +825,14 @@ public class WorkflowExecutionUtils {
       result.append("}");
     }
     return result.toString();
+  }
+
+  public static boolean containsEvent(List<HistoryEvent> history, EventType eventType) {
+    for (HistoryEvent event : history) {
+      if (event.getEventType() == eventType) {
+        return true;
+      }
+    }
+    return false;
   }
 }
