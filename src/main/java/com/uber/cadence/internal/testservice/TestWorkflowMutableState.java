@@ -23,6 +23,9 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.QueryWorkflowRequest;
+import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
@@ -33,7 +36,10 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
+import org.apache.thrift.TException;
 
 interface TestWorkflowMutableState {
 
@@ -75,4 +81,10 @@ interface TestWorkflowMutableState {
 
   void cancelActivityTaskById(String id, RespondActivityTaskCanceledByIDRequest canceledRequest)
       throws EntityNotExistsError, InternalServiceError;
+
+  QueryWorkflowResponse query(QueryWorkflowRequest queryRequest)
+      throws TException;
+
+  void completeQuery(QueryId queryId, RespondQueryTaskCompletedRequest completeRequest)
+      throws EntityNotExistsError;
 }

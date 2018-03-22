@@ -17,13 +17,19 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowFailureException;
+import com.uber.cadence.client.WorkflowNotFoundException;
 import com.uber.cadence.client.WorkflowOptions;
+import com.uber.cadence.client.WorkflowQueryException;
+import com.uber.cadence.client.WorkflowServiceException;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
@@ -155,7 +161,7 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
         return null;
       }
       return dataConverter.fromData(resultValue, returnType);
-    } catch (WorkflowExecutionFailedException e) {
+    } catch (Exception e) {
       return mapToWorkflowFailureException(e, returnType);
     }
   }
@@ -169,12 +175,12 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
   public <R> CompletableFuture<R> getResultAsync(long timeout, TimeUnit unit, Class<R> returnType) {
     checkStarted();
     return WorkflowExecutionUtils.getWorkflowExecutionResultAsync(
-            genericClient.getService(),
-            genericClient.getDomain(),
-            execution.get(),
-            workflowType,
-            timeout,
-            unit)
+        genericClient.getService(),
+        genericClient.getDomain(),
+        execution.get(),
+        workflowType,
+        timeout,
+        unit)
         .handle(
             (r, e) -> {
               if (e instanceof CompletionException) {
@@ -195,24 +201,31 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
   }
 
   private <R> R mapToWorkflowFailureException(
-      WorkflowExecutionFailedException e, Class<R> returnType) {
+      Exception failure, Class<R> returnType) {
     Class<Throwable> detailsClass;
-    try {
-      @SuppressWarnings("unchecked")
-      Class<Throwable> dc = (Class<Throwable>) Class.forName(e.getReason());
-      detailsClass = dc;
-    } catch (Exception ee) {
-      RuntimeException failure =
-          new RuntimeException(
-              "Couldn't deserialize failure cause "
-                  + "as the reason field is expected to contain an exception class name",
-              e);
+    if (failure instanceof WorkflowExecutionFailedException) {
+      WorkflowExecutionFailedException executionFailed = (WorkflowExecutionFailedException) failure;
+      try {
+        @SuppressWarnings("unchecked")
+        Class<Throwable> dc = (Class<Throwable>) Class.forName(executionFailed.getReason());
+        detailsClass = dc;
+      } catch (Exception e) {
+        RuntimeException ee =
+            new RuntimeException(
+                "Couldn't deserialize failure cause "
+                    + "as the reason field is expected to contain an exception class name",
+                executionFailed);
+        throw new WorkflowFailureException(
+            execution.get(), workflowType, executionFailed.getDecisionTaskCompletedEventId(), ee);
+      }
+      Throwable cause = dataConverter.fromData(executionFailed.getDetails(), detailsClass);
       throw new WorkflowFailureException(
-          execution.get(), workflowType, e.getDecisionTaskCompletedEventId(), failure);
+          execution.get(), workflowType, executionFailed.getDecisionTaskCompletedEventId(), cause);
+    } else if (failure instanceof EntityNotExistsError) {
+      throw new WorkflowNotFoundException(execution.get(), workflowType, failure.getMessage());
+    } else {
+      throw new WorkflowFailureException(execution.get(), workflowType, 0, failure);
     }
-    Throwable cause = dataConverter.fromData(e.getDetails(), detailsClass);
-    throw new WorkflowFailureException(
-        execution.get(), workflowType, e.getDecisionTaskCompletedEventId(), cause);
   }
 
   @Override
@@ -222,8 +235,22 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
     p.setInput(dataConverter.toData(args));
     p.setQueryType(queryType);
     p.setWorkflowId(execution.get().getWorkflowId());
-    byte[] result = genericClient.queryWorkflow(p);
-    return dataConverter.fromData(result, returnType);
+    try {
+      byte[] result = genericClient.queryWorkflow(p);
+      return dataConverter.fromData(result, returnType);
+    } catch (RuntimeException e) {
+      Exception unwrapped = CheckedExceptionWrapper.unwrap(e);
+      if (unwrapped instanceof EntityNotExistsError) {
+        throw new WorkflowNotFoundException(execution.get(), workflowType, e.getMessage());
+      }
+      if (unwrapped instanceof QueryFailedError) {
+        throw new WorkflowQueryException(execution.get(), unwrapped.getMessage());
+      }
+      if (unwrapped instanceof InternalServiceError) {
+        throw new WorkflowServiceException(execution.get(), unwrapped.getMessage());
+      }
+      throw e;
+    }
   }
 
   @Override

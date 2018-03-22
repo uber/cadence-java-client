@@ -96,7 +96,7 @@ public class WorkflowExecutionUtils {
       long timeout,
       TimeUnit unit)
       throws TimeoutException, CancellationException, WorkflowExecutionFailedException,
-          WorkflowTerminatedException, WorkflowTimedOutException {
+      WorkflowTerminatedException, WorkflowTimedOutException, EntityNotExistsError {
     // getIntanceCloseEvent waits for workflow completion including new runs.
     HistoryEvent closeEvent =
         getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
@@ -159,7 +159,7 @@ public class WorkflowExecutionUtils {
       WorkflowExecution workflowExecution,
       long timeout,
       TimeUnit unit)
-      throws TimeoutException {
+      throws TimeoutException, EntityNotExistsError {
     byte[] pageToken = null;
     GetWorkflowExecutionHistoryResponse response;
     // TODO: Interrupt service long poll call on timeout and on interrupt
@@ -174,6 +174,8 @@ public class WorkflowExecutionUtils {
       try {
         response =
             Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+      } catch (EntityNotExistsError e) {
+        throw e;
       } catch (TException e) {
         throw CheckedExceptionWrapper.wrap(e);
       }
@@ -393,7 +395,8 @@ public class WorkflowExecutionUtils {
    * @return instance close status
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletion(
-      IWorkflowService service, String domain, WorkflowExecution workflowExecution) {
+      IWorkflowService service, String domain, WorkflowExecution workflowExecution)
+      throws EntityNotExistsError {
     try {
       return waitForWorkflowInstanceCompletion(
           service, domain, workflowExecution, 0, TimeUnit.MILLISECONDS);
@@ -417,7 +420,7 @@ public class WorkflowExecutionUtils {
       WorkflowExecution workflowExecution,
       long timeout,
       TimeUnit unit)
-      throws TimeoutException {
+      throws TimeoutException, EntityNotExistsError {
     HistoryEvent closeEvent =
         getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
     return getCloseStatus(closeEvent);
@@ -456,7 +459,7 @@ public class WorkflowExecutionUtils {
       WorkflowExecution workflowExecution,
       long timeout,
       TimeUnit unit)
-      throws InterruptedException, TimeoutException {
+      throws InterruptedException, TimeoutException, EntityNotExistsError {
 
     WorkflowExecution lastExecutionToRun = workflowExecution;
     long millisecondsAtFirstWait = System.currentTimeMillis();
@@ -500,7 +503,7 @@ public class WorkflowExecutionUtils {
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletionAcrossGenerations(
       IWorkflowService service, String domain, WorkflowExecution workflowExecution)
-      throws InterruptedException {
+      throws InterruptedException, EntityNotExistsError {
     try {
       return waitForWorkflowInstanceCompletionAcrossGenerations(
           service, domain, workflowExecution, 0L, TimeUnit.MILLISECONDS);

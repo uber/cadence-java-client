@@ -44,6 +44,9 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
+import com.uber.cadence.testing.TestEnvironment;
+import com.uber.cadence.testing.TestEnvironmentOptions;
+import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -66,12 +69,30 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.rules.TestWatcher;
+import org.junit.rules.Timeout;
+import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WorkflowTest {
 
-  @Rule public TestName testName = new TestName();
+  @Rule
+  public TestName testName = new TestName();
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(5);
+
+  @Rule
+  public TestWatcher watchman =
+      new TestWatcher() {
+        @Override
+        protected void failed(Throwable e, Description description) {
+          System.err.println(testEnvironment.getDiagnostics());
+        }
+      };
+
+
+  private static final boolean USE_EXTERNAL_SERVICE = false;
 
   private static final String domain = "UnitTest";
   private static final Logger log = LoggerFactory.getLogger(WorkflowTest.class);
@@ -84,6 +105,8 @@ public class WorkflowTest {
   private TestActivitiesImpl activitiesImpl;
   private WorkflowClient workflowClient;
   private WorkflowClient workflowClientWithOptions;
+  private TestEnvironment testEnvironment;
+  private TestWorkflowEnvironment workflowEnvironment;
 
   private static WorkflowOptions.Builder newWorkflowOptionsBuilder() {
     return new WorkflowOptions.Builder()
@@ -108,17 +131,25 @@ public class WorkflowTest {
   @Before
   public void setUp() {
     taskList = "WorkflowTest-" + testName.getMethodName();
-    // TODO: Make this configuratble instead of always using local instance.
-    worker = new Worker(domain, taskList);
-    workflowClient = WorkflowClient.newInstance(domain);
+    if (USE_EXTERNAL_SERVICE) {
+      worker = new Worker(domain, taskList);
+      workflowClient = WorkflowClient.newInstance(domain);
+      WorkflowClientOptions clientOptions =
+          new WorkflowClientOptions.Builder()
+              .setDataConverter(JsonDataConverter.getInstance())
+              .build();
+      workflowClientWithOptions = WorkflowClient.newInstance(domain, clientOptions);
+    } else {
+      testEnvironment = TestEnvironment.newInstance(new TestEnvironmentOptions
+          .Builder().setDomain(domain).build());
+      workflowEnvironment = testEnvironment.workflowEnvironment();
+      worker = workflowEnvironment.newWorker(taskList);
+      workflowClient = workflowEnvironment.newWorkflowClient();
+      workflowClientWithOptions = workflowEnvironment.newWorkflowClient();
+    }
     ActivityCompletionClient completionClient = workflowClient.newActivityCompletionClient();
     activitiesImpl = new TestActivitiesImpl(completionClient);
     worker.registerActivitiesImplementations(activitiesImpl);
-    WorkflowClientOptions clientOptions =
-        new WorkflowClientOptions.Builder()
-            .setDataConverter(JsonDataConverter.getInstance())
-            .build();
-    workflowClientWithOptions = WorkflowClient.newInstance(domain, clientOptions);
     newWorkflowOptionsBuilder();
     newActivityOptions1();
     activitiesImpl.invocations.clear();
@@ -129,6 +160,7 @@ public class WorkflowTest {
   public void tearDown() {
     worker.shutdown(Duration.ofMillis(1));
     activitiesImpl.close();
+    testEnvironment.close();
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
@@ -658,11 +690,11 @@ public class WorkflowTest {
       trace.clear(); // clear because of replay
       trace.add("started");
       Async.retry(
-              retryOptions,
-              () -> {
-                trace.add("retry at " + Workflow.currentTimeMillis());
-                return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
-              })
+          retryOptions,
+          () -> {
+            trace.add("retry at " + Workflow.currentTimeMillis());
+            return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
+          })
           .get();
       trace.add("beforeSleep");
       Workflow.sleep(60000);
@@ -671,7 +703,9 @@ public class WorkflowTest {
     }
   }
 
-  /** @see DeterministicRunnerTest#testRetry() */
+  /**
+   * @see DeterministicRunnerTest#testRetry()
+   */
   @Test
   public void testAsyncRetry() {
     startWorkerFor(TestAsyncRetryWorkflowImpl.class);
@@ -873,7 +907,12 @@ public class WorkflowTest {
     assertEquals("Hello ", client.getState());
 
     // Test query through replay by a local worker.
-    Worker queryWorker = new Worker(domain, taskList);
+    Worker queryWorker;
+    if (USE_EXTERNAL_SERVICE) {
+      queryWorker = new Worker(domain, taskList);
+    } else {
+      queryWorker = workflowEnvironment.newWorker(taskList);
+    }
     queryWorker.registerWorkflowImplementationTypes(TestSignalWorkflowImpl.class);
     String queryResult =
         queryWorker.queryWorkflowExecution(execution, "QueryableWorkflow::getState", String.class);
@@ -895,10 +934,12 @@ public class WorkflowTest {
     WorkflowExecution execution = client.start();
     assertEquals("initial", client.query("QueryableWorkflow::getState", String.class));
     client.signal("testSignal", "Hello ");
-    while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+    while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {
+    }
     assertEquals("Hello ", client.query("QueryableWorkflow::getState", String.class));
     client.signal("testSignal", "World!");
-    while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+    while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {
+    }
     assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
     assertEquals(
         "Hello World!", workflowClient.newUntypedWorkflowStub(execution).getResult(String.class));
@@ -967,7 +1008,9 @@ public class WorkflowTest {
     }
   }
 
-  /** Test that it is not allowed to block in the timer callback thread. */
+  /**
+   * Test that it is not allowed to block in the timer callback thread.
+   */
   @Test
   public void testTimerCallbackBlocked() {
     startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
@@ -1373,16 +1416,16 @@ public class WorkflowTest {
     void throwIO();
 
     @ActivityMethod(
-      scheduleToStartTimeoutSeconds = 5,
-      scheduleToCloseTimeoutSeconds = 5,
-      heartbeatTimeoutSeconds = 5,
-      startToCloseTimeoutSeconds = 10
+        scheduleToStartTimeoutSeconds = 5,
+        scheduleToCloseTimeoutSeconds = 5,
+        heartbeatTimeoutSeconds = 5,
+        startToCloseTimeoutSeconds = 10
     )
     @MethodRetry(
-      initialIntervalSeconds = 1,
-      maximumIntervalSeconds = 1,
-      minimumAttempts = 2,
-      maximumAttempts = 3
+        initialIntervalSeconds = 1,
+        maximumIntervalSeconds = 1,
+        minimumAttempts = 2,
+        maximumAttempts = 3
     )
     void throwIOAnnotated();
   }
@@ -1558,10 +1601,10 @@ public class WorkflowTest {
     String func();
 
     @WorkflowMethod(
-      name = "func1",
-      taskList = "WorkflowTest-testStart",
-      workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
-      executionStartToCloseTimeoutSeconds = 10
+        name = "func1",
+        taskList = "WorkflowTest-testStart",
+        workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
+        executionStartToCloseTimeoutSeconds = 10
     )
     String func1(String input);
 

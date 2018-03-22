@@ -15,28 +15,19 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.testing;
+package com.uber.cadence.client;
 
-import com.uber.cadence.internal.sync.TestEnvironmentInternal;
-import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.WorkflowExecution;
 
-public interface TestEnvironment {
+/**
+ * Thrown when workflow with the given id is not known to the cadence service.
+ * It could be because id is not correct or workflow was purged from the service after reaching
+ * its retention limit.
+ */
+public final class WorkflowNotFoundException extends WorkflowException {
 
-  static TestEnvironment newInstance() {
-    return newInstance(null);
+  public WorkflowNotFoundException(WorkflowExecution execution, String workflowType,
+      String message) {
+    super(message, execution, workflowType, null);
   }
-
-  static TestEnvironment newInstance(TestEnvironmentOptions options) {
-    return new TestEnvironmentInternal(options);
-  }
-
-  TestActivityEnvironment activityEnvironment();
-
-  TestWorkflowEnvironment workflowEnvironment();
-
-  IWorkflowService getWorkflowService();
-
-  String getDiagnostics();
-
-  void close();
 }

@@ -173,9 +173,6 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     if (decisionTask != null) {
       BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
           getDecisionTaskListQueue(decisionTask.getTaskListId());
-      if (!decisionsQueue.isEmpty()) {
-        log.error("Duplicated decision task");
-      }
       decisionsQueue.add(decisionTask.getTask());
     }
 
@@ -253,6 +250,23 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   @Override
+  public void sendQueryTask(ExecutionId executionId, TaskListId taskList,
+      PollForDecisionTaskResponse task)
+      throws EntityNotExistsError {
+    lock.lock();
+    try {
+      HistoryStore history = getHistoryStore(executionId);
+      List<HistoryEvent> events = new ArrayList<>(history.getEventsLocked());
+      task.setHistory(new History().setEvents(events));
+    } finally {
+      lock.unlock();
+    }
+    BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
+        getDecisionTaskListQueue(taskList);
+    decisionsQueue.add(task);
+  }
+
+  @Override
   public GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError {
     WorkflowExecution execution = getRequest.getExecution();
@@ -266,8 +280,11 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       history = getHistoryStore(executionId);
       if (!getRequest.isWaitForNewEvent()
           && getRequest.getHistoryEventFilterType() != HistoryEventFilterType.CLOSE_EVENT) {
+        List<HistoryEvent> events = history.getEventsLocked();
+        // Copy the list as it is mutable. Individual events assumed immutable.
+        ArrayList<HistoryEvent> eventsCopy = new ArrayList<>(events);
         return new GetWorkflowExecutionHistoryResponse()
-            .setHistory(new History().setEvents(history.getEventsLocked()));
+            .setHistory(new History().setEvents(eventsCopy));
       }
       expectedNextEventId = history.getNextEventIdLocked();
     } finally {

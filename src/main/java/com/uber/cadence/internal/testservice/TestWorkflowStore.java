@@ -130,6 +130,13 @@ interface TestWorkflowStore {
   PollForActivityTaskResponse pollForActivityTask(PollForActivityTaskRequest pollRequest)
       throws InterruptedException;
 
+  /**
+   * @return queryId
+   * @throws EntityNotExistsError
+   */
+  void sendQueryTask(ExecutionId executionId, TaskListId taskList, PollForDecisionTaskResponse task)
+      throws EntityNotExistsError;
+
   GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError;
 

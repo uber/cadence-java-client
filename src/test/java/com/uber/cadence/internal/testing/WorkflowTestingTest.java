@@ -83,7 +83,7 @@ public class WorkflowTestingTest {
 
   @After
   public void tearDown() {
-    testEnvironment.shutdown();
+    testEnvironment.close();
   }
 
   public interface TestWorkflow {

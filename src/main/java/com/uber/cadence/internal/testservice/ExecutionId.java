@@ -80,19 +80,25 @@ final class ExecutionId {
     return "ExecutionId{" + "domain='" + domain + '\'' + ", execution=" + execution + '}';
   }
 
-  /** Used for task tokens. */
-  public byte[] toBytes() throws InternalServiceError {
+  /**
+   * Used for task tokens.
+   */
+  byte[] toBytes() throws InternalServiceError {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(bout);
     try {
-      out.writeUTF(domain);
-      out.writeUTF(execution.getWorkflowId());
-      if (execution.getRunId() != null) {
-        out.writeUTF(execution.getRunId());
-      }
-      return bout.toByteArray();
+      addBytes(out);
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
+    }
+    return bout.toByteArray();
+  }
+
+  void addBytes(DataOutputStream out) throws IOException {
+    out.writeUTF(domain);
+    out.writeUTF(execution.getWorkflowId());
+    if (execution.getRunId() != null) {
+      out.writeUTF(execution.getRunId());
     }
   }
 
@@ -100,16 +106,20 @@ final class ExecutionId {
     ByteArrayInputStream bin = new ByteArrayInputStream(serialized);
     DataInputStream in = new DataInputStream(bin);
     try {
-      String domain = in.readUTF();
-      String workflowId = in.readUTF();
-      String runId = null;
-      if (in.available() > 0) {
-        runId = in.readUTF();
-      }
-      return new ExecutionId(domain, workflowId, runId);
+      return readFromBytes(in);
     } catch (IOException e) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(e));
     }
+  }
+
+  static ExecutionId readFromBytes(DataInputStream in) throws IOException {
+    String domain = in.readUTF();
+    String workflowId = in.readUTF();
+    String runId = null;
+    if (in.available() > 0) {
+      runId = in.readUTF();
+    }
+    return new ExecutionId(domain, workflowId, runId);
   }
 
   public WorkflowId getWorkflowId() {

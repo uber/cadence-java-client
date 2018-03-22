@@ -33,6 +33,10 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.QueryTaskCompletedType;
+import com.uber.cadence.QueryWorkflowRequest;
+import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
@@ -45,6 +49,7 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartTimerDecisionAttributes;
@@ -56,14 +61,26 @@ import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.DecisionTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.TimerData;
 import com.uber.cadence.internal.testservice.StateMachines.WorkflowData;
+import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,6 +106,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final Map<String, StateMachine<TimerData>> timers = new HashMap<>();
   private StateMachine<WorkflowData> workflow;
   private StateMachine<DecisionTaskData> decision;
+  private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries = new
+      ConcurrentHashMap<>();
 
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest, TestWorkflowStore store, LongSupplier clock)
@@ -144,7 +163,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError {
-    update(ctx -> decision.start(ctx, pollRequest, 0));
+    if (task.getQuery() == null) {
+      update(ctx -> decision.start(ctx, pollRequest, 0));
+    }
   }
 
   @Override
@@ -578,6 +599,51 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         });
   }
 
+  @Override
+  public QueryWorkflowResponse query(QueryWorkflowRequest queryRequest)
+      throws TException {
+    QueryId queryId = new QueryId(executionId);
+    PollForDecisionTaskResponse task = new PollForDecisionTaskResponse()
+        .setTaskToken(queryId.toBytes())
+        .setWorkflowExecution(executionId.getExecution())
+        .setWorkflowType(startRequest.getWorkflowType())
+        .setQuery(queryRequest.getQuery());
+    TaskListId taskListId = new TaskListId(queryRequest.getDomain(),
+        startRequest.getTaskList().getName());
+    store.sendQueryTask(executionId, taskListId, task);
+    CompletableFuture<QueryWorkflowResponse> result = new CompletableFuture<>();
+    queries.put(queryId.getQueryId(), result);
+    try {
+      return result.get();
+    } catch (InterruptedException e) {
+      return new QueryWorkflowResponse();
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof TException) {
+        throw (TException)cause;
+      }
+      throw new InternalServiceError(Throwables.getStackTraceAsString(cause));
+    }
+  }
+
+  @Override
+  public void completeQuery(QueryId queryId, RespondQueryTaskCompletedRequest completeRequest)
+      throws EntityNotExistsError {
+    CompletableFuture<QueryWorkflowResponse> result = queries.get(queryId.getQueryId());
+    if (result == null) {
+      throw new EntityNotExistsError("Unknown query id: " + queryId.getQueryId());
+    }
+    if (completeRequest.getCompletedType() == QueryTaskCompletedType.COMPLETED) {
+      QueryWorkflowResponse response = new QueryWorkflowResponse()
+          .setQueryResult(completeRequest.getQueryResult());
+      result.complete(response);
+    } else {
+      QueryFailedError error = new QueryFailedError()
+          .setMessage(completeRequest.getErrorMessage());
+      result.completeExceptionally(error);
+    }
+  }
+
   private void addExecutionSignaledEvent(
       RequestContext ctx, SignalWorkflowExecutionRequest signalRequest) {
     WorkflowExecutionSignaledEventAttributes a =
@@ -601,5 +667,58 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throw new EntityNotExistsError("unknown activityId: " + activityId);
     }
     return (StateMachine<ActivityTaskData>) activity;
+  }
+
+  static class QueryId {
+
+    private final ExecutionId executionId;
+    private final String queryId;
+
+    QueryId(ExecutionId executionId) {
+      this.executionId = Objects.requireNonNull(executionId);
+      this.queryId = UUID.randomUUID().toString();
+    }
+
+    private QueryId(ExecutionId executionId, String queryId) {
+      this.executionId = Objects.requireNonNull(executionId);
+      this.queryId = queryId;
+    }
+
+    public ExecutionId getExecutionId() {
+      return executionId;
+    }
+
+    String getQueryId() {
+      return queryId;
+    }
+
+    byte[] toBytes() throws InternalServiceError {
+      ByteArrayOutputStream bout = new ByteArrayOutputStream();
+      DataOutputStream out = new DataOutputStream(bout);
+      addBytes(out);
+      return bout.toByteArray();
+    }
+
+    void addBytes(DataOutputStream out)
+        throws InternalServiceError {
+      try {
+        executionId.addBytes(out);
+        out.writeUTF(queryId);
+      } catch (IOException e) {
+        throw new InternalServiceError(Throwables.getStackTraceAsString(e));
+      }
+    }
+
+    static QueryId fromBytes(byte[] serialized) throws InternalServiceError {
+      ByteArrayInputStream bin = new ByteArrayInputStream(serialized);
+      DataInputStream in = new DataInputStream(bin);
+      try {
+        ExecutionId executionId = ExecutionId.readFromBytes(in);
+        String queryId = in.readUTF();
+        return new QueryId(executionId, queryId);
+      } catch (IOException e) {
+        throw new InternalServiceError(Throwables.getStackTraceAsString(e));
+      }
+    }
   }
 }

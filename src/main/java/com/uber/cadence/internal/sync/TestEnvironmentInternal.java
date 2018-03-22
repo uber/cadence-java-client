@@ -60,7 +60,7 @@ public class TestEnvironmentInternal implements TestEnvironment {
   }
 
   @Override
-  public void shutdown() {
+  public void close() {
     workflowEnvironment.shutdown();
   }
 }

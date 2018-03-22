@@ -64,6 +64,7 @@ import com.uber.cadence.UpdateDomainRequest;
 import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
+import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
 import java.util.Map;
@@ -374,14 +375,19 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RespondQueryTaskCompleted(RespondQueryTaskCompletedRequest completeRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    QueryId queryId = QueryId.fromBytes(completeRequest.getTaskToken());
+    TestWorkflowMutableState mutableState = getMutableState(queryId.getExecutionId());
+    mutableState.completeQuery(queryId, completeRequest);
   }
 
   @Override
   public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError,
           TException {
-    throw new UnsupportedOperationException("not implemented");
+    ExecutionId executionId =
+        new ExecutionId(queryRequest.getDomain(), queryRequest.getExecution());
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
+    return mutableState.query(queryRequest);
   }
 
   @Override
