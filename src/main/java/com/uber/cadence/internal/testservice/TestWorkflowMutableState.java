@@ -17,6 +17,10 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
@@ -49,6 +53,20 @@ interface TestWorkflowMutableState {
 
   void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError, EntityNotExistsError;
+
+  void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void failChildWorkflow(String activityId, ChildWorkflowExecutionFailedEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void completeChildWorkflow(String activityId, ChildWorkflowExecutionCompletedEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void cancelChildWorkflow(String activityId, ChildWorkflowExecutionCanceledEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void startWorkflow() throws InternalServiceError;
 
   void startActivityTask(PollForActivityTaskResponse task, PollForActivityTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError;

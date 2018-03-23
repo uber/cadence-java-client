@@ -156,34 +156,45 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
           ServiceBusyError, TException {
+    return startWorkflowExecutionImpl(startRequest, null);
+  }
+
+  StartWorkflowExecutionResponse startWorkflowExecutionImpl(
+      StartWorkflowExecutionRequest startRequest, ExecutionId parentExecutionId)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, InternalServiceError {
+    String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
+    String domain = requireNotNull("Domain", startRequest.getDomain());
+    WorkflowId workflowId = new WorkflowId(domain, requestWorkflowId);
+    TestWorkflowMutableState running;
     lock.lock();
     try {
-      {
-        String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
-        String domain = requireNotNull("Domain", startRequest.getDomain());
-        WorkflowId workflowId = new WorkflowId(domain, requestWorkflowId);
-        TestWorkflowMutableState running = openExecutions.get(workflowId);
-        if (running != null) {
-          WorkflowExecutionAlreadyStartedError error = new WorkflowExecutionAlreadyStartedError();
-          WorkflowExecution execution = running.getExecutionId().getExecution();
-          error.setMessage(
-              String.format(
-                  "Workflow execution already running. WorkflowId: %s, " + "RunId: %s",
-                  execution.getWorkflowId(), execution.getRunId()));
-          error.setRunId(execution.getRunId());
-          error.setStartRequestId(startRequest.getRequestId());
-          throw error;
-        }
-        running = new TestWorkflowMutableStateImpl(startRequest, store, clock);
-        WorkflowExecution execution = running.getExecutionId().getExecution();
-        ExecutionId executionId = new ExecutionId(domain, execution);
-        openExecutions.put(workflowId, running);
-        executions.put(executionId, running);
-        return new StartWorkflowExecutionResponse().setRunId(execution.getRunId());
-      }
+      running = openExecutions.get(workflowId);
     } finally {
       lock.unlock();
     }
+    if (running != null) {
+      WorkflowExecutionAlreadyStartedError error = new WorkflowExecutionAlreadyStartedError();
+      WorkflowExecution execution = running.getExecutionId().getExecution();
+      error.setMessage(
+          String.format(
+              "Workflow execution already running. WorkflowId: %s, " + "RunId: %s",
+              execution.getWorkflowId(), execution.getRunId()));
+      error.setRunId(execution.getRunId());
+      error.setStartRequestId(startRequest.getRequestId());
+      throw error;
+    }
+    running = new TestWorkflowMutableStateImpl(startRequest, parentExecutionId, this, store, clock);
+    WorkflowExecution execution = running.getExecutionId().getExecution();
+    ExecutionId executionId = new ExecutionId(domain, execution);
+    lock.lock();
+    try {
+      openExecutions.put(workflowId, running);
+      executions.put(executionId, running);
+    } finally {
+      lock.unlock();
+    }
+    running.startWorkflow();
+    return new StartWorkflowExecutionResponse().setRunId(execution.getRunId());
   }
 
   @Override

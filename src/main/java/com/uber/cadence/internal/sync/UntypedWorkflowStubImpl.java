@@ -25,6 +25,7 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.UntypedWorkflowStub;
+import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowNotFoundException;
 import com.uber.cadence.client.WorkflowOptions;
@@ -225,6 +226,8 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
       throw new WorkflowNotFoundException(execution.get(), workflowType, failure.getMessage());
     } else if (failure instanceof CancellationException) {
       throw (CancellationException) failure;
+    } else if (failure instanceof WorkflowException) {
+      throw (WorkflowException) failure;
     } else {
       throw new WorkflowFailureException(execution.get(), workflowType, 0, failure);
     }
