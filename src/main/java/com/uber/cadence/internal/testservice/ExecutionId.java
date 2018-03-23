@@ -80,9 +80,7 @@ final class ExecutionId {
     return "ExecutionId{" + "domain='" + domain + '\'' + ", execution=" + execution + '}';
   }
 
-  /**
-   * Used for task tokens.
-   */
+  /** Used for task tokens. */
   byte[] toBytes() throws InternalServiceError {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(bout);

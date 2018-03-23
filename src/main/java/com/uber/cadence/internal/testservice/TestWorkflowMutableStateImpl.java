@@ -107,8 +107,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final Map<String, StateMachine<TimerData>> timers = new HashMap<>();
   private StateMachine<WorkflowData> workflow;
   private StateMachine<DecisionTaskData> decision;
-  private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries = new
-      ConcurrentHashMap<>();
+  private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
+      new ConcurrentHashMap<>();
 
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest, TestWorkflowStore store, LongSupplier clock)
@@ -197,7 +197,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     lock.lock();
     try {
       {
-        if (decision != null && decision.getState() != State.SCHEDULED) {
+        if (decision != null && decision.getState() != State.INITIATED) {
           throw new IllegalStateException(
               "non null decision after the completion: " + decision.getState());
         }
@@ -291,7 +291,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     State beforeState = activity.getState();
     activity.requestCancellation(ctx, a, decisionTaskCompletedId);
-    if (beforeState == State.SCHEDULED) {
+    if (beforeState == State.INITIATED) {
       activity.reportCancellation(ctx, null, 0);
       activities.remove(activityId);
       ctx.setNeedDecision(true);
@@ -309,7 +309,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     activity = StateMachines.newActivityStateMachine();
     activities.put(activityId, activity);
-    activity.schedule(ctx, a, decisionTaskCompletedId);
+    activity.initiate(ctx, a, decisionTaskCompletedId);
     ctx.addTimer(
         a.getScheduleToCloseTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_CLOSE));
@@ -420,7 +420,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private void scheduleDecision(RequestContext ctx) throws InternalServiceError {
     if (decision != null) {
-      if (decision.getState() == State.SCHEDULED) {
+      if (decision.getState() == State.INITIATED) {
         return; // No need to schedule again
       }
       if (decision.getState() == State.STARTED) {
@@ -428,13 +428,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         return;
       }
       if (decision.getState() == State.FAILED || decision.getState() == State.COMPLETED) {
-        decision.schedule(ctx, startRequest, 0);
+        decision.initiate(ctx, startRequest, 0);
         return;
       }
       throw new InternalServiceError("unexpected decision state: " + decision.getState());
     }
     this.decision = StateMachines.newDecisionStateMachine(store);
-    decision.schedule(ctx, startRequest, 0);
+    decision.initiate(ctx, startRequest, 0);
   }
 
   @Override
@@ -447,8 +447,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.start(ctx, pollRequest, 0);
           ActivityTaskData data = activity.getData();
-          int startToCloseTimeout = data.scheduledEvent
-              .getStartToCloseTimeoutSeconds();
+          int startToCloseTimeout = data.scheduledEvent.getStartToCloseTimeoutSeconds();
           int heartbeatTimeout = data.scheduledEvent.getHeartbeatTimeoutSeconds();
           if (startToCloseTimeout > 0) {
             ctx.addTimer(
@@ -458,12 +457,15 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         });
   }
 
-  private void updateHeartbeatTimer(RequestContext ctx, String activityId,
-      StateMachine<ActivityTaskData> activity, int startToCloseTimeout, int heartbeatTimeout) {
+  private void updateHeartbeatTimer(
+      RequestContext ctx,
+      String activityId,
+      StateMachine<ActivityTaskData> activity,
+      int startToCloseTimeout,
+      int heartbeatTimeout) {
     if (heartbeatTimeout > 0 && heartbeatTimeout < startToCloseTimeout) {
       activity.getData().lastHeartbeatTime = clock.getAsLong();
-      ctx.addTimer(
-          heartbeatTimeout, () -> timeoutActivity(activityId, TimeoutType.HEARTBEAT));
+      ctx.addTimer(heartbeatTimeout, () -> timeoutActivity(activityId, TimeoutType.HEARTBEAT));
     }
   }
 
@@ -556,8 +558,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             }
             ActivityTaskData data = activity.getData();
             data.lastHeartbeatTime = clock.getAsLong();
-            int startToCloseTimeout = data.scheduledEvent
-                .getStartToCloseTimeoutSeconds();
+            int startToCloseTimeout = data.scheduledEvent.getStartToCloseTimeoutSeconds();
             int heartbeatTimeout = data.scheduledEvent.getHeartbeatTimeoutSeconds();
             updateHeartbeatTimer(ctx, activityId, activity, startToCloseTimeout, heartbeatTimeout);
           });
@@ -576,13 +577,14 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           ctx -> {
             StateMachine<ActivityTaskData> activity = getActivity(activityId);
             if (timeoutType == TimeoutType.SCHEDULE_TO_START
-                && activity.getState() != State.SCHEDULED) {
+                && activity.getState() != State.INITIATED) {
               return;
             }
             if (timeoutType == TimeoutType.HEARTBEAT) {
               // Deal with timers which are never cancelled
-              if (clock.getAsLong() - activity.getData().lastHeartbeatTime < activity.getData()
-                  .scheduledEvent.getHeartbeatTimeoutSeconds() * MILLISECONDS_IN_SECOND) {
+              if (clock.getAsLong() - activity.getData().lastHeartbeatTime
+                  < activity.getData().scheduledEvent.getHeartbeatTimeoutSeconds()
+                      * MILLISECONDS_IN_SECOND) {
                 return;
               }
             }
@@ -628,16 +630,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public QueryWorkflowResponse query(QueryWorkflowRequest queryRequest)
-      throws TException {
+  public QueryWorkflowResponse query(QueryWorkflowRequest queryRequest) throws TException {
     QueryId queryId = new QueryId(executionId);
-    PollForDecisionTaskResponse task = new PollForDecisionTaskResponse()
-        .setTaskToken(queryId.toBytes())
-        .setWorkflowExecution(executionId.getExecution())
-        .setWorkflowType(startRequest.getWorkflowType())
-        .setQuery(queryRequest.getQuery());
-    TaskListId taskListId = new TaskListId(queryRequest.getDomain(),
-        startRequest.getTaskList().getName());
+    PollForDecisionTaskResponse task =
+        new PollForDecisionTaskResponse()
+            .setTaskToken(queryId.toBytes())
+            .setWorkflowExecution(executionId.getExecution())
+            .setWorkflowType(startRequest.getWorkflowType())
+            .setQuery(queryRequest.getQuery());
+    TaskListId taskListId =
+        new TaskListId(queryRequest.getDomain(), startRequest.getTaskList().getName());
     store.sendQueryTask(executionId, taskListId, task);
     CompletableFuture<QueryWorkflowResponse> result = new CompletableFuture<>();
     queries.put(queryId.getQueryId(), result);
@@ -662,12 +664,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throw new EntityNotExistsError("Unknown query id: " + queryId.getQueryId());
     }
     if (completeRequest.getCompletedType() == QueryTaskCompletedType.COMPLETED) {
-      QueryWorkflowResponse response = new QueryWorkflowResponse()
-          .setQueryResult(completeRequest.getQueryResult());
+      QueryWorkflowResponse response =
+          new QueryWorkflowResponse().setQueryResult(completeRequest.getQueryResult());
       result.complete(response);
     } else {
-      QueryFailedError error = new QueryFailedError()
-          .setMessage(completeRequest.getErrorMessage());
+      QueryFailedError error = new QueryFailedError().setMessage(completeRequest.getErrorMessage());
       result.completeExceptionally(error);
     }
   }
@@ -727,8 +728,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       return bout.toByteArray();
     }
 
-    void addBytes(DataOutputStream out)
-        throws InternalServiceError {
+    void addBytes(DataOutputStream out) throws InternalServiceError {
       try {
         executionId.addBytes(out);
         out.writeUTF(queryId);

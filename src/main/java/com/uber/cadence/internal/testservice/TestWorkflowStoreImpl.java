@@ -250,8 +250,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   @Override
-  public void sendQueryTask(ExecutionId executionId, TaskListId taskList,
-      PollForDecisionTaskResponse task)
+  public void sendQueryTask(
+      ExecutionId executionId, TaskListId taskList, PollForDecisionTaskResponse task)
       throws EntityNotExistsError {
     lock.lock();
     try {
@@ -261,8 +261,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     } finally {
       lock.unlock();
     }
-    BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
-        getDecisionTaskListQueue(taskList);
+    BlockingQueue<PollForDecisionTaskResponse> decisionsQueue = getDecisionTaskListQueue(taskList);
     decisionsQueue.add(task);
   }
 

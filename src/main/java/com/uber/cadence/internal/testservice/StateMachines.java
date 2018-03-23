@@ -21,8 +21,8 @@ import static com.uber.cadence.internal.testservice.StateMachine.State.CANCELED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.CANCELLATION_REQUESTED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.COMPLETED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.FAILED;
+import static com.uber.cadence.internal.testservice.StateMachine.State.INITIATED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.NONE;
-import static com.uber.cadence.internal.testservice.StateMachine.State.SCHEDULED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.STARTED;
 import static com.uber.cadence.internal.testservice.StateMachine.State.TIMED_OUT;
 
@@ -35,6 +35,8 @@ import com.uber.cadence.ActivityTaskStartedEventAttributes;
 import com.uber.cadence.ActivityTaskTimedOutEventAttributes;
 import com.uber.cadence.CancelTimerDecisionAttributes;
 import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
 import com.uber.cadence.DecisionTaskScheduledEventAttributes;
@@ -61,12 +63,16 @@ import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
+import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.TimerStartedEventAttributes;
+import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes;
 import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
@@ -80,9 +86,7 @@ import java.util.List;
 
 class StateMachines {
 
-  static final class WorkflowData {
-
-  }
+  static final class WorkflowData {}
 
   static final class DecisionTaskData {
 
@@ -110,6 +114,14 @@ class StateMachines {
     long lastHeartbeatTime;
   }
 
+  static final class ChildWorkflowData {
+
+    StartChildWorkflowExecutionInitiatedEventAttributes initiatedEvent;
+    public long initiatedEventId;
+    public long startedEventId;
+    public WorkflowExecution execution;
+  }
+
   static final class TimerData {
 
     TimerStartedEventAttributes startedEvent;
@@ -131,17 +143,17 @@ class StateMachines {
 
   static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
     return new StateMachine<>(new DecisionTaskData(store))
-        .add(NONE, SCHEDULED, StateMachines::scheduleDecisionTask)
-        .add(SCHEDULED, STARTED, StateMachines::startDecisionTask)
+        .add(NONE, INITIATED, StateMachines::scheduleDecisionTask)
+        .add(INITIATED, STARTED, StateMachines::startDecisionTask)
         .add(STARTED, COMPLETED, StateMachines::completeDecisionTask);
   }
 
   public static StateMachine<ActivityTaskData> newActivityStateMachine() {
     return new StateMachine<>(new ActivityTaskData())
-        .add(NONE, SCHEDULED, StateMachines::scheduleActivityTask)
-        .add(SCHEDULED, STARTED, StateMachines::startActivityTask)
-        .add(SCHEDULED, TIMED_OUT, StateMachines::timeoutActivityTask)
-        .add(SCHEDULED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
+        .add(NONE, INITIATED, StateMachines::scheduleActivityTask)
+        .add(INITIATED, STARTED, StateMachines::startActivityTask)
+        .add(INITIATED, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(INITIATED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
         .add(STARTED, COMPLETED, StateMachines::completeActivityTask)
         .add(STARTED, FAILED, StateMachines::failActivityTask)
         .add(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask)
@@ -153,11 +165,99 @@ class StateMachines {
         .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
   }
 
+  public static StateMachine<ChildWorkflowData> newChildWorkflowStateMachine() {
+    return new StateMachine<>(new ChildWorkflowData())
+        .add(NONE, INITIATED, StateMachines::initiateChildWorkflow)
+        .add(INITIATED, FAILED, StateMachines::startChildWorkflowFailed)
+        .add(INITIATED, STARTED, StateMachines::childWorkflowStarted)
+        .add(INITIATED, TIMED_OUT, StateMachines::timeoutChildWorkflow)
+        .add(STARTED, TIMED_OUT, StateMachines::timeoutChildWorkflow);
+  }
+
   public static StateMachine<TimerData> newTimerStateMachine() {
     return new StateMachine<>(new TimerData())
         .add(NONE, STARTED, StateMachines::startTimer)
         .add(STARTED, COMPLETED, StateMachines::fireTimer)
         .add(STARTED, CANCELED, StateMachines::cancelTimer);
+  }
+
+  private static void timeoutChildWorkflow(
+      RequestContext ctx, ChildWorkflowData data, TimeoutType timeoutType, long notUsed) {
+    StartChildWorkflowExecutionInitiatedEventAttributes ie = data.initiatedEvent;
+    ChildWorkflowExecutionTimedOutEventAttributes a =
+        new ChildWorkflowExecutionTimedOutEventAttributes()
+            .setDomain(ie.getDomain())
+            .setStartedEventId(data.startedEventId)
+            .setWorkflowExecution(data.execution)
+            .setWorkflowType(ie.getWorkflowType())
+            .setTimeoutType(timeoutType)
+            .setInitiatedEventId(data.initiatedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ChildWorkflowExecutionTimedOut)
+            .setChildWorkflowExecutionTimedOutEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void startChildWorkflowFailed(
+      RequestContext ctx,
+      ChildWorkflowData data,
+      StartChildWorkflowExecutionFailedEventAttributes a,
+      long notUsed) {
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.StartChildWorkflowExecutionFailed)
+            .setStartChildWorkflowExecutionFailedEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void childWorkflowStarted(
+      RequestContext ctx,
+      ChildWorkflowData data,
+      ChildWorkflowExecutionStartedEventAttributes a,
+      long notUsed) {
+    a.setInitiatedEventId(data.initiatedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ChildWorkflowExecutionStarted)
+            .setChildWorkflowExecutionStartedEventAttributes(a);
+    long startedEventId = ctx.addEvent(event);
+    ctx.onCommit(
+        () -> {
+          data.startedEventId = startedEventId;
+          data.execution = a.getWorkflowExecution();
+        });
+  }
+
+  private static void initiateChildWorkflow(
+      RequestContext ctx,
+      ChildWorkflowData data,
+      StartChildWorkflowExecutionDecisionAttributes d,
+      long decisionTaskCompletedEventId) {
+    StartChildWorkflowExecutionInitiatedEventAttributes a =
+        new StartChildWorkflowExecutionInitiatedEventAttributes()
+            .setControl(d.getControl())
+            .setInput(d.getInput())
+            .setChildPolicy(d.getChildPolicy())
+            .setDecisionTaskCompletedEventId(decisionTaskCompletedEventId)
+            .setDomain(d.getDomain() == null ? ctx.getDomain() : d.getDomain())
+            .setExecutionStartToCloseTimeoutSeconds(d.getExecutionStartToCloseTimeoutSeconds())
+            .setTaskStartToCloseTimeoutSeconds(d.getTaskStartToCloseTimeoutSeconds())
+            .setTaskList(d.getTaskList())
+            .setWorkflowId(d.getWorkflowId())
+            .setWorkflowIdReusePolicy(d.getWorkflowIdReusePolicy())
+            .setWorkflowType(d.getWorkflowType());
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.StartChildWorkflowExecutionInitiated)
+            .setStartChildWorkflowExecutionInitiatedEventAttributes(a);
+    ctx.addEvent(event);
+    long initiatedEventId = ctx.addEvent(event);
+    ctx.onCommit(
+        () -> {
+          data.initiatedEventId = initiatedEventId;
+          data.initiatedEvent = a;
+        });
   }
 
   private static void startWorkflow(

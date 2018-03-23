@@ -40,7 +40,6 @@ final class StateMachine<Data> {
 
   enum State {
     NONE,
-    SCHEDULED,
     INITIATED,
     STARTED,
     FAILED,
@@ -137,9 +136,9 @@ final class StateMachine<Data> {
     return this;
   }
 
-  public <V> void schedule(RequestContext ctx, V request, long referenceId)
+  public <V> void initiate(RequestContext ctx, V request, long referenceId)
       throws InternalServiceError {
-    applyEvent(State.SCHEDULED, ctx, request, referenceId);
+    applyEvent(State.INITIATED, ctx, request, referenceId);
   }
 
   public <V> void start(RequestContext ctx, V request, long referenceId)

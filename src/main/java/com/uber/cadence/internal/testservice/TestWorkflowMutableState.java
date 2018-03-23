@@ -23,7 +23,6 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
@@ -82,8 +81,7 @@ interface TestWorkflowMutableState {
   void cancelActivityTaskById(String id, RespondActivityTaskCanceledByIDRequest canceledRequest)
       throws EntityNotExistsError, InternalServiceError;
 
-  QueryWorkflowResponse query(QueryWorkflowRequest queryRequest)
-      throws TException;
+  QueryWorkflowResponse query(QueryWorkflowRequest queryRequest) throws TException;
 
   void completeQuery(QueryId queryId, RespondQueryTaskCompletedRequest completeRequest)
       throws EntityNotExistsError;

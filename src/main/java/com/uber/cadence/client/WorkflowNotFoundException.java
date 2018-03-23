@@ -20,14 +20,13 @@ package com.uber.cadence.client;
 import com.uber.cadence.WorkflowExecution;
 
 /**
- * Thrown when workflow with the given id is not known to the cadence service.
- * It could be because id is not correct or workflow was purged from the service after reaching
- * its retention limit.
+ * Thrown when workflow with the given id is not known to the cadence service. It could be because
+ * id is not correct or workflow was purged from the service after reaching its retention limit.
  */
 public final class WorkflowNotFoundException extends WorkflowException {
 
-  public WorkflowNotFoundException(WorkflowExecution execution, String workflowType,
-      String message) {
+  public WorkflowNotFoundException(
+      WorkflowExecution execution, String workflowType, String message) {
     super(message, execution, workflowType, null);
   }
 }

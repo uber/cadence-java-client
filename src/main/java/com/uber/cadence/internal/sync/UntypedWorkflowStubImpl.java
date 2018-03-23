@@ -176,12 +176,12 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
   public <R> CompletableFuture<R> getResultAsync(long timeout, TimeUnit unit, Class<R> returnType) {
     checkStarted();
     return WorkflowExecutionUtils.getWorkflowExecutionResultAsync(
-        genericClient.getService(),
-        genericClient.getDomain(),
-        execution.get(),
-        workflowType,
-        timeout,
-        unit)
+            genericClient.getService(),
+            genericClient.getDomain(),
+            execution.get(),
+            workflowType,
+            timeout,
+            unit)
         .handle(
             (r, e) -> {
               if (e instanceof CompletionException) {
@@ -201,8 +201,7 @@ class UntypedWorkflowStubImpl implements UntypedWorkflowStub {
             });
   }
 
-  private <R> R mapToWorkflowFailureException(
-      Exception failure, Class<R> returnType) {
+  private <R> R mapToWorkflowFailureException(Exception failure, Class<R> returnType) {
     Class<Throwable> detailsClass;
     if (failure instanceof WorkflowExecutionFailedException) {
       WorkflowExecutionFailedException executionFailed = (WorkflowExecutionFailedException) failure;
