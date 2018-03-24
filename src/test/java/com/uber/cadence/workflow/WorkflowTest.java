@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
 public class WorkflowTest {
 
   @Rule public TestName testName = new TestName();
-  @Rule public Timeout globalTimeout = Timeout.seconds(6);
+  @Rule public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =

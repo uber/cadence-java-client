@@ -37,6 +37,7 @@ import com.uber.cadence.CancelTimerDecisionAttributes;
 import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionFailedCause;
 import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
@@ -76,6 +77,7 @@ import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes;
 import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
@@ -86,8 +88,14 @@ import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.ForkJoinPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class StateMachines {
+
+  private static final Logger log = LoggerFactory.getLogger(StateMachines.class);
 
   static final class WorkflowData {}
 
@@ -119,10 +127,15 @@ class StateMachines {
 
   static final class ChildWorkflowData {
 
+    final TestWorkflowService service;
     StartChildWorkflowExecutionInitiatedEventAttributes initiatedEvent;
-    public long initiatedEventId;
-    public long startedEventId;
-    public WorkflowExecution execution;
+    long initiatedEventId;
+    long startedEventId;
+    WorkflowExecution execution;
+
+    public ChildWorkflowData(TestWorkflowService service) {
+      this.service = service;
+    }
   }
 
   static final class TimerData {
@@ -169,8 +182,9 @@ class StateMachines {
         .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
   }
 
-  public static StateMachine<ChildWorkflowData> newChildWorkflowStateMachine() {
-    return new StateMachine<>(new ChildWorkflowData())
+  public static StateMachine<ChildWorkflowData> newChildWorkflowStateMachine(
+      TestWorkflowService service) {
+    return new StateMachine<>(new ChildWorkflowData(service))
         .add(NONE, INITIATED, StateMachines::initiateChildWorkflow)
         .add(INITIATED, STARTED, StateMachines::childWorkflowStarted)
         .add(INITIATED, FAILED, StateMachines::startChildWorkflowFailed)
@@ -241,8 +255,7 @@ class StateMachines {
       ChildWorkflowData data,
       ChildWorkflowExecutionCompletedEventAttributes a,
       long notUsed) {
-    a.setInitiatedEventId(data.initiatedEventId);
-    a.setStartedEventId(data.startedEventId);
+    a.setInitiatedEventId(data.initiatedEventId).setStartedEventId(data.startedEventId);
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.ChildWorkflowExecutionCompleted)
@@ -300,13 +313,52 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.StartChildWorkflowExecutionInitiated)
             .setStartChildWorkflowExecutionInitiatedEventAttributes(a);
-    ctx.addEvent(event);
     long initiatedEventId = ctx.addEvent(event);
     ctx.onCommit(
         () -> {
           data.initiatedEventId = initiatedEventId;
           data.initiatedEvent = a;
+          StartWorkflowExecutionRequest startChild =
+              new StartWorkflowExecutionRequest()
+                  .setInput(d.getInput())
+                  .setDomain(d.getDomain() == null ? ctx.getDomain() : d.getDomain())
+                  .setExecutionStartToCloseTimeoutSeconds(
+                      d.getExecutionStartToCloseTimeoutSeconds())
+                  .setTaskStartToCloseTimeoutSeconds(d.getTaskStartToCloseTimeoutSeconds())
+                  .setTaskList(d.getTaskList())
+                  .setWorkflowId(d.getWorkflowId())
+                  .setWorkflowIdReusePolicy(d.getWorkflowIdReusePolicy())
+                  .setWorkflowType(d.getWorkflowType());
+          addStartChildTask(ctx, data, initiatedEventId, startChild);
         });
+  }
+
+  private static void addStartChildTask(
+      RequestContext ctx,
+      ChildWorkflowData data,
+      long initiatedEventId,
+      StartWorkflowExecutionRequest startChild) {
+    ForkJoinPool.commonPool()
+        .execute(
+            () -> {
+              try {
+                data.service.startWorkflowExecutionImpl(
+                    startChild, Optional.of(ctx.getWorkflowMutableState()));
+              } catch (WorkflowExecutionAlreadyStartedError workflowExecutionAlreadyStartedError) {
+                StartChildWorkflowExecutionFailedEventAttributes failRequest =
+                    new StartChildWorkflowExecutionFailedEventAttributes()
+                        .setInitiatedEventId(initiatedEventId)
+                        .setCause(ChildWorkflowExecutionFailedCause.WORKFLOW_ALREADY_RUNNING);
+                try {
+                  ctx.getWorkflowMutableState()
+                      .failStartChildWorkflow(data.initiatedEvent.getWorkflowId(), failRequest);
+                } catch (Throwable e) {
+                  log.error("Unexpected failure inserting failStart for a child workflow", e);
+                }
+              } catch (Exception e) {
+                log.error("Unexpected failure starting a child workflow", e);
+              }
+            });
   }
 
   private static void startWorkflow(

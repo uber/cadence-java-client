@@ -68,6 +68,7 @@ import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryI
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -156,11 +157,11 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
           ServiceBusyError, TException {
-    return startWorkflowExecutionImpl(startRequest, null);
+    return startWorkflowExecutionImpl(startRequest, Optional.empty());
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
-      StartWorkflowExecutionRequest startRequest, ExecutionId parentExecutionId)
+      StartWorkflowExecutionRequest startRequest, Optional<TestWorkflowMutableState> parent)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, InternalServiceError {
     String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
     String domain = requireNotNull("Domain", startRequest.getDomain());
@@ -183,7 +184,7 @@ public final class TestWorkflowService implements IWorkflowService {
       error.setStartRequestId(startRequest.getRequestId());
       throw error;
     }
-    running = new TestWorkflowMutableStateImpl(startRequest, parentExecutionId, this, store, clock);
+    running = new TestWorkflowMutableStateImpl(startRequest, parent, this, store, clock);
     WorkflowExecution execution = running.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     lock.lock();

@@ -61,6 +61,8 @@ final class RequestContext {
 
   private final ExecutionId executionId;
 
+  private final TestWorkflowMutableState workflowMutableState;
+
   private final long initialEventId;
 
   private final List<HistoryEvent> events = new ArrayList<>();
@@ -75,12 +77,14 @@ final class RequestContext {
    * Creates an instance of the RequestContext
    *
    * @param clock clock used to timestamp events and schedule timers.
-   * @param executionId id of the execution being updated
+   * @param workflowMutableState state of the execution being updated
    * @param initialEventId expected id of the next event added to the history
    */
-  RequestContext(LongSupplier clock, ExecutionId executionId, long initialEventId) {
-    this.clock = clock;
-    this.executionId = Objects.requireNonNull(executionId);
+  RequestContext(
+      LongSupplier clock, TestWorkflowMutableState workflowMutableState, long initialEventId) {
+    this.clock = Objects.requireNonNull(clock);
+    this.workflowMutableState = Objects.requireNonNull(workflowMutableState);
+    this.executionId = Objects.requireNonNull(workflowMutableState.getExecutionId());
     this.initialEventId = initialEventId;
   }
 
@@ -110,6 +114,10 @@ final class RequestContext {
 
   WorkflowExecution getExecution() {
     return executionId.getExecution();
+  }
+
+  public TestWorkflowMutableState getWorkflowMutableState() {
+    return workflowMutableState;
   }
 
   String getDomain() {

@@ -41,6 +41,7 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import org.apache.thrift.TException;
 
@@ -57,13 +58,16 @@ interface TestWorkflowMutableState {
   void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
-  void failChildWorkflow(String activityId, ChildWorkflowExecutionFailedEventAttributes a)
+  void childWorklfowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
-  void completeChildWorkflow(String activityId, ChildWorkflowExecutionCompletedEventAttributes a)
+  void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
-  void cancelChildWorkflow(String activityId, ChildWorkflowExecutionCanceledEventAttributes a)
+  void childWorkflowCompleted(String workflowId, ChildWorkflowExecutionCompletedEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void childWorkflowCanceled(String workflowId, ChildWorkflowExecutionCanceledEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
   void startWorkflow() throws InternalServiceError;
