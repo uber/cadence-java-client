@@ -74,19 +74,16 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       }
     }
 
-    void addAllLocked(List<HistoryEvent> events, boolean complete, long timeInNanos) {
+    void addAllLocked(List<HistoryEvent> events, long timeInNanos) throws EntityNotExistsError {
       if (completed) {
-        throw new IllegalStateException("Already completed");
+        throw new EntityNotExistsError("Already completed");
       }
       for (HistoryEvent event : events) {
         event.setEventId(history.size());
         event.setTimestamp(timeInNanos);
         history.add(event);
+        completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);
       }
-      if (history.isEmpty() && complete) {
-        throw new IllegalStateException("Cannot complete with empty history");
-      }
-      completed = complete;
       newEventsCondition.signal();
     }
 
@@ -146,7 +143,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "TestWorkflowStoreImpl timers"));
 
   @Override
-  public long save(RequestContext ctx) throws InternalServiceError {
+  public long save(RequestContext ctx) throws InternalServiceError, EntityNotExistsError {
     long result;
     lock.lock();
     try {
@@ -162,7 +159,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         histories.put(executionId, history);
       }
       history.checkNextEventId(ctx.getInitialEventId());
-      history.addAllLocked(events, ctx.isWorkflowCompleted(), ctx.currentTimeInNanoseconds());
+      history.addAllLocked(events, ctx.currentTimeInNanoseconds());
       result = history.getNextEventIdLocked();
       ctx.fireCallbacks();
     } finally {

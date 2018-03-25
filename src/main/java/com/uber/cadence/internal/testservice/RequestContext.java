@@ -21,6 +21,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ final class RequestContext {
   private DecisionTask decisionTask;
   private final List<ActivityTask> activityTasks = new ArrayList<>();
   private final List<Timer> timers = new ArrayList<>();
-  private boolean workflowCompleted;
+  private long workflowCompletedAtEventId = -1;
   private boolean needDecision;
 
   /**
@@ -100,16 +101,16 @@ final class RequestContext {
 
   /** Returns eventId of the added event; */
   long addEvent(HistoryEvent event) {
-    requireNotCompleted();
     long eventId = initialEventId + events.size();
+    if (WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event)) {
+      workflowCompletedAtEventId = eventId;
+    } else {
+      if (workflowCompletedAtEventId > 0 && workflowCompletedAtEventId < eventId) {
+        throw new IllegalStateException("Event added after the workflow completion event");
+      }
+    }
     events.add(event);
     return eventId;
-  }
-
-  private void requireNotCompleted() {
-    if (workflowCompleted) {
-      throw new IllegalStateException("workflow completed");
-    }
   }
 
   WorkflowExecution getExecution() {
@@ -145,7 +146,6 @@ final class RequestContext {
   }
 
   void setDecisionTask(DecisionTask decisionTask) {
-    requireNotCompleted();
     this.decisionTask = Objects.requireNonNull(decisionTask);
   }
 
@@ -166,14 +166,6 @@ final class RequestContext {
     return activityTasks;
   }
 
-  void completeWorkflow() {
-    workflowCompleted = true;
-  }
-
-  boolean isWorkflowCompleted() {
-    return workflowCompleted;
-  }
-
   DecisionTask getDecisionTask() {
     return decisionTask;
   }
@@ -187,7 +179,7 @@ final class RequestContext {
   }
 
   /** @return nextEventId */
-  long commitChanges(TestWorkflowStore store) throws InternalServiceError {
+  long commitChanges(TestWorkflowStore store) throws InternalServiceError, EntityNotExistsError {
     return store.save(this);
   }
 

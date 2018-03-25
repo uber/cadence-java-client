@@ -17,8 +17,9 @@
 
 package com.uber.cadence.internal.testservice;
 
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.internal.testservice.StateMachines.Action;
+import com.uber.cadence.internal.testservice.StateMachines.State;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,24 +31,12 @@ import java.util.Objects;
  *
  * <p>Based on the idea that each entity goes through state transitions and the same operation like
  * timeout is applicable to some states only and can lead to different actions in each state. Each
- * valid state transition should be registered through {@link #add(State, State, Callback)}. The
- * associated callback is invoked when the state transition is requested.
+ * valid state transition should be registered through {@link #add(State, Action, State, Callback)}.
+ * The associated callback is invoked when the state transition is requested.
  *
  * @see StateMachines for entity factories.
- * @param <Data>
  */
 final class StateMachine<Data> {
-
-  enum State {
-    NONE,
-    INITIATED,
-    STARTED,
-    FAILED,
-    TIMED_OUT,
-    CANCELLATION_REQUESTED,
-    CANCELED,
-    COMPLETED
-  }
 
   @FunctionalInterface
   interface Callback<D, R> {
@@ -58,19 +47,19 @@ final class StateMachine<Data> {
   private static class Transition {
 
     final State from;
-    final State to;
+    final Action action;
 
-    public Transition(State from, State to) {
+    public Transition(State from, Action action) {
       this.from = Objects.requireNonNull(from);
-      this.to = Objects.requireNonNull(to);
+      this.action = Objects.requireNonNull(action);
     }
 
     public State getFrom() {
       return from;
     }
 
-    public State getTo() {
-      return to;
+    public Action getAction() {
+      return action;
     }
 
     @Override
@@ -87,26 +76,51 @@ final class StateMachine<Data> {
       if (from != that.from) {
         return false;
       }
-      return to == that.to;
+      return action == that.action;
     }
 
     @Override
     public int hashCode() {
       int result = from.hashCode();
-      result = 31 * result + to.hashCode();
+      result = 31 * result + action.hashCode();
       return result;
     }
 
     @Override
     public String toString() {
-      return "Transition{" + from + "->" + to + '}';
+      return "Transition{" + "from=" + from + ", action=" + action + '}';
     }
   }
 
-  private final List<State> transitionHistory = new ArrayList<>();
-  private final Map<Transition, Callback<Data, ?>> allowedTransitions = new HashMap<>();
+  private static class TransitionDestination<Data> {
 
-  private State state = State.NONE;
+    final State state;
+
+    final Callback<Data, ?> callback;
+
+    private TransitionDestination(State state, Callback<Data, ?> callback) {
+      this.state = state;
+      this.callback = callback;
+    }
+
+    public State getState() {
+      return state;
+    }
+
+    public Callback<Data, ?> getCallback() {
+      return callback;
+    }
+
+    @Override
+    public String toString() {
+      return "TransitionDestination{" + "state=" + state + ", callback=" + callback + '}';
+    }
+  }
+
+  private final List<Transition> transitionHistory = new ArrayList<>();
+  private final Map<Transition, TransitionDestination<Data>> transitions = new HashMap<>();
+
+  private State state = StateMachines.State.NONE;
 
   private final Data data;
 
@@ -131,66 +145,22 @@ final class StateMachine<Data> {
    * @param <V> type of callback parameter.
    * @return the current StateMachine instance for fluid pattern.
    */
-  <V> StateMachine<Data> add(State from, State to, Callback<Data, V> callback) {
-    allowedTransitions.put(new Transition(from, to), callback);
+  <V> StateMachine<Data> add(State from, Action action, State to, Callback<Data, V> callback) {
+    transitions.put(new Transition(from, action), new TransitionDestination<>(to, callback));
     return this;
   }
 
-  public <V> void initiate(RequestContext ctx, V request, long referenceId)
+  <V> void action(Action action, RequestContext context, V request, long referenceId)
       throws InternalServiceError {
-    applyEvent(State.INITIATED, ctx, request, referenceId);
-  }
-
-  public <V> void start(RequestContext ctx, V request, long referenceId)
-      throws InternalServiceError {
-    applyEvent(State.STARTED, ctx, request, referenceId);
-  }
-
-  public <V> void fail(RequestContext ctx, V request, long referenceId)
-      throws InternalServiceError {
-    applyEvent(State.FAILED, ctx, request, referenceId);
-  }
-
-  public <V> void complete(RequestContext ctx, V request, long referenceId)
-      throws InternalServiceError {
-    applyEvent(State.COMPLETED, ctx, request, referenceId);
-  }
-
-  public <V> void timeout(RequestContext ctx, V timeoutType) throws InternalServiceError {
-    applyEvent(State.TIMED_OUT, ctx, timeoutType, 0);
-  }
-
-  public <V> void requestCancellation(RequestContext ctx, V request, long referenceId)
-      throws InternalServiceError {
-    applyEvent(State.CANCELLATION_REQUESTED, ctx, request, referenceId);
-  }
-
-  public <V> void reportCancellation(RequestContext ctx, V request, long referenceId)
-      throws InternalServiceError {
-    applyEvent(State.CANCELED, ctx, request, referenceId);
-  }
-
-  public <V> void update(V request) throws EntityNotExistsError, InternalServiceError {
-    Transition transition = new Transition(State.STARTED, State.STARTED);
-    @SuppressWarnings("unchecked")
-    Callback<Data, V> callback = (Callback<Data, V>) allowedTransitions.get(transition);
-    if (callback == null) {
-      throw new EntityNotExistsError("Not in running state: " + state);
+    Transition transition = new Transition(state, action);
+    TransitionDestination<Data> destination = transitions.get(transition);
+    if (destination == null) {
+      throw new InternalServiceError("Invalid " + transition + ", history: " + transitionHistory);
     }
-    callback.apply(null, data, request, 0);
-  }
-
-  private <V> void applyEvent(State toState, RequestContext context, V request, long referenceId)
-      throws InternalServiceError {
-    Transition transition = new Transition(state, toState);
     @SuppressWarnings("unchecked")
-    Callback<Data, V> callback = (Callback<Data, V>) allowedTransitions.get(transition);
-    if (callback == null) {
-      throw new InternalServiceError(
-          "Invalid transition " + transition + ", history: " + transitionHistory);
-    }
+    Callback<Data, V> callback = (Callback<Data, V>) destination.getCallback();
     callback.apply(context, data, request, referenceId);
-    transitionHistory.add(transition.getTo());
-    state = transition.getTo();
+    transitionHistory.add(transition);
+    state = destination.getState();
   }
 }

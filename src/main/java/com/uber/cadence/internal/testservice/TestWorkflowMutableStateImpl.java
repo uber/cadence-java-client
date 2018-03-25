@@ -62,10 +62,10 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.internal.testservice.StateMachine.State;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.ChildWorkflowData;
 import com.uber.cadence.internal.testservice.StateMachines.DecisionTaskData;
+import com.uber.cadence.internal.testservice.StateMachines.State;
 import com.uber.cadence.internal.testservice.StateMachines.TimerData;
 import com.uber.cadence.internal.testservice.StateMachines.WorkflowData;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
@@ -94,7 +94,7 @@ import org.slf4j.LoggerFactory;
 
 class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
-  public static final int MILLISECONDS_IN_SECOND = 1000;
+  private static final int MILLISECONDS_IN_SECOND = 1000;
 
   @FunctionalInterface
   private interface UpdateProcedure {
@@ -154,7 +154,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     lock.lock();
     try {
       boolean concurrentDecision =
-          !completeDecisionUpdate && (decision != null && decision.getState() == State.STARTED);
+          !completeDecisionUpdate
+              && (decision != null && decision.getState() == StateMachines.State.STARTED);
       RequestContext ctx = new RequestContext(clock, this, nextEventId);
       updater.apply(ctx);
       if (concurrentDecision) {
@@ -182,7 +183,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError {
     if (task.getQuery() == null) {
-      update(ctx -> decision.start(ctx, pollRequest, 0));
+      update(ctx -> decision.action(StateMachines.Action.START, ctx, pollRequest, 0));
     }
   }
 
@@ -193,7 +194,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     log.info("Decisions: " + decisions);
     completeDecisionUpdate(
         ctx -> {
-          decision.complete(ctx, request, 0);
+          decision.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           long decisionTaskCompletedId = ctx.getNextEventId() - 1;
           for (Decision d : decisions) {
             processDecision(ctx, d, decisionTaskCompletedId);
@@ -203,9 +204,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           }
           this.decision = null;
           boolean completed =
-              workflow.getState() == State.COMPLETED
-                  || workflow.getState() == State.FAILED
-                  || workflow.getState() == State.CANCELED;
+              workflow.getState() == StateMachines.State.COMPLETED
+                  || workflow.getState() == StateMachines.State.FAILED
+                  || workflow.getState() == StateMachines.State.CANCELED;
           if (!completed && (ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty())) {
             scheduleDecision(ctx);
           }
@@ -214,7 +215,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     lock.lock();
     try {
       {
-        if (decision != null && decision.getState() != State.INITIATED) {
+        if (decision != null && decision.getState() != StateMachines.State.INITIATED) {
           throw new IllegalStateException(
               "non null decision after the completion: " + decision.getState());
         }
@@ -284,7 +285,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       ctx.addEvent(cancellationFailed);
       return;
     }
-    timer.reportCancellation(ctx, d, decisionTaskCompletedId);
+    timer.action(StateMachines.Action.CANCEL, ctx, d, decisionTaskCompletedId);
     timers.remove(timerId);
   }
 
@@ -309,9 +310,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       return;
     }
     State beforeState = activity.getState();
-    activity.requestCancellation(ctx, a, decisionTaskCompletedId);
-    if (beforeState == State.INITIATED) {
-      activity.reportCancellation(ctx, null, 0);
+    activity.action(StateMachines.Action.REQUEST_CANCELLATION, ctx, a, decisionTaskCompletedId);
+    if (beforeState == StateMachines.State.INITIATED) {
+      activity.action(StateMachines.Action.CANCEL, ctx, null, 0);
       activities.remove(activityId);
       ctx.setNeedDecision(true);
     }
@@ -328,7 +329,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     activity = StateMachines.newActivityStateMachine();
     activities.put(activityId, activity);
-    activity.initiate(ctx, a, decisionTaskCompletedId);
+    activity.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
     ctx.addTimer(
         a.getScheduleToCloseTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_CLOSE));
@@ -381,7 +382,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     child = StateMachines.newChildWorkflowStateMachine(service);
     childWorkflows.put(childId, child);
-    child.initiate(ctx, a, decisionTaskCompletedId);
+    child.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
   }
 
   // TODO
@@ -394,7 +395,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-          child.start(ctx, a, 0);
+          child.action(StateMachines.Action.START, ctx, a, 0);
         });
   }
 
@@ -405,7 +406,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-          child.fail(ctx, a, 0);
+          child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(childId);
           scheduleDecision(ctx);
         });
@@ -419,7 +420,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String childId = a.getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-          child.fail(ctx, a, 0);
+          child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(childId);
           scheduleDecision(ctx);
         });
@@ -433,7 +434,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-          child.complete(ctx, a, 0);
+          child.action(StateMachines.Action.COMPLETE, ctx, a, 0);
           childWorkflows.remove(childId);
           scheduleDecision(ctx);
         });
@@ -447,7 +448,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-          child.reportCancellation(ctx, a, 0);
+          child.action(StateMachines.Action.CANCEL, ctx, a, 0);
           childWorkflows.remove(childId);
           scheduleDecision(ctx);
         });
@@ -466,7 +467,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
     timer = StateMachines.newTimerStateMachine();
     timers.put(timerId, timer);
-    timer.start(ctx, a, decisionTaskCompletedId);
+    timer.action(StateMachines.Action.START, ctx, a, decisionTaskCompletedId);
     ctx.addTimer(a.getStartToFireTimeoutSeconds(), () -> fireTimer(timerId));
   }
 
@@ -478,7 +479,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       update(
           ctx -> {
-            timer.complete(ctx, null, 0);
+            timer.action(StateMachines.Action.COMPLETE, ctx, null, 0);
             timers.remove(timerId);
             scheduleDecision(ctx);
           });
@@ -491,7 +492,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void processFailWorkflowExecution(
       RequestContext ctx, FailWorkflowExecutionDecisionAttributes d, long decisionTaskCompletedId)
       throws InternalServiceError {
-    workflow.fail(ctx, d, decisionTaskCompletedId);
+    workflow.action(StateMachines.Action.FAIL, ctx, d, decisionTaskCompletedId);
     if (parent.isPresent()) {
       ChildWorkflowExecutionFailedEventAttributes a =
           new ChildWorkflowExecutionFailedEventAttributes()
@@ -521,7 +522,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       CompleteWorkflowExecutionDecisionAttributes d,
       long decisionTaskCompletedId)
       throws InternalServiceError {
-    workflow.complete(ctx, d, decisionTaskCompletedId);
+    workflow.action(StateMachines.Action.COMPLETE, ctx, d, decisionTaskCompletedId);
     if (parent.isPresent()) {
       ChildWorkflowExecutionCompletedEventAttributes a =
           new ChildWorkflowExecutionCompletedEventAttributes()
@@ -549,7 +550,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void processCancelWorkflowExecution(
       RequestContext ctx, CancelWorkflowExecutionDecisionAttributes d, long decisionTaskCompletedId)
       throws InternalServiceError {
-    workflow.reportCancellation(ctx, d, decisionTaskCompletedId);
+    workflow.action(StateMachines.Action.CANCEL, ctx, d, decisionTaskCompletedId);
     if (parent.isPresent()) {
       ChildWorkflowExecutionCanceledEventAttributes a =
           new ChildWorkflowExecutionCanceledEventAttributes()
@@ -579,7 +580,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       update(
           ctx -> {
-            workflow.start(ctx, startRequest, 0);
+            workflow.action(StateMachines.Action.START, ctx, startRequest, 0);
             scheduleDecision(ctx);
             ctx.addTimer(
                 startRequest.getExecutionStartToCloseTimeoutSeconds(), this::timeoutWorkflow);
@@ -609,21 +610,22 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private void scheduleDecision(RequestContext ctx) throws InternalServiceError {
     if (decision != null) {
-      if (decision.getState() == State.INITIATED) {
+      if (decision.getState() == StateMachines.State.INITIATED) {
         return; // No need to schedule again
       }
-      if (decision.getState() == State.STARTED) {
+      if (decision.getState() == StateMachines.State.STARTED) {
         ctx.setNeedDecision(true);
         return;
       }
-      if (decision.getState() == State.FAILED || decision.getState() == State.COMPLETED) {
-        decision.initiate(ctx, startRequest, 0);
+      if (decision.getState() == StateMachines.State.FAILED
+          || decision.getState() == StateMachines.State.COMPLETED) {
+        decision.action(StateMachines.Action.INITIATE, ctx, startRequest, 0);
         return;
       }
       throw new InternalServiceError("unexpected decision state: " + decision.getState());
     }
     this.decision = StateMachines.newDecisionStateMachine(store);
-    decision.initiate(ctx, startRequest, 0);
+    decision.action(StateMachines.Action.INITIATE, ctx, startRequest, 0);
   }
 
   @Override
@@ -634,7 +636,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           String activityId = task.getActivityId();
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
-          activity.start(ctx, pollRequest, 0);
+          activity.action(StateMachines.Action.START, ctx, pollRequest, 0);
           ActivityTaskData data = activity.getData();
           int startToCloseTimeout = data.scheduledEvent.getStartToCloseTimeoutSeconds();
           int heartbeatTimeout = data.scheduledEvent.getHeartbeatTimeoutSeconds();
@@ -664,7 +666,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.complete(ctx, request, 0);
+          activity.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -677,7 +679,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.complete(ctx, request, 0);
+          activity.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -689,7 +691,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.fail(ctx, request, 0);
+          activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -701,7 +703,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.fail(ctx, request, 0);
+          activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -713,7 +715,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.reportCancellation(ctx, request, 0);
+          activity.action(StateMachines.Action.CANCEL, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -726,7 +728,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
-          activity.reportCancellation(ctx, request, 0);
+          activity.action(StateMachines.Action.CANCEL, ctx, request, 0);
           activities.remove(activityId);
           scheduleDecision(ctx);
         });
@@ -741,8 +743,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       update(
           ctx -> {
             StateMachine<ActivityTaskData> activity = getActivity(activityId);
-            activity.update(request);
-            if (activity.getState() == State.CANCELLATION_REQUESTED) {
+            activity.action(StateMachines.Action.UPDATE, ctx, request, 0);
+            if (activity.getState() == StateMachines.State.CANCELLATION_REQUESTED) {
               result.setCancelRequested(true);
             }
             ActivityTaskData data = activity.getData();
@@ -766,7 +768,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           ctx -> {
             StateMachine<ActivityTaskData> activity = getActivity(activityId);
             if (timeoutType == TimeoutType.SCHEDULE_TO_START
-                && activity.getState() != State.INITIATED) {
+                && activity.getState() != StateMachines.State.INITIATED) {
               return;
             }
             if (timeoutType == TimeoutType.HEARTBEAT) {
@@ -777,7 +779,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                 return;
               }
             }
-            activity.timeout(ctx, timeoutType);
+            activity.action(StateMachines.Action.TIME_OUT, ctx, timeoutType, 0);
             activities.remove(activityId);
             scheduleDecision(ctx);
           });
@@ -797,7 +799,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             if (timeoutType != TimeoutType.START_TO_CLOSE) {
               throw new InternalServiceError("Unexpected timeout type");
             }
-            child.timeout(ctx, timeoutType);
+            child.action(StateMachines.Action.TIME_OUT, ctx, timeoutType, 0);
             childWorkflows.remove(childId);
             scheduleDecision(ctx);
           });
@@ -811,7 +813,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private void timeoutWorkflow() {
     try {
-      update(ctx -> workflow.timeout(ctx, TimeoutType.START_TO_CLOSE));
+      update(
+          ctx ->
+              workflow.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0));
     } catch (InternalServiceError | EntityNotExistsError e) {
       // Cannot fail to timer threads
       log.error("Failure trying to timeout a workflow", e);
@@ -833,7 +837,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws EntityNotExistsError, InternalServiceError {
     update(
         ctx -> {
-          workflow.requestCancellation(ctx, cancelRequest, 0);
+          workflow.action(StateMachines.Action.REQUEST_CANCELLATION, ctx, cancelRequest, 0);
           scheduleDecision(ctx);
         });
   }

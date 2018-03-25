@@ -17,14 +17,22 @@
 
 package com.uber.cadence.internal.testservice;
 
-import static com.uber.cadence.internal.testservice.StateMachine.State.CANCELED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.CANCELLATION_REQUESTED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.COMPLETED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.FAILED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.INITIATED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.NONE;
-import static com.uber.cadence.internal.testservice.StateMachine.State.STARTED;
-import static com.uber.cadence.internal.testservice.StateMachine.State.TIMED_OUT;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.CANCEL;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.COMPLETE;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.FAIL;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.INITIATE;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.REQUEST_CANCELLATION;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.START;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.TIME_OUT;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.UPDATE;
+import static com.uber.cadence.internal.testservice.StateMachines.State.CANCELED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.CANCELLATION_REQUESTED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.COMPLETED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.FAILED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.INITIATED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.NONE;
+import static com.uber.cadence.internal.testservice.StateMachines.State.STARTED;
+import static com.uber.cadence.internal.testservice.StateMachines.State.TIMED_OUT;
 
 import com.uber.cadence.ActivityTaskCancelRequestedEventAttributes;
 import com.uber.cadence.ActivityTaskCanceledEventAttributes;
@@ -97,6 +105,28 @@ class StateMachines {
 
   private static final Logger log = LoggerFactory.getLogger(StateMachines.class);
 
+  enum State {
+    NONE,
+    INITIATED,
+    STARTED,
+    FAILED,
+    TIMED_OUT,
+    CANCELLATION_REQUESTED,
+    CANCELED,
+    COMPLETED
+  }
+
+  enum Action {
+    INITIATE,
+    START,
+    FAIL,
+    TIME_OUT,
+    REQUEST_CANCELLATION,
+    CANCEL,
+    UPDATE,
+    COMPLETE
+  }
+
   static final class WorkflowData {}
 
   static final class DecisionTaskData {
@@ -146,60 +176,77 @@ class StateMachines {
 
   static StateMachine<WorkflowData> newWorkflowStateMachine() {
     return new StateMachine<>(new WorkflowData())
-        .add(NONE, STARTED, StateMachines::startWorkflow)
-        .add(STARTED, COMPLETED, StateMachines::completeWorkflow)
-        .add(STARTED, FAILED, StateMachines::failWorkflow)
-        .add(STARTED, TIMED_OUT, StateMachines::timeoutWorkflow)
-        .add(STARTED, CANCELLATION_REQUESTED, StateMachines::requestWorkflowCancellation)
-        .add(CANCELLATION_REQUESTED, COMPLETED, StateMachines::completeWorkflow)
-        .add(CANCELLATION_REQUESTED, CANCELED, StateMachines::cancelWorkflow)
-        .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failWorkflow)
-        .add(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutWorkflow);
+        .add(NONE, START, STARTED, StateMachines::startWorkflow)
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeWorkflow)
+        .add(STARTED, FAIL, FAILED, StateMachines::failWorkflow)
+        .add(STARTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutWorkflow)
+        .add(
+            STARTED,
+            REQUEST_CANCELLATION,
+            CANCELLATION_REQUESTED,
+            StateMachines::requestWorkflowCancellation)
+        .add(CANCELLATION_REQUESTED, COMPLETE, COMPLETED, StateMachines::completeWorkflow)
+        .add(CANCELLATION_REQUESTED, CANCEL, CANCELED, StateMachines::cancelWorkflow)
+        .add(CANCELLATION_REQUESTED, FAIL, FAILED, StateMachines::failWorkflow)
+        .add(CANCELLATION_REQUESTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutWorkflow);
   }
 
   static StateMachine<DecisionTaskData> newDecisionStateMachine(TestWorkflowStore store) {
     return new StateMachine<>(new DecisionTaskData(store))
-        .add(NONE, INITIATED, StateMachines::scheduleDecisionTask)
-        .add(INITIATED, STARTED, StateMachines::startDecisionTask)
-        .add(STARTED, COMPLETED, StateMachines::completeDecisionTask);
+        .add(NONE, INITIATE, INITIATED, StateMachines::scheduleDecisionTask)
+        .add(INITIATED, START, STARTED, StateMachines::startDecisionTask)
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeDecisionTask);
   }
 
   public static StateMachine<ActivityTaskData> newActivityStateMachine() {
     return new StateMachine<>(new ActivityTaskData())
-        .add(NONE, INITIATED, StateMachines::scheduleActivityTask)
-        .add(INITIATED, STARTED, StateMachines::startActivityTask)
-        .add(INITIATED, TIMED_OUT, StateMachines::timeoutActivityTask)
-        .add(INITIATED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
-        .add(STARTED, COMPLETED, StateMachines::completeActivityTask)
-        .add(STARTED, FAILED, StateMachines::failActivityTask)
-        .add(STARTED, TIMED_OUT, StateMachines::timeoutActivityTask)
-        .add(STARTED, STARTED, StateMachines::heartbeatActivityTask)
-        .add(STARTED, CANCELLATION_REQUESTED, StateMachines::requestActivityCancellation)
-        .add(CANCELLATION_REQUESTED, CANCELED, StateMachines::reportActivityTaskCancellation)
-        .add(CANCELLATION_REQUESTED, COMPLETED, StateMachines::completeActivityTask)
-        .add(CANCELLATION_REQUESTED, CANCELLATION_REQUESTED, StateMachines::heartbeatActivityTask)
-        .add(CANCELLATION_REQUESTED, TIMED_OUT, StateMachines::timeoutActivityTask)
-        .add(CANCELLATION_REQUESTED, FAILED, StateMachines::failActivityTask);
+        .add(NONE, INITIATE, INITIATED, StateMachines::scheduleActivityTask)
+        .add(INITIATED, START, STARTED, StateMachines::startActivityTask)
+        .add(INITIATED, TIME_OUT, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(
+            INITIATED,
+            REQUEST_CANCELLATION,
+            CANCELLATION_REQUESTED,
+            StateMachines::requestActivityCancellation)
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeActivityTask)
+        .add(STARTED, FAIL, FAILED, StateMachines::failActivityTask)
+        .add(STARTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(STARTED, UPDATE, STARTED, StateMachines::heartbeatActivityTask)
+        .add(
+            STARTED,
+            REQUEST_CANCELLATION,
+            CANCELLATION_REQUESTED,
+            StateMachines::requestActivityCancellation)
+        .add(
+            CANCELLATION_REQUESTED, CANCEL, CANCELED, StateMachines::reportActivityTaskCancellation)
+        .add(CANCELLATION_REQUESTED, COMPLETE, COMPLETED, StateMachines::completeActivityTask)
+        .add(
+            CANCELLATION_REQUESTED,
+            UPDATE,
+            CANCELLATION_REQUESTED,
+            StateMachines::heartbeatActivityTask)
+        .add(CANCELLATION_REQUESTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutActivityTask)
+        .add(CANCELLATION_REQUESTED, FAIL, FAILED, StateMachines::failActivityTask);
   }
 
   public static StateMachine<ChildWorkflowData> newChildWorkflowStateMachine(
       TestWorkflowService service) {
     return new StateMachine<>(new ChildWorkflowData(service))
-        .add(NONE, INITIATED, StateMachines::initiateChildWorkflow)
-        .add(INITIATED, STARTED, StateMachines::childWorkflowStarted)
-        .add(INITIATED, FAILED, StateMachines::startChildWorkflowFailed)
-        .add(INITIATED, TIMED_OUT, StateMachines::timeoutChildWorkflow)
-        .add(STARTED, COMPLETED, StateMachines::childWorkflowCompleted)
-        .add(STARTED, FAILED, StateMachines::childWorkflowFailed)
-        .add(STARTED, TIMED_OUT, StateMachines::timeoutChildWorkflow)
-        .add(STARTED, CANCELED, StateMachines::childWorkflowCanceled);
+        .add(NONE, INITIATE, INITIATED, StateMachines::initiateChildWorkflow)
+        .add(INITIATED, START, STARTED, StateMachines::childWorkflowStarted)
+        .add(INITIATED, FAIL, FAILED, StateMachines::startChildWorkflowFailed)
+        .add(INITIATED, TIME_OUT, TIMED_OUT, StateMachines::timeoutChildWorkflow)
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::childWorkflowCompleted)
+        .add(STARTED, FAIL, FAILED, StateMachines::childWorkflowFailed)
+        .add(STARTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutChildWorkflow)
+        .add(STARTED, CANCEL, CANCELED, StateMachines::childWorkflowCanceled);
   }
 
   public static StateMachine<TimerData> newTimerStateMachine() {
     return new StateMachine<>(new TimerData())
-        .add(NONE, STARTED, StateMachines::startTimer)
-        .add(STARTED, COMPLETED, StateMachines::fireTimer)
-        .add(STARTED, CANCELED, StateMachines::cancelTimer);
+        .add(NONE, START, STARTED, StateMachines::startTimer)
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::fireTimer)
+        .add(STARTED, CANCEL, CANCELED, StateMachines::cancelTimer);
   }
 
   private static void timeoutChildWorkflow(
@@ -393,7 +440,6 @@ class StateMachines {
             .setEventType(EventType.WorkflowExecutionCompleted)
             .setWorkflowExecutionCompletedEventAttributes(a);
     ctx.addEvent(event);
-    ctx.completeWorkflow();
   }
 
   private static void failWorkflow(
@@ -411,7 +457,6 @@ class StateMachines {
             .setEventType(EventType.WorkflowExecutionFailed)
             .setWorkflowExecutionFailedEventAttributes(a);
     ctx.addEvent(event);
-    ctx.completeWorkflow();
   }
 
   private static void timeoutWorkflow(
@@ -423,7 +468,6 @@ class StateMachines {
             .setEventType(EventType.WorkflowExecutionTimedOut)
             .setWorkflowExecutionTimedOutEventAttributes(a);
     ctx.addEvent(event);
-    ctx.completeWorkflow();
   }
 
   private static void cancelWorkflow(
@@ -440,7 +484,6 @@ class StateMachines {
             .setEventType(EventType.WorkflowExecutionCanceled)
             .setWorkflowExecutionCanceledEventAttributes(a);
     ctx.addEvent(event);
-    ctx.completeWorkflow();
   }
 
   private static void requestWorkflowCancellation(

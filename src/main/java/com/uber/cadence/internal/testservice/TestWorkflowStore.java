@@ -122,7 +122,7 @@ interface TestWorkflowStore {
     }
   }
 
-  long save(RequestContext requestContext) throws InternalServiceError;
+  long save(RequestContext requestContext) throws InternalServiceError, EntityNotExistsError;
 
   PollForDecisionTaskResponse pollForDecisionTask(PollForDecisionTaskRequest pollRequest)
       throws InterruptedException;
