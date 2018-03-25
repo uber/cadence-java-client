@@ -107,7 +107,7 @@ public class WorkflowTest {
 
   private static WorkflowOptions.Builder newWorkflowOptionsBuilder() {
     return new WorkflowOptions.Builder()
-        .setExecutionStartToCloseTimeout(Duration.ofSeconds(300))
+        .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
         .setTaskList(taskList);
   }
 

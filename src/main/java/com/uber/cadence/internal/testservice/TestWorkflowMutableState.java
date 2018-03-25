@@ -21,6 +21,7 @@ import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
@@ -39,6 +40,7 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
@@ -55,10 +57,16 @@ interface TestWorkflowMutableState {
   void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError, EntityNotExistsError;
 
+  void failDecisionTask(RespondDecisionTaskFailedRequest request)
+      throws InternalServiceError, EntityNotExistsError;
+
   void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
   void childWorklfowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError;
+
+  void childWorklfowTimedOut(String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
       throws InternalServiceError, EntityNotExistsError;
 
   void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a)

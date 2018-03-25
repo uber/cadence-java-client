@@ -26,6 +26,7 @@ import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.EntityNotExistsError;
@@ -53,6 +54,7 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
@@ -62,6 +64,7 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
+import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.ChildWorkflowData;
 import com.uber.cadence.internal.testservice.StateMachines.DecisionTaskData;
@@ -183,7 +186,19 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError {
     if (task.getQuery() == null) {
-      update(ctx -> decision.action(StateMachines.Action.START, ctx, pollRequest, 0));
+      update(
+          ctx -> {
+            long scheduledEventId = decision.getData().scheduledEventId;
+            decision.action(StateMachines.Action.START, ctx, pollRequest, 0);
+            log.trace(
+                "startDecisionTask.addTimer scheduledEventId="
+                    + scheduledEventId
+                    + " , state="
+                    + decision.getState());
+            ctx.addTimer(
+                startRequest.getTaskStartToCloseTimeoutSeconds(),
+                () -> timeoutDecisionTask(scheduledEventId));
+          });
     }
   }
 
@@ -388,6 +403,43 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   // TODO
   private void validateStartChildWorkflow(StartChildWorkflowExecutionDecisionAttributes a) {}
 
+  // TODO: insert a single decision failure into the history
+  @Override
+  public void failDecisionTask(RespondDecisionTaskFailedRequest request)
+      throws InternalServiceError, EntityNotExistsError {
+    completeDecisionUpdate(
+        ctx -> {
+          decision.action(Action.FAIL, ctx, request, 0);
+          scheduleDecision(ctx);
+        });
+  }
+
+  // TODO: insert a single decision timeout into the history
+  private void timeoutDecisionTask(long scheduledEventId) {
+    try {
+      completeDecisionUpdate(
+          ctx -> {
+            if (decision.getData().scheduledEventId != scheduledEventId) {
+              log.trace("Old timeout for scheduledEventId=" + scheduledEventId);
+              // timeout for a previous decision
+              return;
+            }
+            log.trace(
+                "Timed out decision for scheduledEventId="
+                    + scheduledEventId
+                    + ", state="
+                    + decision.getState());
+            decision.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
+            scheduleDecision(ctx);
+          });
+    } catch (EntityNotExistsError e) {
+      // Expected as timers are not removed
+    } catch (Exception e) {
+      // Cannot fail to timer threads
+      log.error("Failure trying to timeout a decision scheduledEventId=" + scheduledEventId, e);
+    }
+  }
+
   @Override
   public void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError {
@@ -407,6 +459,20 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
           child.action(StateMachines.Action.FAIL, ctx, a, 0);
+          childWorkflows.remove(childId);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void childWorklfowTimedOut(
+      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
+      throws InternalServiceError, EntityNotExistsError {
+    update(
+        ctx -> {
+          String childId = a.getWorkflowExecution().getWorkflowId();
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
+          child.action(Action.TIME_OUT, ctx, a, 0);
           childWorkflows.remove(childId);
           scheduleDecision(ctx);
         });
@@ -618,7 +684,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         return;
       }
       if (decision.getState() == StateMachines.State.FAILED
-          || decision.getState() == StateMachines.State.COMPLETED) {
+          || decision.getState() == StateMachines.State.COMPLETED
+          || decision.getState() == State.TIMED_OUT) {
         decision.action(StateMachines.Action.INITIATE, ctx, startRequest, 0);
         return;
       }
@@ -791,34 +858,36 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
   }
 
-  private void timeoutChildWorkflow(String childId, TimeoutType timeoutType) {
-    try {
-      update(
-          ctx -> {
-            StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
-            if (timeoutType != TimeoutType.START_TO_CLOSE) {
-              throw new InternalServiceError("Unexpected timeout type");
-            }
-            child.action(StateMachines.Action.TIME_OUT, ctx, timeoutType, 0);
-            childWorkflows.remove(childId);
-            scheduleDecision(ctx);
-          });
-    } catch (EntityNotExistsError e) {
-      // Expected as timers are not removed
-    } catch (Exception e) {
-      // Cannot fail to timer threads
-      log.error("Failure trying to timeout a child workflow", e);
-    }
-  }
-
   private void timeoutWorkflow() {
     try {
       update(
-          ctx ->
-              workflow.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0));
+          ctx -> {
+            workflow.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
+            ForkJoinPool.commonPool().execute(() -> reportWorkflowTimeoutToParent(ctx));
+          });
+
     } catch (InternalServiceError | EntityNotExistsError e) {
       // Cannot fail to timer threads
       log.error("Failure trying to timeout a workflow", e);
+    }
+  }
+
+  private void reportWorkflowTimeoutToParent(RequestContext ctx) {
+    if (!parent.isPresent()) {
+      return;
+    }
+    try {
+      ChildWorkflowExecutionTimedOutEventAttributes a =
+          new ChildWorkflowExecutionTimedOutEventAttributes()
+              .setTimeoutType(TimeoutType.START_TO_CLOSE)
+              .setWorkflowType(startRequest.getWorkflowType())
+              .setDomain(ctx.getDomain())
+              .setWorkflowExecution(ctx.getExecution());
+      parent.get().childWorklfowTimedOut(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
+    } catch (EntityNotExistsError entityNotExistsError) {
+      // Parent might already close
+    } catch (InternalServiceError internalServiceError) {
+      log.error("Failure reporting child timing out", internalServiceError);
     }
   }
 

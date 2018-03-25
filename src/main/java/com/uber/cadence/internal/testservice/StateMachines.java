@@ -51,8 +51,10 @@ import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
+import com.uber.cadence.DecisionTaskFailedEventAttributes;
 import com.uber.cadence.DecisionTaskScheduledEventAttributes;
 import com.uber.cadence.DecisionTaskStartedEventAttributes;
+import com.uber.cadence.DecisionTaskTimedOutEventAttributes;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
 import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
@@ -74,6 +76,7 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
@@ -131,13 +134,15 @@ class StateMachines {
 
   static final class DecisionTaskData {
 
-    private final TestWorkflowStore store;
+    final TestWorkflowStore store;
 
-    private long previousStartedEventId = -1;
+    long previousStartedEventId = -1;
 
-    private PollForDecisionTaskResponse decisionTask;
+    PollForDecisionTaskResponse decisionTask;
 
-    private long scheduledEventId = -1;
+    long scheduledEventId = -1;
+
+    int attempt;
 
     DecisionTaskData(TestWorkflowStore store) {
       this.store = store;
@@ -195,7 +200,11 @@ class StateMachines {
     return new StateMachine<>(new DecisionTaskData(store))
         .add(NONE, INITIATE, INITIATED, StateMachines::scheduleDecisionTask)
         .add(INITIATED, START, STARTED, StateMachines::startDecisionTask)
-        .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeDecisionTask);
+        .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeDecisionTask)
+        .add(STARTED, FAIL, FAILED, StateMachines::failDecisionTask)
+        .add(STARTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutDecisionTask)
+        .add(TIMED_OUT, INITIATE, INITIATED, StateMachines::scheduleDecisionTask)
+        .add(FAILED, INITIATE, INITIATED, StateMachines::scheduleDecisionTask);
   }
 
   public static StateMachine<ActivityTaskData> newActivityStateMachine() {
@@ -570,7 +579,8 @@ class StateMachines {
     DecisionTaskScheduledEventAttributes a =
         new DecisionTaskScheduledEventAttributes()
             .setStartToCloseTimeoutSeconds(request.getTaskStartToCloseTimeoutSeconds())
-            .setTaskList(request.getTaskList());
+            .setTaskList(request.getTaskList())
+            .setAttempt(data.attempt);
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.DecisionTaskScheduled)
@@ -582,6 +592,7 @@ class StateMachines {
     }
     decisionTaskResponse.setWorkflowExecution(ctx.getExecution());
     decisionTaskResponse.setWorkflowType(request.getWorkflowType());
+    decisionTaskResponse.setAttempt(data.attempt);
     TaskListId taskListId = new TaskListId(ctx.getDomain(), request.getTaskList().getName());
     DecisionTask decisionTask = new DecisionTask(taskListId, decisionTaskResponse);
     ctx.setDecisionTask(decisionTask);
@@ -619,6 +630,7 @@ class StateMachines {
           }
           data.decisionTask.setHistory(new History().setEvents(events));
           data.previousStartedEventId = startedEventId;
+          data.attempt++;
         });
   }
 
@@ -655,6 +667,37 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.DecisionTaskCompleted)
             .setDecisionTaskCompletedEventAttributes(a);
+    ctx.addEvent(event);
+    ctx.onCommit(() -> data.attempt = 0);
+  }
+
+  private static void failDecisionTask(
+      RequestContext ctx,
+      DecisionTaskData data,
+      RespondDecisionTaskFailedRequest request,
+      long notUsed) {
+    DecisionTaskFailedEventAttributes a =
+        new DecisionTaskFailedEventAttributes()
+            .setIdentity(request.getIdentity())
+            .setScheduledEventId(data.scheduledEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.DecisionTaskFailed)
+            .setDecisionTaskFailedEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void timeoutDecisionTask(
+      RequestContext ctx, DecisionTaskData data, Object ignored, long notUsed) {
+    DecisionTaskTimedOutEventAttributes a =
+        new DecisionTaskTimedOutEventAttributes()
+            .setStartedEventId(data.previousStartedEventId)
+            .setTimeoutType(TimeoutType.START_TO_CLOSE)
+            .setScheduledEventId(data.scheduledEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.DecisionTaskTimedOut)
+            .setDecisionTaskTimedOutEventAttributes(a);
     ctx.addEvent(event);
   }
 
