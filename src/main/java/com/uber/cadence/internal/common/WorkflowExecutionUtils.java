@@ -20,6 +20,7 @@ package com.uber.cadence.internal.common;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.Decision;
+import com.uber.cadence.DecisionType;
 import com.uber.cadence.DescribeWorkflowExecutionRequest;
 import com.uber.cadence.DescribeWorkflowExecutionResponse;
 import com.uber.cadence.EntityNotExistsError;
@@ -318,6 +319,14 @@ public class WorkflowExecutionUtils {
             || event.getEventType() == EventType.WorkflowExecutionTimedOut
             || event.getEventType() == EventType.WorkflowExecutionContinuedAsNew
             || event.getEventType() == EventType.WorkflowExecutionTerminated));
+  }
+
+  public static boolean isWorkflowExecutionCompleteDecision(Decision decision) {
+    return ((decision != null)
+        && (decision.getDecisionType() == DecisionType.CompleteWorkflowExecution
+            || decision.getDecisionType() == DecisionType.CancelWorkflowExecution
+            || decision.getDecisionType() == DecisionType.FailWorkflowExecution
+            || decision.getDecisionType() == DecisionType.ContinueAsNewWorkflowExecution));
   }
 
   public static boolean isActivityTaskClosedEvent(HistoryEvent event) {

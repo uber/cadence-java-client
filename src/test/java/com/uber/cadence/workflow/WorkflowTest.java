@@ -158,7 +158,9 @@ public class WorkflowTest {
   public void tearDown() {
     worker.shutdown(Duration.ofMillis(1));
     activitiesImpl.close();
-    testEnvironment.close();
+    if (testEnvironment != null) {
+      testEnvironment.close();
+    }
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
@@ -1084,7 +1086,7 @@ public class WorkflowTest {
     public TestChildWorkflowRetryWorkflow() {
       ChildWorkflowOptions options =
           new ChildWorkflowOptions.Builder()
-              .setExecutionStartToCloseTimeout(Duration.ofSeconds(5))
+              .setExecutionStartToCloseTimeout(Duration.ofSeconds(500))
               .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
               .setTaskList(taskList)
               .setRetryOptions(

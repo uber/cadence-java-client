@@ -75,10 +75,12 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     void addAllLocked(List<HistoryEvent> events, long timeInNanos) throws EntityNotExistsError {
-      if (completed) {
-        throw new EntityNotExistsError("Already completed");
-      }
       for (HistoryEvent event : events) {
+        if (completed) {
+          throw new EntityNotExistsError(
+              "Attempt to add an event after a completion event: "
+                  + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
+        }
         event.setEventId(history.size());
         event.setTimestamp(timeInNanos);
         history.add(event);

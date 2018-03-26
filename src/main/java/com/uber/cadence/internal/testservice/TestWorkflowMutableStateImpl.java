@@ -29,6 +29,7 @@ import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
+import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
 import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
@@ -64,6 +65,7 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.ChildWorkflowData;
@@ -156,6 +158,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError {
     lock.lock();
     try {
+      checkCompleted();
       boolean concurrentDecision =
           !completeDecisionUpdate
               && (decision != null && decision.getState() == StateMachines.State.STARTED);
@@ -209,8 +212,23 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     log.info("Decisions: " + decisions);
     completeDecisionUpdate(
         ctx -> {
-          decision.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           long decisionTaskCompletedId = ctx.getNextEventId() - 1;
+          // Fail the decision if there are new events and the decision tries to complete the
+          // workflow
+          if (!concurrentToDecision.isEmpty() && hasCompleteDecision(request.getDecisions())) {
+            RespondDecisionTaskFailedRequest failedRequest =
+                new RespondDecisionTaskFailedRequest()
+                    .setCause(DecisionTaskFailedCause.UNHANDLED_DECISION)
+                    .setIdentity(request.getIdentity());
+            decision.action(Action.FAIL, ctx, failedRequest, decisionTaskCompletedId);
+            for (RequestContext deferredCtx : this.concurrentToDecision) {
+              ctx.add(deferredCtx);
+            }
+            this.concurrentToDecision.clear();
+            scheduleDecision(ctx);
+            return;
+          }
+          decision.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           for (Decision d : decisions) {
             processDecision(ctx, d, decisionTaskCompletedId);
           }
@@ -238,6 +256,15 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     } finally {
       lock.unlock();
     }
+  }
+
+  private boolean hasCompleteDecision(List<Decision> decisions) {
+    for (Decision d : decisions) {
+      if (WorkflowExecutionUtils.isWorkflowExecutionCompleteDecision(d)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void processDecision(RequestContext ctx, Decision d, long decisionTaskCompletedId)
@@ -713,6 +740,20 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           }
           updateHeartbeatTimer(ctx, activityId, activity, startToCloseTimeout, heartbeatTimeout);
         });
+  }
+
+  private void checkCompleted() throws EntityNotExistsError {
+    State workflowState = workflow.getState();
+    if (isTerminalState(workflowState)) {
+      throw new EntityNotExistsError("Workflow is already completed");
+    }
+  }
+
+  private boolean isTerminalState(State workflowState) {
+    return workflowState == State.COMPLETED
+        || workflowState == State.TIMED_OUT
+        || workflowState == State.FAILED
+        || workflowState == State.CANCELED;
   }
 
   private void updateHeartbeatTimer(

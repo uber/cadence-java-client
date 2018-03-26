@@ -679,6 +679,9 @@ class StateMachines {
     DecisionTaskFailedEventAttributes a =
         new DecisionTaskFailedEventAttributes()
             .setIdentity(request.getIdentity())
+            .setCause(request.getCause())
+            .setDetails(request.getDetails())
+            .setStartedEventId(data.previousStartedEventId)
             .setScheduledEventId(data.scheduledEventId);
     HistoryEvent event =
         new HistoryEvent()
