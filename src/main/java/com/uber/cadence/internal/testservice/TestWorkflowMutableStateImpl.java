@@ -59,6 +59,8 @@ import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
@@ -71,6 +73,7 @@ import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
 import com.uber.cadence.internal.testservice.StateMachines.ChildWorkflowData;
 import com.uber.cadence.internal.testservice.StateMachines.DecisionTaskData;
+import com.uber.cadence.internal.testservice.StateMachines.SignalExternalData;
 import com.uber.cadence.internal.testservice.StateMachines.State;
 import com.uber.cadence.internal.testservice.StateMachines.TimerData;
 import com.uber.cadence.internal.testservice.StateMachines.WorkflowData;
@@ -123,6 +126,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final Map<String, StateMachine<ActivityTaskData>> activities = new HashMap<>();
   private final Map<String, StateMachine<ChildWorkflowData>> childWorkflows = new HashMap<>();
   private final Map<String, StateMachine<TimerData>> timers = new HashMap<>();
+  private final Map<String, StateMachine<SignalExternalData>> externalSignals = new HashMap<>();
   private StateMachine<WorkflowData> workflow;
   private StateMachine<DecisionTaskData> decision;
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
@@ -314,9 +318,12 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         processStartChildWorkflow(
             ctx, d.getStartChildWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
         break;
+      case SignalExternalWorkflowExecution:
+        processSignalExternalWorkflowExecution(
+            ctx, d.getSignalExternalWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
+        break;
       case RequestCancelExternalWorkflowExecution:
       case RecordMarker:
-      case SignalExternalWorkflowExecution:
         throw new InternalServiceError(
             "Decision " + d.getDecisionType() + " is not yet " + "implemented");
     }
@@ -443,6 +450,58 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   // TODO
   private void validateStartChildWorkflow(StartChildWorkflowExecutionDecisionAttributes a) {}
 
+  private void processSignalExternalWorkflowExecution(
+      RequestContext ctx,
+      SignalExternalWorkflowExecutionDecisionAttributes a,
+      long decisionTaskCompletedId)
+      throws InternalServiceError {
+    String signalId = UUID.randomUUID().toString();
+    StateMachine<SignalExternalData> signalStateMachine =
+        StateMachines.newSignalExternalStateMachine();
+    externalSignals.put(signalId, signalStateMachine);
+    signalStateMachine.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
+    ForkJoinPool.commonPool()
+        .execute(
+            () -> {
+              try {
+                service.signalExternalWorkflowExecution(signalId, a, this);
+              } catch (Exception e) {
+                log.error("Failure signalling an external workflow execution", e);
+              }
+            });
+  }
+
+  @Override
+  public void completeSignalExternalWorkflowExecution(String signalId, String runId)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<SignalExternalData> signal = getSignal(signalId);
+          signal.action(Action.COMPLETE, ctx, runId, 0);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
+  public void failSignalExternalWorkflowExecution(
+      String signalId, SignalExternalWorkflowExecutionFailedCause cause)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          StateMachine<SignalExternalData> signal = getSignal(signalId);
+          signal.action(Action.FAIL, ctx, cause, 0);
+          scheduleDecision(ctx);
+        });
+  }
+
+  private StateMachine<SignalExternalData> getSignal(String signalId) throws EntityNotExistsError {
+    StateMachine<SignalExternalData> signal = externalSignals.get(signalId);
+    if (signal == null) {
+      throw new EntityNotExistsError("unknown signalId: " + signalId);
+    }
+    return signal;
+  }
+
   // TODO: insert a single decision failure into the history
   @Override
   public void failDecisionTask(RespondDecisionTaskFailedRequest request)
@@ -459,7 +518,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       completeDecisionUpdate(
           ctx -> {
-            if (decision.getData().scheduledEventId != scheduledEventId) {
+            if (decision == null || decision.getData().scheduledEventId != scheduledEventId) {
               log.trace("Old timeout for scheduledEventId=" + scheduledEventId);
               // timeout for a previous decision
               return;
@@ -974,6 +1033,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
+  public void signalFromWorkflow(SignalExternalWorkflowExecutionDecisionAttributes a)
+      throws EntityNotExistsError, InternalServiceError {
+    update(
+        ctx -> {
+          addExecutionSignaledByExternalEvent(ctx, a);
+          scheduleDecision(ctx);
+        });
+  }
+
+  @Override
   public void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
       throws EntityNotExistsError, InternalServiceError {
     update(
@@ -1032,9 +1101,23 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     WorkflowExecutionSignaledEventAttributes a =
         new WorkflowExecutionSignaledEventAttributes()
             .setInput(startRequest.getInput())
-            .setIdentity(startRequest.getIdentity())
+            .setIdentity(signalRequest.getIdentity())
             .setInput(signalRequest.getInput())
             .setSignalName(signalRequest.getSignalName());
+    HistoryEvent executionSignaled =
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionSignaled)
+            .setWorkflowExecutionSignaledEventAttributes(a);
+    ctx.addEvent(executionSignaled);
+  }
+
+  private void addExecutionSignaledByExternalEvent(
+      RequestContext ctx, SignalExternalWorkflowExecutionDecisionAttributes d) {
+    WorkflowExecutionSignaledEventAttributes a =
+        new WorkflowExecutionSignaledEventAttributes()
+            .setInput(startRequest.getInput())
+            .setInput(d.getInput())
+            .setSignalName(d.getSignalName());
     HistoryEvent executionSignaled =
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionSignaled)

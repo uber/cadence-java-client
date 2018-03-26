@@ -56,6 +56,8 @@ import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.ServiceBusyError;
+import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionResponse;
@@ -99,7 +101,7 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   private TestWorkflowMutableState getMutableState(ExecutionId executionId)
-      throws InternalServiceError {
+      throws InternalServiceError, EntityNotExistsError {
     lock.lock();
     try {
       if (executionId.getExecution().getRunId() == null) {
@@ -116,12 +118,12 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   private TestWorkflowMutableState getMutableState(WorkflowId workflowId)
-      throws InternalServiceError {
+      throws EntityNotExistsError {
     lock.lock();
     try {
       TestWorkflowMutableState mutableState = openExecutions.get(workflowId);
       if (mutableState == null) {
-        throw new InternalServiceError("Execution not found in mutable state: " + workflowId);
+        throw new EntityNotExistsError("Execution not found in mutable state: " + workflowId);
       }
       return mutableState;
     } finally {
@@ -372,6 +374,24 @@ public final class TestWorkflowService implements IWorkflowService {
         new ExecutionId(signalRequest.getDomain(), signalRequest.getWorkflowExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
     mutableState.signal(signalRequest);
+  }
+
+  public void signalExternalWorkflowExecution(
+      String signalId,
+      SignalExternalWorkflowExecutionDecisionAttributes a,
+      TestWorkflowMutableState source)
+      throws InternalServiceError, EntityNotExistsError {
+    ExecutionId executionId = new ExecutionId(a.getDomain(), a.getExecution());
+    TestWorkflowMutableState mutableState = null;
+    try {
+      mutableState = getMutableState(executionId);
+      mutableState.signalFromWorkflow(a);
+      source.completeSignalExternalWorkflowExecution(
+          signalId, mutableState.getExecutionId().getExecution().getRunId());
+    } catch (EntityNotExistsError entityNotExistsError) {
+      source.failSignalExternalWorkflowExecution(
+          signalId, SignalExternalWorkflowExecutionFailedCause.UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION);
+    }
   }
 
   @Override

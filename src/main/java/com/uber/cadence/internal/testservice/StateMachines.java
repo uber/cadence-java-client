@@ -59,6 +59,7 @@ import com.uber.cadence.DecisionTaskStartedEventAttributes;
 import com.uber.cadence.DecisionTaskTimedOutEventAttributes;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
+import com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.History;
@@ -80,6 +81,10 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionInitiatedEventAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes;
@@ -162,6 +167,11 @@ class StateMachines {
     long startedEventId = -1;
     byte[] heartbeatDetails;
     long lastHeartbeatTime;
+  }
+
+  static final class SignalExternalData {
+    long initiatedEventId = -1;
+    public SignalExternalWorkflowExecutionInitiatedEventAttributes initiatedEvent;
   }
 
   static final class ChildWorkflowData {
@@ -261,6 +271,13 @@ class StateMachines {
         .add(NONE, START, STARTED, StateMachines::startTimer)
         .add(STARTED, COMPLETE, COMPLETED, StateMachines::fireTimer)
         .add(STARTED, CANCEL, CANCELED, StateMachines::cancelTimer);
+  }
+
+  public static StateMachine<SignalExternalData> newSignalExternalStateMachine() {
+    return new StateMachine<>(new SignalExternalData())
+        .add(NONE, INITIATE, INITIATED, StateMachines::initiateExternalSignal)
+        .add(INITIATED, FAIL, FAILED, StateMachines::failExternalSignal)
+        .add(INITIATED, COMPLETE, COMPLETED, StateMachines::completeExternalSignal);
   }
 
   private static void timeoutChildWorkflow(
@@ -917,6 +934,78 @@ class StateMachines {
             .setStartedEventId(data.startedEventId);
     HistoryEvent event =
         new HistoryEvent().setEventType(EventType.TimerCanceled).setTimerCanceledEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void initiateExternalSignal(
+      RequestContext ctx,
+      SignalExternalData data,
+      SignalExternalWorkflowExecutionDecisionAttributes d,
+      long decisionTaskCompletedEventId) {
+    SignalExternalWorkflowExecutionInitiatedEventAttributes a =
+        new SignalExternalWorkflowExecutionInitiatedEventAttributes();
+    a.setDecisionTaskCompletedEventId(decisionTaskCompletedEventId);
+    if (d.isSetControl()) {
+      a.setControl(d.getControl());
+    }
+    if (d.isSetInput()) {
+      a.setInput(d.getInput());
+    }
+    if (d.isSetDomain()) {
+      a.setDomain(d.getDomain());
+    }
+    if (d.isSetChildWorkflowOnly()) {
+      a.setChildWorkflowOnly(d.isChildWorkflowOnly());
+    }
+    a.setSignalName(d.getSignalName());
+    a.setWorkflowExecution(d.getExecution());
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.SignalExternalWorkflowExecutionInitiated)
+            .setSignalExternalWorkflowExecutionInitiatedEventAttributes(a);
+    long initiatedEventId = ctx.addEvent(event);
+    ctx.onCommit(
+        () -> {
+          data.initiatedEventId = initiatedEventId;
+          data.initiatedEvent = a;
+        });
+  }
+
+  private static void failExternalSignal(
+      RequestContext ctx,
+      SignalExternalData data,
+      SignalExternalWorkflowExecutionFailedCause cause,
+      long notUsed) {
+    SignalExternalWorkflowExecutionInitiatedEventAttributes initiatedEvent = data.initiatedEvent;
+    SignalExternalWorkflowExecutionFailedEventAttributes a =
+        new SignalExternalWorkflowExecutionFailedEventAttributes()
+            .setInitiatedEventId(data.initiatedEventId)
+            .setWorkflowExecution(initiatedEvent.getWorkflowExecution())
+            .setControl(initiatedEvent.getControl())
+            .setCause(cause)
+            .setDomain(initiatedEvent.getDomain());
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.SignalExternalWorkflowExecutionFailed)
+            .setSignalExternalWorkflowExecutionFailedEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void completeExternalSignal(
+      RequestContext ctx, SignalExternalData data, String runId, long notUsed) {
+    SignalExternalWorkflowExecutionInitiatedEventAttributes initiatedEvent = data.initiatedEvent;
+    WorkflowExecution signaledExecution =
+        initiatedEvent.getWorkflowExecution().deepCopy().setRunId(runId);
+    ExternalWorkflowExecutionSignaledEventAttributes a =
+        new ExternalWorkflowExecutionSignaledEventAttributes()
+            .setInitiatedEventId(data.initiatedEventId)
+            .setWorkflowExecution(signaledExecution)
+            .setControl(initiatedEvent.getControl())
+            .setDomain(initiatedEvent.getDomain());
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.ExternalWorkflowExecutionSignaled)
+            .setExternalWorkflowExecutionSignaledEventAttributes(a);
     ctx.addEvent(event);
   }
 }

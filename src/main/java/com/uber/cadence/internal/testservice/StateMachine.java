@@ -125,7 +125,7 @@ final class StateMachine<Data> {
   private final Data data;
 
   StateMachine(Data data) {
-    this.data = data;
+    this.data = Objects.requireNonNull(data);
   }
 
   public State getState() {

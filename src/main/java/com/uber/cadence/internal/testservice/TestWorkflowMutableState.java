@@ -42,6 +42,8 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
@@ -59,6 +61,13 @@ interface TestWorkflowMutableState {
 
   void completeDecisionTask(RespondDecisionTaskCompletedRequest request)
       throws InternalServiceError, EntityNotExistsError;
+
+  void completeSignalExternalWorkflowExecution(String signalId, String runId)
+      throws EntityNotExistsError, InternalServiceError;
+
+  void failSignalExternalWorkflowExecution(
+      String signalId, SignalExternalWorkflowExecutionFailedCause cause)
+      throws EntityNotExistsError, InternalServiceError;
 
   void failDecisionTask(RespondDecisionTaskFailedRequest request)
       throws InternalServiceError, EntityNotExistsError;
@@ -103,6 +112,9 @@ interface TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError;
 
   void signal(SignalWorkflowExecutionRequest signalRequest)
+      throws EntityNotExistsError, InternalServiceError;
+
+  void signalFromWorkflow(SignalExternalWorkflowExecutionDecisionAttributes a)
       throws EntityNotExistsError, InternalServiceError;
 
   void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
