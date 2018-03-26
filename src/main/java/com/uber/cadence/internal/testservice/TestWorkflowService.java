@@ -64,6 +64,7 @@ import com.uber.cadence.UpdateDomainRequest;
 import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
+import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
 import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
@@ -184,17 +185,27 @@ public final class TestWorkflowService implements IWorkflowService {
       error.setStartRequestId(startRequest.getRequestId());
       throw error;
     }
-    running = new TestWorkflowMutableStateImpl(startRequest, parent, this, store, clock);
-    WorkflowExecution execution = running.getExecutionId().getExecution();
+    return startWorkflowExecutionNoRunningCheck(startRequest, parent, workflowId);
+  }
+
+  private StartWorkflowExecutionResponse startWorkflowExecutionNoRunningCheck(
+      StartWorkflowExecutionRequest startRequest,
+      Optional<TestWorkflowMutableState> parent,
+      WorkflowId workflowId)
+      throws InternalServiceError {
+    String domain = startRequest.getDomain();
+    TestWorkflowMutableState result =
+        new TestWorkflowMutableStateImpl(startRequest, parent, this, store, clock);
+    WorkflowExecution execution = result.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     lock.lock();
     try {
-      openExecutions.put(workflowId, running);
-      executions.put(executionId, running);
+      openExecutions.put(workflowId, result);
+      executions.put(executionId, result);
     } finally {
       lock.unlock();
     }
-    running.startWorkflow();
+    result.startWorkflow();
     return new StartWorkflowExecutionResponse().setRunId(execution.getRunId());
   }
 
@@ -368,6 +379,34 @@ public final class TestWorkflowService implements IWorkflowService {
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
           TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  /**
+   * Creates next run of a workflow execution
+   *
+   * @return RunId
+   */
+  public String continueAsNew(
+      StartWorkflowExecutionRequest previousRunStartRequest,
+      WorkflowExecutionContinuedAsNewEventAttributes a,
+      String identity,
+      ExecutionId executionId,
+      Optional<TestWorkflowMutableState> parent)
+      throws InternalServiceError {
+    StartWorkflowExecutionRequest startRequest =
+        new StartWorkflowExecutionRequest()
+            .setInput(a.getInput())
+            .setWorkflowType(a.getWorkflowType())
+            .setExecutionStartToCloseTimeoutSeconds(a.getExecutionStartToCloseTimeoutSeconds())
+            .setTaskStartToCloseTimeoutSeconds(a.getTaskStartToCloseTimeoutSeconds())
+            .setDomain(executionId.getDomain())
+            .setTaskList(a.getTaskList())
+            .setWorkflowId(executionId.getWorkflowId().getWorkflowId())
+            .setWorkflowIdReusePolicy(previousRunStartRequest.getWorkflowIdReusePolicy())
+            .setIdentity(identity);
+    StartWorkflowExecutionResponse response =
+        startWorkflowExecutionNoRunningCheck(startRequest, parent, executionId.getWorkflowId());
+    return response.getRunId();
   }
 
   @Override

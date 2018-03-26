@@ -44,12 +44,15 @@ import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import org.apache.thrift.TException;
 
 interface TestWorkflowMutableState {
 
   ExecutionId getExecutionId();
+
+  StartWorkflowExecutionRequest getStartRequest();
 
   void startDecisionTask(PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError;

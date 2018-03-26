@@ -28,6 +28,7 @@ import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.Decision;
 import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.EntityNotExistsError;
@@ -185,6 +186,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
+  public StartWorkflowExecutionRequest getStartRequest() {
+    return startRequest;
+  }
+
+  @Override
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError {
@@ -230,7 +236,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           }
           decision.action(StateMachines.Action.COMPLETE, ctx, request, 0);
           for (Decision d : decisions) {
-            processDecision(ctx, d, decisionTaskCompletedId);
+            processDecision(ctx, d, request.getIdentity(), decisionTaskCompletedId);
           }
           for (RequestContext deferredCtx : this.concurrentToDecision) {
             ctx.add(deferredCtx);
@@ -267,7 +273,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     return false;
   }
 
-  private void processDecision(RequestContext ctx, Decision d, long decisionTaskCompletedId)
+  private void processDecision(
+      RequestContext ctx, Decision d, String identity, long decisionTaskCompletedId)
       throws BadRequestError, InternalServiceError, EntityNotExistsError {
     switch (d.getDecisionType()) {
       case CompleteWorkflowExecution:
@@ -281,6 +288,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       case CancelWorkflowExecution:
         processCancelWorkflowExecution(
             ctx, d.getCancelWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
+        break;
+      case ContinueAsNewWorkflowExecution:
+        processContinueAsNewWorkflowExecution(
+            ctx,
+            d.getContinueAsNewWorkflowExecutionDecisionAttributes(),
+            decisionTaskCompletedId,
+            identity);
         break;
       case ScheduleActivityTask:
         processScheduleActivityTask(
@@ -302,7 +316,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         break;
       case RequestCancelExternalWorkflowExecution:
       case RecordMarker:
-      case ContinueAsNewWorkflowExecution:
       case SignalExternalWorkflowExecution:
         throw new InternalServiceError(
             "Decision " + d.getDecisionType() + " is not yet " + "implemented");
@@ -666,6 +679,24 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                 }
               });
     }
+  }
+
+  private void processContinueAsNewWorkflowExecution(
+      RequestContext ctx,
+      ContinueAsNewWorkflowExecutionDecisionAttributes d,
+      long decisionTaskCompletedId,
+      String identity)
+      throws InternalServiceError {
+    workflow.action(Action.CONTINUE_AS_NEW, ctx, d, decisionTaskCompletedId);
+    HistoryEvent event = ctx.getEvents().get(ctx.getEvents().size() - 1);
+    String runId =
+        service.continueAsNew(
+            startRequest,
+            event.getWorkflowExecutionContinuedAsNewEventAttributes(),
+            identity,
+            getExecutionId(),
+            parent);
+    event.getWorkflowExecutionContinuedAsNewEventAttributes().setNewExecutionRunId(runId);
   }
 
   @Override

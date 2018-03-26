@@ -19,6 +19,7 @@ package com.uber.cadence.internal.testservice;
 
 import static com.uber.cadence.internal.testservice.StateMachines.Action.CANCEL;
 import static com.uber.cadence.internal.testservice.StateMachines.Action.COMPLETE;
+import static com.uber.cadence.internal.testservice.StateMachines.Action.CONTINUE_AS_NEW;
 import static com.uber.cadence.internal.testservice.StateMachines.Action.FAIL;
 import static com.uber.cadence.internal.testservice.StateMachines.Action.INITIATE;
 import static com.uber.cadence.internal.testservice.StateMachines.Action.REQUEST_CANCELLATION;
@@ -50,6 +51,7 @@ import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.DecisionTaskCompletedEventAttributes;
 import com.uber.cadence.DecisionTaskFailedEventAttributes;
 import com.uber.cadence.DecisionTaskScheduledEventAttributes;
@@ -92,6 +94,7 @@ import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes;
 import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
 import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionTimedOutEventAttributes;
@@ -127,7 +130,8 @@ class StateMachines {
     REQUEST_CANCELLATION,
     CANCEL,
     UPDATE,
-    COMPLETE
+    COMPLETE,
+    CONTINUE_AS_NEW
   }
 
   static final class WorkflowData {}
@@ -183,6 +187,7 @@ class StateMachines {
     return new StateMachine<>(new WorkflowData())
         .add(NONE, START, STARTED, StateMachines::startWorkflow)
         .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeWorkflow)
+        .add(STARTED, CONTINUE_AS_NEW, COMPLETED, StateMachines::continueAsNewWorkflow)
         .add(STARTED, FAIL, FAILED, StateMachines::failWorkflow)
         .add(STARTED, TIME_OUT, TIMED_OUT, StateMachines::timeoutWorkflow)
         .add(
@@ -448,6 +453,43 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionCompleted)
             .setWorkflowExecutionCompletedEventAttributes(a);
+    ctx.addEvent(event);
+  }
+
+  private static void continueAsNewWorkflow(
+      RequestContext ctx,
+      WorkflowData data,
+      ContinueAsNewWorkflowExecutionDecisionAttributes d,
+      long decisionTaskCompletedEventId) {
+    StartWorkflowExecutionRequest sr = ctx.getWorkflowMutableState().getStartRequest();
+    WorkflowExecutionContinuedAsNewEventAttributes a =
+        new WorkflowExecutionContinuedAsNewEventAttributes();
+    a.setInput(d.getInput());
+    if (d.isSetExecutionStartToCloseTimeoutSeconds()) {
+      a.setExecutionStartToCloseTimeoutSeconds(d.getExecutionStartToCloseTimeoutSeconds());
+    } else {
+      a.setExecutionStartToCloseTimeoutSeconds(sr.getExecutionStartToCloseTimeoutSeconds());
+    }
+    if (d.isSetTaskList()) {
+      a.setTaskList(d.getTaskList());
+    } else {
+      a.setTaskList(sr.getTaskList());
+    }
+    if (d.isSetWorkflowType()) {
+      a.setWorkflowType(d.getWorkflowType());
+    } else {
+      a.setWorkflowType(sr.getWorkflowType());
+    }
+    if (d.isSetTaskStartToCloseTimeoutSeconds()) {
+      a.setTaskStartToCloseTimeoutSeconds(d.getTaskStartToCloseTimeoutSeconds());
+    } else {
+      a.setTaskStartToCloseTimeoutSeconds(sr.getTaskStartToCloseTimeoutSeconds());
+    }
+    a.setDecisionTaskCompletedEventId(decisionTaskCompletedEventId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.WorkflowExecutionContinuedAsNew)
+            .setWorkflowExecutionContinuedAsNewEventAttributes(a);
     ctx.addEvent(event);
   }
 
