@@ -49,7 +49,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-class SyncDecisionContext implements ActivityExecutor {
+final class SyncDecisionContext implements ActivityExecutor {
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
