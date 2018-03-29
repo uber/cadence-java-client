@@ -35,6 +35,7 @@ import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.CancellationScope;
+import com.uber.cadence.workflow.ChildWorkflowException;
 import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
@@ -237,7 +238,9 @@ final class SyncDecisionContext implements ActivityExecutor {
     if (failure instanceof CancellationException) {
       return (CancellationException) failure;
     }
-
+    if (failure instanceof ChildWorkflowException) {
+      throw (ChildWorkflowException) failure;
+    }
     if (!(failure instanceof ChildWorkflowTaskFailedException)) {
       throw new IllegalArgumentException("Unexpected exception type: ", failure);
     }

@@ -1,9 +1,27 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.internal.testservice;
 
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.PriorityQueue;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
@@ -36,9 +54,7 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
 
     @Override
     public String toString() {
-      return "TimerTask{" +
-          "executionTime=" + executionTime +
-          '}';
+      return "TimerTask{" + "executionTime=" + executionTime + '}';
     }
   }
 
@@ -64,21 +80,19 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
           emptyQueue = true;
         }
         TimerTask peekedTask = tasks.peek();
-        log.trace("Peeked task " + peekedTask + " at " + currentTime + ", lockCount=" + lockCount);
         if (peekedTask != null && peekedTask.getExecutionTime() <= currentTime) {
-          log.trace("Executing task at " + currentTime + ", lockCount=" + lockCount);
           try {
             lockTimeSkippingLocked();
             TimerTask polledTask = tasks.poll();
             Runnable runnable = polledTask.getRunnable();
-            executor.execute(() -> {
-              try {
-                runnable.run();
-              } finally {
-                unlockTimeSkipping();
-                log.trace("Done task at " + polledTask.getExecutionTime());
-              }
-            });
+            executor.execute(
+                () -> {
+                  try {
+                    runnable.run();
+                  } finally {
+                    unlockTimeSkipping();
+                  }
+                });
           } catch (Throwable e) {
             log.error("Timer task failure", e);
           }
@@ -95,17 +109,18 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
     }
   }
 
-  private static final Logger log = LoggerFactory.getLogger(TestWorkflowStoreImpl.class);
-  private final LongSupplier clock = () -> {
-    long timeMillis = this.currentTimeMillis();
-    log.trace("Clock getNext=" + timeMillis);
-    return timeMillis;
-  };
+  private static final Logger log = LoggerFactory.getLogger(SelfAdvancingTimerImpl.class);
+  private final LongSupplier clock =
+      () -> {
+        long timeMillis = this.currentTimeMillis();
+        return timeMillis;
+      };
   private final Lock lock = new ReentrantLock();
   private final Condition condition = lock.newCondition();
 
-  private final ThreadPoolExecutor executor = new ThreadPoolExecutor(5, 5, 1, TimeUnit.SECONDS,
-      new ArrayBlockingQueue<>(10), r -> new Thread(r, "Timer task"));
+  private final ThreadPoolExecutor executor =
+      new ThreadPoolExecutor(
+          5, 5, 1, TimeUnit.SECONDS, new LinkedBlockingDeque<>(), r -> new Thread(r, "Timer task"));
 
   private long currentTime;
   private int lockCount;
@@ -113,8 +128,8 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
   private long systemTimeLastLocked = -1;
   private boolean emptyQueue = true;
 
-  private final PriorityQueue<TimerTask> tasks = new PriorityQueue<>(
-      Comparator.comparing(TimerTask::getExecutionTime));
+  private final PriorityQueue<TimerTask> tasks =
+      new PriorityQueue<>(Comparator.comparing(TimerTask::getExecutionTime));
   private final Thread timerPump = new Thread(new TimerPump(), "SelfAdvancingTimer Pump");
 
   public SelfAdvancingTimerImpl(long initialTime) {
@@ -164,8 +179,6 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
           unlockTimeSkippingLocked();
           emptyQueue = false;
         }
-        log.trace("Scheduling task with " + delay.toMillis() + " ms and execution time at " +
-            executionTime + ", lockCount=" + lockCount + ", queueSize=" + tasks.size());
         condition.signal();
       }
     } finally {
@@ -173,9 +186,7 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
     }
   }
 
-  /**
-   * @return Supplier that returns time in milliseconds when called.
-   */
+  /** @return Supplier that returns time in milliseconds when called. */
   @Override
   public LongSupplier getClock() {
     return clock;
@@ -210,13 +221,28 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
   }
 
   @Override
+  public void updateLocks(int count) {
+    lock.lock();
+    try {
+      if (count >= 0) {
+        for (int i = 0; i < count; i++) {
+          lockTimeSkippingLocked();
+        }
+      } else {
+        for (int i = 0; i < -count; i++) {
+          unlockTimeSkippingLocked();
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
   public void shutdown() {
     executor.shutdown();
     timerPump.interrupt();
-    try {
-      timerPump.join();
-    } catch (InterruptedException e) {
-    }
+    Uninterruptibles.joinUninterruptibly(timerPump);
   }
 
   private void unlockTimeSkippingLocked() {

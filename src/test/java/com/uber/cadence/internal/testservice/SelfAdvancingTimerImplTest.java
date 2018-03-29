@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.internal.testservice;
 
 import static org.junit.Assert.*;
@@ -52,9 +69,12 @@ public class SelfAdvancingTimerImplTest {
     timer.schedule(Duration.ofSeconds(1), () -> captured.add(clock.getAsLong()));
     timer.unlockTimeSkipping();
     Thread.sleep(100);
-    List<Long> expected = Arrays
-        .asList(Duration.ofSeconds(1).toMillis(), Duration.ofSeconds(10).toMillis(),
-            Duration.ofSeconds(20).toMillis(), Duration.ofSeconds(100).toMillis());
+    List<Long> expected =
+        Arrays.asList(
+            Duration.ofSeconds(1).toMillis(),
+            Duration.ofSeconds(10).toMillis(),
+            Duration.ofSeconds(20).toMillis(),
+            Duration.ofSeconds(100).toMillis());
     for (int i = 0; i < captured.size(); i++) {
       assertEquals(expected.get(i), captured.get(i), 50.0);
     }
