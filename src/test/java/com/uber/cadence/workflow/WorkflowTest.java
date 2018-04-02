@@ -1337,6 +1337,7 @@ public class WorkflowTest {
     options.setExecutionStartToCloseTimeout(Duration.ofSeconds(20));
     options.setTaskStartToCloseTimeout(Duration.ofSeconds(2));
     options.setTaskList(taskList);
+    AtomicReference<String> capturedWorkflowType = new AtomicReference<>();
     WorkflowClientOptions clientOptions =
         new WorkflowClientOptions.Builder()
             .setInterceptors(
@@ -1344,7 +1345,7 @@ public class WorkflowTest {
                   @Override
                   public UntypedWorkflowStub newUntypedWorkflowStub(
                       String workflowType, WorkflowOptions options, UntypedWorkflowStub next) {
-                    assertEquals("TestWorkflow1::execute", workflowType);
+                    capturedWorkflowType.set(workflowType);
                     return next;
                   }
                 })
@@ -1365,6 +1366,7 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof UnsupportedOperationException);
       assertEquals("simulated failure", e.getCause().getCause().getMessage());
     }
+    assertEquals("TestWorkflow1::execute", capturedWorkflowType.get());
     assertEquals(3, angryChildActivity.getInvocationCount());
   }
 
