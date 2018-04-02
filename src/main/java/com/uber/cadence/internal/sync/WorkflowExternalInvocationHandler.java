@@ -20,6 +20,7 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.client.DuplicateWorkflowException;
+import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
@@ -50,19 +51,17 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     // Holds either WorkflowExecution or CompletableFuture to workflow result.
     private final AtomicReference<Object> result = new AtomicReference<>();
 
-    public AsyncInvocation(InvocationType type) {
+    AsyncInvocation(InvocationType type) {
       this.type = type;
     }
   }
 
   private static final ThreadLocal<AsyncInvocation> asyncInvocation = new ThreadLocal<>();
 
-  private final UntypedWorkflowStubImpl untyped;
+  private final UntypedWorkflowStub untyped;
 
-  /**
-   * Must call {@link #closeAsyncInvocation()} if this one was called.
-   */
-  public static void initAsyncInvocation(InvocationType type) {
+  /** Must call {@link #closeAsyncInvocation()} if this one was called. */
+  static void initAsyncInvocation(InvocationType type) {
     if (asyncInvocation.get() != null) {
       throw new IllegalStateException("already in start invocation");
     }
@@ -70,7 +69,7 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
   }
 
   @SuppressWarnings("unchecked")
-  public static <R> R getAsyncInvocationResult(Class<R> resultClass) {
+  static <R> R getAsyncInvocationResult(Class<R> resultClass) {
     AsyncInvocation reference = asyncInvocation.get();
     if (reference == null) {
       throw new IllegalStateException("initAsyncInvocation wasn't called");
@@ -103,10 +102,8 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     throw new Error("Unknown invocation type: " + reference.type);
   }
 
-  /**
-   * Closes async invocation created through {@link #initAsyncInvocation(InvocationType)}
-   */
-  public static void closeAsyncInvocation() {
+  /** Closes async invocation created through {@link #initAsyncInvocation(InvocationType)} */
+  static void closeAsyncInvocation() {
     asyncInvocation.remove();
   }
 
@@ -124,8 +121,9 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
     WorkflowMethod annotation = workflowMethod.getAnnotation(WorkflowMethod.class);
     String workflowType = getWorkflowType(workflowMethod, annotation);
 
-    this.untyped = new UntypedWorkflowStubImpl(genericClient, dataConverter,
-        Optional.of(workflowType), execution);
+    this.untyped =
+        new UntypedWorkflowStubImpl(
+            genericClient, dataConverter, Optional.of(workflowType), execution);
   }
 
   WorkflowExternalInvocationHandler(

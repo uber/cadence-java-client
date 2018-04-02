@@ -200,7 +200,8 @@ public interface WorkflowClient {
    * @param workflowType type of the workflow. Optional as it is used for error reporting only.
    * @return Stub that can be used to start workflow and later to signal or query it.
    */
-  UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution, Optional<String> workflowType);
+  UntypedWorkflowStub newUntypedWorkflowStub(
+      WorkflowExecution execution, Optional<String> workflowType);
 
   /**
    * Creates new {@link ActivityCompletionClient} that can be used to complete activities

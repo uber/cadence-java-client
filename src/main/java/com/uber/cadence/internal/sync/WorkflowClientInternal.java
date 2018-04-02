@@ -196,7 +196,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
   }
 
   @Override
-  public UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution, Optional<String> workflowType) {
+  public UntypedWorkflowStub newUntypedWorkflowStub(
+      WorkflowExecution execution, Optional<String> workflowType) {
     return new UntypedWorkflowStubImpl(genericClient, dataConverter, Optional.empty(), execution);
   }
 

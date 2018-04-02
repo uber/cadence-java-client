@@ -31,8 +31,7 @@ public final class WorkflowTimedOutException extends WorkflowException {
 
   public WorkflowTimedOutException(
       WorkflowExecution execution, Optional<String> workflowType, TimeoutType timeoutType) {
-    super(String.valueOf(timeoutType) + " timeout type", execution, workflowType,
-        null);
+    super(String.valueOf(timeoutType) + " timeout type", execution, workflowType, null);
     this.timeoutType = timeoutType;
   }
 
