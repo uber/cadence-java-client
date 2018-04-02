@@ -38,6 +38,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -149,7 +150,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface},
-            new WorkflowExternalInvocationHandler(genericClient, options, dataConverter));
+            new WorkflowExternalInvocationHandler(
+                workflowInterface, genericClient, options, dataConverter));
   }
 
   @SafeVarargs
@@ -184,7 +186,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface},
-            new WorkflowExternalInvocationHandler(genericClient, execution, dataConverter));
+            new WorkflowExternalInvocationHandler(
+                workflowInterface, genericClient, execution, dataConverter));
   }
 
   @Override
@@ -193,8 +196,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
   }
 
   @Override
-  public UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution) {
-    return new UntypedWorkflowStubImpl(genericClient, dataConverter, execution);
+  public UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution, Optional<String> workflowType) {
+    return new UntypedWorkflowStubImpl(genericClient, dataConverter, Optional.empty(), execution);
   }
 
   @Override

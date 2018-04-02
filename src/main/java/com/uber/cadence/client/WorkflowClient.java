@@ -31,6 +31,7 @@ import com.uber.cadence.workflow.Functions.Proc3;
 import com.uber.cadence.workflow.Functions.Proc4;
 import com.uber.cadence.workflow.Functions.Proc5;
 import com.uber.cadence.workflow.Functions.Proc6;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -196,9 +197,10 @@ public interface WorkflowClient {
    * to a running workflow. Do not call methods annotated with @WorkflowMethod.
    *
    * @param execution workflow id and optional run id for execution
+   * @param workflowType type of the workflow. Optional as it is used for error reporting only.
    * @return Stub that can be used to start workflow and later to signal or query it.
    */
-  UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution);
+  UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution, Optional<String> workflowType);
 
   /**
    * Creates new {@link ActivityCompletionClient} that can be used to complete activities
