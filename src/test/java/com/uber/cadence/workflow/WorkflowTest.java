@@ -1046,7 +1046,11 @@ public class WorkflowTest {
           }
 
           // Test client.get() created using WorkflowExecution
-          client.set(workflowClient.newWorkflowStub(QueryableWorkflow.class, execution.get()));
+          client.set(
+              workflowClient.newWorkflowStub(
+                  QueryableWorkflow.class,
+                  execution.get().getWorkflowId(),
+                  Optional.of(execution.get().getRunId())));
           assertEquals("Hello ", client.get().getState());
 
           // Test query through replay by a local worker.
