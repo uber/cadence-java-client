@@ -44,15 +44,7 @@ final class ClockDecisionContext {
 
     @Override
     public void accept(Exception reason) {
-      decisions.cancelTimer(
-          timerId,
-          () -> {
-            OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-            BiConsumer<?, Exception> context = scheduled.getCompletionCallback();
-            CancellationException exception = new CancellationException("Cancelled by request");
-            exception.initCause(reason);
-            context.accept(null, exception);
-          });
+      decisions.cancelTimer(timerId, () -> timerCancelled(timerId, reason));
     }
   }
 
@@ -100,21 +92,6 @@ final class ClockDecisionContext {
     return new ClockDecisionContext.TimerCancellationHandler(timerId);
   }
 
-  void cancelAllTimers() {
-    for (String timerId : scheduledTimers.keySet()) {
-      decisions.cancelTimer(
-          timerId,
-          () -> {
-            OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-            BiConsumer<?, Exception> context = scheduled.getCompletionCallback();
-            CancellationException exception =
-                new CancellationException("Cancelled as next unblock time changed");
-            context.accept(null, exception);
-          });
-    }
-    scheduledTimers.clear();
-  }
-
   void setReplaying(boolean replaying) {
     this.replaying = replaying;
   }
@@ -134,12 +111,18 @@ final class ClockDecisionContext {
     TimerCanceledEventAttributes attributes = event.getTimerCanceledEventAttributes();
     String timerId = attributes.getTimerId();
     if (decisions.handleTimerCanceled(event)) {
-      OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
-      if (scheduled != null) {
-        BiConsumer<?, Exception> completionCallback = scheduled.getCompletionCallback();
-        CancellationException exception = new CancellationException("Cancelled by request");
-        completionCallback.accept(null, exception);
-      }
+      timerCancelled(timerId, null);
     }
+  }
+
+  private void timerCancelled(String timerId, Exception reason) {
+    OpenRequestInfo<?, ?> scheduled = scheduledTimers.remove(timerId);
+    if (scheduled == null) {
+      return;
+    }
+    BiConsumer<?, Exception> context = scheduled.getCompletionCallback();
+    CancellationException exception = new CancellationException("Cancelled by request");
+    exception.initCause(reason);
+    context.accept(null, exception);
   }
 }
