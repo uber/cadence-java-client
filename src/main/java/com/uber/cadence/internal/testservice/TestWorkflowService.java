@@ -693,7 +693,6 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   public void sleep(Duration duration) {
-    log.trace("sleep start duration=" + duration);
     long start = store.currentTimeMillis();
     CompletableFuture<Void> result = new CompletableFuture<>();
     store
@@ -703,7 +702,6 @@ public final class TestWorkflowService implements IWorkflowService {
             () -> {
               store.getTimer().lockTimeSkipping();
               result.complete(null);
-              log.trace("sleep callback fired at " + (store.currentTimeMillis() - start));
             });
     store.getTimer().unlockTimeSkipping();
     try {
@@ -713,6 +711,5 @@ public final class TestWorkflowService implements IWorkflowService {
     } catch (ExecutionException e) {
       throw new RuntimeException(e);
     }
-    log.trace("sleep done duration=" + (store.currentTimeMillis() - start));
   }
 }

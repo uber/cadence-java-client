@@ -207,7 +207,6 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
       timeLastLocked = currentTime;
       systemTimeLastLocked = System.currentTimeMillis();
     }
-    //    log.trace("lockTimeSkipping lockCount=" + lockCount, new Throwable());
   }
 
   @Override
@@ -251,7 +250,6 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
       throw new IllegalStateException("Unbalanced lock and unlock calls");
     }
     lockCount--;
-    //    log.trace("unlockTimeSkipping lockCount=" + lockCount, new Throwable());
     if (lockCount == 0) {
       timeLastLocked = -1;
       systemTimeLastLocked = -1;
