@@ -19,10 +19,20 @@ package com.uber.cadence.testing;
 
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
+import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.worker.Worker;
 import java.time.Duration;
 
 public interface TestWorkflowEnvironment {
+
+  static TestWorkflowEnvironment newInstance() {
+    return new TestWorkflowEnvironmentInternal(new TestEnvironmentOptions.Builder().build());
+  }
+
+  static TestWorkflowEnvironment newInstance(TestEnvironmentOptions options) {
+    return new TestWorkflowEnvironmentInternal(options);
+  }
 
   Worker newWorker(String taskList);
 
@@ -35,4 +45,10 @@ public interface TestWorkflowEnvironment {
   void sleep(Duration duration);
 
   void registerDelayedCallback(Duration delay, Runnable r);
+
+  IWorkflowService getWorkflowService();
+
+  String getDiagnostics();
+
+  void close();
 }
