@@ -69,7 +69,6 @@ import com.uber.cadence.client.UntypedWorkflowStub;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientInterceptor;
 import com.uber.cadence.client.WorkflowClientOptions;
-import com.uber.cadence.client.WorkflowClientOptions.Builder;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -105,6 +104,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
       this.testEnvironmentOptions = options;
     }
     service = new WorkflowServiceWrapper();
+    service.lockTimeSkipping();
   }
 
   @Override
@@ -121,10 +121,11 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
   @Override
   public WorkflowClient newWorkflowClient() {
-    WorkflowClientOptions options = new WorkflowClientOptions.Builder()
-        .setDataConverter(testEnvironmentOptions.getDataConverter())
-        .setInterceptors(new TimeLockingInterceptor(service))
-        .build();
+    WorkflowClientOptions options =
+        new WorkflowClientOptions.Builder()
+            .setDataConverter(testEnvironmentOptions.getDataConverter())
+            .setInterceptors(new TimeLockingInterceptor(service))
+            .build();
     return WorkflowClientInternal.newInstance(service, testEnvironmentOptions.getDomain(), options);
   }
 
@@ -136,6 +137,11 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
   @Override
   public long currentTimeMillis() {
     return service.currentTimeMillis();
+  }
+
+  @Override
+  public void sleep(Duration duration) {
+    service.sleep(duration);
   }
 
   @Override
@@ -220,21 +226,21 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     @Override
     public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError,
-        CancellationAlreadyRequestedError, ServiceBusyError, TException {
+            CancellationAlreadyRequestedError, ServiceBusyError, TException {
       impl.RequestCancelWorkflowExecution(cancelRequest);
     }
 
     @Override
     public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       impl.SignalWorkflowExecution(signalRequest);
     }
 
     @Override
     public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       impl.TerminateWorkflowExecution(terminateRequest);
     }
 
@@ -242,7 +248,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
         ListOpenWorkflowExecutionsRequest listRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.ListOpenWorkflowExecutions(listRequest);
     }
 
@@ -250,7 +256,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
         ListClosedWorkflowExecutionsRequest listRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.ListClosedWorkflowExecutions(listRequest);
     }
 
@@ -263,7 +269,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     @Override
     public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError,
-        TException {
+            TException {
       return impl.QueryWorkflow(queryRequest);
     }
 
@@ -487,7 +493,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public StartWorkflowExecutionResponse StartWorkflowExecution(
         StartWorkflowExecutionRequest startRequest)
         throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
-        ServiceBusyError, TException {
+            ServiceBusyError, TException {
       return impl.StartWorkflowExecution(startRequest);
     }
 
@@ -495,7 +501,7 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-        TException {
+            TException {
       return impl.GetWorkflowExecutionHistory(getRequest);
     }
 
@@ -534,6 +540,18 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     public void registerDelayedCallback(Duration delay, Runnable r) {
       impl.registerDelayedCallback(delay, r);
     }
+
+    public void lockTimeSkipping() {
+      impl.lockTimeSkipping();
+    }
+
+    public void unlockTimeSkipping() {
+      impl.unlockTimeSkipping();
+    }
+
+    public void sleep(Duration duration) {
+      impl.sleep(duration);
+    }
   }
 
   private static class TimeLockingInterceptor implements WorkflowClientInterceptor {
@@ -545,14 +563,14 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
     }
 
     @Override
-    public UntypedWorkflowStub newUntypedWorkflowStub(String workflowType, WorkflowOptions options,
-        UntypedWorkflowStub next) {
+    public UntypedWorkflowStub newUntypedWorkflowStub(
+        String workflowType, WorkflowOptions options, UntypedWorkflowStub next) {
       return new TimeLockingWorkflowStub(service, next);
     }
 
     @Override
-    public UntypedWorkflowStub newUntypedWorkflowStub(WorkflowExecution execution,
-        Optional<String> workflowType, UntypedWorkflowStub next) {
+    public UntypedWorkflowStub newUntypedWorkflowStub(
+        WorkflowExecution execution, Optional<String> workflowType, UntypedWorkflowStub next) {
       return new TimeLockingWorkflowStub(service, next);
     }
 
@@ -593,24 +611,37 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
 
       @Override
       public <R> R getResult(Class<R> returnType) {
-        return next.getResult(returnType);
+        service.unlockTimeSkipping();
+        try {
+          return next.getResult(returnType);
+        } finally {
+          service.lockTimeSkipping();
+        }
       }
 
       @Override
       public <R> CompletableFuture<R> getResultAsync(Class<R> returnType) {
-        return next.getResultAsync(returnType);
+        service.unlockTimeSkipping();
+        return next.getResultAsync(returnType).whenComplete((r, e) -> service.lockTimeSkipping());
       }
 
       @Override
       public <R> R getResult(long timeout, TimeUnit unit, Class<R> returnType)
           throws TimeoutException {
-        return next.getResult(timeout, unit, returnType);
+        service.unlockTimeSkipping();
+        try {
+          return next.getResult(timeout, unit, returnType);
+        } finally {
+          service.lockTimeSkipping();
+        }
       }
 
       @Override
-      public <R> CompletableFuture<R> getResultAsync(long timeout, TimeUnit unit,
-          Class<R> returnType) {
-        return next.getResultAsync(timeout, unit, returnType);
+      public <R> CompletableFuture<R> getResultAsync(
+          long timeout, TimeUnit unit, Class<R> returnType) {
+        service.unlockTimeSkipping();
+        return next.getResultAsync(timeout, unit, returnType)
+            .whenComplete((r, e) -> service.lockTimeSkipping());
       }
 
       @Override
@@ -627,7 +658,6 @@ class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
       public Optional<WorkflowOptions> getOptions() {
         return next.getOptions();
       }
-
     }
   }
 }

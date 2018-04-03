@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.LongSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class RequestContext {
 
@@ -55,6 +57,8 @@ final class RequestContext {
       return callback;
     }
   }
+
+  private static final Logger log = LoggerFactory.getLogger(RequestContext.class);
 
   private static final long NANOS_PER_MILLIS = 1_000_000;
 
@@ -100,10 +104,12 @@ final class RequestContext {
 
   void lockTimer() {
     timerLocks++;
+    //    log.trace("lockTimer="+ timerLocks, new Throwable());
   }
 
   void unlockTimer() {
     timerLocks--;
+    //    log.trace("unlockTimer="+ timerLocks, new Throwable());
   }
 
   public int getTimerLocks() {
