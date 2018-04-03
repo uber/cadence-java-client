@@ -58,8 +58,6 @@ final class RequestContext {
     }
   }
 
-  private static final Logger log = LoggerFactory.getLogger(RequestContext.class);
-
   private static final long NANOS_PER_MILLIS = 1_000_000;
 
   private final LongSupplier clock;
@@ -104,12 +102,10 @@ final class RequestContext {
 
   void lockTimer() {
     timerLocks++;
-    //    log.trace("lockTimer="+ timerLocks, new Throwable());
   }
 
   void unlockTimer() {
     timerLocks--;
-    //    log.trace("unlockTimer="+ timerLocks, new Throwable());
   }
 
   public int getTimerLocks() {
