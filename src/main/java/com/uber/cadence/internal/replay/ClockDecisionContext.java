@@ -28,10 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/**
- * Clock that must be used inside workflow definition code to ensure replay determinism. TODO:
- * Refactor to become a helper for managing timers instead of the generic clock class.
- */
+/** Clock that must be used inside workflow definition code to ensure replay determinism. */
 final class ClockDecisionContext {
 
   private final class TimerCancellationHandler implements Consumer<Exception> {
