@@ -165,7 +165,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
   @Override
   public void close() {
     for (Worker w : workers) {
-      w.shutdown(Duration.ofMillis(1));
+      w.shutdown(Duration.ofMillis(10));
     }
     service.close();
   }
