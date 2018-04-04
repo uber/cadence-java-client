@@ -28,12 +28,12 @@ import java.time.Duration;
  * TestWorkflowEnvironment provides workflow unit testing capabilities.
  *
  * <p>Testing workflow code is hard as it might be potentially very long running. The included
- * in-memory implementation of the Cadence service supports <b>automatic time skipping</b>. Any time
+ * in-memory implementation of the Cadence service supports <b>automatic time skipping</b>. Anytime
  * a workflow under the test as well as a unit test code are waiting on a timer (or sleep) the
  * internal service time is automatically advanced to the nearest time that unblocks one of the
- * waiting threads. This way a workflow that in production runs for months is unit tested in
- * milliseconds. Here is an example of a test which executes in a few milliseconds instead of over
- * two hours needed for the workflow to complete:
+ * waiting threads. This way a workflow that runs in production for months is unit tested in
+ * milliseconds. Here is an example of a test that executes in a few milliseconds instead of over
+ * two hours which is needed for the workflow to complete:
  *
  * <pre><code>
  *   public class SignaledWorkflowImpl implements SignaledWorkflow {
@@ -57,25 +57,26 @@ import java.time.Duration;
  *  public void testSignal() throws ExecutionException, InterruptedException {
  *    TestWorkflowEnvironment testEnvironment = TestWorkflowEnvironment.newInstance();
  *
- *    // Creates worker that polls tasks from the service owned by testEnvironment
+ *    // Creates a worker that polls tasks from the service owned by the testEnvironment.
  *    Worker worker = testEnvironment.newWorker(TASK_LIST);
  *    worker.registerWorkflowImplementationTypes(SignaledWorkflowImpl.class);
  *    worker.start();
  *
- *    // Creates a WorkflowClient that interacts with the server owned by the testEnvironment
+ *    // Creates a WorkflowClient that interacts with the server owned by the testEnvironment.
  *    WorkflowClient client = testEnvironment.newWorkflowClient();
  *    SignaledWorkflow workflow = client.newWorkflowStub(SignaledWorkflow.class);
  *
- *    // Starts workflow execution
+ *    // Starts a workflow execution
  *    CompletableFuture<String> result = WorkflowClient.execute(workflow::workflow1, "input1");
  *
- *    // This sleep just forwards service clock for 65 minutes without blocking
- *    testEnvironment.sleep(Duration.ofMinutes(65)); // after 1 hour sleep in the workflow
+ *    // The sleep forwards the service clock for 65 minutes without blocking.
+ *    // This ensures that the signal is sent after the one hour sleep in the workflow code.
+ *    testEnvironment.sleep(Duration.ofMinutes(65));
  *    workflow.processSignal("signalInput");
  *
- *    // Blocks until workflow is completed. Workflow sleep forwards clock for one hours and
+ *    // Blocks until workflow is complete. Workflow sleep forwards clock for one hour and
  *    // this call returns almost immediately.
- *    assertEquals("signalInput-input1", result.get()); // blocks until workflow is completed.
+ *    assertEquals("signalInput-input1", result.get());
  *
  *    // Closes workers and releases in-memory service.
  *    testEnvironment.close();
@@ -94,38 +95,38 @@ public interface TestWorkflowEnvironment {
   }
 
   /**
-   * Creates a new Worker instance that is connected to in-memory test Cadence service. {@link
+   * Creates a new Worker instance that is connected to the in-memory test Cadence service. {@link
    * #close()} calls {@link Worker#shutdown(Duration)} for all workers created through this method.
    *
    * @param taskList task list to poll.
    */
   Worker newWorker(String taskList);
 
-  /** Creates a WorkflowClient that is connected to in-memory test Cadence service. */
+  /** Creates a WorkflowClient that is connected to the in-memory test Cadence service. */
   WorkflowClient newWorkflowClient();
 
   /**
-   * Creates a WorkflowClient that is connected to in-memory test Cadence service.
+   * Creates a WorkflowClient that is connected to the in-memory test Cadence service.
    *
-   * @param clientOptions options used to configure the client
+   * @param clientOptions options used to configure the client.
    */
   WorkflowClient newWorkflowClient(WorkflowClientOptions clientOptions);
 
   /**
-   * Returns current in-memory test Cadence service time in milliseconds. This time might not be
+   * Returns the current in-memory test Cadence service time in milliseconds. This time might not be
    * equal to {@link System#currentTimeMillis()} due to time skipping.
    */
   long currentTimeMillis();
 
   /**
-   * Wait until internal test Cadence service time passes the specified duration. This call is also
+   * Wait until internal test Cadence service time passes the specified duration. This call also
    * indicates that workflow time might jump forward (if none of the activities are running) up to
-   * specified duration.
+   * the specified duration.
    */
   void sleep(Duration duration);
 
   /**
-   * Registers a callback to run after the specified delay according to test Cadence service
+   * Registers a callback to run after the specified delay according to the test Cadence service
    * internal clock.
    */
   void registerDelayedCallback(Duration delay, Runnable r);
@@ -134,9 +135,10 @@ public interface TestWorkflowEnvironment {
   IWorkflowService getWorkflowService();
 
   /**
-   * Returns diagnostic data about internal service state to the provided {@link StringBuilder}.
-   * Currently prints histories of all workflow instances stored in the service. Useful to print in
-   * case of a unit test failure. One way to achieve it is to add the following Rule to a unit test:
+   * Returns diagnostic data about the internal service state to the provided {@link StringBuilder}.
+   * Currently prints histories of all workflow instances stored in the service. This is useful to
+   * print in case of a unit test failure. One way to achieve it is to add the following Rule to a
+   * unit test:
    *
    * <pre><code>
    *  {@literal @}Rule
@@ -153,7 +155,7 @@ public interface TestWorkflowEnvironment {
 
   /**
    * Calls {@link Worker#shutdown(Duration)} on all workers created through {@link
-   * #newWorker(String)} and closes in-memory Cadence service.
+   * #newWorker(String)} and closes the in-memory Cadence service.
    */
   void close();
 }
