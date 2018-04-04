@@ -44,7 +44,7 @@ class UntypedActivityStubImpl implements UntypedActivityStub {
 
   @Override
   public <T> T execute(String activityName, Class<T> returnType, Object... args) {
-    Promise<T> result = activityExecutor.executeActivity(activityName, options, args, returnType);
+    Promise<T> result = executeAsync(activityName, returnType, args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return Defaults.defaultValue(returnType);
@@ -58,5 +58,10 @@ class UntypedActivityStubImpl implements UntypedActivityStub {
       e.setStackTrace(currentStackTrace);
       throw e;
     }
+  }
+
+  @Override
+  public <R> Promise<R> executeAsync(String activityName, Class<R> returnType, Object... args) {
+    return activityExecutor.executeActivity(activityName, options, args, returnType);
   }
 }

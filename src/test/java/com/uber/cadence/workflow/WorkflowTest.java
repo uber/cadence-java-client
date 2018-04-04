@@ -687,6 +687,62 @@ public class WorkflowTest {
     assertEquals("1234", activitiesImpl.procResult.get(4));
   }
 
+  public static class TestAsyncUtypedActivity2WorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      UntypedActivityStub testActivities = Workflow.newUntypedActivityStub(newActivityOptions2());
+      Promise<String> a = testActivities.executeAsync("TestActivities::activity", String.class);
+      Promise<String> a1 = testActivities.executeAsync(
+          "customActivity1", String.class, "1"); // name overridden in annotation
+      Promise<String> a2 = testActivities.executeAsync("TestActivities::activity2", String.class, "1", 2);
+      Promise<String> a3 = testActivities.executeAsync("TestActivities::activity3", String.class, "1", 2, 3);
+      Promise<String> a4 = testActivities.executeAsync("TestActivities::activity4", String.class, "1", 2, 3, 4);
+      Promise<String> a5 = testActivities.executeAsync("TestActivities::activity5", String.class,
+          "1", 2, 3, 4, 5);
+      Promise<String> a6 = testActivities.executeAsync("TestActivities::activity6", String.class,
+          "1", 2, 3, 4, 5, 6);
+      assertEquals("activity", a.get());
+      assertEquals("1", a1.get());
+      assertEquals("12", a2.get());
+      assertEquals("123", a3.get());
+      assertEquals("1234", a4.get());
+      assertEquals("12345", a5.get());
+      assertEquals("123456", a6.get());
+
+      testActivities.executeAsync( "TestActivities::proc", Void.class).get();
+      testActivities.executeAsync( "TestActivities::proc1", Void.class, "1").get();
+      testActivities.executeAsync( "TestActivities::proc2", Void.class, "1", 2)
+          .get();
+      testActivities.executeAsync( "TestActivities::proc3", Void.class, "1", 2, 3)
+          .get();
+      testActivities.executeAsync( "TestActivities::proc4", Void.class, "1", 2, 3,
+          4).get();
+      testActivities.executeAsync( "TestActivities::proc5", Void.class, "1", 2, 3,
+          4, 5).get();
+      testActivities.executeAsync( "TestActivities::proc6", Void.class, "1", 2, 3,
+          4, 5, 6).get();
+      return "workflow";
+    }
+  }
+
+  @Test
+  public void testAsyncUntyped2Activity() {
+    startWorkerFor(TestAsyncUtypedActivity2WorkflowImpl.class);
+    TestWorkflow1 client =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = client.execute(taskList);
+    assertEquals("workflow", result);
+    assertEquals("proc", activitiesImpl.procResult.get(0));
+    assertEquals("1", activitiesImpl.procResult.get(1));
+    assertEquals("12", activitiesImpl.procResult.get(2));
+    assertEquals("123", activitiesImpl.procResult.get(3));
+    assertEquals("1234", activitiesImpl.procResult.get(4));
+    assertEquals("12345", activitiesImpl.procResult.get(5));
+    assertEquals("123456", activitiesImpl.procResult.get(6));
+  }
+  
   private void assertResult(String expected, WorkflowExecution execution) {
     String result =
         workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class);

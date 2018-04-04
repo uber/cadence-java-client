@@ -32,7 +32,19 @@ public interface UntypedActivityStub {
    *     return void type.
    * @param args arguments of the activity.
    * @param <R> return type.
-   * @return Promise to the activity result.
+   * @return an activity result.
    */
   <R> R execute(String activityName, Class<R> returnType, Object... args);
+
+  /**
+   * Executes an activity asynchronously by its type name and arguments.
+   *
+   * @param activityName name of an activity type to execute.
+   * @param returnType the expected return type of the activity. Use Void.class for activities that
+   *     return void type.
+   * @param args arguments of the activity.
+   * @param <R> return type.
+   * @return Promise to the activity result.
+   */
+  <R> Promise<R> executeAsync(String activityName, Class<R> returnType, Object... args);
 }
