@@ -31,6 +31,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
+import com.uber.cadence.workflow.UntypedActivityStub;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
 import com.uber.cadence.workflow.WorkflowQueue;
@@ -107,6 +108,10 @@ public final class WorkflowInternal {
     InvocationHandler invocationHandler =
         ActivityInvocationHandler.newInstance(options, decisionContext);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+  }
+
+  public static UntypedActivityStub newUntypedActivityStub(ActivityOptions options) {
+    return UntypedActivityStubImpl.newInstance(options, getDecisionContext());
   }
 
   @SuppressWarnings("unchecked")

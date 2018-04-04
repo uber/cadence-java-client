@@ -304,6 +304,46 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
+  public static class TestUntypedActivityRetry implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setHeartbeatTimeout(Duration.ofSeconds(5))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+              .setScheduleToStartTimeout(Duration.ofSeconds(5))
+              .setStartToCloseTimeout(Duration.ofSeconds(10))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setMinimumAttempts(2)
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setMaximumAttempts(3)
+                      .build())
+              .build();
+      UntypedActivityStub activities = Workflow.newUntypedActivityStub(options);
+      activities.execute("TestActivities::throwIO", Void.class).get();
+      return "ignored";
+    }
+  }
+
+  @Test
+  public void testUntypedActivityRetry() {
+    startWorkerFor(TestUntypedActivityRetry.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().getCause() instanceof IOException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
   public static class TestActivityRetryAnnotated implements TestWorkflow1 {
 
     private final TestActivities activities;

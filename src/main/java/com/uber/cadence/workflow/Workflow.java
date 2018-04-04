@@ -32,7 +32,9 @@ public final class Workflow {
   /**
    * Creates client stub to activities that implement given interface.
    *
-   * @param activityInterface interface type implemented by activities
+   * @param activityInterface interface type implemented by activities.
+   * @param options options that together with the properties of {@link
+   *     com.uber.cadence.activity.ActivityMethod} specify the activity invocation parameters.
    */
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     return WorkflowInternal.newActivityStub(activityInterface, options);
@@ -48,7 +50,17 @@ public final class Workflow {
   }
 
   /**
-   * Creates client stub to a child workflow that implements given interface using parent options.
+   * Creates client stub to activities that implement given interface.
+   *
+   * @param options specify the activity invocation parameters.
+   */
+  public static UntypedActivityStub newUntypedActivityStub(ActivityOptions options) {
+    return WorkflowInternal.newUntypedActivityStub(options);
+  }
+
+  /**
+   * Creates client stub that can be used to start a child workflow that implements given interface
+   * using parent options.
    *
    * @param workflowInterface interface type implemented by activities
    */
@@ -57,7 +69,7 @@ public final class Workflow {
   }
 
   /**
-   * Creates client stub to a child workflow that implements given interface.
+   * Creates client stub that can be used to start a child workflow that implements given interface.
    *
    * @param workflowInterface interface type implemented by activities
    * @param options options passed to the child workflow.
@@ -66,9 +78,45 @@ public final class Workflow {
     return WorkflowInternal.newWorkflowStubWithOptions(workflowInterface, options);
   }
 
+  /**
+   * Creates client stub that can be used to communicate to an existing workflow execution.
+   *
+   * @param workflowInterface interface type implemented by activities
+   * @param workflowId id of the workflow to communicate with.
+   */
+  public static <R> R newWorkflowStub(Class<? extends R> workflowInterface, String workflowId) {
+    WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
+    return WorkflowInternal.newWorkflowStubFromExecution(workflowInterface, execution);
+  }
+
+  /**
+   * Creates client stub that can be used to communicate to an existing workflow execution.
+   *
+   * @param workflowInterface interface type implemented by activities
+   * @param execution execution of the workflow to communicate with.
+   */
   public static <R> R newWorkflowStub(
       Class<? extends R> workflowInterface, WorkflowExecution execution) {
     return WorkflowInternal.newWorkflowStubFromExecution(workflowInterface, execution);
+  }
+
+  /**
+   * Creates client stub that can be used to continue this workflow as new generation.
+   *
+   * @param workflowInterface interface type implemented by next generation of workflow
+   */
+  public static <T> T newContinueAsNewStub(
+      Class<T> workflowInterface, ContinueAsNewWorkflowExecutionParameters parameters) {
+    return WorkflowInternal.newContinueAsNewStub(workflowInterface, parameters);
+  }
+
+  /**
+   * Creates client stub that can be used to continue this workflow as new generation.
+   *
+   * @param workflowInterface interface type implemented by next generation of workflow
+   */
+  public static <T> T newContinueAsNewStub(Class<T> workflowInterface) {
+    return WorkflowInternal.newContinueAsNewStub(workflowInterface, null);
   }
 
   /**
@@ -196,40 +244,6 @@ public final class Workflow {
    */
   public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
     return WorkflowInternal.retry(options, fn);
-  }
-
-  /**
-   * Creates client stub that can be used to continue this workflow as new generation.
-   *
-   * @param workflowInterface interface type implemented by next generation of workflow
-   */
-  public static <T> T newContinueAsNewStub(
-      Class<T> workflowInterface, ContinueAsNewWorkflowExecutionParameters parameters) {
-    return WorkflowInternal.newContinueAsNewStub(workflowInterface, parameters);
-  }
-
-  /**
-   * Creates client stub that can be used to continue this workflow as new generation.
-   *
-   * @param workflowInterface interface type implemented by next generation of workflow
-   */
-  public static <T> T newContinueAsNewStub(Class<T> workflowInterface) {
-    return WorkflowInternal.newContinueAsNewStub(workflowInterface, null);
-  }
-
-  /**
-   * Execute activity by name.
-   *
-   * @param name name of the activity
-   * @param returnType activity return type
-   * @param args list of activity arguments
-   * @param <R> activity return type
-   * @return activity result @TODO Provide untyped stub instead the same way WorkflowClient
-   *     provides.
-   */
-  public static <R> R executeActivity(
-      String name, ActivityOptions options, Class<R> returnType, Object... args) {
-    return WorkflowInternal.executeActivity(name, options, returnType, args);
   }
 
   /**
