@@ -17,7 +17,10 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.base.Defaults;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
+import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.UntypedActivityStub;
 
@@ -40,7 +43,20 @@ class UntypedActivityStubImpl implements UntypedActivityStub {
   }
 
   @Override
-  public <T> Promise<T> execute(String activityName, Class<T> returnType, Object... args) {
-    return activityExecutor.executeActivity(activityName, options, args, returnType);
+  public <T> T execute(String activityName, Class<T> returnType, Object... args) {
+    Promise<T> result = activityExecutor.executeActivity(activityName, options, args, returnType);
+    if (AsyncInternal.isAsync()) {
+      AsyncInternal.setAsyncResult(result);
+      return Defaults.defaultValue(returnType);
+    }
+    try {
+      return result.get();
+    } catch (ActivityException e) {
+      // Reset stack to the current one. Otherwise it is very confusing to see a stack of
+      // an event handling method.
+      StackTraceElement[] currentStackTrace = Thread.currentThread().getStackTrace();
+      e.setStackTrace(currentStackTrace);
+      throw e;
+    }
   }
 }

@@ -25,14 +25,14 @@ package com.uber.cadence.workflow;
 public interface UntypedActivityStub {
 
   /**
-   * Executes activity by type name and arguments.
+   * Executes an activity by its type name and arguments. Blocks until the activity completion.
    *
-   * @param activityName name of activity type to execute.
-   * @param returnType expected return type of the activity. Use Void.class for activities that
+   * @param activityName name of an activity type to execute.
+   * @param returnType the expected return type of the activity. Use Void.class for activities that
    *     return void type.
    * @param args arguments of the activity.
    * @param <R> return type.
    * @return Promise to the activity result.
    */
-  <R> Promise<R> execute(String activityName, Class<R> returnType, Object... args);
+  <R> R execute(String activityName, Class<R> returnType, Object... args);
 }

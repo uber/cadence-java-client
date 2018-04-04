@@ -92,11 +92,13 @@ public class WorkflowTest {
 
   @Parameters(name = "{1}")
   public static Object[] data() {
-    return new Object[][] {{true, "Docker"}, {false, "TestService"}};
+    return new Object[][]{{true, "Docker"}, {false, "TestService"}};
   }
 
-  @Rule public TestName testName = new TestName();
-  @Rule public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule
+  public TestName testName = new TestName();
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =
@@ -109,7 +111,8 @@ public class WorkflowTest {
         }
       };
 
-  @Parameter public boolean useExternalService;
+  @Parameter
+  public boolean useExternalService;
 
   @Parameter(1)
   public String testType;
@@ -324,7 +327,7 @@ public class WorkflowTest {
                       .build())
               .build();
       UntypedActivityStub activities = Workflow.newUntypedActivityStub(options);
-      activities.execute("TestActivities::throwIO", Void.class).get();
+      activities.execute("TestActivities::throwIO", Void.class);
       return "ignored";
     }
   }
@@ -635,6 +638,55 @@ public class WorkflowTest {
     assertEquals("123456", activitiesImpl.procResult.get(6));
   }
 
+  public static class TestAsyncUtypedActivityWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      UntypedActivityStub testActivities = Workflow.newUntypedActivityStub(newActivityOptions2());
+      Promise<String> a = Async.function(testActivities::<String>execute,
+          "TestActivities::activity", String.class);
+      Promise<String> a1 = Async.function(testActivities::<String>execute,
+          "customActivity1", String.class, "1"); // name overridden in annotation
+      Promise<String> a2 = Async.function(testActivities::<String>execute,
+          "TestActivities::activity2", String.class, "1", 2);
+      Promise<String> a3 = Async.function(testActivities::<String>execute,
+          "TestActivities::activity3", String.class, "1", 2, 3);
+      Promise<String> a4 = Async.function(testActivities::<String>execute,
+          "TestActivities::activity4", String.class, "1", 2, 3, 4);
+      assertEquals("activity", a.get());
+      assertEquals("1", a1.get());
+      assertEquals("12", a2.get());
+      assertEquals("123", a3.get());
+      assertEquals("1234", a4.get());
+
+      Async.procedure(testActivities::<Void>execute, "TestActivities::proc", Void.class).get();
+      Async.procedure(testActivities::<Void>execute, "TestActivities::proc1", Void.class, "1")
+          .get();
+      Async.procedure(testActivities::<Void>execute, "TestActivities::proc2", Void.class, "1", 2)
+          .get();
+      Async.procedure(testActivities::<Void>execute, "TestActivities::proc3", Void.class, "1", 2, 3)
+          .get();
+      Async.procedure(testActivities::<Void>execute, "TestActivities::proc4", Void.class, "1", 2, 3,
+          4).get();
+      return "workflow";
+    }
+  }
+
+  @Test
+  public void testAsyncUntypedActivity() {
+    startWorkerFor(TestAsyncUtypedActivityWorkflowImpl.class);
+    TestWorkflow1 client =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = client.execute(taskList);
+    assertEquals("workflow", result);
+    assertEquals("proc", activitiesImpl.procResult.get(0));
+    assertEquals("1", activitiesImpl.procResult.get(1));
+    assertEquals("12", activitiesImpl.procResult.get(2));
+    assertEquals("123", activitiesImpl.procResult.get(3));
+    assertEquals("1234", activitiesImpl.procResult.get(4));
+  }
+
   private void assertResult(String expected, WorkflowExecution execution) {
     String result =
         workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class);
@@ -867,11 +919,11 @@ public class WorkflowTest {
       trace.clear(); // clear because of replay
       trace.add("started");
       Async.retry(
-              retryOptions,
-              () -> {
-                trace.add("retry at " + Workflow.currentTimeMillis());
-                return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
-              })
+          retryOptions,
+          () -> {
+            trace.add("retry at " + Workflow.currentTimeMillis());
+            return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
+          })
           .get();
       trace.add("beforeSleep");
       Workflow.sleep(60000);
@@ -880,7 +932,9 @@ public class WorkflowTest {
     }
   }
 
-  /** @see DeterministicRunnerTest#testRetry() */
+  /**
+   * @see DeterministicRunnerTest#testRetry()
+   */
   @Test
   public void testAsyncRetry() {
     startWorkerFor(TestAsyncRetryWorkflowImpl.class);
@@ -1140,10 +1194,12 @@ public class WorkflowTest {
         () -> {
           assertEquals("initial", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "Hello ");
-          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {
+          }
           assertEquals("Hello ", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "World!");
-          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {
+          }
           assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
           assertEquals(
               "Hello World!",
@@ -1229,7 +1285,9 @@ public class WorkflowTest {
     }
   }
 
-  /** Test that it is not allowed to block in the timer callback thread. */
+  /**
+   * Test that it is not allowed to block in the timer callback thread.
+   */
   @Test
   public void testTimerCallbackBlocked() {
     startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
@@ -1308,7 +1366,8 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowRetryWorkflow() {}
+    public TestChildWorkflowRetryWorkflow() {
+    }
 
     @Override
     public String execute(String taskList) {
@@ -1531,7 +1590,8 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowAsyncRetryWorkflow() {}
+    public TestChildWorkflowAsyncRetryWorkflow() {
+    }
 
     @Override
     public String execute(String taskList) {
@@ -1679,16 +1739,16 @@ public class WorkflowTest {
     void throwIO();
 
     @ActivityMethod(
-      scheduleToStartTimeoutSeconds = 5,
-      scheduleToCloseTimeoutSeconds = 5,
-      heartbeatTimeoutSeconds = 5,
-      startToCloseTimeoutSeconds = 10
+        scheduleToStartTimeoutSeconds = 5,
+        scheduleToCloseTimeoutSeconds = 5,
+        heartbeatTimeoutSeconds = 5,
+        startToCloseTimeoutSeconds = 10
     )
     @MethodRetry(
-      initialIntervalSeconds = 1,
-      maximumIntervalSeconds = 1,
-      minimumAttempts = 2,
-      maximumAttempts = 3
+        initialIntervalSeconds = 1,
+        maximumIntervalSeconds = 1,
+        minimumAttempts = 2,
+        maximumAttempts = 3
     )
     void throwIOAnnotated();
   }
@@ -1867,10 +1927,10 @@ public class WorkflowTest {
   public interface TestMultiargsWorkflowsFunc1 {
 
     @WorkflowMethod(
-      name = "func1",
-      taskList = ANNOTATION_TASK_LIST,
-      workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
-      executionStartToCloseTimeoutSeconds = 10
+        name = "func1",
+        taskList = ANNOTATION_TASK_LIST,
+        workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
+        executionStartToCloseTimeoutSeconds = 10
     )
     String func1(String input);
   }
@@ -1949,19 +2009,19 @@ public class WorkflowTest {
 
   public static class TestMultiargsWorkflowsImpl
       implements TestMultiargsWorkflowsFunc,
-          TestMultiargsWorkflowsFunc1,
-          TestMultiargsWorkflowsFunc2,
-          TestMultiargsWorkflowsFunc3,
-          TestMultiargsWorkflowsFunc4,
-          TestMultiargsWorkflowsFunc5,
-          TestMultiargsWorkflowsFunc6,
-          TestMultiargsWorkflowsProc,
-          TestMultiargsWorkflowsProc1,
-          TestMultiargsWorkflowsProc2,
-          TestMultiargsWorkflowsProc3,
-          TestMultiargsWorkflowsProc4,
-          TestMultiargsWorkflowsProc5,
-          TestMultiargsWorkflowsProc6 {
+      TestMultiargsWorkflowsFunc1,
+      TestMultiargsWorkflowsFunc2,
+      TestMultiargsWorkflowsFunc3,
+      TestMultiargsWorkflowsFunc4,
+      TestMultiargsWorkflowsFunc5,
+      TestMultiargsWorkflowsFunc6,
+      TestMultiargsWorkflowsProc,
+      TestMultiargsWorkflowsProc1,
+      TestMultiargsWorkflowsProc2,
+      TestMultiargsWorkflowsProc3,
+      TestMultiargsWorkflowsProc4,
+      TestMultiargsWorkflowsProc5,
+      TestMultiargsWorkflowsProc6 {
 
     static List<String> procResult = Collections.synchronizedList(new ArrayList<>());
 

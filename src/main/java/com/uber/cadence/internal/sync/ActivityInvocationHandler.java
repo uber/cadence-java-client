@@ -34,12 +34,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-/** Dynamic implementation of a strongly typed child workflow interface. */
+/**
+ * Dynamic implementation of a strongly typed child workflow interface.
+ */
 class ActivityInvocationHandler implements InvocationHandler {
 
   private final ActivityOptions options;
   private final ActivityExecutor activityExecutor;
-  private final Map<Method, Function<Object[], Promise<Object>>> methodFunctions = new HashMap<>();
+  private final Map<Method, Function<Object[], Object>> methodFunctions = new HashMap<>();
 
   static InvocationHandler newInstance(ActivityOptions options, ActivityExecutor activityExecutor) {
     return new ActivityInvocationHandler(options, activityExecutor);
@@ -50,7 +52,7 @@ class ActivityInvocationHandler implements InvocationHandler {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {activityInterface, AsyncMarker.class},
+            new Class<?>[]{activityInterface, AsyncMarker.class},
             invocationHandler);
   }
 
@@ -61,7 +63,7 @@ class ActivityInvocationHandler implements InvocationHandler {
 
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) {
-    Function<Object[], Promise<Object>> function = methodFunctions.get(method);
+    Function<Object[], Object> function = methodFunctions.get(method);
     if (function == null) {
       try {
         if (method.equals(Object.class.getMethod("toString"))) {
@@ -84,28 +86,12 @@ class ActivityInvocationHandler implements InvocationHandler {
         ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
         UntypedActivityStub stub =
             UntypedActivityStubImpl.newInstance(mergedOptions, activityExecutor);
-        @SuppressWarnings("unchecked") // f introduced to have a place to put the annotation
-        Function<Object[], Promise<Object>> f =
-            (a) -> (Promise<Object>) stub.execute(activityName, method.getReturnType(), a);
-        function = f;
+        function = (a) -> stub.execute(activityName, method.getReturnType(), a);
         methodFunctions.put(method, function);
       } catch (NoSuchMethodException e) {
         throw Workflow.wrap(e);
       }
     }
-    Promise<Object> result = function.apply(args);
-    if (AsyncInternal.isAsync()) {
-      AsyncInternal.setAsyncResult(result);
-      return Defaults.defaultValue(method.getReturnType());
-    }
-    try {
-      return result.get();
-    } catch (ActivityException e) {
-      // Reset stack to the current one. Otherwise it is very confusing to see a stack of
-      // an event handling method.
-      StackTraceElement[] currentStackTrace = Thread.currentThread().getStackTrace();
-      e.setStackTrace(currentStackTrace);
-      throw e;
-    }
+    return function.apply(args);
   }
 }
