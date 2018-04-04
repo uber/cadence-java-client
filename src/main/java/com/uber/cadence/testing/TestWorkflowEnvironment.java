@@ -131,7 +131,7 @@ public interface TestWorkflowEnvironment {
    */
   void registerDelayedCallback(Duration delay, Runnable r);
 
-  /** Returns in-memory test Cadence service that is owned by this. */
+  /** Returns the in-memory test Cadence service that is owned by this. */
   IWorkflowService getWorkflowService();
 
   /**
