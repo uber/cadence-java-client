@@ -27,7 +27,9 @@ import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
+import com.uber.cadence.workflow.ChildWorkflowStub;
 import com.uber.cadence.workflow.CompletablePromise;
+import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
@@ -115,7 +117,7 @@ public final class WorkflowInternal {
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> T newWorkflowStubWithOptions(
+  public static <T> T newChildWorkflowStub(
       Class<T> workflowInterface, ChildWorkflowOptions options) {
     return (T)
         Proxy.newProxyInstance(
@@ -125,7 +127,7 @@ public final class WorkflowInternal {
   }
 
   @SuppressWarnings("unchecked")
-  public static <T> T newWorkflowStubFromExecution(
+  public static <T> T newExternalWorkflowStub(
       Class<T> workflowInterface, WorkflowExecution execution) {
     return (T)
         Proxy.newProxyInstance(
@@ -139,7 +141,16 @@ public final class WorkflowInternal {
       return ((WorkflowStub) workflowStub).__getWorkflowExecution();
     }
     throw new IllegalArgumentException(
-        "Not a workflow stub created through Workflow.newWorkflowStubWithOptions: " + workflowStub);
+        "Not a workflow stub created through Workflow.newChildWorkflowStub: " + workflowStub);
+  }
+
+  public static ChildWorkflowStub newUntypedChildWorkflowStub(
+      String workflowType, ChildWorkflowOptions options) {
+    return new ChildWorkflowStubImpl(workflowType, options, getDecisionContext());
+  }
+
+  public static ExternalWorkflowStub newUntypedExternalWorkflowStub(WorkflowExecution execution) {
+    return new ExternalWorkflowStubImpl(execution, getDecisionContext());
   }
 
   /**

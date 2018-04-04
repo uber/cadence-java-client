@@ -47,7 +47,7 @@ import java.util.concurrent.CompletableFuture;
  * WorkflowClient client = WorkflowClient.newInstance(host, port, domain);
  *
  * // Create client side stub to the workflow execution.
- * HelloWorldWorkflow workflow = client.newWorkflowStub(HelloWorldWorkflow.class);
+ * HelloWorldWorkflow workflow = client.newChildWorkflowStub(HelloWorldWorkflow.class);
  *
  * // Start Workflow Execution
  * WorkflowExecution started = WorkflowClient.start(workflow::helloWorld, "User");

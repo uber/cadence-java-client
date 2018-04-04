@@ -19,7 +19,6 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.UntypedActivityStub;

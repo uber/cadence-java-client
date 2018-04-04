@@ -303,8 +303,9 @@ public final class AsyncInternal {
   public static boolean isAsync(Object func) {
     SerializedLambda lambda = LambdaUtils.toSerializedLambda(func);
     Object target = getTarget(lambda);
-    return target instanceof UntypedActivityStub || (target instanceof AsyncMarker
-        && lambda.getImplMethodKind() == MethodHandleInfo.REF_invokeInterface);
+    return target instanceof UntypedActivityStub
+        || (target instanceof AsyncMarker
+            && lambda.getImplMethodKind() == MethodHandleInfo.REF_invokeInterface);
   }
 
   private static boolean hasAsyncResult() {

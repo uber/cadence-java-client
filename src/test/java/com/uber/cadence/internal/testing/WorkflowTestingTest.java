@@ -550,7 +550,7 @@ public class WorkflowTestingTest {
 
     @Override
     public String workflow(String input) {
-      ChildWorkflow child = Workflow.newWorkflowStub(ChildWorkflow.class);
+      ChildWorkflow child = Workflow.newChildWorkflowStub(ChildWorkflow.class);
       Promise<String> result =
           Async.function(child::workflow, input, Workflow.getWorkflowInfo().getWorkflowId());
       Workflow.await(() -> signaledValue != null);
@@ -574,7 +574,7 @@ public class WorkflowTestingTest {
     @Override
     public String workflow(String input, String parentId) {
       Workflow.sleep(Duration.ofHours(2));
-      ParentWorkflow parent = Workflow.newWorkflowStub(ParentWorkflow.class, parentId);
+      ParentWorkflow parent = Workflow.newExternalWorkflowStub(ParentWorkflow.class, parentId);
       parent.signal(input);
       return "child ";
     }

@@ -17,14 +17,11 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.google.common.base.Defaults;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
-import com.uber.cadence.workflow.ActivityException;
-import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.UntypedActivityStub;
 import com.uber.cadence.workflow.Workflow;
 import java.lang.reflect.InvocationHandler;
@@ -34,9 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Dynamic implementation of a strongly typed child workflow interface.
- */
+/** Dynamic implementation of a strongly typed child workflow interface. */
 class ActivityInvocationHandler implements InvocationHandler {
 
   private final ActivityOptions options;
@@ -52,7 +47,7 @@ class ActivityInvocationHandler implements InvocationHandler {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
-            new Class<?>[]{activityInterface, AsyncMarker.class},
+            new Class<?>[] {activityInterface, AsyncMarker.class},
             invocationHandler);
   }
 

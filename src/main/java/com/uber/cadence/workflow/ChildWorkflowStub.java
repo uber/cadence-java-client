@@ -15,20 +15,21 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.sync;
+package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.workflow.Promise;
 
-/**
- * Interface that stub created through {@link
- * com.uber.cadence.workflow.Workflow#newChildWorkflowStub(Class)} implements. Do not implement or
- * use this interface in any application code. Use {@link
- * com.uber.cadence.workflow.Workflow#getChildWorkflowExecution(Object)} to access {@link
- * WorkflowExecution} out of a child workflow stub.
- */
-public interface WorkflowStub {
-  String GET_EXECUTION_METHOD_NAME = "__getWorkflowExecution";
+public interface ChildWorkflowStub {
 
-  Promise<WorkflowExecution> __getWorkflowExecution();
+  String getWorkflowType();
+
+  Promise<WorkflowExecution> getExecution();
+
+  ChildWorkflowOptions getOptions();
+
+  <R> R execute(Class<R> returnType, Object... args);
+
+  <R> Promise<R> executeAsync(Class<R> returnType, Object... args);
+
+  void signal(String signalName, Object... args);
 }

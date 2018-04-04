@@ -185,7 +185,7 @@ public final class ChildWorkflowOptions {
           childPolicy);
     }
 
-    private ChildWorkflowOptions validateAndBuildWithDefaults() {
+    public ChildWorkflowOptions validateAndBuildWithDefaults() {
       return new ChildWorkflowOptions(
           domain,
           workflowId,

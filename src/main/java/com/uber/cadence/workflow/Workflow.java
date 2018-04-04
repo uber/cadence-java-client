@@ -64,8 +64,8 @@ public final class Workflow {
    *
    * @param workflowInterface interface type implemented by activities
    */
-  public static <T> T newWorkflowStub(Class<T> workflowInterface) {
-    return WorkflowInternal.newWorkflowStubWithOptions(workflowInterface, null);
+  public static <T> T newChildWorkflowStub(Class<T> workflowInterface) {
+    return WorkflowInternal.newChildWorkflowStub(workflowInterface, null);
   }
 
   /**
@@ -74,8 +74,9 @@ public final class Workflow {
    * @param workflowInterface interface type implemented by activities
    * @param options options passed to the child workflow.
    */
-  public static <T> T newWorkflowStub(Class<T> workflowInterface, ChildWorkflowOptions options) {
-    return WorkflowInternal.newWorkflowStubWithOptions(workflowInterface, options);
+  public static <T> T newChildWorkflowStub(
+      Class<T> workflowInterface, ChildWorkflowOptions options) {
+    return WorkflowInternal.newChildWorkflowStub(workflowInterface, options);
   }
 
   /**
@@ -84,9 +85,10 @@ public final class Workflow {
    * @param workflowInterface interface type implemented by activities
    * @param workflowId id of the workflow to communicate with.
    */
-  public static <R> R newWorkflowStub(Class<? extends R> workflowInterface, String workflowId) {
+  public static <R> R newExternalWorkflowStub(
+      Class<? extends R> workflowInterface, String workflowId) {
     WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
-    return WorkflowInternal.newWorkflowStubFromExecution(workflowInterface, execution);
+    return WorkflowInternal.newExternalWorkflowStub(workflowInterface, execution);
   }
 
   /**
@@ -95,9 +97,47 @@ public final class Workflow {
    * @param workflowInterface interface type implemented by activities
    * @param execution execution of the workflow to communicate with.
    */
-  public static <R> R newWorkflowStub(
+  public static <R> R newExternalWorkflowStub(
       Class<? extends R> workflowInterface, WorkflowExecution execution) {
-    return WorkflowInternal.newWorkflowStubFromExecution(workflowInterface, execution);
+    return WorkflowInternal.newExternalWorkflowStub(workflowInterface, execution);
+  }
+
+  /**
+   * Extracts workflow execution from a stub created through {@link #newChildWorkflowStub(Class,
+   * ChildWorkflowOptions)} or {@link #newExternalWorkflowStub(Class, String)}. Wrapped in a Promise
+   * as child workflow start is asynchronous.
+   */
+  public static Promise<WorkflowExecution> getChildWorkflowExecution(Object childWorkflowStub) {
+    return WorkflowInternal.getChildWorkflowExecution(childWorkflowStub);
+  }
+
+  /**
+   * Creates untyped client stub that can be used to start and signal a child workflow.
+   *
+   * @param options options passed to the child workflow.
+   */
+  public static ChildWorkflowStub newUntypedChildWorkflowStub(
+      String workflowType, ChildWorkflowOptions options) {
+    return WorkflowInternal.newUntypedChildWorkflowStub(workflowType, options);
+  }
+
+  /**
+   * Creates untyped client stub that can be used to signal or cancel a child workflow.
+   *
+   * @param execution execution of the workflow to communicate with.
+   */
+  public static ExternalWorkflowStub newUntypedChildWorkflowStub(WorkflowExecution execution) {
+    return WorkflowInternal.newUntypedExternalWorkflowStub(execution);
+  }
+
+  /**
+   * Creates untyped client stub that can be used to signal or cancel a child workflow.
+   *
+   * @param workflowId id of the workflow to communicate with.
+   */
+  public static ExternalWorkflowStub newUntypedChildWorkflowStub(String workflowId) {
+    WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
+    return WorkflowInternal.newUntypedExternalWorkflowStub(execution);
   }
 
   /**
@@ -117,14 +157,6 @@ public final class Workflow {
    */
   public static <T> T newContinueAsNewStub(Class<T> workflowInterface) {
     return WorkflowInternal.newContinueAsNewStub(workflowInterface, null);
-  }
-
-  /**
-   * Extracts workflow execution from a stub created through {@link #newWorkflowStub(Class,
-   * ChildWorkflowOptions)}. Wrapped in a Promise as child workflow start is asynchronous.
-   */
-  public static Promise<WorkflowExecution> getChildWorkflowExecution(Object childWorkflowStub) {
-    return WorkflowInternal.getChildWorkflowExecution(childWorkflowStub);
   }
 
   public static WorkflowInfo getWorkflowInfo() {
