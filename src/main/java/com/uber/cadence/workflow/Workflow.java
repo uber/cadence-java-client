@@ -20,10 +20,10 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.function.Supplier;
 
@@ -148,26 +148,50 @@ public final class Workflow {
    */
   public static ExternalWorkflowStub newUntypedExternalWorkflowStub(String workflowId) {
     WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
-    return WorkflowInternal.newUntypedExternalWorkflowStub(execution);
+    return Workflow.newUntypedExternalWorkflowStub(execution);
   }
 
   /**
-   * Creates client stub that can be used to continue this workflow as new generation.
+   * Creates a client stub that can be used to continue this workflow as a new run.
    *
-   * @param workflowInterface interface type implemented by next generation of workflow
+   * @param workflowInterface an interface type implemented by the next run of the workflow
    */
   public static <T> T newContinueAsNewStub(
-      Class<T> workflowInterface, ContinueAsNewWorkflowExecutionParameters parameters) {
-    return WorkflowInternal.newContinueAsNewStub(workflowInterface, parameters);
+      Class<T> workflowInterface, ContinueAsNewOptions options) {
+    return WorkflowInternal.newContinueAsNewStub(workflowInterface, options);
   }
 
   /**
-   * Creates client stub that can be used to continue this workflow as new generation.
+   * Creates a client stub that can be used to continue this workflow as a new run.
    *
-   * @param workflowInterface interface type implemented by next generation of workflow
+   * @param workflowInterface an interface type implemented by the next run of the workflow
    */
   public static <T> T newContinueAsNewStub(Class<T> workflowInterface) {
     return WorkflowInternal.newContinueAsNewStub(workflowInterface, null);
+  }
+
+  /**
+   * Continues current workflow execution as a new run possibly overriding workflow type and
+   * options.
+   *
+   * @see #newContinueAsNewStub(Class)
+   * @param workflowType a workflow type for the next run.
+   * @param options option overrides for the next run.
+   * @param args arguments of the next run.
+   */
+  public static void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object... args) {
+    WorkflowInternal.continueAsNew(workflowType, options, args);
+  }
+
+  /**
+   * Continues this as a new run with the same options.
+   *
+   * @see #newContinueAsNewStub(Class)
+   * @param args arguments of the next run.
+   */
+  public static void continueAsNew(Object... args) {
+    Workflow.continueAsNew(Optional.empty(), Optional.empty(), args);
   }
 
   public static WorkflowInfo getWorkflowInfo() {

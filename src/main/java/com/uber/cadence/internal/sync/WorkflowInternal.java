@@ -23,13 +23,14 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ChildWorkflowStub;
 import com.uber.cadence.workflow.CompletablePromise;
+import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
@@ -42,6 +43,7 @@ import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -62,7 +64,7 @@ public final class WorkflowInternal {
   }
 
   public static Promise<Void> newTimer(Duration duration) {
-    return getDecisionContext().newTimer(InternalUtils.roundUpToSeconds(duration).getSeconds());
+    return getDecisionContext().newTimer(OptionsUtils.roundUpToSeconds(duration).getSeconds());
   }
 
   public static <E> WorkflowQueue<E> newQueue(int capacity) {
@@ -160,12 +162,12 @@ public final class WorkflowInternal {
    */
   @SuppressWarnings("unchecked")
   public static <T> T newContinueAsNewStub(
-      Class<T> workflowInterface, ContinueAsNewWorkflowExecutionParameters parameters) {
+      Class<T> workflowInterface, ContinueAsNewOptions options) {
     return (T)
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface},
-            new ContinueAsNewWorkflowInvocationHandler(parameters, getDecisionContext()));
+            new ContinueAsNewWorkflowInvocationHandler(options, getDecisionContext()));
   }
 
   /**
@@ -249,5 +251,25 @@ public final class WorkflowInternal {
 
   public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
     return WorkflowRetryerInternal.validateOptionsAndRetry(options, fn);
+  }
+
+  public static void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
+    continueAsNew(options, args, getDecisionContext());
+  }
+
+  static void continueAsNew(
+      Optional<ContinueAsNewOptions> options, Object[] args, SyncDecisionContext decisionContext) {
+    ContinueAsNewWorkflowExecutionParameters parameters =
+        new ContinueAsNewWorkflowExecutionParameters();
+    if (options.isPresent()) {
+      parameters.setExecutionStartToCloseTimeoutSeconds(
+          (int) options.get().getExecutionStartToCloseTimeout().getSeconds());
+      parameters.setTaskStartToCloseTimeoutSeconds(
+          (int) options.get().getTaskStartToCloseTimeout().getSeconds());
+    }
+    parameters.setInput(decisionContext.getDataConverter().toData(args));
+    decisionContext.continueAsNewOnCompletion(parameters);
+    WorkflowThread.exit(null);
   }
 }
