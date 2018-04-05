@@ -133,7 +133,7 @@ public final class WorkflowInternal {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
-            new ChildWorkflowInvocationHandler(execution, getDecisionContext()));
+            new ExternalWorkflowInvocationHandler(execution, getDecisionContext()));
   }
 
   public static Promise<WorkflowExecution> getChildWorkflowExecution(Object workflowStub) {
