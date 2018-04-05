@@ -20,36 +20,32 @@ package com.uber.cadence.internal.sync;
 import static com.uber.cadence.internal.common.InternalUtils.getWorkflowMethod;
 import static com.uber.cadence.internal.common.InternalUtils.getWorkflowType;
 
-import com.google.common.base.Defaults;
 import com.uber.cadence.activity.MethodRetry;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.workflow.ChildWorkflowException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ChildWorkflowStub;
-import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
-import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 
-/**
- * Dynamic implementation of a strongly typed child workflow interface.
- */
+/** Dynamic implementation of a strongly typed child workflow interface. */
 class ChildWorkflowInvocationHandler implements InvocationHandler {
 
   private final ChildWorkflowStub stub;
 
-  ChildWorkflowInvocationHandler(Class<?> workflowInterface,
-      ChildWorkflowOptions options, SyncDecisionContext decisionContext) {
+  ChildWorkflowInvocationHandler(
+      Class<?> workflowInterface,
+      ChildWorkflowOptions options,
+      SyncDecisionContext decisionContext) {
     Method workflowMethod = getWorkflowMethod(workflowInterface);
     WorkflowMethod workflowAnnotation = workflowMethod.getAnnotation(WorkflowMethod.class);
     String workflowType = getWorkflowType(workflowMethod, workflowAnnotation);
     MethodRetry retryAnnotation = workflowMethod.getAnnotation(MethodRetry.class);
 
-    ChildWorkflowOptions merged = ChildWorkflowOptions
-        .merge(workflowAnnotation, retryAnnotation, options);
+    ChildWorkflowOptions merged =
+        ChildWorkflowOptions.merge(workflowAnnotation, retryAnnotation, options);
     this.stub = new ChildWorkflowStubImpl(workflowType, merged, decisionContext);
   }
 
@@ -67,7 +63,8 @@ class ChildWorkflowInvocationHandler implements InvocationHandler {
             + (queryMethod == null ? 0 : 1)
             + (signalMethod == null ? 0 : 1);
     if (count > 1) {
-      throw new IllegalArgumentException(method
+      throw new IllegalArgumentException(
+          method
               + " must contain at most one annotation "
               + "from @WorkflowMethod, @QueryMethod or @SignalMethod");
     }
