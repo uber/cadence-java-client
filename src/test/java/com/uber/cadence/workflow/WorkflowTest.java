@@ -236,6 +236,9 @@ public class WorkflowTest {
 
     @WorkflowMethod(name = "testActivity")
     String execute(boolean useExternalService);
+
+    @QueryMethod(name = "getTrace")
+    List<String> getTrace();
   }
 
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
@@ -840,18 +843,17 @@ public class WorkflowTest {
             TestMultiargsWorkflowsProc6.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP6::proc6, "1", 2, 3, 4, 5, 6));
 
-    assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-    assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-    assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-    assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-    assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-    assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
-    assertEquals("123456", TestMultiargsWorkflowsImpl.procResult.get(6));
+    assertEquals("proc", stubP.query());
+    assertEquals("1", stubP1.query());
+    assertEquals("12", stubP2.query());
+    assertEquals("123", stubP3.query());
+    assertEquals("1234", stubP4.query());
+    assertEquals("12345", stubP5.query());
+    assertEquals("123456", stubP6.query());
   }
 
   @Test
   public void testExecute() throws ExecutionException, InterruptedException {
-    TestMultiargsWorkflowsImpl.procResult.clear();
     startWorkerFor(TestMultiargsWorkflowsImpl.class);
     WorkflowOptions workflowOptions =
         newWorkflowOptionsBuilder(taskList)
@@ -909,13 +911,13 @@ public class WorkflowTest {
             TestMultiargsWorkflowsProc6.class, workflowOptions);
     WorkflowClient.execute(stubP6::proc6, "1", 2, 3, 4, 5, 6).get();
 
-    assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-    assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-    assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-    assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-    assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-    assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
-    assertEquals("123456", TestMultiargsWorkflowsImpl.procResult.get(6));
+    assertEquals("proc", stubP.query());
+    assertEquals("1", stubP1.query());
+    assertEquals("12", stubP2.query());
+    assertEquals("123", stubP3.query());
+    assertEquals("1234", stubP4.query());
+    assertEquals("12345", stubP5.query());
+    assertEquals("123456", stubP6.query());
   }
 
   public static class TestChildAsyncWorkflow implements TestWorkflow1 {
@@ -967,21 +969,12 @@ public class WorkflowTest {
       TestMultiargsWorkflowsProc6 stubP6 =
           Workflow.newChildWorkflowStub(TestMultiargsWorkflowsProc6.class, workflowOptions);
       Async.procedure(stubP6::proc6, "1", 2, 3, 4, 5, 6).get();
-
-      assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-      assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-      assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-      assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-      assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-      assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
-      assertEquals("123456", TestMultiargsWorkflowsImpl.procResult.get(6));
       return null;
     }
   }
 
   @Test
   public void testChildAsyncWorkflow() {
-    TestMultiargsWorkflowsImpl.procResult.clear();
     startWorkerFor(TestChildAsyncWorkflow.class, TestMultiargsWorkflowsImpl.class);
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
@@ -1052,21 +1045,12 @@ public class WorkflowTest {
           Workflow.newUntypedChildWorkflowStub(
               "TestMultiargsWorkflowsProc6::proc6", workflowOptions);
       stubP6.execute(Void.class, "1", 2, 3, 4, 5, 6);
-
-      assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-      assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-      assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-      assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-      assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-      assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
-      assertEquals("123456", TestMultiargsWorkflowsImpl.procResult.get(6));
       return null;
     }
   }
 
   @Test
   public void testUntypedChildStubWorkflow() {
-    TestMultiargsWorkflowsImpl.procResult.clear();
     startWorkerFor(TestUntypedChildStubWorkflow.class, TestMultiargsWorkflowsImpl.class);
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
@@ -1137,21 +1121,12 @@ public class WorkflowTest {
           Workflow.newUntypedChildWorkflowStub(
               "TestMultiargsWorkflowsProc6::proc6", workflowOptions);
       stubP6.executeAsync(Void.class, "1", 2, 3, 4, 5, 6).get();
-
-      assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-      assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-      assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-      assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-      assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-      assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
-      assertEquals("123456", TestMultiargsWorkflowsImpl.procResult.get(6));
       return null;
     }
   }
 
   @Test
   public void testUntypedChildStubWorkflowAsync() {
-    TestMultiargsWorkflowsImpl.procResult.clear();
     startWorkerFor(TestUntypedChildStubWorkflowAsync.class, TestMultiargsWorkflowsImpl.class);
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
@@ -1216,20 +1191,12 @@ public class WorkflowTest {
           Workflow.newUntypedChildWorkflowStub(
               "TestMultiargsWorkflowsProc5::proc5", workflowOptions);
       Async.procedure(stubP5::<Void>execute, Void.class, "1", 2, 3, 4, 5).get();
-
-      assertEquals("proc", TestMultiargsWorkflowsImpl.procResult.get(0));
-      assertEquals("1", TestMultiargsWorkflowsImpl.procResult.get(1));
-      assertEquals("12", TestMultiargsWorkflowsImpl.procResult.get(2));
-      assertEquals("123", TestMultiargsWorkflowsImpl.procResult.get(3));
-      assertEquals("1234", TestMultiargsWorkflowsImpl.procResult.get(4));
-      assertEquals("12345", TestMultiargsWorkflowsImpl.procResult.get(5));
       return null;
     }
   }
 
   @Test
   public void testUntypedChildStubWorkflowAsyncInvoke() {
-    TestMultiargsWorkflowsImpl.procResult.clear();
     startWorkerFor(TestUntypedChildStubWorkflowAsyncInvoke.class, TestMultiargsWorkflowsImpl.class);
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
@@ -1276,6 +1243,11 @@ public class WorkflowTest {
       assertTrue(String.valueOf(slept), slept > 2000);
       return "testTimer";
     }
+
+    @Override
+    public List<String> getTrace() {
+      throw new UnsupportedOperationException("not implemented");
+    }
   }
 
   @Test
@@ -1305,7 +1277,7 @@ public class WorkflowTest {
 
   public static class TestAsyncRetryWorkflowImpl implements TestWorkflow2 {
 
-    static List<String> trace = new ArrayList<>();
+    private final List<String> trace = new ArrayList<>();
 
     @Override
     public String execute(boolean useExternalService) {
@@ -1322,6 +1294,11 @@ public class WorkflowTest {
       Workflow.sleep(60000);
       trace.add("done");
       return "";
+    }
+
+    @Override
+    public List<String> getTrace() {
+      return trace;
     }
   }
 
@@ -1341,11 +1318,11 @@ public class WorkflowTest {
       assertEquals("simulated", e.getCause().getMessage());
     }
     assertNull(result);
-    assertEquals(
-        TestAsyncRetryWorkflowImpl.trace.toString(), 3, TestAsyncRetryWorkflowImpl.trace.size());
-    assertEquals("started", TestAsyncRetryWorkflowImpl.trace.get(0));
-    assertTrue(TestAsyncRetryWorkflowImpl.trace.get(1).startsWith("retry at "));
-    assertTrue(TestAsyncRetryWorkflowImpl.trace.get(2).startsWith("retry at "));
+    List<String> trace = client.getTrace();
+    assertEquals(trace.toString(), 3, trace.size());
+    assertEquals("started", trace.get(0));
+    assertTrue(trace.get(1).startsWith("retry at "));
+    assertTrue(trace.get(2).startsWith("retry at "));
   }
 
   public interface TestExceptionPropagation {
@@ -1536,7 +1513,7 @@ public class WorkflowTest {
                   Optional.of(execution.get().getRunId())));
           assertEquals("Hello ", client.get().getState());
 
-          // Test query through replay by a local worker.
+          // Test getTrace through replay by a local worker.
           Worker queryWorker;
           if (useExternalService) {
             queryWorker = new Worker(domain, taskList);
@@ -1933,7 +1910,7 @@ public class WorkflowTest {
 
   @Test
   public void testUntypedSignalExternalWorkflow() {
-    startWorkerFor(TestUntypedSignalExternalWorkflow.class, SignalingChildImpl.class);
+    startWorkerFor(TestUntypedSignalExternalWorkflow.class, UntypedSignalingChildImpl.class);
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
     options.setExecutionStartToCloseTimeout(Duration.ofSeconds(20));
     options.setTaskStartToCloseTimeout(Duration.ofSeconds(2));
@@ -2345,6 +2322,12 @@ public class WorkflowTest {
     }
   }
 
+  public interface ProcInvocationQueryable {
+
+    @QueryMethod(name = "getTrace")
+    String query();
+  }
+
   public interface TestMultiargsWorkflowsFunc {
 
     @WorkflowMethod
@@ -2392,43 +2375,43 @@ public class WorkflowTest {
     String func6(String a1, int a2, int a3, int a4, int a5, int a6);
   }
 
-  public interface TestMultiargsWorkflowsProc {
+  public interface TestMultiargsWorkflowsProc extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc();
   }
 
-  public interface TestMultiargsWorkflowsProc1 {
+  public interface TestMultiargsWorkflowsProc1 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc1(String input);
   }
 
-  public interface TestMultiargsWorkflowsProc2 {
+  public interface TestMultiargsWorkflowsProc2 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc2(String a1, int a2);
   }
 
-  public interface TestMultiargsWorkflowsProc3 {
+  public interface TestMultiargsWorkflowsProc3 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc3(String a1, int a2, int a3);
   }
 
-  public interface TestMultiargsWorkflowsProc4 {
+  public interface TestMultiargsWorkflowsProc4 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc4(String a1, int a2, int a3, int a4);
   }
 
-  public interface TestMultiargsWorkflowsProc5 {
+  public interface TestMultiargsWorkflowsProc5 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc5(String a1, int a2, int a3, int a4, int a5);
   }
 
-  public interface TestMultiargsWorkflowsProc6 {
+  public interface TestMultiargsWorkflowsProc6 extends ProcInvocationQueryable {
 
     @WorkflowMethod
     void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
@@ -2450,7 +2433,7 @@ public class WorkflowTest {
           TestMultiargsWorkflowsProc5,
           TestMultiargsWorkflowsProc6 {
 
-    static List<String> procResult = Collections.synchronizedList(new ArrayList<>());
+    private String procResult;
 
     @Override
     public String func() {
@@ -2489,37 +2472,42 @@ public class WorkflowTest {
 
     @Override
     public void proc() {
-      procResult.add("proc");
+      procResult = ("proc");
     }
 
     @Override
     public void proc1(String a1) {
-      procResult.add(a1);
+      procResult = (a1);
     }
 
     @Override
     public void proc2(String a1, int a2) {
-      procResult.add(a1 + a2);
+      procResult = (a1 + a2);
     }
 
     @Override
     public void proc3(String a1, int a2, int a3) {
-      procResult.add(a1 + a2 + a3);
+      procResult = (a1 + a2 + a3);
     }
 
     @Override
     public void proc4(String a1, int a2, int a3, int a4) {
-      procResult.add(a1 + a2 + a3 + a4);
+      procResult = (a1 + a2 + a3 + a4);
     }
 
     @Override
     public void proc5(String a1, int a2, int a3, int a4, int a5) {
-      procResult.add(a1 + a2 + a3 + a4 + a5);
+      procResult = (a1 + a2 + a3 + a4 + a5);
     }
 
     @Override
     public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
-      procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
+      procResult = (a1 + a2 + a3 + a4 + a5 + a6);
+    }
+
+    @Override
+    public String query() {
+      return procResult;
     }
   }
 }
