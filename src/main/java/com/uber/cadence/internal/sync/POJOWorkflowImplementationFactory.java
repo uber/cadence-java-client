@@ -50,9 +50,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
 
   private DataConverter dataConverter;
 
-  /**
-   * Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance.
-   */
+  /** Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance. */
   private final Map<String, Functions.Func<SyncWorkflowDefinition>> workflowDefinitions =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -143,8 +141,11 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
         workflowDefinitions.get(workflowType.getName());
     if (factory == null) {
       // throw Error to abort decision, not fail the workflow
-      throw new Error("Unknown workflow type \"" + workflowType.getName() + "\". Known types are "
-          + workflowDefinitions.keySet());
+      throw new Error(
+          "Unknown workflow type \""
+              + workflowType.getName()
+              + "\". Known types are "
+              + workflowDefinitions.keySet());
     }
     try {
       return factory.apply();
@@ -289,8 +290,9 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
 
   @Override
   public String toString() {
-    return "POJOWorkflowImplementationFactory{" +
-        "registeredWorkflowTypes=" + workflowDefinitions.keySet() +
-        '}';
+    return "POJOWorkflowImplementationFactory{"
+        + "registeredWorkflowTypes="
+        + workflowDefinitions.keySet()
+        + '}';
   }
 }

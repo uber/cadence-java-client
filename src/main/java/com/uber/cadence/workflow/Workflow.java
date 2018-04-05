@@ -114,6 +114,7 @@ public final class Workflow {
   /**
    * Creates untyped client stub that can be used to start and signal a child workflow.
    *
+   * @param workflowType name of the workflow type to start.
    * @param options options passed to the child workflow.
    */
   public static ChildWorkflowStub newUntypedChildWorkflowStub(
@@ -122,11 +123,21 @@ public final class Workflow {
   }
 
   /**
+   * Creates untyped client stub that can be used to start and signal a child workflow. All options
+   * are inherited from the parent.
+   *
+   * @param workflowType name of the workflow type to start.
+   */
+  public static ChildWorkflowStub newUntypedChildWorkflowStub(String workflowType) {
+    return WorkflowInternal.newUntypedChildWorkflowStub(workflowType, null);
+  }
+
+  /**
    * Creates untyped client stub that can be used to signal or cancel a child workflow.
    *
    * @param execution execution of the workflow to communicate with.
    */
-  public static ExternalWorkflowStub newUntypedChildWorkflowStub(WorkflowExecution execution) {
+  public static ExternalWorkflowStub newUntypedExternalWorkflowStub(WorkflowExecution execution) {
     return WorkflowInternal.newUntypedExternalWorkflowStub(execution);
   }
 
@@ -135,7 +146,7 @@ public final class Workflow {
    *
    * @param workflowId id of the workflow to communicate with.
    */
-  public static ExternalWorkflowStub newUntypedChildWorkflowStub(String workflowId) {
+  public static ExternalWorkflowStub newUntypedExternalWorkflowStub(String workflowId) {
     WorkflowExecution execution = new WorkflowExecution().setWorkflowId(workflowId);
     return WorkflowInternal.newUntypedExternalWorkflowStub(execution);
   }

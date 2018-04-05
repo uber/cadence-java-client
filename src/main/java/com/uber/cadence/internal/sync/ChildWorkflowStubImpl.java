@@ -42,9 +42,7 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
   ChildWorkflowStubImpl(
       String workflowType, ChildWorkflowOptions options, SyncDecisionContext decisionContext) {
     this.workflowType = Objects.requireNonNull(workflowType);
-    this.options =
-        Objects.requireNonNull(
-            new ChildWorkflowOptions.Builder(options).validateAndBuildWithDefaults());
+    this.options = new ChildWorkflowOptions.Builder(options).validateAndBuildWithDefaults();
     this.decisionContext = Objects.requireNonNull(decisionContext);
     dataConverter = Objects.requireNonNull(decisionContext.getDataConverter());
   }
