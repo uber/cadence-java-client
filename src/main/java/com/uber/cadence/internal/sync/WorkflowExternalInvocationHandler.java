@@ -17,6 +17,9 @@
 
 package com.uber.cadence.internal.sync;
 
+import static com.uber.cadence.internal.common.InternalUtils.getWorkflowMethod;
+import static com.uber.cadence.internal.common.InternalUtils.getWorkflowType;
+
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.client.DuplicateWorkflowException;
@@ -221,37 +224,5 @@ class WorkflowExternalInvocationHandler implements InvocationHandler {
       return null;
     }
     return untyped.getResult(method.getReturnType());
-  }
-
-  private static Method getWorkflowMethod(Class<?> workflowInterface) {
-    Method result = null;
-    for (Method m : workflowInterface.getMethods()) {
-      if (m.getAnnotation(WorkflowMethod.class) != null) {
-        if (result != null) {
-          throw new IllegalArgumentException(
-              "Workflow interface must have exactly one method "
-                  + "annotated with @WorkflowMethod. Found \""
-                  + result
-                  + "\" and \""
-                  + m
-                  + "\"");
-        }
-        result = m;
-      }
-    }
-    if (result == null) {
-      throw new IllegalArgumentException(
-          "Method annotated with @WorkflowMethod is not " + "found at " + workflowInterface);
-    }
-    return result;
-  }
-
-  private static String getWorkflowType(Method method, WorkflowMethod workflowMethod) {
-    String workflowName = workflowMethod.name();
-    if (workflowName.isEmpty()) {
-      return InternalUtils.getSimpleName(method);
-    } else {
-      return workflowName;
-    }
   }
 }

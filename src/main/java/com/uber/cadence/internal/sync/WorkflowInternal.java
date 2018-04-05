@@ -123,7 +123,7 @@ public final class WorkflowInternal {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
-            new ChildWorkflowInvocationHandler(options, getDecisionContext()));
+            new ChildWorkflowInvocationHandler(workflowInterface, options, getDecisionContext()));
   }
 
   @SuppressWarnings("unchecked")
