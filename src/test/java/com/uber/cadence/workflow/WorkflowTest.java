@@ -1693,7 +1693,7 @@ public class WorkflowTest {
     public String execute(String taskList) {
       Promise<String> r1 = Async.function(child1::execute, "Hello ");
       String r2 = child2.execute("World!");
-      assertEquals(child2Id, Workflow.getChildWorkflowExecution(child2).get().getWorkflowId());
+      assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
       return r1.get() + r2;
     }
   }

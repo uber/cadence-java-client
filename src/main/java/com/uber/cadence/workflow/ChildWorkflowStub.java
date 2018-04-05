@@ -19,6 +19,13 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 
+/**
+ * Supports starting and signalling child workflows by the name and list of arguments. This is
+ * useful when a child workflow type is not known at the compile time and to call child workflows in
+ * other languages.
+ *
+ * @see Workflow#newChildWorkflowStub(Class)
+ */
 public interface ChildWorkflowStub {
 
   String getWorkflowType();

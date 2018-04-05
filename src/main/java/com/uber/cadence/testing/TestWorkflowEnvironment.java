@@ -64,7 +64,7 @@ import java.time.Duration;
  *
  *    // Creates a WorkflowClient that interacts with the server owned by the testEnvironment.
  *    WorkflowClient client = testEnvironment.newWorkflowClient();
- *    SignaledWorkflow workflow = client.newChildWorkflowStub(SignaledWorkflow.class);
+ *    SignaledWorkflow workflow = client.newWorkflowStub(SignaledWorkflow.class);
  *
  *    // Starts a workflow execution
  *    CompletableFuture<String> result = WorkflowClient.execute(workflow::workflow1, "input1");

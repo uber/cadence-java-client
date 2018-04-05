@@ -107,7 +107,7 @@ public final class Workflow {
    * ChildWorkflowOptions)} or {@link #newExternalWorkflowStub(Class, String)}. Wrapped in a Promise
    * as child workflow start is asynchronous.
    */
-  public static Promise<WorkflowExecution> getChildWorkflowExecution(Object childWorkflowStub) {
+  public static Promise<WorkflowExecution> getWorkflowExecution(Object childWorkflowStub) {
     return WorkflowInternal.getChildWorkflowExecution(childWorkflowStub);
   }
 

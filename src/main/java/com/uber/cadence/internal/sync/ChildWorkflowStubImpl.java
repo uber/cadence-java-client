@@ -29,7 +29,6 @@ import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
 import java.util.Objects;
 
-/** Dynamic implementation of a strongly typed child workflow interface. */
 class ChildWorkflowStubImpl implements ChildWorkflowStub {
 
   private final String workflowType;
@@ -37,7 +36,6 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
   private final SyncDecisionContext decisionContext;
   private final DataConverter dataConverter;
   private CompletablePromise<WorkflowExecution> execution = Workflow.newPromise();
-  private boolean startRequested;
 
   ChildWorkflowStubImpl(
       String workflowType, ChildWorkflowOptions options, SyncDecisionContext decisionContext) {

@@ -19,6 +19,13 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 
+/**
+ * Supports signalling and cancelling any workflows by the workflow type and their id. This is
+ * useful when an external workflow type is not known at the compile time and to call workflows in
+ * other languages.
+ *
+ * @see Workflow#newUntypedExternalWorkflowStub(String)
+ */
 public interface ExternalWorkflowStub {
 
   WorkflowExecution getExecution();

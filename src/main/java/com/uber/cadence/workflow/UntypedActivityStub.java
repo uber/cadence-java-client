@@ -19,8 +19,8 @@ package com.uber.cadence.workflow;
 
 /**
  * UntypedActivityStub is used to call an activity without referencing an interface it implements.
- * Useful to call activities when their type is not known at compile time or activities implemented
- * in other languages.
+ * This is useful to call activities when their type is not known at compile time or to execute
+ * activities implemented in other languages.
  */
 public interface UntypedActivityStub {
 
