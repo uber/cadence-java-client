@@ -2522,7 +2522,26 @@ public class WorkflowTest {
     public String execute(String taskList) {
       assertEquals(2, (int) threadLocal.get());
       assertEquals(5, (int) workflowLocal.get());
-      return "result=" + threadLocal.get() + workflowLocal.get();
+      Promise<Void> p1 =
+          Async.procedure(
+              () -> {
+                assertEquals(2, (int) threadLocal.get());
+                threadLocal.set(10);
+                Workflow.sleep(Duration.ofSeconds(1));
+                assertEquals(10, (int) threadLocal.get());
+                assertEquals(100, (int) workflowLocal.get());
+              });
+      Promise<Void> p2 =
+          Async.procedure(
+              () -> {
+                assertEquals(2, (int) threadLocal.get());
+                threadLocal.set(22);
+                workflowLocal.set(100);
+                assertEquals(22, (int) threadLocal.get());
+              });
+      p1.get();
+      p2.get();
+      return "result=" + threadLocal.get() + ", " + workflowLocal.get();
     }
   }
 
@@ -2533,6 +2552,6 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
-    assertEquals("result=25", result);
+    assertEquals("result=2, 100", result);
   }
 }
