@@ -2510,4 +2510,29 @@ public class WorkflowTest {
       return procResult;
     }
   }
+
+  public static class TestWorkflowLocals implements TestWorkflow1 {
+
+    private final WorkflowThreadLocal<Integer> threadLocal =
+        WorkflowThreadLocal.withInitial(() -> 2);
+
+    private final WorkflowLocal<Integer> workflowLocal = WorkflowLocal.withInitial(() -> 5);
+
+    @Override
+    public String execute(String taskList) {
+      assertEquals(2, (int) threadLocal.get());
+      assertEquals(5, (int) workflowLocal.get());
+      return "result=" + threadLocal.get() + workflowLocal.get();
+    }
+  }
+
+  @Test
+  public void testWorkflowLocals() {
+    startWorkerFor(TestWorkflowLocals.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("result=25", result);
+  }
 }

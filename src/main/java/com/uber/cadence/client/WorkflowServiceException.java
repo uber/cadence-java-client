@@ -18,26 +18,13 @@
 package com.uber.cadence.client;
 
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import java.util.Optional;
 
 public final class WorkflowServiceException extends WorkflowException {
 
   public WorkflowServiceException(
       WorkflowExecution execution, Optional<String> workflowType, Throwable failure) {
-    super(getMessage(execution, workflowType), execution, workflowType, failure);
-  }
-
-  private static String getMessage(WorkflowExecution execution, Optional<String> workflowType) {
-    StringBuilder result = new StringBuilder();
-    if (workflowType.isPresent()) {
-      result.append("WorkflowType=\"");
-      result.append(workflowType.get());
-      result.append("\", ");
-    }
-    result.append("WorkflowID=\"");
-    result.append(execution.getWorkflowId());
-    result.append("\", RunID=\"");
-    result.append(execution.getRunId());
-    return result.toString();
+    super(null, execution, workflowType, CheckedExceptionWrapper.unwrap(failure));
   }
 }
