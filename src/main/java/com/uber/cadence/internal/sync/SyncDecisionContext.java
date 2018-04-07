@@ -54,6 +54,7 @@ import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 final class SyncDecisionContext implements WorkflowInterceptor {
@@ -61,12 +62,17 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
+  private final WorkflowInterceptor headInterceptor;
   private final WorkflowTimers timers = new WorkflowTimers();
   private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
 
-  public SyncDecisionContext(DecisionContext context, DataConverter converter) {
+  public SyncDecisionContext(
+      DecisionContext context,
+      DataConverter converter,
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.context = context;
     this.converter = converter;
+    this.headInterceptor = interceptorFactory.apply(this);
   }
 
   /**
@@ -79,6 +85,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   public DeterministicRunner getRunner() {
     return runner;
+  }
+
+  public WorkflowInterceptor getWorkflowInterceptor() {
+    return headInterceptor;
   }
 
   @Override

@@ -66,7 +66,7 @@ public final class WorkflowInternal {
   }
 
   public static Promise<Void> newTimer(Duration duration) {
-    return getDecisionContext().newTimer(duration);
+    return getWorkflowInterceptor().newTimer(duration);
   }
 
   public static <E> WorkflowQueue<E> newQueue(int capacity) {
@@ -108,7 +108,7 @@ public final class WorkflowInternal {
           if (name.isEmpty()) {
             name = InternalUtils.getSimpleName(method);
           }
-          getDecisionContext()
+          getWorkflowInterceptor()
               .registerQuery(
                   name,
                   method.getParameterTypes(),
@@ -135,14 +135,14 @@ public final class WorkflowInternal {
    * @param activityInterface interface type implemented by activities
    */
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
-    WorkflowInterceptor decisionContext = WorkflowInternal.getDecisionContext();
+    WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
         ActivityInvocationHandler.newInstance(options, decisionContext);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
   }
 
   public static ActivityStub newUntypedActivityStub(ActivityOptions options) {
-    return ActivityStubImpl.newInstance(options, getDecisionContext());
+    return ActivityStubImpl.newInstance(options, getWorkflowInterceptor());
   }
 
   @SuppressWarnings("unchecked")
@@ -152,7 +152,8 @@ public final class WorkflowInternal {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
-            new ChildWorkflowInvocationHandler(workflowInterface, options, getDecisionContext()));
+            new ChildWorkflowInvocationHandler(
+                workflowInterface, options, getWorkflowInterceptor()));
   }
 
   @SuppressWarnings("unchecked")
@@ -162,7 +163,7 @@ public final class WorkflowInternal {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface, WorkflowStub.class, AsyncMarker.class},
-            new ExternalWorkflowInvocationHandler(execution, getDecisionContext()));
+            new ExternalWorkflowInvocationHandler(execution, getWorkflowInterceptor()));
   }
 
   public static Promise<WorkflowExecution> getChildWorkflowExecution(Object workflowStub) {
@@ -175,11 +176,11 @@ public final class WorkflowInternal {
 
   public static ChildWorkflowStub newUntypedChildWorkflowStub(
       String workflowType, ChildWorkflowOptions options) {
-    return new ChildWorkflowStubImpl(workflowType, options, getDecisionContext());
+    return new ChildWorkflowStubImpl(workflowType, options, getWorkflowInterceptor());
   }
 
   public static ExternalWorkflowStub newUntypedExternalWorkflowStub(WorkflowExecution execution) {
-    return new ExternalWorkflowStubImpl(execution, getDecisionContext());
+    return new ExternalWorkflowStubImpl(execution, getWorkflowInterceptor());
   }
 
   /**
@@ -194,7 +195,7 @@ public final class WorkflowInternal {
         Proxy.newProxyInstance(
             WorkflowInternal.class.getClassLoader(),
             new Class<?>[] {workflowInterface},
-            new ContinueAsNewWorkflowInvocationHandler(options, getDecisionContext()));
+            new ContinueAsNewWorkflowInvocationHandler(options, getWorkflowInterceptor()));
   }
 
   /**
@@ -208,7 +209,7 @@ public final class WorkflowInternal {
    */
   public static <R> R executeActivity(
       String name, ActivityOptions options, Class<R> returnType, Object... args) {
-    Promise<R> result = getDecisionContext().executeActivity(name, returnType, args, options);
+    Promise<R> result = getWorkflowInterceptor().executeActivity(name, returnType, args, options);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return null; // ignored
@@ -216,8 +217,10 @@ public final class WorkflowInternal {
     return result.get();
   }
 
-  private static WorkflowInterceptor getDecisionContext() {
-    return DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
+  private static WorkflowInterceptor getWorkflowInterceptor() {
+    return DeterministicRunnerImpl.currentThreadInternal()
+        .getDecisionContext()
+        .getWorkflowInterceptor();
   }
 
   private static SyncDecisionContext getRootDecisionContext() {
@@ -226,12 +229,12 @@ public final class WorkflowInternal {
 
   public static void await(String reason, Supplier<Boolean> unblockCondition)
       throws DestroyWorkflowThreadError {
-    getDecisionContext().await(reason, unblockCondition);
+    getWorkflowInterceptor().await(reason, unblockCondition);
   }
 
   public static boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition)
       throws DestroyWorkflowThreadError {
-    return getDecisionContext().await(timeout, reason, unblockCondition);
+    return getWorkflowInterceptor().await(timeout, reason, unblockCondition);
   }
 
   public static <U> Promise<List<U>> promiseAllOf(Collection<Promise<U>> promises) {
@@ -286,7 +289,7 @@ public final class WorkflowInternal {
 
   public static void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
-    getDecisionContext().continueAsNew(workflowType, options, args);
+    getWorkflowInterceptor().continueAsNew(workflowType, options, args);
   }
 
   public static void continueAsNew(
@@ -298,10 +301,10 @@ public final class WorkflowInternal {
   }
 
   public static Promise<Void> cancelWorkflow(WorkflowExecution execution) {
-    return getDecisionContext().cancelWorkflow(execution);
+    return getWorkflowInterceptor().cancelWorkflow(execution);
   }
 
   public static void sleep(Duration duration) {
-    getDecisionContext().sleep(duration);
+    getWorkflowInterceptor().sleep(duration);
   }
 }
