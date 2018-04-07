@@ -21,6 +21,7 @@ import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
+import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -29,10 +30,10 @@ import java.util.Optional;
 class ContinueAsNewWorkflowInvocationHandler implements InvocationHandler {
 
   private final ContinueAsNewOptions options;
-  private final SyncDecisionContext decisionContext;
+  private final WorkflowInterceptor decisionContext;
 
-  public ContinueAsNewWorkflowInvocationHandler(
-      ContinueAsNewOptions options, SyncDecisionContext decisionContext) {
+  ContinueAsNewWorkflowInvocationHandler(
+      ContinueAsNewOptions options, WorkflowInterceptor decisionContext) {
     this.options = options == null ? new ContinueAsNewOptions.Builder().build() : options;
     this.decisionContext = decisionContext;
   }

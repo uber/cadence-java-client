@@ -19,7 +19,6 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.workflow.ChildWorkflowException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ChildWorkflowStub;
@@ -27,6 +26,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowInterceptor.WorkflowResult;
 import java.util.Objects;
 
@@ -34,16 +34,14 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
 
   private final String workflowType;
   private final ChildWorkflowOptions options;
-  private final SyncDecisionContext decisionContext;
-  private final DataConverter dataConverter;
+  private final WorkflowInterceptor decisionContext;
   private CompletablePromise<WorkflowExecution> execution = Workflow.newPromise();
 
   ChildWorkflowStubImpl(
-      String workflowType, ChildWorkflowOptions options, SyncDecisionContext decisionContext) {
+      String workflowType, ChildWorkflowOptions options, WorkflowInterceptor decisionContext) {
     this.workflowType = Objects.requireNonNull(workflowType);
     this.options = new ChildWorkflowOptions.Builder(options).validateAndBuildWithDefaults();
     this.decisionContext = Objects.requireNonNull(decisionContext);
-    dataConverter = Objects.requireNonNull(decisionContext.getDataConverter());
   }
 
   @Override

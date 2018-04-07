@@ -22,16 +22,17 @@ import com.uber.cadence.workflow.CancelExternalWorkflowException;
 import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
+import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
 
 /** Dynamic implementation of a strongly typed child workflow interface. */
 class ExternalWorkflowStubImpl implements ExternalWorkflowStub {
 
-  private final SyncDecisionContext decisionContext;
+  private final WorkflowInterceptor decisionContext;
   private final WorkflowExecution execution;
 
   public ExternalWorkflowStubImpl(
-      WorkflowExecution execution, SyncDecisionContext decisionContext) {
+      WorkflowExecution execution, WorkflowInterceptor decisionContext) {
     this.decisionContext = Objects.requireNonNull(decisionContext);
     this.execution = Objects.requireNonNull(execution);
   }

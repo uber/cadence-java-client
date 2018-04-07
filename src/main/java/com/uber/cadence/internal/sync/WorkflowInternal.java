@@ -19,10 +19,12 @@ package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 
+import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -35,9 +37,10 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
-import com.uber.cadence.workflow.WorkflowLocal;
+import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowQueue;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Collection;
@@ -49,8 +52,6 @@ import java.util.function.Supplier;
  * Never reference directly. It is public only because Java doesn't have internal package support.
  */
 public final class WorkflowInternal {
-
-  private final WorkflowLocal<WorkflowInternal> instance = new WorkflowLocal<>();
 
   public static WorkflowThread newThread(boolean ignoreParentCancellation, Runnable runnable) {
     return WorkflowThread.newThread(runnable, ignoreParentCancellation);
@@ -94,7 +95,33 @@ public final class WorkflowInternal {
    * QueryMethod} are registered.
    */
   public static void registerQuery(Object queryImplementation) {
-    getDecisionContext().registerQuery(queryImplementation);
+    Class<?> cls = queryImplementation.getClass();
+    TypeToken<?>.TypeSet interfaces = TypeToken.of(cls).getTypes().interfaces();
+    if (interfaces.isEmpty()) {
+      throw new IllegalArgumentException(cls.getName() + " must implement at least one interface");
+    }
+    for (TypeToken<?> i : interfaces) {
+      for (Method method : i.getRawType().getMethods()) {
+        QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+        if (queryMethod != null) {
+          String name = queryMethod.name();
+          if (name.isEmpty()) {
+            name = InternalUtils.getSimpleName(method);
+          }
+          getDecisionContext()
+              .registerQuery(
+                  name,
+                  method.getParameterTypes(),
+                  (args) -> {
+                    try {
+                      return method.invoke(queryImplementation, args);
+                    } catch (Throwable e) {
+                      throw CheckedExceptionWrapper.wrap(e);
+                    }
+                  });
+        }
+      }
+    }
   }
 
   /** Should be used to get current time instead of {@link System#currentTimeMillis()} */
@@ -108,8 +135,7 @@ public final class WorkflowInternal {
    * @param activityInterface interface type implemented by activities
    */
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
-    SyncDecisionContext decisionContext =
-        DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
+    WorkflowInterceptor decisionContext = WorkflowInternal.getDecisionContext();
     InvocationHandler invocationHandler =
         ActivityInvocationHandler.newInstance(options, decisionContext);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
@@ -190,7 +216,11 @@ public final class WorkflowInternal {
     return result.get();
   }
 
-  private static SyncDecisionContext getDecisionContext() {
+  private static WorkflowInterceptor getDecisionContext() {
+    return DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
+  }
+
+  private static SyncDecisionContext getRootDecisionContext() {
     return DeterministicRunnerImpl.currentThreadInternal().getDecisionContext();
   }
 
@@ -243,11 +273,11 @@ public final class WorkflowInternal {
   private WorkflowInternal() {}
 
   public static boolean isReplaying() {
-    return getDecisionContext().isReplaying();
+    return getRootDecisionContext().isReplaying();
   }
 
   public static WorkflowInfo getWorkflowInfo() {
-    return new WorkflowInfoImpl(getDecisionContext().getContext());
+    return new WorkflowInfoImpl(getRootDecisionContext().getContext());
   }
 
   public static <R> R retry(RetryOptions options, Functions.Func<R> fn) {
@@ -263,7 +293,7 @@ public final class WorkflowInternal {
       Optional<String> workflowType,
       Optional<ContinueAsNewOptions> options,
       Object[] args,
-      SyncDecisionContext decisionContext) {
+      WorkflowInterceptor decisionContext) {
     decisionContext.continueAsNew(workflowType, options, args);
   }
 

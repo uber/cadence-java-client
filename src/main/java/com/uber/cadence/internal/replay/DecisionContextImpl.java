@@ -30,7 +30,7 @@ import java.time.Duration;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-final class DecisionContextImpl implements DecisionContext, HistoryEventHandler {
+public final class DecisionContextImpl implements DecisionContext, HistoryEventHandler {
 
   private final ActivityDecisionContext activityClient;
 

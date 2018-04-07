@@ -19,6 +19,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -78,5 +79,11 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   public void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
     next.continueAsNew(workflowType, options, args);
+  }
+
+  @Override
+  public void registerQuery(
+      String queryType, Class<?>[] argTypes, Func1<Object[], Object> callback) {
+    next.registerQuery(queryType, argTypes, callback);
   }
 }

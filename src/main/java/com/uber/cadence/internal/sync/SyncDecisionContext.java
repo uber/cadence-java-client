@@ -51,19 +51,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-final class SyncDecisionContext implements ActivityExecutor, WorkflowInterceptor {
+final class SyncDecisionContext implements WorkflowInterceptor {
 
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
   private final WorkflowTimers timers = new WorkflowTimers();
-  private Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
+  private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
 
   public SyncDecisionContext(DecisionContext context, DataConverter converter) {
     this.context = context;
@@ -325,20 +324,19 @@ final class SyncDecisionContext implements ActivityExecutor, WorkflowInterceptor
     return callback.apply(args);
   }
 
-  private void registerQuery(String queryType, Functions.Func1<byte[], byte[]> callback) {
-    Functions.Func1<byte[], byte[]> previous = queryCallbacks.put(queryType, callback);
-    if (previous != null) {
-      throw new IllegalStateException("Query " + queryType + " is already registered");
-    }
-  }
-
-  void registerQuery(Object queryImplementation) {
-    POJOQueryImplementationFactory queryFactory =
-        new POJOQueryImplementationFactory(converter, queryImplementation);
-    Set<String> queries = queryFactory.getQueryFunctionNames();
-    for (String query : queries) {
-      registerQuery(query, queryFactory.getQueryFunction(query));
-    }
+  @Override
+  public void registerQuery(
+      String queryType, Class<?>[] argTypes, Functions.Func1<Object[], Object> callback) {
+    //    if (queryCallbacks.containsKey(queryType)) {
+    //      throw new IllegalStateException("Query \"" + queryType + "\" is already registered");
+    //    }
+    queryCallbacks.put(
+        queryType,
+        (input) -> {
+          Object[] args = converter.fromDataArray(input, argTypes);
+          Object result = callback.apply(args);
+          return converter.toData(result);
+        });
   }
 
   public DataConverter getDataConverter() {

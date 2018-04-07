@@ -64,4 +64,7 @@ public interface WorkflowInterceptor {
 
   void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args);
+
+  void registerQuery(
+      String queryType, Class<?>[] argTypes, Functions.Func1<Object[], Object> callback);
 }
