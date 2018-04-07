@@ -23,6 +23,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.replay.ActivityTaskFailedException;
 import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
@@ -39,18 +40,25 @@ import com.uber.cadence.workflow.ChildWorkflowException;
 import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.CompletablePromise;
+import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowInterceptor;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-final class SyncDecisionContext implements ActivityExecutor {
+final class SyncDecisionContext implements ActivityExecutor, WorkflowInterceptor {
+
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
@@ -76,13 +84,13 @@ final class SyncDecisionContext implements ActivityExecutor {
 
   @Override
   public <T> Promise<T> executeActivity(
-      String name, ActivityOptions options, Object[] args, Class<T> returnType) {
+      String activityName, Class<T> returnType, Object[] args, ActivityOptions options) {
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       return WorkflowRetryerInternal.retryAsync(
-          retryOptions, () -> executeActivityOnce(name, options, args, returnType));
+          retryOptions, () -> executeActivityOnce(activityName, options, args, returnType));
     }
-    return executeActivityOnce(name, options, args, returnType);
+    return executeActivityOnce(activityName, options, args, returnType);
   }
 
   private <T> Promise<T> executeActivityOnce(
@@ -174,7 +182,17 @@ final class SyncDecisionContext implements ActivityExecutor {
         "Unexpected exception type: " + failure.getClass().getName(), failure);
   }
 
-  Promise<byte[]> executeChildWorkflow(
+  @Override
+  public <R> WorkflowResult<R> executeChildWorkflow(
+      String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options) {
+    byte[] input = converter.toData(args);
+    CompletablePromise<WorkflowExecution> execution = Workflow.newPromise();
+    Promise<byte[]> output = executeChildWorkflow(workflowType, options, input, execution);
+    Promise<R> result = output.thenApply((b) -> converter.fromData(b, returnType));
+    return new WorkflowResult<>(result, execution);
+  }
+
+  private Promise<byte[]> executeChildWorkflow(
       String name,
       ChildWorkflowOptions options,
       byte[] input,
@@ -262,7 +280,10 @@ final class SyncDecisionContext implements ActivityExecutor {
         cause);
   }
 
-  Promise<Void> newTimer(long delaySeconds) {
+  @Override
+  public Promise<Void> newTimer(Duration delay) {
+    Objects.requireNonNull(delay);
+    long delaySeconds = OptionsUtils.roundUpToSeconds(delay).getSeconds();
     if (delaySeconds < 0) {
       throw new IllegalArgumentException("negative delay");
     }
@@ -320,10 +341,6 @@ final class SyncDecisionContext implements ActivityExecutor {
     }
   }
 
-  void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters) {
-    context.continueAsNewOnCompletion(parameters);
-  }
-
   public DataConverter getDataConverter() {
     return converter;
   }
@@ -336,7 +353,9 @@ final class SyncDecisionContext implements ActivityExecutor {
     return context;
   }
 
-  Promise<Void> signalWorkflow(WorkflowExecution execution, String signalName, Object... args) {
+  @Override
+  public Promise<Void> signalWorkflow(
+      WorkflowExecution execution, String signalName, Object[] args) {
     SignalExternalWorkflowParameters parameters = new SignalExternalWorkflowParameters();
     parameters.setSignalName(signalName);
     parameters.setWorkflowId(execution.getWorkflowId());
@@ -368,8 +387,49 @@ final class SyncDecisionContext implements ActivityExecutor {
     return result;
   }
 
-  void requestCancelWorkflowExecution(WorkflowExecution execution) {
-    context.requestCancelWorkflowExecution(execution);
+  @Override
+  public void sleep(Duration duration) {
+    WorkflowThread.await(
+        duration.toMillis(),
+        "sleep",
+        () -> {
+          CancellationScope.throwCancelled();
+          return false;
+        });
+  }
+
+  @Override
+  public boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition) {
+    return WorkflowThread.await(timeout.toMillis(), reason, unblockCondition);
+  }
+
+  @Override
+  public void await(String reason, Supplier<Boolean> unblockCondition) {
+    WorkflowThread.await(reason, unblockCondition);
+  }
+
+  @Override
+  public void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
+    ContinueAsNewWorkflowExecutionParameters parameters =
+        new ContinueAsNewWorkflowExecutionParameters();
+    if (workflowType.isPresent()) {
+      parameters.setWorkflowType(workflowType.get());
+    }
+    if (options.isPresent()) {
+      parameters.setExecutionStartToCloseTimeoutSeconds(
+          (int) options.get().getExecutionStartToCloseTimeout().getSeconds());
+      parameters.setTaskStartToCloseTimeoutSeconds(
+          (int) options.get().getTaskStartToCloseTimeout().getSeconds());
+    }
+    parameters.setInput(getDataConverter().toData(args));
+    context.continueAsNewOnCompletion(parameters);
+    WorkflowThread.exit(null);
+  }
+
+  @Override
+  public Promise<Void> cancelWorkflow(WorkflowExecution execution) {
+    return context.requestCancelWorkflowExecution(execution);
   }
 
   private RuntimeException mapSignalWorkflowException(Exception failure) {

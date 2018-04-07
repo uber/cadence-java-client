@@ -28,40 +28,40 @@ public interface WorkflowInterceptor {
   final class WorkflowResult<R> {
 
     private final Promise<R> result;
-    private final String runId;
+    private final Promise<WorkflowExecution> workflowExecution;
 
-    public WorkflowResult(Promise<R> result, String runId) {
+    public WorkflowResult(Promise<R> result, Promise<WorkflowExecution> workflowExecution) {
       this.result = result;
-      this.runId = runId;
+      this.workflowExecution = workflowExecution;
     }
 
     public Promise<R> getResult() {
       return result;
     }
 
-    public String getRunId() {
-      return runId;
+    public Promise<WorkflowExecution> getWorkflowExecution() {
+      return workflowExecution;
     }
   }
 
-  <R> Promise<R> executeActivity(String activityName, Class<R> returnType, Object[] args,
-      ActivityOptions options);
+  <R> Promise<R> executeActivity(
+      String activityName, Class<R> returnType, Object[] args, ActivityOptions options);
 
-  <R> WorkflowResult<R> executeChildWorkflow(String workflowType, Class<R> returnType,
-      Object[] args, ChildWorkflowOptions options);
+  <R> WorkflowResult<R> executeChildWorkflow(
+      String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options);
 
-  void signalWorkflow(WorkflowExecution execution, String signalName, Object[] args,);
+  Promise<Void> signalWorkflow(WorkflowExecution execution, String signalName, Object[] args);
 
-  void cancelWorkflow(WorkflowExecution execution);
+  Promise<Void> cancelWorkflow(WorkflowExecution execution);
 
   void sleep(Duration duration);
 
-  boolean await(Duration timeout, Supplier<Boolean> unblockCondition);
+  boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition);
 
-  boolean await(Supplier<Boolean> unblockCondition);
+  void await(String reason, Supplier<Boolean> unblockCondition);
 
-  Promise<Void> createTimer(Duration duration);
+  Promise<Void> newTimer(Duration duration);
 
-  void continueAsNew(Optional<String> workflowType, Optional<ContinueAsNewOptions> options,
-      Object[] args);
+  void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args);
 }

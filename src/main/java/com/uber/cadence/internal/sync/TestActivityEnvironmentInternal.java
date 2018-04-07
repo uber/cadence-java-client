@@ -150,7 +150,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public <T> Promise<T> executeActivity(
-        String activityType, ActivityOptions options, Object[] args, Class<T> returnType) {
+        String activityType, Class<T> returnType, Object[] args, ActivityOptions options) {
       PollForActivityTaskResponse task = new PollForActivityTaskResponse();
       task.setScheduleToCloseTimeoutSeconds((int) options.getScheduleToCloseTimeout().getSeconds());
       task.setHeartbeatTimeoutSeconds((int) options.getHeartbeatTimeout().getSeconds());

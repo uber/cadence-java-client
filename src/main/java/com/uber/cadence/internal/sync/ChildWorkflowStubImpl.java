@@ -27,6 +27,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
+import com.uber.cadence.workflow.WorkflowInterceptor.WorkflowResult;
 import java.util.Objects;
 
 class ChildWorkflowStubImpl implements ChildWorkflowStub {
@@ -79,10 +80,10 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
 
   @Override
   public <R> Promise<R> executeAsync(Class<R> returnType, Object... args) {
-    byte[] input = dataConverter.toData(args);
-    Promise<byte[]> encodedResult =
-        decisionContext.executeChildWorkflow(workflowType, options, input, execution);
-    return encodedResult.thenApply((encoded) -> dataConverter.fromData(encoded, returnType));
+    WorkflowResult<R> result =
+        decisionContext.executeChildWorkflow(workflowType, returnType, args, options);
+    execution.completeFrom(result.getWorkflowExecution());
+    return result.getResult();
   }
 
   @Override

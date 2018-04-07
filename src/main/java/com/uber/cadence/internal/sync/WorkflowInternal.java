@@ -23,8 +23,6 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.OptionsUtils;
-import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -37,6 +35,7 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
+import com.uber.cadence.workflow.WorkflowLocal;
 import com.uber.cadence.workflow.WorkflowQueue;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -51,6 +50,8 @@ import java.util.function.Supplier;
  */
 public final class WorkflowInternal {
 
+  private final WorkflowLocal<WorkflowInternal> instance = new WorkflowLocal<>();
+
   public static WorkflowThread newThread(boolean ignoreParentCancellation, Runnable runnable) {
     return WorkflowThread.newThread(runnable, ignoreParentCancellation);
   }
@@ -64,7 +65,7 @@ public final class WorkflowInternal {
   }
 
   public static Promise<Void> newTimer(Duration duration) {
-    return getDecisionContext().newTimer(OptionsUtils.roundUpToSeconds(duration).getSeconds());
+    return getDecisionContext().newTimer(duration);
   }
 
   public static <E> WorkflowQueue<E> newQueue(int capacity) {
@@ -181,7 +182,7 @@ public final class WorkflowInternal {
    */
   public static <R> R executeActivity(
       String name, ActivityOptions options, Class<R> returnType, Object... args) {
-    Promise<R> result = getDecisionContext().executeActivity(name, options, args, returnType);
+    Promise<R> result = getDecisionContext().executeActivity(name, returnType, args, options);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(result);
       return null; // ignored
@@ -195,12 +196,12 @@ public final class WorkflowInternal {
 
   public static void await(String reason, Supplier<Boolean> unblockCondition)
       throws DestroyWorkflowThreadError {
-    WorkflowThread.await(reason, unblockCondition);
+    getDecisionContext().await(reason, unblockCondition);
   }
 
-  public static boolean await(long timeoutMillis, String reason, Supplier<Boolean> unblockCondition)
+  public static boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition)
       throws DestroyWorkflowThreadError {
-    return WorkflowThread.await(timeoutMillis, reason, unblockCondition);
+    return getDecisionContext().await(timeout, reason, unblockCondition);
   }
 
   public static <U> Promise<List<U>> promiseAllOf(Collection<Promise<U>> promises) {
@@ -255,21 +256,22 @@ public final class WorkflowInternal {
 
   public static void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
-    continueAsNew(options, args, getDecisionContext());
+    getDecisionContext().continueAsNew(workflowType, options, args);
   }
 
-  static void continueAsNew(
-      Optional<ContinueAsNewOptions> options, Object[] args, SyncDecisionContext decisionContext) {
-    ContinueAsNewWorkflowExecutionParameters parameters =
-        new ContinueAsNewWorkflowExecutionParameters();
-    if (options.isPresent()) {
-      parameters.setExecutionStartToCloseTimeoutSeconds(
-          (int) options.get().getExecutionStartToCloseTimeout().getSeconds());
-      parameters.setTaskStartToCloseTimeoutSeconds(
-          (int) options.get().getTaskStartToCloseTimeout().getSeconds());
-    }
-    parameters.setInput(decisionContext.getDataConverter().toData(args));
-    decisionContext.continueAsNewOnCompletion(parameters);
-    WorkflowThread.exit(null);
+  public static void continueAsNew(
+      Optional<String> workflowType,
+      Optional<ContinueAsNewOptions> options,
+      Object[] args,
+      SyncDecisionContext decisionContext) {
+    decisionContext.continueAsNew(workflowType, options, args);
+  }
+
+  public static Promise<Void> cancelWorkflow(WorkflowExecution execution) {
+    return getDecisionContext().cancelWorkflow(execution);
+  }
+
+  public static void sleep(Duration duration) {
+    getDecisionContext().sleep(duration);
   }
 }

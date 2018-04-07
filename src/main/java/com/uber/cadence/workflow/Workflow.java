@@ -22,7 +22,6 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.function.Supplier;
@@ -171,27 +170,26 @@ public final class Workflow {
   }
 
   /**
-   * Continues current workflow execution as a new run possibly overriding workflow type and
+   * Continues the current workflow execution as a new run with the same options.
+   *
+   * @param args arguments of the next run.
+   * @see #newContinueAsNewStub(Class)
+   */
+  public static void continueAsNew(Object... args) {
+    Workflow.continueAsNew(Optional.empty(), Optional.empty(), args);
+  }
+
+  /**
+   * Continues the current workflow execution as a new run possibly overriding the workflow type and
    * options.
    *
-   * @see #newContinueAsNewStub(Class)
-   * @param workflowType a workflow type for the next run.
    * @param options option overrides for the next run.
    * @param args arguments of the next run.
+   * @see #newContinueAsNewStub(Class)
    */
   public static void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object... args) {
     WorkflowInternal.continueAsNew(workflowType, options, args);
-  }
-
-  /**
-   * Continues this as a new run with the same options.
-   *
-   * @see #newContinueAsNewStub(Class)
-   * @param args arguments of the next run.
-   */
-  public static void continueAsNew(Object... args) {
-    Workflow.continueAsNew(Optional.empty(), Optional.empty(), args);
   }
 
   public static WorkflowInfo getWorkflowInfo() {
@@ -215,7 +213,6 @@ public final class Workflow {
    *     cancelled.
    */
   public static Promise<Void> newTimer(Duration delay) {
-    Objects.requireNonNull(delay);
     return WorkflowInternal.newTimer(delay);
   }
 
@@ -254,18 +251,12 @@ public final class Workflow {
 
   /** Must be called instead of {@link Thread#sleep(long)} to guarantee determinism. */
   public static void sleep(Duration duration) {
-    sleep(duration.toMillis());
+    WorkflowInternal.sleep(duration);
   }
 
   /** Must be called instead of {@link Thread#sleep(long)} to guarantee determinism. */
   public static void sleep(long millis) {
-    WorkflowInternal.await(
-        millis,
-        "sleep",
-        () -> {
-          CancellationScope.throwCancelled();
-          return false;
-        });
+    WorkflowInternal.sleep(Duration.ofMillis(millis));
   }
 
   /**
@@ -293,7 +284,7 @@ public final class Workflow {
    */
   public static boolean await(Duration timeout, Supplier<Boolean> unblockCondition) {
     return WorkflowInternal.await(
-        timeout.toMillis(),
+        timeout,
         "await",
         () -> {
           CancellationScope.throwCancelled();

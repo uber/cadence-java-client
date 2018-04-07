@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
@@ -15,25 +32,26 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
-  public <R> Promise<R> executeActivity(String activityName, Class<R> returnType, Object[] args,
-      ActivityOptions options) {
+  public <R> Promise<R> executeActivity(
+      String activityName, Class<R> returnType, Object[] args, ActivityOptions options) {
     return next.executeActivity(activityName, returnType, args, options);
   }
 
   @Override
-  public <R> WorkflowResult<R> executeChildWorkflow(String workflowType, Class<R> returnType,
-      Object[] args, ChildWorkflowOptions options) {
+  public <R> WorkflowResult<R> executeChildWorkflow(
+      String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options) {
     return next.executeChildWorkflow(workflowType, returnType, args, options);
   }
 
   @Override
-  public void signalWorkflow(WorkflowExecution execution, String signalName, Object[] args) {
-    next.signalWorkflow(execution, signalName, args);
+  public Promise<Void> signalWorkflow(
+      WorkflowExecution execution, String signalName, Object[] args) {
+    return next.signalWorkflow(execution, signalName, args);
   }
 
   @Override
-  public void cancelWorkflow(WorkflowExecution execution) {
-    next.cancelWorkflow(execution);
+  public Promise<Void> cancelWorkflow(WorkflowExecution execution) {
+    return next.cancelWorkflow(execution);
   }
 
   @Override
@@ -42,24 +60,23 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
-  public boolean await(Duration timeout, Supplier<Boolean> unblockCondition) {
-    return next.await(timeout, unblockCondition);
+  public boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition) {
+    return next.await(timeout, reason, unblockCondition);
   }
 
   @Override
-  public boolean await(Supplier<Boolean> unblockCondition) {
-    return next.await(unblockCondition);
-
+  public void await(String reason, Supplier<Boolean> unblockCondition) {
+    next.await(reason, unblockCondition);
   }
 
   @Override
-  public Promise<Void> createTimer(Duration duration) {
-    return next.createTimer(duration);
+  public Promise<Void> newTimer(Duration duration) {
+    return next.newTimer(duration);
   }
 
   @Override
-  public void continueAsNew(Optional<String> workflowType, Optional<ContinueAsNewOptions> options,
-      Object[] args) {
+  public void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
     next.continueAsNew(workflowType, options, args);
   }
 }

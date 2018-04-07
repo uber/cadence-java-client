@@ -23,5 +23,5 @@ import com.uber.cadence.workflow.Promise;
 public interface ActivityExecutor {
 
   <T> Promise<T> executeActivity(
-      String name, ActivityOptions options, Object[] args, Class<T> returnType);
+      String activityName, Class<T> returnType, Object[] args, ActivityOptions options);
 }

@@ -60,6 +60,6 @@ class ActivityStubImpl implements ActivityStub {
 
   @Override
   public <R> Promise<R> executeAsync(String activityName, Class<R> returnType, Object... args) {
-    return activityExecutor.executeActivity(activityName, options, args, returnType);
+    return activityExecutor.executeActivity(activityName, returnType, args, options);
   }
 }

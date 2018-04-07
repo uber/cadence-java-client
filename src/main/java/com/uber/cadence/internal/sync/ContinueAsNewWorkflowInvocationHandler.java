@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
@@ -55,7 +56,9 @@ class ContinueAsNewWorkflowInvocationHandler implements InvocationHandler {
       throw new IllegalStateException(
           "ContinueAsNew Stub supports only calls to methods annotated with @WorkflowMethod");
     }
-    WorkflowInternal.continueAsNew(Optional.of(options), args, decisionContext);
+    String workflowType = InternalUtils.getWorkflowType(method, workflowMethod);
+    WorkflowInternal.continueAsNew(
+        Optional.of(workflowType), Optional.of(options), args, decisionContext);
     return null;
   }
 }
