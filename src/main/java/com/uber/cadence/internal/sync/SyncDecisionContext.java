@@ -56,8 +56,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class SyncDecisionContext implements WorkflowInterceptor {
+
+  private static final Logger log = LoggerFactory.getLogger(SyncDecisionContext.class);
 
   private final DecisionContext context;
   private DeterministicRunner runner;
@@ -72,7 +76,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.context = context;
     this.converter = converter;
-    this.headInterceptor = interceptorFactory.apply(this);
+    WorkflowInterceptor interceptor = interceptorFactory.apply(this);
+    if (interceptor == null) {
+      log.warn("WorkflowInterceptor factory returned null interceptor");
+      interceptor = this;
+    }
+    this.headInterceptor = interceptor;
   }
 
   /**
@@ -362,7 +371,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   @Override
-  public Promise<Void> signalWorkflow(
+  public Promise<Void> signalExternalWorkflow(
       WorkflowExecution execution, String signalName, Object[] args) {
     SignalExternalWorkflowParameters parameters = new SignalExternalWorkflowParameters();
     parameters.setSignalName(signalName);

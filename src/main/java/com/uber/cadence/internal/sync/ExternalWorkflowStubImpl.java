@@ -44,7 +44,7 @@ class ExternalWorkflowStubImpl implements ExternalWorkflowStub {
 
   @Override
   public void signal(String signalName, Object... args) {
-    Promise<Void> signalled = decisionContext.signalWorkflow(execution, signalName, args);
+    Promise<Void> signalled = decisionContext.signalExternalWorkflow(execution, signalName, args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(signalled);
       return;
