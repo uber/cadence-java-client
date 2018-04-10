@@ -78,6 +78,9 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       throw new IllegalArgumentException("Activity must implement at least one interface");
     }
     for (TypeToken<?> i : interfaces) {
+      if (i.getType().getTypeName().startsWith("org.mockito")) {
+        continue;
+      }
       for (Method method : i.getRawType().getMethods()) {
         POJOActivityImplementation implementation =
             new POJOActivityImplementation(method, activity);
