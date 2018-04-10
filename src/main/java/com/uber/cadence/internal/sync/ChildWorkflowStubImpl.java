@@ -86,7 +86,8 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
 
   @Override
   public void signal(String signalName, Object... args) {
-    Promise<Void> signalled = decisionContext.signalExternalWorkflow(execution.get(), signalName, args);
+    Promise<Void> signalled =
+        decisionContext.signalExternalWorkflow(execution.get(), signalName, args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(signalled);
       return;

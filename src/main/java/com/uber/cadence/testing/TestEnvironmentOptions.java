@@ -62,7 +62,9 @@ public class TestEnvironmentOptions {
 
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
 
-  private TestEnvironmentOptions(DataConverter dataConverter, String domain,
+  private TestEnvironmentOptions(
+      DataConverter dataConverter,
+      String domain,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.dataConverter = dataConverter;
     this.domain = domain;

@@ -50,7 +50,8 @@ public interface WorkflowInterceptor {
   <R> WorkflowResult<R> executeChildWorkflow(
       String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options);
 
-  Promise<Void> signalExternalWorkflow(WorkflowExecution execution, String signalName, Object[] args);
+  Promise<Void> signalExternalWorkflow(
+      WorkflowExecution execution, String signalName, Object[] args);
 
   Promise<Void> cancelWorkflow(WorkflowExecution execution);
 
