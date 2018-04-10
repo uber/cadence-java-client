@@ -20,21 +20,21 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.TimeoutType;
 
 /**
- * TestActivityTimeoutException is created from an TestActivityTimeoutException. The main difference
- * is that details are in a serialized form.
+ * SimulatedTimeoutExceptionInternal is created from a SimulatedTimeoutException. The main difference
+ * is that the details are in a serialized form.
  */
-final class TestActivityTimeoutExceptionInternal extends RuntimeException {
+final class SimulatedTimeoutExceptionInternal extends RuntimeException {
 
   private final TimeoutType timeoutType;
 
   private final byte[] details;
 
-  TestActivityTimeoutExceptionInternal(TimeoutType timeoutType, byte[] details) {
+  SimulatedTimeoutExceptionInternal(TimeoutType timeoutType, byte[] details) {
     this.timeoutType = timeoutType;
     this.details = details;
   }
 
-  TestActivityTimeoutExceptionInternal(TimeoutType timeoutType) {
+  SimulatedTimeoutExceptionInternal(TimeoutType timeoutType) {
     this.timeoutType = timeoutType;
     this.details = null;
   }

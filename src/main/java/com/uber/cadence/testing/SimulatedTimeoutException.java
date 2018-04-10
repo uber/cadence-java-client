@@ -20,22 +20,28 @@ package com.uber.cadence.testing;
 import com.uber.cadence.TimeoutType;
 
 /**
- * TestActivityTimeoutException can be thrown from an activity implementation to simulate an
- * activity timeout. To be used only in unit tests. The workflow code is going to receive it as
- * {@link com.uber.cadence.workflow.ActivityTimeoutException}.
+ * SimulatedTimeoutException can be thrown from an activity or child workflow implementation to
+ * simulate a timeout. To be used only in unit tests. If thrown from an activity the workflow code
+ * is going to receive it as {@link com.uber.cadence.workflow.ActivityTimeoutException}.
+ * If thrown from a child workflow
  */
-public final class TestActivityTimeoutException extends RuntimeException {
+public final class SimulatedTimeoutException extends RuntimeException {
 
   private final TimeoutType timeoutType;
 
   private final Object details;
 
-  public TestActivityTimeoutException(TimeoutType timeoutType, Object details) {
+  public SimulatedTimeoutException(TimeoutType timeoutType, Object details) {
     this.timeoutType = timeoutType;
     this.details = details;
   }
 
-  public TestActivityTimeoutException(TimeoutType timeoutType) {
+  public SimulatedTimeoutException() {
+    this.timeoutType = TimeoutType.START_TO_CLOSE;
+    this.details = null;
+  }
+
+  public SimulatedTimeoutException(TimeoutType timeoutType) {
     this.timeoutType = timeoutType;
     this.details = null;
   }

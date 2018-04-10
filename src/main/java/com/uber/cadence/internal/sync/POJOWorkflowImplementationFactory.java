@@ -26,6 +26,7 @@ import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.replay.ReplayWorkflow;
 import com.uber.cadence.internal.replay.ReplayWorkflowFactory;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
+import com.uber.cadence.testing.SimulatedTimeoutException;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.SignalMethod;
@@ -54,7 +55,9 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
 
   private DataConverter dataConverter;
 
-  /** Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance. */
+  /**
+   * Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance.
+   */
   private final Map<String, Functions.Func<SyncWorkflowDefinition>> workflowDefinitions =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -291,6 +294,13 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
   public static WorkflowExecutionException mapToWorkflowExecutionException(
       Exception failure, DataConverter dataConverter) {
     failure = CheckedExceptionWrapper.unwrap(failure);
+    // Only expected during unit tests.
+    if (failure instanceof SimulatedTimeoutException) {
+      SimulatedTimeoutException timeoutException = (SimulatedTimeoutException) failure;
+      failure = new SimulatedTimeoutExceptionInternal(timeoutException.getTimeoutType(),
+          dataConverter.toData(timeoutException.getDetails()));
+    }
+
     return new WorkflowExecutionException(
         failure.getClass().getName(), dataConverter.toData(failure));
   }
