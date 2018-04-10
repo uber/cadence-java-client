@@ -88,10 +88,11 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
   @Override
   public void signal(String signalName, Object... args) {
     if (execution == null) {
-      throw new IllegalStateException("This stub cannot be used to signal a workflow"
-          + " without starting it first. "
-          + "To signal a workflow execution that was started elsewhere "
-          + "use a stub created through Workflow.newExternalWorkflowStub");
+      throw new IllegalStateException(
+          "This stub cannot be used to signal a workflow"
+              + " without starting it first. "
+              + "To signal a workflow execution that was started elsewhere "
+              + "use a stub created through Workflow.newExternalWorkflowStub");
     }
     Promise<Void> signaled =
         decisionContext.signalExternalWorkflow(execution.get(), signalName, args);

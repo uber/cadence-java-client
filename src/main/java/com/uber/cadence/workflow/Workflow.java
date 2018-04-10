@@ -59,8 +59,8 @@ public final class Workflow {
 
   /**
    * Creates client stub that can be used to start a child workflow that implements given interface
-   * using parent options.
-   * Use {@link #newExternalWorkflowStub(Class, String)} to signal a workflow without starting it.
+   * using parent options. Use {@link #newExternalWorkflowStub(Class, String)} to signal a workflow
+   * without starting it.
    *
    * @param workflowInterface interface type implemented by activities
    */

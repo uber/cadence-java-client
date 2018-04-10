@@ -183,8 +183,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       }
       if (cause instanceof SimulatedTimeoutExceptionInternal) {
         // This exception is thrown only in unit tests to mock the activity timeouts
-        SimulatedTimeoutExceptionInternal testTimeout =
-            (SimulatedTimeoutExceptionInternal) cause;
+        SimulatedTimeoutExceptionInternal testTimeout = (SimulatedTimeoutExceptionInternal) cause;
         return new ActivityTimeoutException(
             taskFailed.getEventId(),
             taskFailed.getActivityType(),
@@ -307,9 +306,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     if (cause instanceof SimulatedTimeoutExceptionInternal) {
       // This exception is thrown only in unit tests to mock the child workflow timeouts
       return new ChildWorkflowTimedOutException(
-          taskFailed.getEventId(),
-          taskFailed.getWorkflowExecution(),
-          taskFailed.getWorkflowType());
+          taskFailed.getEventId(), taskFailed.getWorkflowExecution(), taskFailed.getWorkflowType());
     }
     return new ChildWorkflowFailureException(
         taskFailed.getEventId(),

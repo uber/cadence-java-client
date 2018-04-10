@@ -55,9 +55,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
 
   private DataConverter dataConverter;
 
-  /**
-   * Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance.
-   */
+  /** Key: workflow type name, Value: function that creates SyncWorkflowDefinition instance. */
   private final Map<String, Functions.Func<SyncWorkflowDefinition>> workflowDefinitions =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -297,8 +295,10 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
     // Only expected during unit tests.
     if (failure instanceof SimulatedTimeoutException) {
       SimulatedTimeoutException timeoutException = (SimulatedTimeoutException) failure;
-      failure = new SimulatedTimeoutExceptionInternal(timeoutException.getTimeoutType(),
-          dataConverter.toData(timeoutException.getDetails()));
+      failure =
+          new SimulatedTimeoutExceptionInternal(
+              timeoutException.getTimeoutType(),
+              dataConverter.toData(timeoutException.getDetails()));
     }
 
     return new WorkflowExecutionException(

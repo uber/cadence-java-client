@@ -63,8 +63,7 @@ import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
 
-  @Rule
-  public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule public Timeout globalTimeout = Timeout.seconds(5);
 
   @Rule
   public TestWatcher watchman =
@@ -652,8 +651,8 @@ public class WorkflowTestingTest {
   @Test
   public void testChildSimulatedTimeout() {
     Worker worker = testEnvironment.newWorker(TASK_LIST);
-    worker.registerWorkflowImplementationTypes(SimulatedTimeoutParentWorkflow.class,
-        SimulatedTimeoutChildWorklfow.class);
+    worker.registerWorkflowImplementationTypes(
+        SimulatedTimeoutParentWorkflow.class, SimulatedTimeoutChildWorklfow.class);
     worker.start();
     WorkflowClient client = testEnvironment.newWorkflowClient();
     WorkflowOptions options = new WorkflowOptions.Builder().setWorkflowId("parent1").build();

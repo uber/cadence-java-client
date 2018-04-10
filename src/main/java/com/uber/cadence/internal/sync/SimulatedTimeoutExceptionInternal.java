@@ -20,8 +20,8 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.TimeoutType;
 
 /**
- * SimulatedTimeoutExceptionInternal is created from a SimulatedTimeoutException. The main difference
- * is that the details are in a serialized form.
+ * SimulatedTimeoutExceptionInternal is created from a SimulatedTimeoutException. The main
+ * difference is that the details are in a serialized form.
  */
 final class SimulatedTimeoutExceptionInternal extends RuntimeException {
 
