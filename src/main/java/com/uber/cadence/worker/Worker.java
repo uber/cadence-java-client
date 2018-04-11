@@ -178,21 +178,29 @@ public final class Worker {
   }
 
   /**
-   * Configures factory to use when an instance of a workflow implementation is created. The only
+   * Configures a factory to use when an instance of a workflow implementation is created. The only
    * valid use for this method is unit testing, specifically to instantiate mocks that implement
-   * child workflows.
+   * child workflows. An example of mocking a child workflow:
+   *
+   * <pre><code>
+   *   worker.addWorkflowImplementationFactory(ChildWorkflow.class, () -> {
+   *     ChildWorkflow child = mock(ChildWorkflow.class);
+   *     when(child.workflow(anyString(), anyString())).thenReturn("result1");
+   *     return child;
+   *   });
+   * </code></pre>
    *
    * <p>Unless mocking a workflow execution use {@link
    * #registerWorkflowImplementationTypes(Class[])}.
    *
-   * @param clazz Workflow type that this factory implements
+   * @param workflowInterface Workflow interface that this factory implements
    * @param factory factory that when called creates a new instance of the workflow implementation
    *     object.
    * @param <R> type of the workflow object to create.
    */
   @VisibleForTesting
-  public <R> void addWorkflowImplementationFactory(Class<R> clazz, Func<R> factory) {
-    workflowWorker.addWorkflowImplementationFactory(clazz, factory);
+  public <R> void addWorkflowImplementationFactory(Class<R> workflowInterface, Func<R> factory) {
+    workflowWorker.addWorkflowImplementationFactory(workflowInterface, factory);
   }
 
   /**
