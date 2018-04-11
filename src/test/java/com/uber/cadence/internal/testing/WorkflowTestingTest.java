@@ -623,8 +623,6 @@ public class WorkflowTestingTest {
 
   public static class SimulatedTimeoutParentWorkflow implements ParentWorkflow {
 
-    private String signaledValue;
-
     @Override
     public String workflow(String input) {
       ChildWorkflow child = Workflow.newChildWorkflowStub(ChildWorkflow.class);
@@ -634,9 +632,7 @@ public class WorkflowTestingTest {
     }
 
     @Override
-    public void signal(String value) {
-      signaledValue = value;
-    }
+    public void signal(String value) {}
   }
 
   public static class SimulatedTimeoutChildWorklfow implements ChildWorkflow {
