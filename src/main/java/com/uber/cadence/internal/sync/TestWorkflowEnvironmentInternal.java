@@ -158,6 +158,11 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
   }
 
   @Override
+  public String getDomain() {
+    return testEnvironmentOptions.getDomain();
+  }
+
+  @Override
   public String getDiagnostics() {
     StringBuilder result = new StringBuilder();
     service.getDiagnostics(result);
