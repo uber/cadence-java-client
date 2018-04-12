@@ -452,7 +452,7 @@ public class WorkflowExecutionUtils {
     return getCloseStatus(closeEvent);
   }
 
-  private static WorkflowExecutionCloseStatus getCloseStatus(HistoryEvent event) {
+  public static WorkflowExecutionCloseStatus getCloseStatus(HistoryEvent event) {
     switch (event.getEventType()) {
       case WorkflowExecutionCanceled:
         return WorkflowExecutionCloseStatus.CANCELED;

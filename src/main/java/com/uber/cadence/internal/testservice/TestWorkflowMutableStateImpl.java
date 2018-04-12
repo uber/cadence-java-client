@@ -265,17 +265,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           this.concurrentToDecision.clear();
           ctx.unlockTimer();
         });
-    lock.lock();
-    try {
-      {
-        if (decision != null && decision.getState() != StateMachines.State.INITIATED) {
-          throw new InternalServiceError(
-              "non null decision after the completion: " + decision.getState());
-        }
-      }
-    } finally {
-      lock.unlock();
-    }
   }
 
   private boolean hasCompleteDecision(List<Decision> decisions) {
