@@ -650,9 +650,17 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   private void fireTimer(String timerId) {
-    StateMachine<TimerData> timer = timers.get(timerId);
-    if (timer == null) {
-      return; // cancelled already
+    StateMachine<TimerData> timer;
+    lock.lock();
+    try {
+      {
+        timer = timers.get(timerId);
+        if (timer == null || workflow.getState() != State.STARTED) {
+          return; // cancelled already
+        }
+      }
+    } finally {
+      lock.unlock();
     }
     try {
       update(
