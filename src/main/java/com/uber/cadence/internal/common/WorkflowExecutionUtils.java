@@ -485,7 +485,7 @@ public class WorkflowExecutionUtils {
       WorkflowExecution workflowExecution,
       long timeout,
       TimeUnit unit)
-      throws InterruptedException, TimeoutException, EntityNotExistsError {
+      throws TimeoutException, EntityNotExistsError {
 
     WorkflowExecution lastExecutionToRun = workflowExecution;
     long millisecondsAtFirstWait = System.currentTimeMillis();

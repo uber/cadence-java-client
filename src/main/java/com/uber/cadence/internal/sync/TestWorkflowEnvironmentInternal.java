@@ -172,6 +172,9 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
   @Override
   public void close() {
     for (Worker w : workers) {
+      if (!w.isStarted()) {
+        log.warn("Worker was created, but never started for taskList: " + w.getTaskList());
+      }
       w.shutdown(Duration.ofMillis(10));
     }
     service.close();
