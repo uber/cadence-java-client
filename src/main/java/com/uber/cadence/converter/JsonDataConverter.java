@@ -48,9 +48,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implements conversion through GSON JSON processor. To extend use {@link
- * JsonDataConverter(Function)} constructor.
- * Thrift structures are converted using {@link TJSONProtocol}. Thrift structures are
- *
+ * JsonDataConverter(Function)} constructor. Thrift structures are converted using {@link
+ * TJSONProtocol}. Thrift structures are
  *
  * @author fateev
  */
@@ -129,7 +128,7 @@ public final class JsonDataConverter implements DataConverter {
           try {
             return thriftSerializer.toString((TBase) value).getBytes(StandardCharsets.UTF_8);
           } catch (TException e) {
-            new DataConverterException(e);
+            throw new DataConverterException(e);
           }
         }
         String json = gson.toJson(value);
