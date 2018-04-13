@@ -63,9 +63,6 @@ public final class JsonDataConverter implements DataConverter {
 
   private static final Pattern TRACE_ELEMENT_PATTERN = Pattern.compile(TRACE_ELEMENT_REGEXP);
 
-  TSerializer thriftSerializer = new TSerializer(new TJSONProtocol.Factory());
-  TDeserializer thriftDeserializer = new TDeserializer(new TJSONProtocol.Factory());
-
   /**
    * Stop emitting stack trace after this line. Makes serialized stack traces more readable and
    * compact as it omits most of framework level code.
@@ -126,7 +123,7 @@ public final class JsonDataConverter implements DataConverter {
         // Serialize thrift objects using Thrift serializer
         if (value instanceof TBase) {
           try {
-            return thriftSerializer.toString((TBase) value).getBytes(StandardCharsets.UTF_8);
+            return newThriftSerializer().toString((TBase) value).getBytes(StandardCharsets.UTF_8);
           } catch (TException e) {
             throw new DataConverterException(e);
           }
@@ -150,7 +147,7 @@ public final class JsonDataConverter implements DataConverter {
     if (TBase.class.isAssignableFrom(valueType)) {
       try {
         T instance = valueType.getConstructor().newInstance();
-        thriftDeserializer.deserialize((TBase) instance, content);
+        newThriftDeserializer().deserialize((TBase) instance, content);
         return instance;
       } catch (Exception e) {
         throw new DataConverterException(e);
@@ -334,5 +331,13 @@ public final class JsonDataConverter implements DataConverter {
       }
     }
     return new StackTraceElement(declaringClass, methodName, fileName, lineNumber);
+  }
+
+  private static TSerializer newThriftSerializer() {
+    return new TSerializer(new TJSONProtocol.Factory());
+  }
+
+  private static TDeserializer newThriftDeserializer() {
+    return new TDeserializer(new TJSONProtocol.Factory());
   }
 }
