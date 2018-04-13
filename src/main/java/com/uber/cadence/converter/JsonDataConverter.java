@@ -38,12 +38,19 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TJSONProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Implements conversion through GSON JSON processor. To extend use {@link
  * JsonDataConverter(Function)} constructor.
+ * Thrift structures are converted using {@link TJSONProtocol}. Thrift structures are
+ *
  *
  * @author fateev
  */
@@ -56,6 +63,9 @@ public final class JsonDataConverter implements DataConverter {
       "((?<className>.*)\\.(?<methodName>.*))\\(((?<fileName>.*?)(:(?<lineNumber>\\d+))?)\\)";
 
   private static final Pattern TRACE_ELEMENT_PATTERN = Pattern.compile(TRACE_ELEMENT_REGEXP);
+
+  TSerializer thriftSerializer = new TSerializer(new TJSONProtocol.Factory());
+  TDeserializer thriftDeserializer = new TDeserializer(new TJSONProtocol.Factory());
 
   /**
    * Stop emitting stack trace after this line. Makes serialized stack traces more readable and
@@ -113,7 +123,16 @@ public final class JsonDataConverter implements DataConverter {
     }
     try {
       if (values.length == 1) {
-        String json = gson.toJson(values[0]);
+        Object value = values[0];
+        // Serialize thrift objects using Thrift serializer
+        if (value instanceof TBase) {
+          try {
+            return thriftSerializer.toString((TBase) value).getBytes(StandardCharsets.UTF_8);
+          } catch (TException e) {
+            new DataConverterException(e);
+          }
+        }
+        String json = gson.toJson(value);
         return json.getBytes(StandardCharsets.UTF_8);
       }
       String json = gson.toJson(values);
@@ -127,6 +146,16 @@ public final class JsonDataConverter implements DataConverter {
   public <T> T fromData(byte[] content, Class<T> valueType) throws DataConverterException {
     if (content == null) {
       return null;
+    }
+    // Deserialize thrift values.
+    if (TBase.class.isAssignableFrom(valueType)) {
+      try {
+        T instance = valueType.getConstructor().newInstance();
+        thriftDeserializer.deserialize((TBase) instance, content);
+        return instance;
+      } catch (Exception e) {
+        throw new DataConverterException(e);
+      }
     }
     try {
       return gson.fromJson(new String(content, StandardCharsets.UTF_8), valueType);
