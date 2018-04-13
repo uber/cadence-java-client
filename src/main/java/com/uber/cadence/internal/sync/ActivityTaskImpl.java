@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.ActivityType;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityTask;
@@ -45,8 +44,8 @@ final class ActivityTaskImpl implements ActivityTask {
   }
 
   @Override
-  public ActivityType getActivityType() {
-    return response.getActivityType();
+  public String getActivityType() {
+    return response.getActivityType().getName();
   }
 
   @Override
@@ -59,7 +58,6 @@ final class ActivityTaskImpl implements ActivityTask {
     return response.getScheduleToCloseTimeoutSeconds();
   }
 
-  @Override
   public void setScheduleToCloseTimeoutSecondsIsSet(boolean value) {
     response.setScheduleToCloseTimeoutSecondsIsSet(value);
   }
@@ -74,7 +72,6 @@ final class ActivityTaskImpl implements ActivityTask {
     return response.getHeartbeatTimeoutSeconds();
   }
 
-  @Override
   public byte[] getInput() {
     return response.getInput();
   }

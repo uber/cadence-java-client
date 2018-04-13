@@ -29,7 +29,7 @@ Add *cadence-client* as a dependency to your *pom.xml*:
     <dependency>
       <groupId>com.uber</groupId>
       <artifactId>cadence-client</artifactId>
-      <version>0.2.0-SPANPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
     </dependency>
 
 # Overview
