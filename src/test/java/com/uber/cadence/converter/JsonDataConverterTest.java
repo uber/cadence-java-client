@@ -52,6 +52,5 @@ public class JsonDataConverterTest {
     byte[] converted = converter.toData(history);
     History fromConverted = converter.fromData(converted, History.class);
     assertEquals(new String(converted, StandardCharsets.UTF_8), history, fromConverted);
-    System.out.println(new String(converted, StandardCharsets.UTF_8));
   }
 }
