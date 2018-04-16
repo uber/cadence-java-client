@@ -20,6 +20,8 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityTask;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 final class ActivityTaskImpl implements ActivityTask {
   private final PollForActivityTaskResponse response;
@@ -50,26 +52,23 @@ final class ActivityTaskImpl implements ActivityTask {
 
   @Override
   public long getScheduledTimestamp() {
-    return response.getScheduledTimestamp();
+    // Cadence timestamp is in microseconds
+    return TimeUnit.MICROSECONDS.toMillis(response.getScheduledTimestamp());
   }
 
   @Override
-  public int getScheduleToCloseTimeoutSeconds() {
-    return response.getScheduleToCloseTimeoutSeconds();
-  }
-
-  public void setScheduleToCloseTimeoutSecondsIsSet(boolean value) {
-    response.setScheduleToCloseTimeoutSecondsIsSet(value);
+  public Duration getScheduleToCloseTimeout() {
+    return Duration.ofSeconds(response.getScheduleToCloseTimeoutSeconds());
   }
 
   @Override
-  public int getStartToCloseTimeoutSeconds() {
-    return response.getStartToCloseTimeoutSeconds();
+  public Duration getStartToCloseTimeout() {
+    return Duration.ofSeconds(response.getStartToCloseTimeoutSeconds());
   }
 
   @Override
-  public int getHeartbeatTimeoutSeconds() {
-    return response.getHeartbeatTimeoutSeconds();
+  public Duration getHeartbeatTimeout() {
+    return Duration.ofSeconds(response.getHeartbeatTimeoutSeconds());
   }
 
   public byte[] getInput() {

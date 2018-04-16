@@ -17,12 +17,14 @@
 
 package com.uber.cadence.testing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
 import java.util.function.Function;
 
+@VisibleForTesting
 public final class TestEnvironmentOptions {
 
   public static final class Builder {

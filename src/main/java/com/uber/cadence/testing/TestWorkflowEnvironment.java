@@ -17,6 +17,7 @@
 
 package com.uber.cadence.testing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
@@ -84,6 +85,7 @@ import java.time.Duration;
  *
  * </code></pre>
  */
+@VisibleForTesting
 public interface TestWorkflowEnvironment {
 
   static TestWorkflowEnvironment newInstance() {

@@ -17,6 +17,7 @@
 
 package com.uber.cadence.testing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.internal.sync.TestActivityEnvironmentInternal;
 import java.util.function.Consumer;
 
@@ -47,6 +48,7 @@ import java.util.function.Consumer;
  *
  * Use {@link TestWorkflowEnvironment} to test a workflow code.
  */
+@VisibleForTesting
 public interface TestActivityEnvironment {
 
   static TestActivityEnvironment newInstance() {
