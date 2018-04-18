@@ -441,7 +441,7 @@ Besides activities, a workflow can also orchestrate other workflows.
  the timeouts and task list if they differ from the ones defined in the @WorkflowMethod annotation or parent workflow.
 
  The first call to the child workflow stub must always be to a method annotated with @WorkflowMethod. Similarly to activities, a call
- can be synchronous or asynchronous using `Async#function` or `Async#procedure`. The synchronous call blocks until a child workflow completes. The asynchronous call
+ can be made synchronous or asynchronous by using `Async#function` or `Async#procedure`. The synchronous call blocks until a child workflow completes. The asynchronous call
  returns a `Promise` that can be used to wait for the completion. After an async call returns the stub, it can be used to send signals to the child
  by calling methods annotated with `@SignalMethod`. Querying a child workflow by calling methods annotated with @QueryMethod
  from within workflow code is not supported. However, queries can be done from activities

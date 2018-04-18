@@ -53,7 +53,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * There are two ways to start workflow execution: synchronously and asynchronously. Synchronous
  * invocation starts a workflow and then waits for its completion. If the process that started the
- * workflow crashes or stops the waiting, the workflow continues executing. Because workflows are
+ * workflow crashes or stops waiting, the workflow continues executing. Because workflows are
  * potentially long running, and crashes of clients happen, it is not very commonly found in
  * production use. Asynchronous start initiates workflow execution and immediately returns to the
  * caller. This is the most common way to start workflows in production code.
@@ -61,8 +61,8 @@ import java.util.concurrent.CompletableFuture;
  * <p>Synchronous start:
  *
  * <pre><code>
- * // Start a workflow and the wait for a result.
- * // Note that if the waiting process is killed, the workflow will continue execution.
+ * // Start a workflow and wait for a result.
+ * // Note that if the waiting process is killed, the workflow will continue executing.
  * String result = workflow.processFile(workflowArgs);
  * </code></pre>
  *
@@ -82,8 +82,8 @@ import java.util.concurrent.CompletableFuture;
  * CompletableFuture&lt;String&gt; result = WorkflowClient.execute(workflow::helloWorld, "User");
  * </code></pre>
  *
- * If you need to wait for a workflow completion after an asynchronous start, may be even from a
- * different process the simplest way is to call the blocking version again. If {@link
+ * If you need to wait for a workflow completion after an asynchronous start, maybe even from a
+ * different process, the simplest way is to call the blocking version again. If {@link
  * WorkflowOptions#getWorkflowIdReusePolicy()} is not {@code AllowDuplicate} then instead of
  * throwing {@link com.uber.cadence.client.DuplicateWorkflowException}, it reconnects to an existing
  * workflow and waits for its completion. The following example shows how to do this from a

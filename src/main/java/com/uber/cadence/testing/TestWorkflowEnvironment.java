@@ -32,7 +32,7 @@ import java.time.Duration;
  * in-memory implementation of the Cadence service supports <b>an automatic time skipping</b>.
  * Anytime a workflow under the test as well as the unit test code are waiting on a timer (or sleep)
  * the internal service time is automatically advanced to the nearest time that unblocks one of the
- * waiting threads. This way a workflow that runs in the production for months is unit tested in
+ * waiting threads. This way a workflow that runs in production for months is unit tested in
  * milliseconds. Here is an example of a test that executes in a few milliseconds instead of over
  * two hours that are needed for the workflow to complete:
  *

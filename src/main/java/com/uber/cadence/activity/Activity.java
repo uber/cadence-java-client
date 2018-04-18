@@ -25,12 +25,12 @@ import com.uber.cadence.workflow.ActivityTimeoutException;
 import java.util.concurrent.CancellationException;
 
 /**
- * An activity is a manifestation of a particular task in the business logic.
+ * An activity is the implementation of a particular task in the business logic.
  *
  * <h2>Activity Interface</h2>
  *
  * <p>Activities are defined as methods of a plain Java interface. Each method defines a single
- * activity type. A single workflow can use more than one activity interface and call more that one
+ * activity type. A single workflow can use more than one activity interface and call more than one
  * activity method from the same interface. The only requirement is that activity method arguments
  * and return values are serializable to a byte array using the provided {@link
  * com.uber.cadence.converter.DataConverter} implementation. The default implementation uses JSON
@@ -60,7 +60,7 @@ import java.util.concurrent.CancellationException;
  * <h2>Activity Implementation</h2>
  *
  * <p>Activity implementation is an implementation of an activity interface. A single instance of
- * the activities implementation is shared across multiple simultaneous activity invocations.
+ * the activity's implementation is shared across multiple simultaneous activity invocations.
  * Therefore, the activity implementation code must be <i>thread safe</i>.
  *
  * <p>The values passed to activities through invocation parameters or returned through a result
@@ -102,7 +102,7 @@ import java.util.concurrent.CancellationException;
  * <h3>Accessing Activity Info</h3>
  *
  * <p>The {@link Activity} class provides static getters to access information about the workflow
- * that invoked it. Note that this information is stored in a thread local variable. Therefore,
+ * that invoked it. Note that this information is stored in a thread-local variable. Therefore,
  * calls to Activity accessors succeed only in the thread that invoked the activity function.
  *
  * <pre><code>
@@ -131,7 +131,7 @@ import java.util.concurrent.CancellationException;
  *
  * <p>To indicate that an activity should not be completed upon its method return, call {@link
  * Activity#doNotCompleteOnReturn()} from the original activity thread. Then later, when replies
- * come, complete the activity using {@link com.uber.cadence.client.ActivityCompletionClient} To
+ * come, complete the activity using {@link com.uber.cadence.client.ActivityCompletionClient}. To
  * correlate activity invocation with completion use either {@code TaskToken} or workflow and
  * activity IDs.
  *
@@ -148,7 +148,8 @@ import java.util.concurrent.CancellationException;
  * }
  * </code></pre>
  *
- * When download is complete, the download service potentially calls back from a different process:
+ * When the download is complete, the download service potentially calls back from a different
+ * process:
  *
  * <pre><code>
  *     public <R> void completeActivity(byte[] taskToken, R result) {
@@ -167,7 +168,7 @@ import java.util.concurrent.CancellationException;
  * that the activity is still alive. You can piggyback `details` on an activity heartbeat. If an
  * activity times out, the last value of `details` is included in the ActivityTimeoutException
  * delivered to a workflow. Then the workflow can pass the details to the next activity invocation.
- * This acts as a periodic checkpointing mechanism of an activity progress.
+ * This acts as a periodic checkpointing mechanism of an activity's progress.
  *
  * <pre><code>
  * public class FileProcessingActivitiesImpl implements FileProcessingActivities {

@@ -60,8 +60,8 @@ public interface TestActivityEnvironment {
   }
 
   /**
-   * Registers activities implementations to test. Use {@link #newActivityStub(Class)} to create
-   * stubs that can be used to invoke them.
+   * Registers activity implementations to test. Use {@link #newActivityStub(Class)} to create stubs
+   * that can be used to invoke them.
    */
   void registerActivitiesImplementations(Object... activityImplementations);
 

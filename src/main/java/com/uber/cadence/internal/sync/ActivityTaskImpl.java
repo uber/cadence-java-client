@@ -52,7 +52,7 @@ final class ActivityTaskImpl implements ActivityTask {
 
   @Override
   public long getScheduledTimestamp() {
-    // Cadence timestamp is in microseconds
+    // Cadence timestamp is in microseconds.
     return TimeUnit.MICROSECONDS.toMillis(response.getScheduledTimestamp());
   }
 

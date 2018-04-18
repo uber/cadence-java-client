@@ -35,8 +35,9 @@ public final class SimulatedTimeoutException extends RuntimeException {
   private final Object details;
 
   /**
-   * Creates an instance with specific timeoutType and details. Use this constructor to
-   * simulate an activity timeout.
+   * Creates an instance with specific timeoutType and details. Use this constructor to simulate an
+   * activity timeout.
+   *
    * @param timeoutType timeout type to simulate
    * @param details details included into the timeout exception.
    */
@@ -46,8 +47,8 @@ public final class SimulatedTimeoutException extends RuntimeException {
   }
 
   /**
-   * Creates an instance with no details and START_TO_CLOSE timeout.
-   * Use this constructor to simulate a child workflow timeout.
+   * Creates an instance with no details and START_TO_CLOSE timeout. Use this constructor to
+   * simulate a child workflow timeout.
    */
   public SimulatedTimeoutException() {
     this.timeoutType = TimeoutType.START_TO_CLOSE;
@@ -57,6 +58,7 @@ public final class SimulatedTimeoutException extends RuntimeException {
   /**
    * Creates an instance with specific timeoutType and empty details. Use this constructor to
    * simulate an activity timeout.
+   *
    * @param timeoutType timeout type to simulate
    */
   public SimulatedTimeoutException(TimeoutType timeoutType) {

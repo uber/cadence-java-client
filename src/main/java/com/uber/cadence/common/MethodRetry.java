@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
 import java.time.Duration;
 
 /**
- * Indicates retry policy for a workflow or activity method. This annotation applies only to
+ * Specifies a retry policy for a workflow or activity method. This annotation applies only to
  * activity or workflow interface methods. For workflows currently used only for child workflow
  * retries. Not required. When not used either retries don't happen or they are configured through
  * correspondent options. If {@link com.uber.cadence.common.RetryOptions} are present on {@link
