@@ -20,6 +20,7 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.internal.logging.ReplayAwareLogger;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.worker.WorkerOptions;
 import com.uber.cadence.workflow.Functions.Func;
@@ -32,6 +33,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Workflow encapsulates the orchestration of activities and child workflows. It can also answer to
@@ -718,6 +721,32 @@ public final class Workflow {
    */
   public static Scope getMetricsScope() {
     return WorkflowInternal.getMetricsScope();
+  }
+
+  /**
+   * Get logger to use inside workflow. Logs in replay mode are omitted unless {@param
+   * enableLoggingInReplay} is set to true in {@link WorkerOptions} when a worker starts up.
+   *
+   * @param clazz class name to appear in logging.
+   * @return logger to use in workflow logic.
+   */
+  public static Logger getLogger(Class<?> clazz) {
+    Logger logger = LoggerFactory.getLogger(clazz);
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
+  }
+
+  /**
+   * Get logger to use inside workflow. Logs in replay mode are omitted unless {@param
+   * enableLoggingInReplay} is set to true in {@link WorkerOptions} when a worker starts up.
+   *
+   * @param name name to appear in logging.
+   * @return logger to use in workflow logic.
+   */
+  public static Logger getLogger(String name) {
+    Logger logger = LoggerFactory.getLogger(name);
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
   }
 
   /** Prohibit instantiation. */
