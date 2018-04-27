@@ -20,7 +20,7 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.internal.logging.ReplayAwareFilter;
+import com.uber.cadence.internal.logging.ReplayAwareLogger;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.worker.WorkerOptions;
 import com.uber.cadence.workflow.Functions.Func;
@@ -732,8 +732,8 @@ public final class Workflow {
    */
   public static Logger getLogger(Class<?> clazz) {
     Logger logger = LoggerFactory.getLogger(clazz);
-    ReplayAwareFilter.workflowLoggers.add(logger.getName());
-    return logger;
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
   }
 
   /**
@@ -745,8 +745,8 @@ public final class Workflow {
    */
   public static Logger getLogger(String name) {
     Logger logger = LoggerFactory.getLogger(name);
-    ReplayAwareFilter.workflowLoggers.add(logger.getName());
-    return logger;
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
   }
 
   /** Prohibit instantiation. */

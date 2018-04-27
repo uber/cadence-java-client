@@ -71,7 +71,7 @@ public class LoggerTest {
   }
 
   @Test
-  public void testWorkflowMetrics() throws IOException {
+  public void testWorkflowLogger() throws IOException {
     TestEnvironmentOptions testOptions = new Builder().setDomain(WorkflowTest.DOMAIN).build();
     TestWorkflowEnvironment env = TestWorkflowEnvironment.newInstance(testOptions);
     Worker worker = env.newWorker(taskList);
