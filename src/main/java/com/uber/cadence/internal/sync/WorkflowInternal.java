@@ -312,4 +312,8 @@ public final class WorkflowInternal {
   public static Scope getMetricsScope() {
     return getRootDecisionContext().getMetricsScope();
   }
+
+  public static boolean isLoggingEnabledInReplay() {
+    return getRootDecisionContext().isLoggingEnabledInReplay();
+  }
 }
