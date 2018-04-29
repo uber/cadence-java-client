@@ -43,7 +43,7 @@ public final class SingleWorkerOptions {
 
     private Scope metricsScope;
 
-    private boolean enableLoggingInReplay = false;
+    private boolean enableLoggingInReplay;
 
     public Builder setIdentity(String identity) {
       this.identity = identity;

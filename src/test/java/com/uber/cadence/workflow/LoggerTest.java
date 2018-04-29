@@ -114,7 +114,6 @@ public class LoggerTest {
     workflow.execute(wfID);
 
     String tempDir = System.getProperty("java.io.tmpdir");
-    System.out.println(tempDir);
     File logFile = new File(tempDir, "log-cadence-java-client.log");
     List<String> logs = Files.readAllLines(logFile.toPath());
     assertEquals(
