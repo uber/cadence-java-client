@@ -24,21 +24,8 @@
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>INFO</level>
-        </filter>
-        <file> ${java.io.tmpdir}/log-cadence-java-client.log </file>
-        <append>false</append>
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-        <immediateFlush>true</immediateFlush>
-    </appender>
     <logger name="io.netty" level="INFO"/>
     <root level="TRACE">
         <appender-ref ref="STDOUT" />
-        <appender-ref ref="FILE" />
     </root>
 </configuration>

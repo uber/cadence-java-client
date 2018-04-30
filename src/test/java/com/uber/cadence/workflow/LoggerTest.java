@@ -19,28 +19,39 @@ package com.uber.cadence.workflow;
 
 import static org.junit.Assert.assertEquals;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestEnvironmentOptions.Builder;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class LoggerTest {
+
+  private static final ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+
+  static {
+    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+    ch.qos.logback.classic.Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+    listAppender.setContext(context);
+    listAppender.start();
+    logger.addAppender(listAppender);
+  }
+
   private static final String taskList = "logger-test";
   private static final Logger workflowLogger = Workflow.getLogger(TestLoggingInWorkflow.class);
   private static final Logger childWorkflowLogger =
@@ -91,7 +102,7 @@ public class LoggerTest {
   }
 
   @Test
-  public void testWorkflowLogger() throws IOException {
+  public void testWorkflowLogger() {
     TestEnvironmentOptions testOptions =
         new Builder()
             .setDomain(WorkflowTest.DOMAIN)
@@ -113,20 +124,17 @@ public class LoggerTest {
         workflowClient.newWorkflowStub(LoggerTest.TestWorkflow.class, options);
     workflow.execute(wfID);
 
-    String tempDir = System.getProperty("java.io.tmpdir");
-    File logFile = new File(tempDir, "log-cadence-java-client.log");
-    List<String> logs = Files.readAllLines(logFile.toPath());
     assertEquals(
-        startLinesExpected,
-        matchingLines(logs, String.format("Start executing workflow %s.", wfID)));
-    assertEquals(1, matchingLines(logs, String.format("Executing child workflow %s.", wfID)));
-    assertEquals(1, matchingLines(logs, String.format("Done executing workflow %s.", wfID)));
+        startLinesExpected, matchingLines(String.format("Start executing workflow %s.", wfID)));
+    assertEquals(1, matchingLines(String.format("Executing child workflow %s.", wfID)));
+    assertEquals(1, matchingLines(String.format("Done executing workflow %s.", wfID)));
+    listAppender.list.size();
   }
 
-  private int matchingLines(List<String> logs, String message) {
+  private int matchingLines(String message) {
     int i = 0;
-    for (String log : logs) {
-      if (log.contains(message)) {
+    for (ILoggingEvent event : listAppender.list) {
+      if (event.getFormattedMessage().contains(message)) {
         i++;
       }
     }
