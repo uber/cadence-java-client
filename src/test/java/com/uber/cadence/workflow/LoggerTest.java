@@ -128,7 +128,6 @@ public class LoggerTest {
         startLinesExpected, matchingLines(String.format("Start executing workflow %s.", wfID)));
     assertEquals(1, matchingLines(String.format("Executing child workflow %s.", wfID)));
     assertEquals(1, matchingLines(String.format("Done executing workflow %s.", wfID)));
-    listAppender.list.size();
   }
 
   private int matchingLines(String message) {
