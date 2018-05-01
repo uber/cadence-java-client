@@ -193,27 +193,26 @@ public final class TestWorkflowService implements IWorkflowService {
               ? startRequest.getWorkflowIdReusePolicy()
               : WorkflowIdReusePolicy.AllowDuplicateFailedOnly;
       if (!statusOptional.isPresent() || policy == WorkflowIdReusePolicy.RejectDuplicate) {
-        return throwAlreadyRunning(startRequest, existing);
+        return throwDuplicatedWorkflow(startRequest, existing);
       }
       WorkflowExecutionCloseStatus status = statusOptional.get();
       if (policy == WorkflowIdReusePolicy.AllowDuplicateFailedOnly
           && (status == WorkflowExecutionCloseStatus.COMPLETED
               || status == WorkflowExecutionCloseStatus.CONTINUED_AS_NEW)) {
-        return throwAlreadyRunning(startRequest, existing);
+        return throwDuplicatedWorkflow(startRequest, existing);
       }
     }
     return startWorkflowExecutionNoRunningCheck(startRequest, parent, workflowId);
   }
 
-  private StartWorkflowExecutionResponse throwAlreadyRunning(
+  private StartWorkflowExecutionResponse throwDuplicatedWorkflow(
       StartWorkflowExecutionRequest startRequest, TestWorkflowMutableState existing)
       throws WorkflowExecutionAlreadyStartedError {
     WorkflowExecutionAlreadyStartedError error = new WorkflowExecutionAlreadyStartedError();
     WorkflowExecution execution = existing.getExecutionId().getExecution();
     error.setMessage(
         String.format(
-            "Workflow execution already running. WorkflowId: %s, " + "RunId: %s",
-            execution.getWorkflowId(), execution.getRunId()));
+            "WorkflowId: %s, " + "RunId: %s", execution.getWorkflowId(), execution.getRunId()));
     error.setRunId(execution.getRunId());
     error.setStartRequestId(startRequest.getRequestId());
     throw error;
