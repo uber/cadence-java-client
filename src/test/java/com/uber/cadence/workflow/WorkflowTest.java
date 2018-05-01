@@ -1860,8 +1860,8 @@ public class WorkflowTest {
       ITestNamedChild child2 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options);
       String r2 = child2.execute("World!");
 
-      assertEquals(child2Id, Workflow.getWorkflowExecution(child1).get().getWorkflowId());
-      assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
+      assertEquals(childReexecuteId, Workflow.getWorkflowExecution(child1).get().getWorkflowId());
+      assertEquals(childReexecuteId, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
       return r1 + r2;
     }
   }
@@ -1877,11 +1877,24 @@ public class WorkflowTest {
     WorkflowIdReusePolicyParent client =
         workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
     try {
-      assertEquals("HELLO WORLD!", client.execute(WorkflowIdReusePolicy.RejectDuplicate));
+      client.execute(WorkflowIdReusePolicy.RejectDuplicate);
       fail("unreachable");
     } catch (WorkflowFailureException e) {
       assertTrue(e.getCause() instanceof StartChildWorkflowFailedException);
     }
+  }
+
+  @Test
+  public void testChildReexecute() {
+    startWorkerFor(TestChildReexecuteWorkflow.class, TestNamedChild.class);
+
+    WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+    options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));
+    options.setTaskStartToCloseTimeout(Duration.ofSeconds(60));
+    options.setTaskList(taskList);
+    WorkflowIdReusePolicyParent client =
+        workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
+    assertEquals("HELLO WORLD!", client.execute(WorkflowIdReusePolicy.AllowDuplicate));
   }
 
   public static class TestChildWorkflowRetryWorkflow implements TestWorkflow1 {
