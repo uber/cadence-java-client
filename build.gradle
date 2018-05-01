@@ -57,7 +57,13 @@ compileJava {
     dependsOn 'googleJavaFormat'
     options.encoding = 'UTF-8'
     options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
-            ".*/generated-sources/.*"
+            ".*/generated-sources/.*" << "-Werror"
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation" << "-XepExcludedPaths:" +
+            ".*/generated-sources/.*" << "-Werror"
 }
 
 if (JavaVersion.current().isJava8Compatible()) {
