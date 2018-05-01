@@ -308,6 +308,12 @@ class StateMachines {
       ChildWorkflowData data,
       StartChildWorkflowExecutionFailedEventAttributes a,
       long notUsed) {
+    a.setInitiatedEventId(data.initiatedEventId);
+    a.setWorkflowType(data.initiatedEvent.getWorkflowType());
+    a.setWorkflowId(data.initiatedEvent.getWorkflowId());
+    if (data.initiatedEvent.isSetDomain()) {
+      a.setDomain(data.initiatedEvent.getDomain());
+    }
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.StartChildWorkflowExecutionFailed)
@@ -353,6 +359,11 @@ class StateMachines {
       long notUsed) {
     a.setInitiatedEventId(data.initiatedEventId);
     a.setStartedEventId(data.startedEventId);
+    a.setWorkflowExecution(data.execution);
+    a.setWorkflowType(data.initiatedEvent.getWorkflowType());
+    if (data.initiatedEvent.domain != null) {
+      a.setDomain(data.initiatedEvent.domain);
+    }
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.ChildWorkflowExecutionFailed)

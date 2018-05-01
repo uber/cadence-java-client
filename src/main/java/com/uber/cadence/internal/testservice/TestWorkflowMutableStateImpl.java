@@ -581,11 +581,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void failStartChildWorkflow(
-      String activityId, StartChildWorkflowExecutionFailedEventAttributes a)
+      String childId, StartChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          String childId = a.getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
           child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(childId);

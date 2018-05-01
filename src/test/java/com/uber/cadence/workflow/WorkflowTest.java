@@ -1027,6 +1027,7 @@ public class WorkflowTest {
   }
 
   public static class TestWaitOnSignalWorkflowImpl implements WaitOnSignalWorkflow {
+
     private final CompletablePromise<String> signal = Workflow.newPromise();
 
     @Override
@@ -1830,6 +1831,57 @@ public class WorkflowTest {
     options.setTaskList(taskList);
     TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
     assertEquals("HELLO WORLD!", client.execute(taskList));
+  }
+
+  private static String childReexecuteId = UUID.randomUUID().toString();
+
+  public interface WorkflowIdReusePolicyParent {
+
+    @WorkflowMethod
+    String execute(WorkflowIdReusePolicy policy);
+  }
+
+  public static class TestChildReexecuteWorkflow implements WorkflowIdReusePolicyParent {
+
+    public TestChildReexecuteWorkflow() {}
+
+    @Override
+    public String execute(WorkflowIdReusePolicy policy) {
+      ChildWorkflowOptions options =
+          new ChildWorkflowOptions.Builder()
+              .setWorkflowId(childReexecuteId)
+              .setWorkflowIdReusePolicy(policy)
+              .build();
+
+      ITestNamedChild child1 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options);
+      Promise<String> r1P = Async.function(child1::execute, "Hello ");
+      String r1 = r1P.get();
+
+      ITestNamedChild child2 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options);
+      String r2 = child2.execute("World!");
+
+      assertEquals(child2Id, Workflow.getWorkflowExecution(child1).get().getWorkflowId());
+      assertEquals(child2Id, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
+      return r1 + r2;
+    }
+  }
+
+  @Test
+  public void testChildAlreadyRunning() {
+    startWorkerFor(TestChildReexecuteWorkflow.class, TestNamedChild.class);
+
+    WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+    options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));
+    options.setTaskStartToCloseTimeout(Duration.ofSeconds(60));
+    options.setTaskList(taskList);
+    WorkflowIdReusePolicyParent client =
+        workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
+    try {
+      assertEquals("HELLO WORLD!", client.execute(WorkflowIdReusePolicy.RejectDuplicate));
+      fail("unreachable");
+    } catch (WorkflowFailureException e) {
+      assertTrue(e.getCause() instanceof StartChildWorkflowFailedException);
+    }
   }
 
   public static class TestChildWorkflowRetryWorkflow implements TestWorkflow1 {
