@@ -1838,7 +1838,7 @@ public class WorkflowTest {
   public interface WorkflowIdReusePolicyParent {
 
     @WorkflowMethod
-    String execute(WorkflowIdReusePolicy policy);
+    String execute(boolean parallel, WorkflowIdReusePolicy policy);
   }
 
   public static class TestChildReexecuteWorkflow implements WorkflowIdReusePolicyParent {
@@ -1846,7 +1846,7 @@ public class WorkflowTest {
     public TestChildReexecuteWorkflow() {}
 
     @Override
-    public String execute(WorkflowIdReusePolicy policy) {
+    public String execute(boolean parallel, WorkflowIdReusePolicy policy) {
       ChildWorkflowOptions options =
           new ChildWorkflowOptions.Builder()
               .setWorkflowId(childReexecuteId)
@@ -1855,11 +1855,15 @@ public class WorkflowTest {
 
       ITestNamedChild child1 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options);
       Promise<String> r1P = Async.function(child1::execute, "Hello ");
-      String r1 = r1P.get();
-
+      String r1 = null;
+      if (!parallel) {
+        r1 = r1P.get();
+      }
       ITestNamedChild child2 = Workflow.newChildWorkflowStub(ITestNamedChild.class, options);
       String r2 = child2.execute("World!");
-
+      if (parallel) {
+        r1 = r1P.get();
+      }
       assertEquals(childReexecuteId, Workflow.getWorkflowExecution(child1).get().getWorkflowId());
       assertEquals(childReexecuteId, Workflow.getWorkflowExecution(child2).get().getWorkflowId());
       return r1 + r2;
@@ -1877,7 +1881,25 @@ public class WorkflowTest {
     WorkflowIdReusePolicyParent client =
         workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
     try {
-      client.execute(WorkflowIdReusePolicy.RejectDuplicate);
+      client.execute(false, WorkflowIdReusePolicy.RejectDuplicate);
+      fail("unreachable");
+    } catch (WorkflowFailureException e) {
+      assertTrue(e.getCause() instanceof StartChildWorkflowFailedException);
+    }
+  }
+
+  @Test
+  public void testChildStartTwice() {
+    startWorkerFor(TestChildReexecuteWorkflow.class, TestNamedChild.class);
+
+    WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+    options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));
+    options.setTaskStartToCloseTimeout(Duration.ofSeconds(60));
+    options.setTaskList(taskList);
+    WorkflowIdReusePolicyParent client =
+        workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
+    try {
+      client.execute(true, WorkflowIdReusePolicy.RejectDuplicate);
       fail("unreachable");
     } catch (WorkflowFailureException e) {
       assertTrue(e.getCause() instanceof StartChildWorkflowFailedException);
@@ -1894,7 +1916,7 @@ public class WorkflowTest {
     options.setTaskList(taskList);
     WorkflowIdReusePolicyParent client =
         workflowClient.newWorkflowStub(WorkflowIdReusePolicyParent.class, options.build());
-    assertEquals("HELLO WORLD!", client.execute(WorkflowIdReusePolicy.AllowDuplicate));
+    assertEquals("HELLO WORLD!", client.execute(false, WorkflowIdReusePolicy.AllowDuplicate));
   }
 
   public static class TestChildWorkflowRetryWorkflow implements TestWorkflow1 {
