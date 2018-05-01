@@ -104,6 +104,8 @@ public final class TestWorkflowService implements IWorkflowService {
   // key->WorkflowId
   private final Map<WorkflowId, TestWorkflowMutableState> openExecutions = new HashMap<>();
 
+  private final ForkJoinPool forkJoinPool = new ForkJoinPool(4);
+
   public void close() {
     store.close();
   }
@@ -545,17 +547,15 @@ public final class TestWorkflowService implements IWorkflowService {
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    ForkJoinPool.commonPool()
-        .execute(
-            () -> {
-              try {
-                GetWorkflowExecutionHistoryResponse result =
-                    GetWorkflowExecutionHistory(getRequest);
-                resultHandler.onComplete(result);
-              } catch (TException e) {
-                resultHandler.onError(e);
-              }
-            });
+    forkJoinPool.execute(
+        () -> {
+          try {
+            GetWorkflowExecutionHistoryResponse result = GetWorkflowExecutionHistory(getRequest);
+            resultHandler.onComplete(result);
+          } catch (TException e) {
+            resultHandler.onError(e);
+          }
+        });
   }
 
   @Override
