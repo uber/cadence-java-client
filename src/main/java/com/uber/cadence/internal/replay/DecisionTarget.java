@@ -19,9 +19,10 @@ package com.uber.cadence.internal.replay;
 
 enum DecisionTarget {
   ACTIVITY,
-  LAMBDA_FUNCTION,
-  EXTERNAL_WORKFLOW,
-  SIGNAL,
+  CHILD_WORKFLOW,
+  CANCEL_EXTERNAL_WORKFLOW,
+  SIGNAL_EXTERNAL_WORKFLOW,
   TIMER,
+  MARKER,
   SELF
 }

@@ -39,6 +39,17 @@ public final class SingleWorkerOptions {
 
     private RetryOptions reportFailureRetryOptions;
 
+    public Builder() {}
+
+    public Builder(SingleWorkerOptions options) {
+      this.identity = options.getIdentity();
+      this.dataConverter = options.getDataConverter();
+      this.pollerOptions = options.getPollerOptions();
+      this.taskExecutorThreadPoolSize = options.getTaskExecutorThreadPoolSize();
+      this.reportCompletionRetryOptions = options.getReportCompletionRetryOptions();
+      this.reportFailureRetryOptions = options.getReportFailureRetryOptions();
+    }
+
     public Builder setIdentity(String identity) {
       this.identity = identity;
       return this;
@@ -122,7 +133,7 @@ public final class SingleWorkerOptions {
 
   private final RetryOptions reportFailureRetryOptions;
 
-  private SingleWorkerOptions(
+  public SingleWorkerOptions(
       String identity,
       DataConverter dataConverter,
       int taskExecutorThreadPoolSize,

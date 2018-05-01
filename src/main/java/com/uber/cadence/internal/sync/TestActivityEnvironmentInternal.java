@@ -76,6 +76,7 @@ import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ContinueAsNewOptions;
+import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
@@ -211,6 +212,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public Promise<Void> newTimer(Duration duration) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public <R> R sideEffect(Class<R> resultType, Func<R> func) {
       throw new UnsupportedOperationException("not implemented");
     }
 

@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.google.common.collect.PeekingIterator;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -24,25 +25,113 @@ import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.concurrent.TimeUnit;
 
 class HistoryHelper {
 
-  static class EventsIterator implements Iterator<HistoryEvent> {
+  static final class DecisionEvents {
 
-    private final DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator;
+    private final List<HistoryEvent> events;
+    private final List<HistoryEvent> decisionEvents;
+    private final boolean replay;
+    private final long replayCurrentTimeMilliseconds;
+    private final long nextDecisionEventId;
+
+    DecisionEvents(
+        List<HistoryEvent> events,
+        List<HistoryEvent> decisionEvents,
+        boolean replay,
+        long replayCurrentTimeMilliseconds,
+        long nextDecisionEventId) {
+      if (replayCurrentTimeMilliseconds <= 0) {
+        throw new Error("replayCurrentTimeMilliseconds is not set");
+      }
+      if (nextDecisionEventId <= 0) {
+        throw new Error("nextDecisionEventId is not set");
+      }
+      this.events = events;
+      this.decisionEvents = decisionEvents;
+      this.replay = replay;
+      this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
+      this.nextDecisionEventId = nextDecisionEventId;
+    }
+
+    public List<HistoryEvent> getEvents() {
+      return events;
+    }
+
+    public List<HistoryEvent> getDecisionEvents() {
+      return decisionEvents;
+    }
+
+    public boolean isReplay() {
+      return replay;
+    }
+
+    public long getReplayCurrentTimeMilliseconds() {
+      return replayCurrentTimeMilliseconds;
+    }
+
+    public long getNextDecisionEventId() {
+      return nextDecisionEventId;
+    }
+  }
+
+  private static final class EventsIterator implements PeekingIterator<HistoryEvent> {
 
     private Iterator<HistoryEvent> events;
+    private HistoryEvent next;
+
+    EventsIterator(Iterator<HistoryEvent> events) {
+      this.events = events;
+      if (events.hasNext()) {
+        next = events.next();
+      }
+    }
+
+    @Override
+    public HistoryEvent peek() {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      }
+      return next;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return next != null;
+    }
+
+    @Override
+    public HistoryEvent next() {
+      HistoryEvent result = next;
+      if (events.hasNext()) {
+        next = events.next();
+      } else {
+        next = null;
+      }
+      return result;
+    }
+
+    @Override
+    public void remove() {
+      throw new UnsupportedOperationException("not implemented");
+    }
+  }
+
+  static class DecisionEventsIterator implements Iterator<DecisionEvents> {
+
+    private EventsIterator events;
 
     private Queue<HistoryEvent> bufferedEvents = new ArrayDeque<>();
-    private WorkflowExecutionStartedEventAttributes workflowExecutionStartedEventAttributes;
 
-    public EventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator) {
-      this.workflowExecutionStartedEventAttributes =
-          decisionTaskWithHistoryIterator.getStartedEvent();
-      this.decisionTaskWithHistoryIterator = decisionTaskWithHistoryIterator;
-      this.events = decisionTaskWithHistoryIterator.getHistory();
+    DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator) {
+      this.events = new EventsIterator(decisionTaskWithHistoryIterator.getHistory());
     }
 
     @Override
@@ -51,68 +140,77 @@ class HistoryHelper {
     }
 
     @Override
-    public HistoryEvent next() {
-      if (bufferedEvents.isEmpty()) {
-        return events.next();
-      }
-      return bufferedEvents.poll();
-    }
-
-    public PollForDecisionTaskResponse getDecisionTask() {
-      return decisionTaskWithHistoryIterator.getDecisionTask();
-    }
-
-    public boolean isNextDecisionFailed() {
+    public DecisionEvents next() {
+      List<HistoryEvent> decisionEvents = new ArrayList<>();
+      List<HistoryEvent> newEvents = new ArrayList<>();
+      boolean replay = true;
+      long replayCurrentTimeMilliseconds = -1;
+      long nextDecisionEventId = -1;
       while (events.hasNext()) {
         HistoryEvent event = events.next();
-        bufferedEvents.add(event);
+        replayCurrentTimeMilliseconds = TimeUnit.MICROSECONDS.toMillis(event.getTimestamp());
         EventType eventType = event.getEventType();
-        if (eventType.equals(EventType.DecisionTaskTimedOut)) {
-          return true;
-        } else if (eventType.equals(EventType.DecisionTaskFailed)) {
-          return true;
-        } else if (eventType.equals(EventType.DecisionTaskCompleted)) {
-          return false;
+        if (eventType == EventType.DecisionTaskStarted) {
+          if (!events.hasNext()) {
+            replay = false;
+            nextDecisionEventId = event.getEventId() + 2; // +1 for next, +1 for DecisionCompleted
+            break;
+          }
+          HistoryEvent peeked = events.peek();
+          EventType peekedType = peeked.getEventType();
+          if (peekedType == EventType.DecisionTaskTimedOut
+              || peekedType == EventType.DecisionTaskFailed) {
+            continue;
+          } else if (peekedType == EventType.DecisionTaskCompleted) {
+            events.next(); // consume DecisionTaskCompleted
+            nextDecisionEventId = peeked.getEventId() + 1; // +1 for next
+            break;
+          } else {
+            throw new Error("Unexpected event after DecisionTaskStarted: " + peeked);
+          }
         }
+        newEvents.add(event);
       }
-      return false;
-    }
-
-    @Override
-    public void remove() {
-      throw new UnsupportedOperationException();
-    }
-
-    public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
-      return workflowExecutionStartedEventAttributes;
+      while (events.hasNext()) {
+        HistoryEvent event = events.next();
+        if (!WorkflowExecutionUtils.isDecisionEvent(event)) {
+          break;
+        }
+        decisionEvents.add(event);
+      }
+      return new DecisionEvents(
+          newEvents, decisionEvents, replay, replayCurrentTimeMilliseconds, nextDecisionEventId);
     }
   }
 
-  private final EventsIterator events;
+  private final DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator;
+  private final DecisionEventsIterator iterator;
 
-  public HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks) {
-    this.events = new EventsIterator(decisionTasks);
+  HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks) {
+    this.decisionTaskWithHistoryIterator = decisionTasks;
+    this.iterator = new DecisionEventsIterator(decisionTasks);
+  }
+
+  public DecisionEventsIterator getIterator() {
+    return iterator;
+  }
+
+  public PollForDecisionTaskResponse getDecisionTask() {
+    return decisionTaskWithHistoryIterator.getDecisionTask();
   }
 
   public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
-    return events.getWorkflowExecutionStartedEventAttributes();
-  }
-
-  public EventsIterator getEvents() {
-    return events;
+    return decisionTaskWithHistoryIterator.getStartedEvent();
   }
 
   @Override
   public String toString() {
     return WorkflowExecutionUtils.prettyPrintHistory(
-        events.getDecisionTask().getHistory().getEvents().iterator(), true);
+        decisionTaskWithHistoryIterator.getDecisionTask().getHistory().getEvents().iterator(),
+        true);
   }
 
-  public PollForDecisionTaskResponse getDecisionTask() {
-    return events.getDecisionTask();
-  }
-
-  public long getPreviousStartedEventId() {
+  long getPreviousStartedEventId() {
     return getDecisionTask().getPreviousStartedEventId();
   }
 }

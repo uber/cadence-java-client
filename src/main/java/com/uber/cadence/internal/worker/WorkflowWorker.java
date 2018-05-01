@@ -46,7 +46,7 @@ public final class WorkflowWorker implements SuspendableWorker {
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
-  private static final String POLL_THREAD_NAME_PREFIX = "Poller taskList=";
+  private static final String POLL_THREAD_NAME_PREFIX = "Workflow Poller taskList=";
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
   private Poller poller;
@@ -88,9 +88,11 @@ public final class WorkflowWorker implements SuspendableWorker {
                         + "\", type=\"workflow\"")
                 .build();
       }
+      SingleWorkerOptions workerOptions =
+          new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
       Poller.ThrowingRunnable pollTask =
-          new PollTask<>(service, domain, taskList, options, new TaskHandlerImpl(handler));
-      poller = new Poller(pollerOptions, options.getIdentity(), pollTask);
+          new PollTask<>(service, domain, taskList, workerOptions, new TaskHandlerImpl(handler));
+      poller = new Poller(pollerOptions, workerOptions.getIdentity(), pollTask);
       poller.start();
     }
   }

@@ -51,6 +51,7 @@ import com.uber.cadence.testing.TestEnvironmentOptions.Builder;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
+import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -94,6 +95,12 @@ import org.slf4j.LoggerFactory;
 @RunWith(ParallelParameterized.class)
 public class WorkflowTest {
 
+  /**
+   * When set to true increases test, activity and workflow timeouts to large values to support
+   * stepping through code in a debugger without timing out.
+   */
+  private static final boolean DEBUGGER_TIMEOUTS = true;
+
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
@@ -104,7 +111,7 @@ public class WorkflowTest {
   }
 
   @Rule public TestName testName = new TestName();
-  @Rule public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule public Timeout globalTimeout = Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : 5);
 
   @Rule
   public TestWatcher watchman =
@@ -142,19 +149,37 @@ public class WorkflowTest {
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
 
   private static WorkflowOptions.Builder newWorkflowOptionsBuilder(String taskList) {
-    return new WorkflowOptions.Builder()
-        .setExecutionStartToCloseTimeout(Duration.ofSeconds(1000))
-        .setTaskList(taskList);
+    if (DEBUGGER_TIMEOUTS) {
+      return new WorkflowOptions.Builder()
+          .setExecutionStartToCloseTimeout(Duration.ofSeconds(1000))
+          .setTaskStartToCloseTimeout(Duration.ofSeconds(60))
+          .setTaskList(taskList);
+    } else {
+      return new WorkflowOptions.Builder()
+          .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
+          .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
+          .setTaskList(taskList);
+    }
   }
 
   private static ActivityOptions newActivityOptions1(String taskList) {
-    return new ActivityOptions.Builder()
-        .setTaskList(taskList)
-        .setScheduleToCloseTimeout(Duration.ofSeconds(5))
-        .setHeartbeatTimeout(Duration.ofSeconds(5))
-        .setScheduleToStartTimeout(Duration.ofSeconds(5))
-        .setStartToCloseTimeout(Duration.ofSeconds(10))
-        .build();
+    if (DEBUGGER_TIMEOUTS) {
+      return new ActivityOptions.Builder()
+          .setTaskList(taskList)
+          .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+          .setHeartbeatTimeout(Duration.ofSeconds(5))
+          .setScheduleToStartTimeout(Duration.ofSeconds(5))
+          .setStartToCloseTimeout(Duration.ofSeconds(10))
+          .build();
+    } else {
+      return new ActivityOptions.Builder()
+          .setTaskList(taskList)
+          .setScheduleToCloseTimeout(Duration.ofSeconds(1000))
+          .setHeartbeatTimeout(Duration.ofSeconds(1000))
+          .setScheduleToStartTimeout(Duration.ofSeconds(1000))
+          .setStartToCloseTimeout(Duration.ofSeconds(10000))
+          .build();
+    }
   }
 
   private static ActivityOptions newActivityOptions2() {
@@ -2593,6 +2618,39 @@ public class WorkflowTest {
     assertEquals("result=2, 100", result);
   }
 
+  public static class TestSideEffectWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+
+      long workflowTime = Workflow.currentTimeMillis();
+      long time = Workflow.sideEffect(long.class, System::currentTimeMillis);
+      String result;
+      if (workflowTime < time) {
+        result = testActivities.activity1("foo");
+      } else {
+        result = testActivities.activity2("bar", 2);
+      }
+      return result;
+    }
+  }
+
+  @Test
+  public void testSideEffect() {
+    startWorkerFor(TestSideEffectWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("activity10", result);
+    tracer.setExpected(
+        "sleep PT2S",
+        "executeActivity TestActivities::activityWithDelay",
+        "executeActivity TestActivities::activity2");
+  }
+
   private static class TracingWorkflowInterceptorFactory
       implements Function<WorkflowInterceptor, WorkflowInterceptor> {
 
@@ -2700,6 +2758,12 @@ public class WorkflowTest {
     public Promise<Void> newTimer(Duration duration) {
       trace.add("newTimer " + duration);
       return next.newTimer(duration);
+    }
+
+    @Override
+    public <R> R sideEffect(Class<R> resultType, Func<R> func) {
+      trace.add("sideEffect");
+      return next.sideEffect(resultType, func);
     }
 
     @Override
