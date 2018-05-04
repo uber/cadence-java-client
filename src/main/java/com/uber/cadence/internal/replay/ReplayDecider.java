@@ -342,7 +342,7 @@ class ReplayDecider {
 
         decisionsHelper.handleDecisionTaskStartedEvent(
             decision.isReplay(), decision.getNextDecisionEventId(), decision.getDecisionEvents());
-        for (HistoryEvent event: decision.getMarkers()) {
+        for (HistoryEvent event : decision.getMarkers()) {
           processEvent(event);
         }
         for (HistoryEvent event : decision.getEvents()) {

@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 
 class DecisionsHelper {
 
-      private static final Logger log = LoggerFactory.getLogger(DecisionsHelper.class);
+//  private static final Logger log = LoggerFactory.getLogger(DecisionsHelper.class);
 
   /**
    * TODO: Update constant once Cadence introduces the limit of decision per completion. Or remove
@@ -131,7 +131,8 @@ class DecisionsHelper {
         getDecision(new DecisionId(DecisionTarget.ACTIVITY, scheduledEventId));
     if (decision.cancel(immediateCancellationCallback)) {
       nextDecisionEventId++;
-    };
+    }
+    ;
     return decision.isDone();
   }
 
@@ -273,7 +274,8 @@ class DecisionsHelper {
         getDecision(new DecisionId(DecisionTarget.SIGNAL_EXTERNAL_WORKFLOW, initiatedEventId));
     if (decision.cancel(immediateCancellationCallback)) {
       nextDecisionEventId++;
-    };
+    }
+    ;
   }
 
   boolean handleSignalExternalWorkflowExecutionFailed(long initiatedEventId) {
@@ -483,16 +485,13 @@ class DecisionsHelper {
 
   void recordMarker(String markerName, byte[] details) {
     RecordMarkerDecisionAttributes marker =
-        new RecordMarkerDecisionAttributes()
-            .setMarkerName(markerName)
-            .setDetails(details);
+        new RecordMarkerDecisionAttributes().setMarkerName(markerName).setDetails(details);
     Decision decision =
         new Decision()
             .setDecisionType(DecisionType.RecordMarker)
             .setRecordMarkerDecisionAttributes(marker);
     long nextDecisionEventId = getNextDecisionEventId();
     DecisionId decisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
-    log.trace("recordMarker decisionId="+decisionId);
     addDecision(decisionId, new MarkerDecisionStateMachine(decisionId, decision));
   }
 

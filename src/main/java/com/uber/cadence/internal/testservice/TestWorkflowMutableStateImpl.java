@@ -36,6 +36,7 @@ import com.uber.cadence.EventType;
 import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
@@ -46,6 +47,7 @@ import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RecordMarkerDecisionAttributes;
 import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
 import com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
@@ -321,11 +323,32 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         processSignalExternalWorkflowExecution(
             ctx, d.getSignalExternalWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId);
         break;
-      case RequestCancelExternalWorkflowExecution:
       case RecordMarker:
+        processRecordMarker(ctx, d.getRecordMarkerDecisionAttributes(), decisionTaskCompletedId);
+        break;
+      case RequestCancelExternalWorkflowExecution:
         throw new InternalServiceError(
             "Decision " + d.getDecisionType() + " is not yet " + "implemented");
     }
+  }
+
+  private void processRecordMarker(
+      RequestContext ctx, RecordMarkerDecisionAttributes attr, long decisionTaskCompletedId)
+      throws BadRequestError {
+    MarkerRecordedEventAttributes marker = new MarkerRecordedEventAttributes();
+    if (attr.isSetDetails()) {
+      marker.setDetails(attr.getDetails());
+    }
+    if (!attr.isSetMarkerName()) {
+      throw new BadRequestError("marker name is required");
+    }
+    marker.setMarkerName(attr.getMarkerName());
+    marker.setDecisionTaskCompletedEventId(decisionTaskCompletedId);
+    HistoryEvent event =
+        new HistoryEvent()
+            .setEventType(EventType.MarkerRecorded)
+            .setMarkerRecordedEventAttributes(marker);
+    ctx.addEvent(event);
   }
 
   private void processCancelTimer(

@@ -80,7 +80,6 @@ import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -2627,7 +2626,7 @@ public class WorkflowTest {
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
 
       long workflowTime = Workflow.currentTimeMillis();
-      long time = Workflow.sideEffect(long.class,() -> workflowTime);
+      long time = Workflow.sideEffect(long.class, () -> workflowTime);
       Workflow.sleep(Duration.ofSeconds(1));
       String result;
       if (workflowTime == time) {
@@ -2640,7 +2639,7 @@ public class WorkflowTest {
   }
 
   @Test
-//  @Ignore("Side effect is not implemented yet")
+  //  @Ignore("Side effect is not implemented yet")
   public void testSideEffect() {
     startWorkerFor(TestSideEffectWorkflowImpl.class);
     TestWorkflow1 workflowStub =
@@ -2648,10 +2647,7 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity1", result);
-    tracer.setExpected(
-        "sideEffect",
-        "sleep PT1S",
-        "executeActivity customActivity1");
+    tracer.setExpected("sideEffect", "sleep PT1S", "executeActivity customActivity1");
   }
 
   private static class TracingWorkflowInterceptorFactory

@@ -61,7 +61,7 @@ class HistoryHelper {
       }
       this.events = events;
       this.decisionEvents = decisionEvents;
-      for(HistoryEvent event: decisionEvents) {
+      for (HistoryEvent event : decisionEvents) {
         if (event.getEventType() == EventType.MarkerRecorded) {
           markers.add(event);
         }
@@ -97,14 +97,18 @@ class HistoryHelper {
 
     @Override
     public String toString() {
-      return "DecisionEvents{" +
-          "events=" + WorkflowExecutionUtils.prettyPrintHistory(events.iterator(), true) +
-          ", decisionEvents=" +
-          WorkflowExecutionUtils.prettyPrintHistory(decisionEvents.iterator(), true) +
-          ", replay=" + replay +
-          ", replayCurrentTimeMilliseconds=" + replayCurrentTimeMilliseconds +
-          ", nextDecisionEventId=" + nextDecisionEventId +
-          '}';
+      return "DecisionEvents{"
+          + "events="
+          + WorkflowExecutionUtils.prettyPrintHistory(events.iterator(), true)
+          + ", decisionEvents="
+          + WorkflowExecutionUtils.prettyPrintHistory(decisionEvents.iterator(), true)
+          + ", replay="
+          + replay
+          + ", replayCurrentTimeMilliseconds="
+          + replayCurrentTimeMilliseconds
+          + ", nextDecisionEventId="
+          + nextDecisionEventId
+          + '}';
     }
   }
 
@@ -203,8 +207,13 @@ class HistoryHelper {
         }
         decisionEvents.add(events.next());
       }
-      DecisionEvents result = new DecisionEvents(
-          newEvents, decisionEvents, replay, replayCurrentTimeMilliseconds, nextDecisionEventId);
+      DecisionEvents result =
+          new DecisionEvents(
+              newEvents,
+              decisionEvents,
+              replay,
+              replayCurrentTimeMilliseconds,
+              nextDecisionEventId);
       log.debug("DecisionEventsIterator next=" + result);
       return result;
     }

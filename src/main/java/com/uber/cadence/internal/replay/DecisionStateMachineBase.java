@@ -34,9 +34,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
     stateHistory.add(state.toString());
   }
 
-  /**
-   * Used for unit testing.
-   */
+  /** Used for unit testing. */
   protected DecisionStateMachineBase(DecisionId id, DecisionState state) {
     this.id = id;
     this.state = state;

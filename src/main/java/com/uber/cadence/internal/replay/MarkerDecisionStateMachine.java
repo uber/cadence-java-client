@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
-import com.uber.cadence.HistoryEvent;
 
 public class MarkerDecisionStateMachine extends DecisionStateMachineBase {
 
