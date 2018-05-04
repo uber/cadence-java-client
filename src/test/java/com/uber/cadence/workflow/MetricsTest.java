@@ -39,14 +39,17 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 public class MetricsTest {
+
   private static final String taskList = "metrics-test";
 
   public interface TestWorkflow {
+
     @WorkflowMethod
     void execute();
   }
 
   public static class TestMetricsInWorkflow implements TestWorkflow {
+
     @Override
     public void execute() {
       Workflow.getMetricsScope().counter("test-started").inc(1);
@@ -61,6 +64,7 @@ public class MetricsTest {
   }
 
   public interface TestChildWorkflow {
+
     @WorkflowMethod
     void executeChild();
   }
@@ -104,7 +108,7 @@ public class MetricsTest {
     TestWorkflow workflow = workflowClient.newWorkflowStub(TestWorkflow.class, options);
     workflow.execute();
 
-    Thread.sleep(20);
+    Thread.sleep(200);
 
     verify(reporter, times(1)).reportCounter("test-started", null, 1);
     verify(reporter, times(1)).reportCounter("test-done", null, 1);
@@ -116,7 +120,9 @@ public class MetricsTest {
     verify(reporter, times(1)).reportTimer(eq("test-timer"), any(), sleepDurationCaptor.capture());
 
     com.uber.m3.util.Duration sleepDuration = sleepDurationCaptor.getValue();
-    assertTrue(sleepDuration.compareTo(com.uber.m3.util.Duration.ofSeconds(3)) > 0);
-    assertTrue(sleepDuration.compareTo(com.uber.m3.util.Duration.ofMillis(3100)) < 0);
+    assertTrue(sleepDuration.toString(),
+        sleepDuration.compareTo(com.uber.m3.util.Duration.ofSeconds(3)) > 0);
+    assertTrue(sleepDuration.toString(),
+        sleepDuration.compareTo(com.uber.m3.util.Duration.ofMillis(3100)) < 0);
   }
 }

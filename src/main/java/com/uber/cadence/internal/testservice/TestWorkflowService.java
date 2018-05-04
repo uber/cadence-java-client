@@ -172,12 +172,13 @@ public final class TestWorkflowService implements IWorkflowService {
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
-      ServiceBusyError, TException {
+          ServiceBusyError, TException {
     return startWorkflowExecutionImpl(startRequest, Optional.empty(), OptionalLong.empty());
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
-      StartWorkflowExecutionRequest startRequest, Optional<TestWorkflowMutableState> parent,
+      StartWorkflowExecutionRequest startRequest,
+      Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, InternalServiceError {
     String requestWorkflowId = requireNotNull("WorkflowId", startRequest.getWorkflowId());
@@ -202,12 +203,12 @@ public final class TestWorkflowService implements IWorkflowService {
       WorkflowExecutionCloseStatus status = statusOptional.get();
       if (policy == WorkflowIdReusePolicy.AllowDuplicateFailedOnly
           && (status == WorkflowExecutionCloseStatus.COMPLETED
-          || status == WorkflowExecutionCloseStatus.CONTINUED_AS_NEW)) {
+              || status == WorkflowExecutionCloseStatus.CONTINUED_AS_NEW)) {
         return throwDuplicatedWorkflow(startRequest, existing);
       }
     }
-    return startWorkflowExecutionNoRunningCheck(startRequest, parent, parentChildInitiatedEventId,
-        workflowId);
+    return startWorkflowExecutionNoRunningCheck(
+        startRequest, parent, parentChildInitiatedEventId, workflowId);
   }
 
   private StartWorkflowExecutionResponse throwDuplicatedWorkflow(
@@ -226,12 +227,13 @@ public final class TestWorkflowService implements IWorkflowService {
   private StartWorkflowExecutionResponse startWorkflowExecutionNoRunningCheck(
       StartWorkflowExecutionRequest startRequest,
       Optional<TestWorkflowMutableState> parent,
-      OptionalLong parentChildInitiatedEventId, WorkflowId workflowId)
+      OptionalLong parentChildInitiatedEventId,
+      WorkflowId workflowId)
       throws InternalServiceError, BadRequestError {
     String domain = startRequest.getDomain();
     TestWorkflowMutableState result =
-        new TestWorkflowMutableStateImpl(startRequest, parent, parentChildInitiatedEventId, this,
-            store);
+        new TestWorkflowMutableStateImpl(
+            startRequest, parent, parentChildInitiatedEventId, this, store);
     WorkflowExecution execution = result.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     lock.lock();
@@ -249,7 +251,7 @@ public final class TestWorkflowService implements IWorkflowService {
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-      TException {
+          TException {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
@@ -396,7 +398,7 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError,
-      CancellationAlreadyRequestedError, ServiceBusyError, TException {
+          CancellationAlreadyRequestedError, ServiceBusyError, TException {
     ExecutionId executionId =
         new ExecutionId(cancelRequest.getDomain(), cancelRequest.getWorkflowExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
@@ -406,7 +408,7 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-      TException {
+          TException {
     ExecutionId executionId =
         new ExecutionId(signalRequest.getDomain(), signalRequest.getWorkflowExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
@@ -434,7 +436,7 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-      TException {
+          TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -448,7 +450,8 @@ public final class TestWorkflowService implements IWorkflowService {
       WorkflowExecutionContinuedAsNewEventAttributes a,
       String identity,
       ExecutionId executionId,
-      Optional<TestWorkflowMutableState> parent, OptionalLong parentChildInitiatedEventId)
+      Optional<TestWorkflowMutableState> parent,
+      OptionalLong parentChildInitiatedEventId)
       throws InternalServiceError, BadRequestError {
     StartWorkflowExecutionRequest startRequest =
         new StartWorkflowExecutionRequest()
@@ -462,8 +465,8 @@ public final class TestWorkflowService implements IWorkflowService {
             .setWorkflowIdReusePolicy(previousRunStartRequest.getWorkflowIdReusePolicy())
             .setIdentity(identity);
     StartWorkflowExecutionResponse response =
-        startWorkflowExecutionNoRunningCheck(startRequest, parent, parentChildInitiatedEventId,
-            executionId.getWorkflowId());
+        startWorkflowExecutionNoRunningCheck(
+            startRequest, parent, parentChildInitiatedEventId, executionId.getWorkflowId());
     return response.getRunId();
   }
 
@@ -471,7 +474,7 @@ public final class TestWorkflowService implements IWorkflowService {
   public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
       ListOpenWorkflowExecutionsRequest listRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-      TException {
+          TException {
     Optional<String> workflowIdFilter;
     WorkflowExecutionFilter executionFilter = listRequest.getExecutionFilter();
     if (executionFilter != null
@@ -489,7 +492,7 @@ public final class TestWorkflowService implements IWorkflowService {
   public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
       ListClosedWorkflowExecutionsRequest listRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-      TException {
+          TException {
     Optional<String> workflowIdFilter;
     WorkflowExecutionFilter executionFilter = listRequest.getExecutionFilter();
     if (executionFilter != null
@@ -515,7 +518,7 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, QueryFailedError,
-      TException {
+          TException {
     ExecutionId executionId =
         new ExecutionId(queryRequest.getDomain(), queryRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
@@ -738,9 +741,7 @@ public final class TestWorkflowService implements IWorkflowService {
     return store.getTimer().getClock().getAsLong();
   }
 
-  /**
-   * Invokes callback after the specified delay according to internal service clock.
-   */
+  /** Invokes callback after the specified delay according to internal service clock. */
   public void registerDelayedCallback(Duration delay, Runnable r) {
     store.registerDelayedCallback(delay, r);
   }

@@ -440,7 +440,8 @@ class StateMachines {
             () -> {
               try {
                 data.service.startWorkflowExecutionImpl(
-                    startChild, Optional.of(ctx.getWorkflowMutableState()),
+                    startChild,
+                    Optional.of(ctx.getWorkflowMutableState()),
                     OptionalLong.of(data.initiatedEventId));
               } catch (WorkflowExecutionAlreadyStartedError workflowExecutionAlreadyStartedError) {
                 StartChildWorkflowExecutionFailedEventAttributes failRequest =
@@ -449,8 +450,8 @@ class StateMachines {
                         .setCause(ChildWorkflowExecutionFailedCause.WORKFLOW_ALREADY_RUNNING);
                 try {
                   ctx.getWorkflowMutableState()
-                      .failStartChildWorkflow(data.initiatedEvent.getWorkflowId(), failRequest,
-                          initiatedEventId);
+                      .failStartChildWorkflow(
+                          data.initiatedEvent.getWorkflowId(), failRequest, initiatedEventId);
                 } catch (Throwable e) {
                   log.error("Unexpected failure inserting failStart for a child workflow", e);
                 }

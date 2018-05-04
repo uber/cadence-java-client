@@ -107,7 +107,6 @@ import org.slf4j.LoggerFactory;
 
 class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
-
   @FunctionalInterface
   private interface UpdateProcedure {
 
@@ -139,9 +138,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
 
-  /**
-   * @param parentChildInitiatedEventId id of the child initiated event in the parent history
-   */
+  /** @param parentChildInitiatedEventId id of the child initiated event in the parent history */
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest,
       Optional<TestWorkflowMutableState> parent,
@@ -587,8 +584,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a, long
-      initiatedEventId)
+  public void childWorkflowStarted(
+      ChildWorkflowExecutionStartedEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -602,8 +599,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public void childWorklfowFailed(String activityId, ChildWorkflowExecutionFailedEventAttributes a, long
-      initiatedEventId)
+  public void childWorklfowFailed(
+      String activityId, ChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -617,8 +614,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorklfowTimedOut(
-      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a, long
-      initiatedEventId)
+      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -631,8 +627,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void failStartChildWorkflow(
-      String childId, StartChildWorkflowExecutionFailedEventAttributes a, long
-      initiatedEventId)
+      String childId, StartChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -646,8 +641,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorkflowCompleted(
-      String activityId, ChildWorkflowExecutionCompletedEventAttributes a, long
-      initiatedEventId)
+      String activityId, ChildWorkflowExecutionCompletedEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -660,8 +654,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorkflowCanceled(
-      String activityId, ChildWorkflowExecutionCanceledEventAttributes a, long
-      initiatedEventId)
+      String activityId, ChildWorkflowExecutionCanceledEventAttributes a, long initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
@@ -735,8 +728,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                 try {
                   parent
                       .get()
-                      .childWorklfowFailed(ctx.getExecutionId().getWorkflowId().getWorkflowId(),
-                          a, parentChildInitiatedEventId.getAsLong());
+                      .childWorklfowFailed(
+                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
+                          a,
+                          parentChildInitiatedEventId.getAsLong());
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
                 } catch (BadRequestError | InternalServiceError e) {
@@ -768,7 +763,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                   parent
                       .get()
                       .childWorkflowCompleted(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a,
+                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
+                          a,
                           parentChildInitiatedEventId.getAsLong());
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
@@ -799,7 +795,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                   parent
                       .get()
                       .childWorkflowCanceled(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a,
+                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
+                          a,
                           parentChildInitiatedEventId.getAsLong());
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
@@ -1118,8 +1115,12 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setWorkflowType(startRequest.getWorkflowType())
               .setDomain(ctx.getDomain())
               .setWorkflowExecution(ctx.getExecution());
-      parent.get().childWorklfowTimedOut(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a,
-          parentChildInitiatedEventId.getAsLong());
+      parent
+          .get()
+          .childWorklfowTimedOut(
+              ctx.getExecutionId().getWorkflowId().getWorkflowId(),
+              a,
+              parentChildInitiatedEventId.getAsLong());
     } catch (EntityNotExistsError entityNotExistsError) {
       // Parent might already close
     } catch (BadRequestError | InternalServiceError e) {
