@@ -22,13 +22,13 @@ import com.uber.cadence.DecisionType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes;
 
-public class ExternalWorkflowCancellationDecisionStateMachine extends DecisionStateMachineBase {
+final class ExternalWorkflowCancellationDecisionStateMachine extends DecisionStateMachineBase {
 
   private RequestCancelExternalWorkflowExecutionDecisionAttributes attributes;
 
   private boolean canceled;
 
-  public ExternalWorkflowCancellationDecisionStateMachine(
+  ExternalWorkflowCancellationDecisionStateMachine(
       DecisionId decisionId, RequestCancelExternalWorkflowExecutionDecisionAttributes attributes) {
     super(decisionId);
     this.attributes = attributes;

@@ -38,6 +38,12 @@ class HistoryHelper {
 
   private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
+  /**
+   * Events of a single decision.
+   * It includes all new events in the history since the last decision as events. It doesn't
+   * include events that are decision events of the previous decision.
+   * The decision events are events that this decision produced when executed for the first time.
+   */
   static final class DecisionEvents {
 
     private final List<HistoryEvent> events;
@@ -112,6 +118,9 @@ class HistoryHelper {
     }
   }
 
+  /**
+   * Allows peeking for the next event.
+   */
   private static final class EventsIterator implements PeekingIterator<HistoryEvent> {
 
     private Iterator<HistoryEvent> events;
@@ -154,6 +163,10 @@ class HistoryHelper {
     }
   }
 
+  /**
+   * Iterates through decisions and returns one DecisionEvents instance per DecisionTaskStarted
+   * event.
+   */
   static class DecisionEventsIterator implements Iterator<DecisionEvents> {
 
     private EventsIterator events;
@@ -179,6 +192,7 @@ class HistoryHelper {
       while (events.hasNext()) {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
+        // hasNext is for queries that do not have DecisionTaskStarted at the end of the history.
         if (eventType == EventType.DecisionTaskStarted || !events.hasNext()) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
           if (!events.hasNext()) {

@@ -85,6 +85,7 @@ final class WorkflowDecisionContext {
   private final Map<Long, OpenChildWorkflowRequestInfo> scheduledExternalWorkflows =
       new HashMap<>();
 
+  // key is initiatedEventId
   private final Map<Long, OpenRequestInfo<Void, Void>> scheduledSignals = new HashMap<>();
 
   WorkflowDecisionContext(DecisionsHelper decisions, WorkflowContext workflowContext) {

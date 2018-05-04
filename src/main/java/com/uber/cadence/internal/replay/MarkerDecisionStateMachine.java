@@ -19,11 +19,11 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
 
-public class MarkerDecisionStateMachine extends DecisionStateMachineBase {
+final class MarkerDecisionStateMachine extends DecisionStateMachineBase {
 
   private final Decision decision;
 
-  public MarkerDecisionStateMachine(DecisionId id, Decision decision) {
+  MarkerDecisionStateMachine(DecisionId id, Decision decision) {
     super(id);
     this.decision = decision;
   }

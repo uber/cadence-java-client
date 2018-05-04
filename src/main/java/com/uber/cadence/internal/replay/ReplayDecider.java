@@ -102,7 +102,6 @@ class ReplayDecider {
 
   private void processEvent(HistoryEvent event) throws Throwable {
     EventType eventType = event.getEventType();
-    log.trace("processEvent eventType=" + eventType);
     switch (eventType) {
       case ActivityTaskCanceled:
         context.handleActivityTaskCanceled(event);

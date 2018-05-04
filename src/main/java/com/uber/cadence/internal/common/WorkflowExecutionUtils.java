@@ -68,8 +68,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Convenience methods to be used by unit tests and during development.
@@ -77,8 +75,6 @@ import org.slf4j.LoggerFactory;
  * @author fateev
  */
 public class WorkflowExecutionUtils {
-
-  private static final Logger log = LoggerFactory.getLogger(WorkflowExecutionUtils.class);
 
   /**
    * Indentation for history and decisions pretty printing. Do not change it from 2 spaces. The gson
@@ -934,7 +930,6 @@ public class WorkflowExecutionUtils {
                 || eventType == EventType.RequestCancelExternalWorkflowExecutionInitiated
                 || eventType == EventType.MarkerRecorded
                 || eventType == EventType.SignalExternalWorkflowExecutionInitiated));
-    log.trace("isDecisionEvent type=" + eventType + ", result=" + result);
     return result;
   }
 

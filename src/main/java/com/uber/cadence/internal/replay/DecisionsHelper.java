@@ -90,6 +90,7 @@ class DecisionsHelper {
   private final Map<DecisionId, DecisionStateMachine> decisions =
       new LinkedHashMap<>(100, 0.75f, true);
 
+  // TODO: removal of completed activities
   private final Map<String, Long> activityIdToScheduledEventId = new HashMap<>();
 
   private byte[] workflowContextData;
@@ -199,14 +200,11 @@ class DecisionsHelper {
     return nextDecisionEventId;
   }
 
-  //  void handleStartChildWorkflowExecutionInitiated(HistoryEvent event) {
-  //    StartChildWorkflowExecutionInitiatedEventAttributes attributes =
-  //        event.getStartChildWorkflowExecutionInitiatedEventAttributes();
-  //    String workflowId = attributes.getWorkflowId();
-  //    DecisionStateMachine decision =
-  //        getDecision(new DecisionId(DecisionTarget.CHILD_WORKFLOW, workflowId));
-  //    decision.handleInitiatedEvent(event);
-  //  }
+  void handleStartChildWorkflowExecutionInitiated(HistoryEvent event) {
+    DecisionStateMachine decision =
+        getDecision(new DecisionId(DecisionTarget.CHILD_WORKFLOW, event.getEventId()));
+    decision.handleInitiatedEvent(event);
+  }
 
   boolean handleStartChildWorkflowExecutionFailed(HistoryEvent event) {
     StartChildWorkflowExecutionFailedEventAttributes attributes =
@@ -273,7 +271,6 @@ class DecisionsHelper {
     if (decision.cancel(immediateCancellationCallback)) {
       nextDecisionEventId++;
     }
-    ;
   }
 
   boolean handleSignalExternalWorkflowExecutionFailed(long initiatedEventId) {
@@ -366,12 +363,6 @@ class DecisionsHelper {
   void handleSignalExternalWorkflowExecutionInitiated(HistoryEvent event) {
     DecisionStateMachine decision =
         getDecision(new DecisionId(DecisionTarget.SIGNAL_EXTERNAL_WORKFLOW, event.getEventId()));
-    decision.handleInitiatedEvent(event);
-  }
-
-  void handleStartChildWorkflowExecutionInitiated(HistoryEvent event) {
-    DecisionStateMachine decision =
-        getDecision(new DecisionId(DecisionTarget.CHILD_WORKFLOW, event.getEventId()));
     decision.handleInitiatedEvent(event);
   }
 
@@ -534,9 +525,6 @@ class DecisionsHelper {
   public void handleDecisionTaskStartedEvent(
       boolean replay, long nextDecisionEventId, List<HistoryEvent> decisionEvents) {
     this.replay = replay;
-    //    if (!replay && !decisionEvents.isEmpty()) {
-    //      throw new Error("Decisions found when replay is set to false: " + decisionEvents);
-    //    }
     setDecisionEvents(decisionEvents);
     this.nextDecisionEventId = nextDecisionEventId;
   }
