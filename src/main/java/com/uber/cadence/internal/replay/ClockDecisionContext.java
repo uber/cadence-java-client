@@ -56,6 +56,7 @@ final class ClockDecisionContext {
 
   private final DecisionsHelper decisions;
 
+  // key is startedEventId
   private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers = new HashMap<>();
 
   private long replayCurrentTimeMilliseconds;
@@ -160,7 +161,8 @@ final class ClockDecisionContext {
     MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
     if (SIDE_EFFECT_MARKER_NAME.equals(attributes.getMarkerName())) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
+    } else {
+      log.warn("Unexpected marker: " + event);
     }
-    log.warn("Unexpected marker: " + event);
   }
 }

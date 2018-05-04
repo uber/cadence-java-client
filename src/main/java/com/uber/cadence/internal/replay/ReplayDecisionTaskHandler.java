@@ -90,7 +90,6 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     ReplayDecider decider = createDecider(historyHelper);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
-    decider.decide();
     if (decisionTask.isSetQuery()) {
       RespondQueryTaskCompletedRequest queryCompletedRequest =
           new RespondQueryTaskCompletedRequest();
@@ -109,6 +108,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       }
       return new DecisionTaskHandler.Result(null, null, queryCompletedRequest, null);
     } else {
+      decider.decide();
       DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
       List<Decision> decisions = decisionsHelper.getDecisions();
       byte[] context = decisionsHelper.getWorkflowContextDataToReturn();

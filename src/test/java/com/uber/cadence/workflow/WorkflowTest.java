@@ -80,6 +80,7 @@ import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -99,7 +100,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = true;
+  private static final boolean DEBUGGER_TIMEOUTS = false;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -192,7 +193,7 @@ public class WorkflowTest {
         || testName.getMethodName().equals("testStart[TestService]")) {
       taskList = ANNOTATION_TASK_LIST;
     } else {
-      taskList = "WorkflowTest-" + testName.getMethodName();
+      taskList = "WorkflowTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     }
     tracer = new TracingWorkflowInterceptorFactory();
     if (useExternalService) {
@@ -2626,29 +2627,31 @@ public class WorkflowTest {
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
 
       long workflowTime = Workflow.currentTimeMillis();
-      long time = Workflow.sideEffect(long.class, System::currentTimeMillis);
+      long time = Workflow.sideEffect(long.class,() -> workflowTime);
+      Workflow.sleep(Duration.ofSeconds(1));
       String result;
-      if (workflowTime < time) {
-        result = testActivities.activity1("foo");
+      if (workflowTime == time) {
+        result = testActivities.activity1("activity1");
       } else {
-        result = testActivities.activity2("bar", 2);
+        result = testActivities.activity2("activity2", 2);
       }
       return result;
     }
   }
 
   @Test
+//  @Ignore("Side effect is not implemented yet")
   public void testSideEffect() {
     startWorkerFor(TestSideEffectWorkflowImpl.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
-    assertEquals("activity10", result);
+    assertEquals("activity1", result);
     tracer.setExpected(
-        "sleep PT2S",
-        "executeActivity TestActivities::activityWithDelay",
-        "executeActivity TestActivities::activity2");
+        "sideEffect",
+        "sleep PT1S",
+        "executeActivity customActivity1");
   }
 
   private static class TracingWorkflowInterceptorFactory

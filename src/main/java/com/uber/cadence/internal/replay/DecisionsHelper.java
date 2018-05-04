@@ -20,7 +20,6 @@ package com.uber.cadence.internal.replay;
 import com.uber.cadence.ActivityTaskCancelRequestedEventAttributes;
 import com.uber.cadence.ActivityTaskCanceledEventAttributes;
 import com.uber.cadence.ActivityTaskStartedEventAttributes;
-import com.uber.cadence.CancelTimerFailedEventAttributes;
 import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
@@ -61,10 +60,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class DecisionsHelper {
 
-  //    private static final Logger log = LoggerFactory.getLogger(DecisionsHelper.class);
+      private static final Logger log = LoggerFactory.getLogger(DecisionsHelper.class);
 
   /**
    * TODO: Update constant once Cadence introduces the limit of decision per completion. Or remove
@@ -125,10 +126,12 @@ class DecisionsHelper {
    * @return true if cancellation already happened as schedule event was found in the new decisions
    *     list
    */
-  boolean requestCancelActivityTask(String activityId, Runnable immediateCancellationCallback) {
+  boolean requestCancelActivityTask(long scheduledEventId, Runnable immediateCancellationCallback) {
     DecisionStateMachine decision =
-        getDecision(new DecisionId(DecisionTarget.ACTIVITY, getNextDecisionEventId()));
-    decision.cancel(immediateCancellationCallback);
+        getDecision(new DecisionId(DecisionTarget.ACTIVITY, scheduledEventId));
+    if (decision.cancel(immediateCancellationCallback)) {
+      nextDecisionEventId++;
+    };
     return decision.isDone();
   }
 
@@ -220,20 +223,14 @@ class DecisionsHelper {
    * @return true if cancellation already happened as schedule event was found in the new decisions
    *     list
    */
-  boolean requestCancelExternalWorkflowExecution(
-      boolean childWorkflow,
-      RequestCancelExternalWorkflowExecutionDecisionAttributes request,
-      Runnable immediateCancellationCallback) {
-    DecisionStateMachine decision =
-        getDecision(
-            new DecisionId(DecisionTarget.CANCEL_EXTERNAL_WORKFLOW, getNextDecisionEventId()));
-    decision.cancel(immediateCancellationCallback);
-    return decision.isDone();
-    DecisionId decisionId = new DecisionId(DecisionTarget.ACTIVITY, nextDecisionEventId);
-    activityIdToScheduledEventId.put(schedule.getActivityId(), nextDecisionEventId);
-    addDecision(decisionId, new ActivityDecisionStateMachine(decisionId, schedule));
+  long requestCancelExternalWorkflowExecution(
+      RequestCancelExternalWorkflowExecutionDecisionAttributes schedule) {
+    long nextDecisionEventId = getNextDecisionEventId();
+    DecisionId decisionId =
+        new DecisionId(DecisionTarget.CANCEL_EXTERNAL_WORKFLOW, nextDecisionEventId);
+    addDecision(
+        decisionId, new ExternalWorkflowCancellationDecisionStateMachine(decisionId, schedule));
     return nextDecisionEventId;
-
   }
 
   void handleRequestCancelExternalWorkflowExecutionInitiated(HistoryEvent event) {
@@ -242,7 +239,7 @@ class DecisionsHelper {
     decision.handleInitiatedEvent(event);
   }
 
-  void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
+  void handleExternalWorkflowExecutionCancelRequested(HistoryEvent event) {
     ExternalWorkflowExecutionCancelRequestedEventAttributes attributes =
         event.getExternalWorkflowExecutionCancelRequestedEventAttributes();
     DecisionStateMachine decision =
@@ -259,7 +256,7 @@ class DecisionsHelper {
         getDecision(
             new DecisionId(
                 DecisionTarget.CANCEL_EXTERNAL_WORKFLOW, attributes.getInitiatedEventId()));
-    decision.handleCancellationFailureEvent(event);
+    decision.handleCompletionEvent();
   }
 
   long signalExternalWorkflowExecution(SignalExternalWorkflowExecutionDecisionAttributes signal) {
@@ -273,8 +270,10 @@ class DecisionsHelper {
   void cancelSignalExternalWorkflowExecution(
       long initiatedEventId, Runnable immediateCancellationCallback) {
     DecisionStateMachine decision =
-        getDecision(new DecisionId(DecisionTarget.CANCEL_EXTERNAL_WORKFLOW, initiatedEventId));
-    decision.cancel(immediateCancellationCallback);
+        getDecision(new DecisionId(DecisionTarget.SIGNAL_EXTERNAL_WORKFLOW, initiatedEventId));
+    if (decision.cancel(immediateCancellationCallback)) {
+      nextDecisionEventId++;
+    };
   }
 
   boolean handleSignalExternalWorkflowExecutionFailed(long initiatedEventId) {
@@ -304,7 +303,9 @@ class DecisionsHelper {
       // Cancellation callbacks are not deregistered and might be invoked after timer firing
       return true;
     }
-    decision.cancel(immediateCancellationCallback);
+    if (decision.cancel(immediateCancellationCallback)) {
+      nextDecisionEventId++;
+    }
     return decision.isDone();
   }
 
@@ -390,8 +391,7 @@ class DecisionsHelper {
   }
 
   boolean handleCancelTimerFailed(HistoryEvent event) {
-    CancelTimerFailedEventAttributes attributes = event.getCancelTimerFailedEventAttributes();
-    long startedEventId = Long.parseLong(attributes.getTimerId());
+    long startedEventId = event.getEventId();
     DecisionStateMachine decision =
         getDecision(new DecisionId(DecisionTarget.TIMER, startedEventId));
     decision.handleCancellationFailureEvent(event);
@@ -401,7 +401,9 @@ class DecisionsHelper {
   void handleTimerStarted(HistoryEvent event) {
     DecisionStateMachine decision =
         getDecision(new DecisionId(DecisionTarget.TIMER, event.getEventId()));
-    decision.handleStartedEvent(event);
+    // Timer started event is indeed initiation event for the timer as
+    // it doesn't have a separate event for started as an activity does.
+    decision.handleInitiatedEvent(event);
   }
 
   void completeWorkflowExecution(byte[] output) {
@@ -481,13 +483,17 @@ class DecisionsHelper {
 
   void recordMarker(String markerName, byte[] details) {
     RecordMarkerDecisionAttributes marker =
-        new RecordMarkerDecisionAttributes().setMarkerName(markerName).setDetails(details);
+        new RecordMarkerDecisionAttributes()
+            .setMarkerName(markerName)
+            .setDetails(details);
     Decision decision =
         new Decision()
             .setDecisionType(DecisionType.RecordMarker)
             .setRecordMarkerDecisionAttributes(marker);
-    DecisionId decisionId = new DecisionId(DecisionTarget.MARKER, getNextDecisionEventId());
-    addDecision(decisionId, new MarkerStateMachine(decisionId, decision));
+    long nextDecisionEventId = getNextDecisionEventId();
+    DecisionId decisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
+    log.trace("recordMarker decisionId="+decisionId);
+    addDecision(decisionId, new MarkerDecisionStateMachine(decisionId, decision));
   }
 
   List<Decision> getDecisions() {

@@ -72,19 +72,8 @@ final class WorkflowDecisionContext {
       RequestCancelExternalWorkflowExecutionDecisionAttributes cancelAttributes =
           new RequestCancelExternalWorkflowExecutionDecisionAttributes();
       cancelAttributes.setWorkflowId(workflowId);
-
-      decisions.requestCancelExternalWorkflowExecution(
-          true,
-          cancelAttributes,
-          () -> {
-            OpenChildWorkflowRequestInfo scheduled =
-                scheduledExternalWorkflows.remove(initiatedEventId);
-            if (scheduled == null) {
-              throw new Error(
-                  "Workflow with initiatedEventId=\"" + initiatedEventId + "\" wasn't scheduled");
-            }
-            callback.accept(null, new CancellationException("Cancelled by request"));
-          });
+      cancelAttributes.setChildWorkflowOnly(true);
+      decisions.requestCancelExternalWorkflowExecution(cancelAttributes);
     }
   }
 
@@ -92,6 +81,7 @@ final class WorkflowDecisionContext {
 
   private final WorkflowContext workflowContext;
 
+  // key is initiatedEventId
   private final Map<Long, OpenChildWorkflowRequestInfo> scheduledExternalWorkflows =
       new HashMap<>();
 
@@ -202,10 +192,10 @@ final class WorkflowDecisionContext {
         new RequestCancelExternalWorkflowExecutionDecisionAttributes();
     String workflowId = execution.getWorkflowId();
     attributes.setWorkflowId(workflowId);
-    attributes.setRunId(execution.getRunId());
-    boolean childWorkflow = scheduledExternalWorkflows.containsKey(workflowId);
-    // TODO: See if immediate cancellation needed
-    decisions.requestCancelExternalWorkflowExecution(childWorkflow, attributes, null);
+    if (execution.isSetRunId()) {
+      attributes.setRunId(execution.getRunId());
+    }
+    decisions.requestCancelExternalWorkflowExecution(attributes);
   }
 
   void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters continueParameters) {
@@ -239,10 +229,9 @@ final class WorkflowDecisionContext {
   void handleChildWorkflowExecutionStarted(HistoryEvent event) {
     ChildWorkflowExecutionStartedEventAttributes attributes =
         event.getChildWorkflowExecutionStartedEventAttributes();
-    WorkflowExecution execution = attributes.getWorkflowExecution();
-    String workflowId = execution.getWorkflowId();
     decisions.handleChildWorkflowExecutionStarted(event);
-    OpenChildWorkflowRequestInfo scheduled = scheduledExternalWorkflows.get(workflowId);
+    OpenChildWorkflowRequestInfo scheduled =
+        scheduledExternalWorkflows.get(attributes.getInitiatedEventId());
     if (scheduled != null) {
       scheduled.getExecutionCallback().accept(attributes.getWorkflowExecution());
     }
@@ -286,12 +275,12 @@ final class WorkflowDecisionContext {
   void handleStartChildWorkflowExecutionFailed(HistoryEvent event) {
     StartChildWorkflowExecutionFailedEventAttributes attributes =
         event.getStartChildWorkflowExecutionFailedEventAttributes();
-    String workflowId = attributes.getWorkflowId();
     if (decisions.handleStartChildWorkflowExecutionFailed(event)) {
-      OpenChildWorkflowRequestInfo scheduled = scheduledExternalWorkflows.remove(workflowId);
+      OpenChildWorkflowRequestInfo scheduled =
+          scheduledExternalWorkflows.remove(attributes.getInitiatedEventId());
       if (scheduled != null) {
         WorkflowExecution workflowExecution = new WorkflowExecution();
-        workflowExecution.setWorkflowId(workflowId);
+        workflowExecution.setWorkflowId(attributes.getWorkflowId());
         WorkflowType workflowType = attributes.getWorkflowType();
         ChildWorkflowExecutionFailedCause cause = attributes.getCause();
         RuntimeException failure =
@@ -329,9 +318,9 @@ final class WorkflowDecisionContext {
     ChildWorkflowExecutionCompletedEventAttributes attributes =
         event.getChildWorkflowExecutionCompletedEventAttributes();
     WorkflowExecution execution = attributes.getWorkflowExecution();
-    String workflowId = execution.getWorkflowId();
     if (decisions.handleChildWorkflowExecutionCompleted(attributes)) {
-      OpenChildWorkflowRequestInfo scheduled = scheduledExternalWorkflows.remove(workflowId);
+      OpenChildWorkflowRequestInfo scheduled =
+          scheduledExternalWorkflows.remove(attributes.getInitiatedEventId());
       if (scheduled != null) {
         BiConsumer<byte[], Exception> completionCallback = scheduled.getCompletionCallback();
         byte[] result = attributes.getResult();

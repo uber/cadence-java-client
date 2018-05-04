@@ -89,6 +89,7 @@ class ReplayDecider {
 
   private void processEvent(HistoryEvent event) throws Throwable {
     EventType eventType = event.getEventType();
+    log.trace("processEvent eventType=" + eventType);
     switch (eventType) {
       case ActivityTaskCanceled:
         context.handleActivityTaskCanceled(event);
@@ -107,7 +108,7 @@ class ReplayDecider {
         break;
       case ExternalWorkflowExecutionCancelRequested:
         context.handleChildWorkflowExecutionCancelRequested(event);
-        decisionsHelper.handleChildWorkflowExecutionCancelRequested(event);
+        decisionsHelper.handleExternalWorkflowExecutionCancelRequested(event);
         break;
       case ChildWorkflowExecutionCanceled:
         context.handleChildWorkflowExecutionCanceled(event);
@@ -337,14 +338,24 @@ class ReplayDecider {
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
         context.setReplaying(decision.isReplay());
+        context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
+
+        decisionsHelper.handleDecisionTaskStartedEvent(
+            decision.isReplay(), decision.getNextDecisionEventId(), decision.getDecisionEvents());
+        for (HistoryEvent event: decision.getMarkers()) {
+          processEvent(event);
+        }
         for (HistoryEvent event : decision.getEvents()) {
           processEvent(event);
         }
-        decisionsHelper.handleDecisionTaskStartedEvent(
-            decision.isReplay(), decision.getNextDecisionEventId(), decision.getDecisionEvents());
         eventLoop();
-        decisionsHelper.notifyDecisionSent();
         mayBeCompleteWorkflow();
+        if (decision.isReplay()) {
+          decisionsHelper.notifyDecisionSent();
+        }
+        for (HistoryEvent event : decision.getDecisionEvents()) {
+          processEvent(event);
+        }
 
         //        for (HistoryEvent event : decision.getDecisionEvents()) {
         //          processEvent(event);

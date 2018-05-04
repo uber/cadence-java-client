@@ -17,36 +17,23 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.uber.cadence.Decision;
 import com.uber.cadence.HistoryEvent;
 
-interface DecisionStateMachine {
+public class MarkerDecisionStateMachine extends DecisionStateMachineBase {
 
-  com.uber.cadence.Decision getDecision();
+  private final Decision decision;
 
-  /**
-   * @return true if produced a decision
-   */
-  boolean cancel(Runnable immediateCancellationCallback);
+  public MarkerDecisionStateMachine(DecisionId id, Decision decision) {
+    super(id);
+    this.decision = decision;
+  }
 
-  void handleStartedEvent(HistoryEvent event);
-
-  void handleCancellationInitiatedEvent();
-
-  void handleCancellationEvent();
-
-  void handleCancellationFailureEvent(HistoryEvent event);
-
-  void handleCompletionEvent();
-
-  void handleInitiationFailedEvent(HistoryEvent event);
-
-  void handleInitiatedEvent(HistoryEvent event);
-
-  void handleDecisionTaskStartedEvent();
-
-  DecisionState getState();
-
-  boolean isDone();
-
-  DecisionId getId();
+  @Override
+  public com.uber.cadence.Decision getDecision() {
+    if (state == DecisionState.CREATED) {
+      return decision;
+    }
+    return null;
+  }
 }

@@ -31,13 +31,18 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class HistoryHelper {
+
+  private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
   static final class DecisionEvents {
 
     private final List<HistoryEvent> events;
     private final List<HistoryEvent> decisionEvents;
+    private final List<HistoryEvent> markers = new ArrayList<>();
     private final boolean replay;
     private final long replayCurrentTimeMilliseconds;
     private final long nextDecisionEventId;
@@ -56,6 +61,11 @@ class HistoryHelper {
       }
       this.events = events;
       this.decisionEvents = decisionEvents;
+      for(HistoryEvent event: decisionEvents) {
+        if (event.getEventType() == EventType.MarkerRecorded) {
+          markers.add(event);
+        }
+      }
       this.replay = replay;
       this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
       this.nextDecisionEventId = nextDecisionEventId;
@@ -69,6 +79,10 @@ class HistoryHelper {
       return decisionEvents;
     }
 
+    public List<HistoryEvent> getMarkers() {
+      return markers;
+    }
+
     public boolean isReplay() {
       return replay;
     }
@@ -79,6 +93,18 @@ class HistoryHelper {
 
     public long getNextDecisionEventId() {
       return nextDecisionEventId;
+    }
+
+    @Override
+    public String toString() {
+      return "DecisionEvents{" +
+          "events=" + WorkflowExecutionUtils.prettyPrintHistory(events.iterator(), true) +
+          ", decisionEvents=" +
+          WorkflowExecutionUtils.prettyPrintHistory(decisionEvents.iterator(), true) +
+          ", replay=" + replay +
+          ", replayCurrentTimeMilliseconds=" + replayCurrentTimeMilliseconds +
+          ", nextDecisionEventId=" + nextDecisionEventId +
+          '}';
     }
   }
 
@@ -150,7 +176,7 @@ class HistoryHelper {
         HistoryEvent event = events.next();
         replayCurrentTimeMilliseconds = TimeUnit.MICROSECONDS.toMillis(event.getTimestamp());
         EventType eventType = event.getEventType();
-        if (eventType == EventType.DecisionTaskStarted) {
+        if (eventType == EventType.DecisionTaskStarted || !events.hasNext()) {
           if (!events.hasNext()) {
             replay = false;
             nextDecisionEventId = event.getEventId() + 2; // +1 for next, +1 for DecisionCompleted
@@ -172,14 +198,15 @@ class HistoryHelper {
         newEvents.add(event);
       }
       while (events.hasNext()) {
-        HistoryEvent event = events.next();
-        if (!WorkflowExecutionUtils.isDecisionEvent(event)) {
+        if (!WorkflowExecutionUtils.isDecisionEvent(events.peek())) {
           break;
         }
-        decisionEvents.add(event);
+        decisionEvents.add(events.next());
       }
-      return new DecisionEvents(
+      DecisionEvents result = new DecisionEvents(
           newEvents, decisionEvents, replay, replayCurrentTimeMilliseconds, nextDecisionEventId);
+      log.debug("DecisionEventsIterator next=" + result);
+      return result;
     }
   }
 

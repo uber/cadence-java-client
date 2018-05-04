@@ -36,30 +36,38 @@ final class ActivityDecisionContext {
 
   private final class ActivityCancellationHandler implements Consumer<Exception> {
 
+    private final long scheduledEventId;
+
     private final String activityId;
 
     private final BiConsumer<byte[], Exception> callback;
 
     private ActivityCancellationHandler(
-        String activityId, BiConsumer<byte[], Exception> callaback) {
+        long scheduledEventId, String activityId, BiConsumer<byte[], Exception> callaback) {
+      this.scheduledEventId = scheduledEventId;
       this.activityId = activityId;
       this.callback = callaback;
     }
 
     @Override
     public void accept(Exception cause) {
-      if (!scheduledActivities.containsKey(activityId)) {
+      if (!scheduledActivities.containsKey(scheduledEventId)) {
         // Cancellation handlers are not deregistered. So they fire after an activity completion.
         return;
       }
       decisions.requestCancelActivityTask(
-          activityId,
+          scheduledEventId,
           () -> {
             OpenRequestInfo<byte[], ActivityType> scheduled =
-                scheduledActivities.remove(activityId);
+                scheduledActivities.remove(scheduledEventId);
             if (scheduled == null) {
               throw new IllegalArgumentException(
-                  "Activity \"" + activityId + "\" wasn't scheduled");
+                  "Activity \""
+                      + activityId
+                      + "\" with "
+                      + scheduledEventId
+                      + " "
+                      + "scheduledEventId wasn't found");
             }
             callback.accept(null, new CancellationException("Cancelled by request"));
           });
@@ -68,6 +76,7 @@ final class ActivityDecisionContext {
 
   private final DecisionsHelper decisions;
 
+  // key is scheduledEventId
   private final Map<Long, OpenRequestInfo<byte[], ActivityType>> scheduledActivities =
       new HashMap<>();
 
@@ -109,7 +118,7 @@ final class ActivityDecisionContext {
     context.setCompletionHandle(callback);
     scheduledActivities.put(scheduledEventId, context);
     return new ActivityDecisionContext.ActivityCancellationHandler(
-        attributes.getActivityId(), callback);
+        scheduledEventId, attributes.getActivityId(), callback);
   }
 
   void handleActivityTaskCanceled(HistoryEvent event) {

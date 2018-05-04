@@ -71,7 +71,7 @@ import org.junit.runner.Description;
 
 public class WorkflowTestingTest {
 
-  @Rule public Timeout globalTimeout = Timeout.seconds(5);
+  @Rule public Timeout globalTimeout = Timeout.seconds(3);
 
   @Rule
   public TestWatcher watchman =
