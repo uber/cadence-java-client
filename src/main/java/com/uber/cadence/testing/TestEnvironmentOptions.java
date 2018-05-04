@@ -17,21 +17,29 @@
 
 package com.uber.cadence.testing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.workflow.WorkflowInterceptor;
+import com.uber.m3.tally.Scope;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class TestEnvironmentOptions {
+@VisibleForTesting
+public final class TestEnvironmentOptions {
 
-  public static class Builder {
+  public static final class Builder {
 
     private DataConverter dataConverter = JsonDataConverter.getInstance();
 
     private String domain = "unit-test";
 
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
+
+    private Scope metricsScope;
+
+    private boolean enableLoggingInReplay;
 
     /** Sets data converter to use for unit-tests. Default is {@link JsonDataConverter}. */
     public Builder setDataConverter(DataConverter dataConverter) {
@@ -45,30 +53,58 @@ public class TestEnvironmentOptions {
       return this;
     }
 
+    /**
+     * Specifies an interceptor factory that creates interceptors for workflow calls like activity
+     * invocations. Note that the factory is called for each decision and must return a new object
+     * instance every time it is called.
+     */
     public Builder setInterceptorFactory(
         Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
       this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
       return this;
     }
 
+    /**
+     * Set scope to use for metrics reporting. Optional. Default is noop scope that skips reporting.
+     */
+    public Builder setMetricsScope(Scope metricsScope) {
+      this.metricsScope = metricsScope;
+      return this;
+    }
+
+    /** Set whether to log during decision replay. */
+    public Builder setEnableLoggingInReplay(boolean enableLoggingInReplay) {
+      this.enableLoggingInReplay = enableLoggingInReplay;
+      return this;
+    }
+
     public TestEnvironmentOptions build() {
-      return new TestEnvironmentOptions(dataConverter, domain, interceptorFactory);
+      if (metricsScope == null) {
+        metricsScope = NoopScope.getInstance();
+      }
+
+      return new TestEnvironmentOptions(
+          dataConverter, domain, interceptorFactory, metricsScope, enableLoggingInReplay);
     }
   }
 
   private final DataConverter dataConverter;
-
   private final String domain;
-
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final Scope metricsScope;
+  private final boolean enableLoggingInReplay;
 
   private TestEnvironmentOptions(
       DataConverter dataConverter,
       String domain,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      Scope metricsScope,
+      boolean enableLoggingInReplay) {
     this.dataConverter = dataConverter;
     this.domain = domain;
     this.interceptorFactory = interceptorFactory;
+    this.metricsScope = metricsScope;
+    this.enableLoggingInReplay = enableLoggingInReplay;
   }
 
   public DataConverter getDataConverter() {
@@ -81,6 +117,14 @@ public class TestEnvironmentOptions {
 
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
+  }
+
+  public Scope getMetricsScope() {
+    return metricsScope;
+  }
+
+  public boolean isLoggingEnabledInReplay() {
+    return enableLoggingInReplay;
   }
 
   @Override

@@ -25,6 +25,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.logging.ReplayAwareLogger;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
@@ -40,6 +41,7 @@ import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowQueue;
+import com.uber.m3.tally.Scope;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -48,6 +50,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Never reference directly. It is public only because Java doesn't have internal package support.
@@ -167,7 +171,7 @@ public final class WorkflowInternal {
             new ExternalWorkflowInvocationHandler(execution, getWorkflowInterceptor()));
   }
 
-  public static Promise<WorkflowExecution> getChildWorkflowExecution(Object workflowStub) {
+  public static Promise<WorkflowExecution> getWorkflowExecution(Object workflowStub) {
     if (workflowStub instanceof WorkflowStub) {
       return ((WorkflowStub) workflowStub).__getWorkflowExecution();
     }
@@ -311,5 +315,25 @@ public final class WorkflowInternal {
 
   public static void sleep(Duration duration) {
     getWorkflowInterceptor().sleep(duration);
+  }
+
+  public static Scope getMetricsScope() {
+    return getRootDecisionContext().getMetricsScope();
+  }
+
+  private static boolean isLoggingEnabledInReplay() {
+    return getRootDecisionContext().isLoggingEnabledInReplay();
+  }
+
+  public static Logger getLogger(Class<?> clazz) {
+    Logger logger = LoggerFactory.getLogger(clazz);
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
+  }
+
+  public static Logger getLogger(String name) {
+    Logger logger = LoggerFactory.getLogger(name);
+    return new ReplayAwareLogger(
+        logger, WorkflowInternal::isReplaying, WorkflowInternal::isLoggingEnabledInReplay);
   }
 }

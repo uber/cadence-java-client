@@ -28,6 +28,7 @@ import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Promise;
+import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -521,6 +522,16 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public byte[] sideEffect(Func<byte[]> func) {
       throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Scope getMetricsScope() {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public boolean getEnableLoggingInReplay() {
+      return false;
     }
   }
 }

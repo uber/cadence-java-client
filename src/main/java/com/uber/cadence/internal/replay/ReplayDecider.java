@@ -24,12 +24,15 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.internal.common.OptionsUtils;
+import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEventsIterator;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
+import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -60,23 +63,33 @@ class ReplayDecider {
   private WorkflowExecutionException failure;
 
   private long wakeUpTime;
+
   private Consumer<Exception> timerCancellationHandler;
+
+  private final Scope metricsScope;
+
+  private long wfStartTime = -1;
 
   ReplayDecider(
       String domain,
       ReplayWorkflow workflow,
       HistoryHelper historyHelper,
-      DecisionsHelper decisionsHelper) {
+      DecisionsHelper decisionsHelper,
+      Scope metricsScope,
+      boolean enableLoggingInReplay) {
     this.workflow = workflow;
     this.historyHelper = historyHelper;
     this.decisionsHelper = decisionsHelper;
+    this.metricsScope = metricsScope;
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
     context =
         new DecisionContextImpl(
             decisionsHelper,
             domain,
             decisionTask,
-            historyHelper.getWorkflowExecutionStartedEventAttributes());
+            historyHelper.getWorkflowExecutionStartedEventAttributes(),
+            enableLoggingInReplay);
+    context.setMetricsScope(metricsScope);
   }
 
   public boolean isCancelRequested() {
@@ -246,17 +259,28 @@ class ReplayDecider {
   private void completeWorkflow() {
     if (failure != null) {
       decisionsHelper.failWorkflowExecution(failure);
+      metricsScope.counter(MetricsType.WORKFLOW_FAILED_COUNTER).inc(1);
     } else if (cancelRequested) {
       decisionsHelper.cancelWorkflowExecution();
+      metricsScope.counter(MetricsType.WORKFLOW_CANCELLED_COUNTER).inc(1);
     } else {
       ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion =
           context.getContinueAsNewOnCompletion();
       if (continueAsNewOnCompletion != null) {
         decisionsHelper.continueAsNewWorkflowExecution(continueAsNewOnCompletion);
+        metricsScope.counter(MetricsType.WORKFLOW_CONTINUE_AS_NEW_COUNTER).inc(1);
       } else {
         byte[] workflowOutput = workflow.getOutput();
         decisionsHelper.completeWorkflowExecution(workflowOutput);
+        metricsScope.counter(MetricsType.WORKFLOW_COMPLETED_COUNTER).inc(1);
       }
+    }
+
+    if (wfStartTime != -1) {
+      long nanoTime =
+          TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+      com.uber.m3.util.Duration d = com.uber.m3.util.Duration.ofNanos(nanoTime - wfStartTime);
+      metricsScope.timer(MetricsType.WORKFLOW_E2E_LATENCY).record(d);
     }
   }
 
@@ -342,6 +366,7 @@ class ReplayDecider {
 
         decisionsHelper.handleDecisionTaskStartedEvent(
             decision.isReplay(), decision.getNextDecisionEventId(), decision.getDecisionEvents());
+        // Markers must be cached first as their data is needed when processing events.
         for (HistoryEvent event : decision.getMarkers()) {
           processEvent(event);
         }
@@ -353,14 +378,14 @@ class ReplayDecider {
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
+        // Updates state machines with results of the previous decisions
         for (HistoryEvent event : decision.getDecisionEvents()) {
           processEvent(event);
         }
-
-        //        for (HistoryEvent event : decision.getDecisionEvents()) {
-        //          processEvent(event);
-        //        }
       }
+    } catch (Error e) {
+      metricsScope.counter(MetricsType.DECISION_TASK_ERROR_COUNTER).inc(1);
+      throw e;
     } finally {
       if (query != null) {
         query.apply();

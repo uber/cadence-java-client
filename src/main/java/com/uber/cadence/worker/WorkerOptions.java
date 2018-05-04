@@ -20,8 +20,10 @@ package com.uber.cadence.worker;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
+import com.uber.m3.tally.Scope;
 import java.lang.management.ManagementFactory;
 import java.util.Objects;
 import java.util.function.Function;
@@ -45,6 +47,8 @@ public final class WorkerOptions {
     private RetryOptions reportWorkflowCompletionRetryOptions;
     private RetryOptions reportWorkflowFailureRetryOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
+    private Scope metricsScope;
+    private boolean enableLoggingInReplay;
 
     /**
      * When set to true doesn't poll on workflow task list even if there are registered workflows
@@ -170,10 +174,25 @@ public final class WorkerOptions {
       return this;
     }
 
+    public Builder setMetricsScope(Scope metricsScope) {
+      this.metricsScope = Objects.requireNonNull(metricsScope);
+      return this;
+    }
+
+    public Builder setEnableLoggingInReplay(boolean enableLoggingInReplay) {
+      this.enableLoggingInReplay = enableLoggingInReplay;
+      return this;
+    }
+
     public WorkerOptions build() {
       if (identity == null) {
         identity = ManagementFactory.getRuntimeMXBean().getName();
       }
+
+      if (metricsScope == null) {
+        metricsScope = NoopScope.getInstance();
+      }
+
       return new WorkerOptions(
           disableWorkflowWorker,
           disableActivityWorker,
@@ -189,7 +208,9 @@ public final class WorkerOptions {
           reportActivityFailureRetryOptions,
           reportWorkflowCompletionRetryOptions,
           reportWorkflowFailureRetryOptions,
-          interceptorFactory);
+          interceptorFactory,
+          metricsScope,
+          enableLoggingInReplay);
     }
   }
 
@@ -208,6 +229,8 @@ public final class WorkerOptions {
   private final RetryOptions reportWorkflowCompletionRetryOptions;
   private final RetryOptions reportWorkflowFailureRetryOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final Scope metricsScope;
+  private final boolean enableLoggingInReplay;
 
   private WorkerOptions(
       boolean disableWorkflowWorker,
@@ -224,7 +247,9 @@ public final class WorkerOptions {
       RetryOptions reportActivityFailureRetryOptions,
       RetryOptions reportWorkflowCompletionRetryOptions,
       RetryOptions reportWorkflowFailureRetryOptions,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      Scope metricsScope,
+      boolean enableLoggingInReplay) {
     this.disableWorkflowWorker = disableWorkflowWorker;
     this.disableActivityWorker = disableActivityWorker;
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
@@ -240,6 +265,8 @@ public final class WorkerOptions {
     this.reportWorkflowCompletionRetryOptions = reportWorkflowCompletionRetryOptions;
     this.reportWorkflowFailureRetryOptions = reportWorkflowFailureRetryOptions;
     this.interceptorFactory = interceptorFactory;
+    this.metricsScope = metricsScope;
+    this.enableLoggingInReplay = enableLoggingInReplay;
   }
 
   public boolean isDisableWorkflowWorker() {
@@ -300,6 +327,14 @@ public final class WorkerOptions {
 
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
+  }
+
+  public Scope getMetricsScope() {
+    return metricsScope;
+  }
+
+  public boolean getEnableLoggingInReplay() {
+    return enableLoggingInReplay;
   }
 
   @Override

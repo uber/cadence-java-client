@@ -69,6 +69,7 @@ import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TimeoutType;
+import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.StateMachines.Action;
@@ -192,6 +193,28 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   @Override
   public ExecutionId getExecutionId() {
     return executionId;
+  }
+
+  @Override
+  public Optional<WorkflowExecutionCloseStatus> getCloseStatus() {
+    switch (workflow.getState()) {
+      case NONE:
+      case INITIATED:
+      case STARTED:
+      case CANCELLATION_REQUESTED:
+        return Optional.empty();
+      case FAILED:
+        return Optional.of(WorkflowExecutionCloseStatus.FAILED);
+      case TIMED_OUT:
+        return Optional.of(WorkflowExecutionCloseStatus.TIMED_OUT);
+      case CANCELED:
+        return Optional.of(WorkflowExecutionCloseStatus.CANCELED);
+      case COMPLETED:
+        return Optional.of(WorkflowExecutionCloseStatus.COMPLETED);
+      case CONTINUED_AS_NEW:
+        return Optional.of(WorkflowExecutionCloseStatus.CONTINUED_AS_NEW);
+    }
+    throw new IllegalStateException("unreachable");
   }
 
   @Override
@@ -460,12 +483,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       long decisionTaskCompletedId)
       throws BadRequestError, InternalServiceError {
     validateStartChildWorkflow(a);
+    StateMachine<ChildWorkflowData> child = StateMachines.newChildWorkflowStateMachine(service);
     String childId = a.getWorkflowId();
-    StateMachine<ChildWorkflowData> child = childWorkflows.get(childId);
-    if (child != null) {
-      throw new BadRequestError("Already started child workflow with " + childId);
+    if (childId == null) {
+      throw new BadRequestError("missing workflow id from " + a);
     }
-    child = StateMachines.newChildWorkflowStateMachine(service);
     childWorkflows.put(childId, child);
     child.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
     ctx.lockTimer();
@@ -568,6 +590,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           String childId = a.getWorkflowExecution().getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
           child.action(StateMachines.Action.START, ctx, a, 0);
+          scheduleDecision(ctx);
           // No need to lock until completion as child workflow might skip
           // time as well
           ctx.unlockTimer();
@@ -603,11 +626,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void failStartChildWorkflow(
-      String activityId, StartChildWorkflowExecutionFailedEventAttributes a)
+      String childId, StartChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          String childId = a.getWorkflowId();
           StateMachine<ChildWorkflowData> child = getChildWorkflow(childId);
           child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(childId);
