@@ -178,9 +178,9 @@ class HistoryHelper {
       long nextDecisionEventId = -1;
       while (events.hasNext()) {
         HistoryEvent event = events.next();
-        replayCurrentTimeMilliseconds = TimeUnit.MICROSECONDS.toMillis(event.getTimestamp());
         EventType eventType = event.getEventType();
         if (eventType == EventType.DecisionTaskStarted || !events.hasNext()) {
+          replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
           if (!events.hasNext()) {
             replay = false;
             nextDecisionEventId = event.getEventId() + 2; // +1 for next, +1 for DecisionCompleted

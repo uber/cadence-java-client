@@ -603,25 +603,6 @@ class DecisionsHelper {
 
   private void addDecision(DecisionId decisionId, DecisionStateMachine decision) {
     Objects.requireNonNull(decisionId);
-    //    if (replay) { // setNextDecisionEventId was called.
-    //      DecisionType decisionType = decision.getDecision().getDecisionType();
-    //      if (decisionEvents.isEmpty()) {
-    //        throw new NonDeterminisicWorkflowError("Unexpected decision during replay. The
-    // decision is "
-    //            + "of " + decisionType + " type. The eventID=" + nextDecisionEventId + ". " +
-    //            NON_DETERMINISTIC_MESSAGE);
-    //      }
-    //      HistoryEvent event = decisionEvents.get(decisionEventsIndex);
-    //      EventType eventType = event.getEventType();
-    //      // TODO: Add more checks. For example for activity and child workflow types.
-    //      if (WorkflowExecutionUtils.getEventTypeForDecision(decisionType) != eventType) {
-    //        throw new NonDeterminisicWorkflowError("Unexpected decision during replay. The
-    // decision is "
-    //            + "of " + decisionType + " type. The eventID=" + event.getEventId() + " of " +
-    //            eventType + " type. " + NON_DETERMINISTIC_MESSAGE);
-    //      }
-    //      decisionEventsIndex++;
-    //    }
     decisions.put(decisionId, decision);
     nextDecisionEventId++;
   }

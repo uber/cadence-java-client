@@ -22,7 +22,6 @@ import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.workflow.Functions.Func;
 import java.util.HashMap;
 import java.util.Map;
@@ -136,7 +135,6 @@ final class ClockDecisionContext {
 
   byte[] sideEffect(Func<byte[]> func) {
     long sideEffectEventId = decisions.getNextDecisionEventId();
-    log.trace("sideEffect id=" + sideEffectEventId);
     byte[] result;
     if (replaying) {
       result = sideEffectResults.get(sideEffectEventId);
@@ -157,7 +155,6 @@ final class ClockDecisionContext {
   }
 
   void handleMarkerRecorded(HistoryEvent event) {
-    log.trace("handleMarkerRecorded: " + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
     MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
     if (SIDE_EFFECT_MARKER_NAME.equals(attributes.getMarkerName())) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
