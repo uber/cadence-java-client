@@ -23,8 +23,10 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.workflow.Functions.Func;
+import com.uber.cadence.workflow.Functions.Func1;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -36,6 +38,7 @@ import org.slf4j.LoggerFactory;
 final class ClockDecisionContext {
 
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
+  private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
 
   private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
@@ -62,7 +65,10 @@ final class ClockDecisionContext {
 
   private boolean replaying = true;
 
+  // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
+  // Key is mutableSideEffect id
+  private final Map<String, byte[]> mutableSideEffectResults = new HashMap<>();
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
@@ -152,6 +158,32 @@ final class ClockDecisionContext {
     }
     decisions.recordMarker(SIDE_EFFECT_MARKER_NAME, result);
     return result;
+  }
+
+  /**
+   * @param id mutable side effect id
+   * @param func given the value from the last marker returns value to store. If result is empty
+   *     nothing is recorded into the history.
+   * @return the latest value returned by func
+   */
+  Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
+    byte[] markerDetails = mutableSideEffectResults.get(id);
+    Optional<byte[]> stored = Optional.ofNullable(markerDetails);
+    if (replaying) {
+      return stored;
+    }
+    try {
+      Optional<byte[]> toStore = func.apply(stored);
+      if (toStore.isPresent()) {
+        decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, toStore.get());
+        return toStore;
+      }
+      return stored;
+    } catch (Error e) {
+      throw e;
+    } catch (Exception e) {
+      throw new Error("mutableSideEffect function failed", e);
+    }
   }
 
   void handleMarkerRecorded(HistoryEvent event) {

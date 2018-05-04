@@ -20,9 +20,11 @@ package com.uber.cadence.internal.replay;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.workflow.Functions.Func;
+import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -96,6 +98,8 @@ public interface DecisionContext extends ReplayAware {
 
   /** Deterministic unique Id generator */
   String generateUniqueId();
+
+  Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func);
 
   /**
    * @return time of the {@link com.uber.cadence.PollForDecisionTaskResponse} start event of the

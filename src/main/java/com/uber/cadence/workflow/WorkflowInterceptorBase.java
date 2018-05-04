@@ -82,6 +82,12 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
+  public <R> Optional<R> mutableSideEffect(
+      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+    return next.mutableSideEffect(id, returnType, func);
+  }
+
+  @Override
   public void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
     next.continueAsNew(workflowType, options, args);

@@ -44,6 +44,7 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Functions.Func;
+import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
@@ -56,6 +57,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -177,8 +179,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Exception cause;
       try {
         @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-            Class<? extends Exception> cc = (Class<? extends Exception>) Class
-            .forName(causeClassName);
+        Class<? extends Exception> cc = (Class<? extends Exception>) Class.forName(causeClassName);
         causeClass = cc;
         cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
       } catch (Exception e) {
@@ -238,9 +239,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     return executeChildWorkflowOnce(name, options, input, executionResult);
   }
 
-  /**
-   * @param executionResult promise that is set bu this method when child workflow is started.
-   */
+  /** @param executionResult promise that is set bu this method when child workflow is started. */
   private Promise<byte[]> executeChildWorkflowOnce(
       String name,
       ChildWorkflowOptions options,
@@ -347,12 +346,35 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public <R> R sideEffect(Class<R> resultType, Func<R> func) {
     DataConverter dataConverter = getDataConverter();
-    byte[] result = context.sideEffect(
-        () -> {
-          R r = func.apply();
-          return dataConverter.toData(r);
-        });
+    byte[] result =
+        context.sideEffect(
+            () -> {
+              R r = func.apply();
+              return dataConverter.toData(r);
+            });
     return dataConverter.fromData(result, resultType);
+  }
+
+  @Override
+  public <R> Optional<R> mutableSideEffect(
+      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+    DataConverter dataConverter = getDataConverter();
+    // Used to return data out of lambda
+    AtomicReference<Optional<R>> result = new AtomicReference<>();
+    Optional<byte[]> binaryResult =
+        context.mutableSideEffect(
+            id,
+            (storedBinary) -> {
+              Optional<R> stored = storedBinary.map((b) -> dataConverter.fromData(b, returnType));
+              Optional<R> funcResult = func.apply(stored);
+              result.set(funcResult);
+              return funcResult.map((r) -> dataConverter.toData(r));
+            });
+    // Optimization that avoids deserialization of the binaryResult into result
+    if (result.get().isPresent()) {
+      return result.get();
+    }
+    return binaryResult.map((b) -> dataConverter.fromData(b, returnType));
   }
 
   void fireTimers() {

@@ -223,6 +223,12 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public <R> Optional<R> mutableSideEffect(
+        String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public void continueAsNew(
         Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
       throw new UnsupportedOperationException("not implemented");

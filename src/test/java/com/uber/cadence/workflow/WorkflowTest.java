@@ -2930,6 +2930,13 @@ public class WorkflowTest {
     }
 
     @Override
+    public <R> Optional<R> mutableSideEffect(
+        String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+      trace.add("mutableSideEffect");
+      return next.mutableSideEffect(id, returnType, func);
+    }
+
+    @Override
     public void continueAsNew(
         Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
       trace.add("continueAsNew");

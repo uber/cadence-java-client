@@ -35,6 +35,7 @@ import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Functions.Func;
+import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
@@ -244,6 +245,11 @@ public final class WorkflowInternal {
 
   public static <R> R sideEffect(Class<R> returnType, Func<R> func) {
     return getWorkflowInterceptor().sideEffect(returnType, func);
+  }
+
+  public static <R> Optional<R> mutableSideEffect(
+      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+    return getWorkflowInterceptor().mutableSideEffect(id, returnType, func);
   }
 
   public static <U> Promise<List<U>> promiseAllOf(Collection<Promise<U>> promises) {
