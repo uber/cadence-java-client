@@ -111,7 +111,7 @@ public class WorkflowTest {
   }
 
   @Rule public TestName testName = new TestName();
-  @Rule public Timeout globalTimeout = Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : 5);
+  @Rule public Timeout globalTimeout = Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : 20);
 
   @Rule
   public TestWatcher watchman =
@@ -156,8 +156,8 @@ public class WorkflowTest {
           .setTaskList(taskList);
     } else {
       return new WorkflowOptions.Builder()
-          .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
-          .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
+          .setExecutionStartToCloseTimeout(Duration.ofSeconds(30))
+          .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
           .setTaskList(taskList);
     }
   }
@@ -188,11 +188,11 @@ public class WorkflowTest {
 
   @Before
   public void setUp() {
-    if (testName.getMethodName().equals("testExecute[TestService]")
-        || testName.getMethodName().equals("testStart[TestService]")) {
+    String testMethod = testName.getMethodName();
+    if (testMethod.startsWith("testExecute") || testMethod.startsWith("testStart")) {
       taskList = ANNOTATION_TASK_LIST;
     } else {
-      taskList = "WorkflowTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
+      taskList = "WorkflowTest-" + testMethod + "-" + UUID.randomUUID().toString();
     }
     tracer = new TracingWorkflowInterceptorFactory();
     if (useExternalService) {
@@ -906,10 +906,7 @@ public class WorkflowTest {
   @Test
   public void testExecute() throws ExecutionException, InterruptedException {
     startWorkerFor(TestMultiargsWorkflowsImpl.class);
-    WorkflowOptions workflowOptions =
-        newWorkflowOptionsBuilder(taskList)
-            .setTaskList(ANNOTATION_TASK_LIST) // To override func2 annotation property
-            .build();
+    WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).build();
     TestMultiargsWorkflowsFunc stubF =
         workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
     assertEquals("func", WorkflowClient.execute(stubF::func).get());
