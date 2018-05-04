@@ -107,18 +107,25 @@ public class WorkflowTest {
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
+  private static final boolean skipDockerService = Boolean
+      .parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
 
   @Parameters(name = "{1}")
   public static Object[] data() {
-    if (Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"))) {
-      return new Object[][] {{false, "TestService"}};
+    if (skipDockerService) {
+      return new Object[][]{{false, "TestService"}};
     } else {
-      return new Object[][] {{true, "Docker"}, {false, "TestService"}};
+      return new Object[][]{{true, "Docker"}, {false, "TestService"}};
     }
   }
 
-  @Rule public TestName testName = new TestName();
-  @Rule public Timeout globalTimeout = Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : 20);
+  @Rule
+  public TestName testName = new TestName();
+  @Rule
+  public Timeout globalTimeout = Timeout.seconds(DEBUGGER_TIMEOUTS ?
+      500 :
+      (skipDockerService ? 2 : 10)
+  );
 
   @Rule
   public TestWatcher watchman =
@@ -134,7 +141,8 @@ public class WorkflowTest {
         }
       };
 
-  @Parameter public boolean useExternalService;
+  @Parameter
+  public boolean useExternalService;
 
   @Parameter(1)
   public String testType;
@@ -743,7 +751,7 @@ public class WorkflowTest {
       Async.procedure(testActivities::<Void>execute, "TestActivities::proc3", Void.class, "1", 2, 3)
           .get();
       Async.procedure(
-              testActivities::<Void>execute, "TestActivities::proc4", Void.class, "1", 2, 3, 4)
+          testActivities::<Void>execute, "TestActivities::proc4", Void.class, "1", 2, 3, 4)
           .get();
       return "workflow";
     }
@@ -1415,11 +1423,11 @@ public class WorkflowTest {
       trace.clear(); // clear because of replay
       trace.add("started");
       Async.retry(
-              retryOptions,
-              () -> {
-                trace.add("retry at " + Workflow.currentTimeMillis());
-                return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
-              })
+          retryOptions,
+          () -> {
+            trace.add("retry at " + Workflow.currentTimeMillis());
+            return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
+          })
           .get();
       trace.add("beforeSleep");
       Workflow.sleep(60000);
@@ -1433,7 +1441,9 @@ public class WorkflowTest {
     }
   }
 
-  /** @see DeterministicRunnerTest#testRetry() */
+  /**
+   * @see DeterministicRunnerTest#testRetry()
+   */
   @Test
   public void testAsyncRetry() {
     startWorkerFor(TestAsyncRetryWorkflowImpl.class);
@@ -1695,10 +1705,12 @@ public class WorkflowTest {
         () -> {
           assertEquals("initial", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "Hello ");
-          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {
+          }
           assertEquals("Hello ", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "World!");
-          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {}
+          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {
+          }
           assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
           assertEquals(
               "Hello World!",
@@ -1784,7 +1796,9 @@ public class WorkflowTest {
     }
   }
 
-  /** Test that it is not allowed to block in the timer callback thread. */
+  /**
+   * Test that it is not allowed to block in the timer callback thread.
+   */
   @Test
   public void testTimerCallbackBlocked() {
     startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
@@ -1869,7 +1883,8 @@ public class WorkflowTest {
 
   public static class TestChildReexecuteWorkflow implements WorkflowIdReusePolicyParent {
 
-    public TestChildReexecuteWorkflow() {}
+    public TestChildReexecuteWorkflow() {
+    }
 
     @Override
     public String execute(boolean parallel, WorkflowIdReusePolicy policy) {
@@ -1949,7 +1964,8 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowRetryWorkflow() {}
+    public TestChildWorkflowRetryWorkflow() {
+    }
 
     @Override
     public String execute(String taskList) {
@@ -2217,7 +2233,8 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowAsyncRetryWorkflow() {}
+    public TestChildWorkflowAsyncRetryWorkflow() {
+    }
 
     @Override
     public String execute(String taskList) {
@@ -2365,16 +2382,16 @@ public class WorkflowTest {
     void throwIO();
 
     @ActivityMethod(
-      scheduleToStartTimeoutSeconds = 5,
-      scheduleToCloseTimeoutSeconds = 5,
-      heartbeatTimeoutSeconds = 5,
-      startToCloseTimeoutSeconds = 10
+        scheduleToStartTimeoutSeconds = 5,
+        scheduleToCloseTimeoutSeconds = 5,
+        heartbeatTimeoutSeconds = 5,
+        startToCloseTimeoutSeconds = 10
     )
     @MethodRetry(
-      initialIntervalSeconds = 1,
-      maximumIntervalSeconds = 1,
-      minimumAttempts = 2,
-      maximumAttempts = 3
+        initialIntervalSeconds = 1,
+        maximumIntervalSeconds = 1,
+        minimumAttempts = 2,
+        maximumAttempts = 3
     )
     void throwIOAnnotated();
   }
@@ -2559,10 +2576,10 @@ public class WorkflowTest {
   public interface TestMultiargsWorkflowsFunc1 {
 
     @WorkflowMethod(
-      name = "func1",
-      taskList = ANNOTATION_TASK_LIST,
-      workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
-      executionStartToCloseTimeoutSeconds = 10
+        name = "func1",
+        taskList = ANNOTATION_TASK_LIST,
+        workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
+        executionStartToCloseTimeoutSeconds = 10
     )
     String func1(String input);
   }
@@ -2641,19 +2658,19 @@ public class WorkflowTest {
 
   public static class TestMultiargsWorkflowsImpl
       implements TestMultiargsWorkflowsFunc,
-          TestMultiargsWorkflowsFunc1,
-          TestMultiargsWorkflowsFunc2,
-          TestMultiargsWorkflowsFunc3,
-          TestMultiargsWorkflowsFunc4,
-          TestMultiargsWorkflowsFunc5,
-          TestMultiargsWorkflowsFunc6,
-          TestMultiargsWorkflowsProc,
-          TestMultiargsWorkflowsProc1,
-          TestMultiargsWorkflowsProc2,
-          TestMultiargsWorkflowsProc3,
-          TestMultiargsWorkflowsProc4,
-          TestMultiargsWorkflowsProc5,
-          TestMultiargsWorkflowsProc6 {
+      TestMultiargsWorkflowsFunc1,
+      TestMultiargsWorkflowsFunc2,
+      TestMultiargsWorkflowsFunc3,
+      TestMultiargsWorkflowsFunc4,
+      TestMultiargsWorkflowsFunc5,
+      TestMultiargsWorkflowsFunc6,
+      TestMultiargsWorkflowsProc,
+      TestMultiargsWorkflowsProc1,
+      TestMultiargsWorkflowsProc2,
+      TestMultiargsWorkflowsProc3,
+      TestMultiargsWorkflowsProc4,
+      TestMultiargsWorkflowsProc5,
+      TestMultiargsWorkflowsProc6 {
 
     private String procResult;
 

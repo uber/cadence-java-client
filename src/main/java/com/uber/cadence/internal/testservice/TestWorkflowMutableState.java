@@ -78,22 +78,28 @@ interface TestWorkflowMutableState {
   void failDecisionTask(RespondDecisionTaskFailedRequest request)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
+  void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorklfowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a)
+  void childWorklfowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorklfowTimedOut(String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
+  void childWorklfowTimedOut(String activityId, ChildWorkflowExecutionTimedOutEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a)
+  void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowCompleted(String workflowId, ChildWorkflowExecutionCompletedEventAttributes a)
+  void childWorkflowCompleted(String workflowId, ChildWorkflowExecutionCompletedEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowCanceled(String workflowId, ChildWorkflowExecutionCanceledEventAttributes a)
+  void childWorkflowCanceled(String workflowId, ChildWorkflowExecutionCanceledEventAttributes a, long
+      initiatedEventId)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
   void startWorkflow() throws InternalServiceError, BadRequestError;
