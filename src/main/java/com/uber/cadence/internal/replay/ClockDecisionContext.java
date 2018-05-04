@@ -24,6 +24,11 @@ import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -175,7 +180,15 @@ final class ClockDecisionContext {
     try {
       Optional<byte[]> toStore = func.apply(stored);
       if (toStore.isPresent()) {
-        decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, toStore.get());
+        // dataConverter should not be used at this level.
+        // So using DataOutputStream to pach both id and data.
+        // Deserialized in handleMutableSideEffectMarker
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(bout);
+        out.writeUTF(id);
+        out.writeInt(toStore.get().length);
+        out.write(toStore.get());
+        decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
         return toStore;
       }
       return stored;
@@ -188,10 +201,28 @@ final class ClockDecisionContext {
 
   void handleMarkerRecorded(HistoryEvent event) {
     MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
-    if (SIDE_EFFECT_MARKER_NAME.equals(attributes.getMarkerName())) {
+    String name = attributes.getMarkerName();
+    if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
+    } else if (MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
+      handleMutableSideEffectMarker(attributes);
     } else {
       log.warn("Unexpected marker: " + event);
+    }
+  }
+
+  /** Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}. */
+  private void handleMutableSideEffectMarker(MarkerRecordedEventAttributes attributes) {
+    ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
+    DataInputStream in = new DataInputStream(bin);
+    try {
+      String id = in.readUTF();
+      int length = in.readInt();
+      byte[] data = new byte[length];
+      in.read(data);
+      mutableSideEffectResults.put(id, data);
+    } catch (IOException e) {
+      throw new Error("Failure deserializing mutableSideEffect details", e);
     }
   }
 }
