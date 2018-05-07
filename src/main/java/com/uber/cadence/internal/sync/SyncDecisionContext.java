@@ -367,11 +367,15 @@ final class SyncDecisionContext implements WorkflowInterceptor {
             (storedBinary) -> {
               Optional<R> stored = storedBinary.map((b) -> dataConverter.fromData(b, returnType));
               Optional<R> funcResult = func.apply(stored);
+              if (funcResult == null) {
+                throw new IllegalStateException("mutableSideEffect function returned null instead"
+                    + " of empty Optional");
+              }
               result.set(funcResult);
               return funcResult.map((r) -> dataConverter.toData(r));
             });
     // Optimization that avoids deserialization of the binaryResult into result
-    if (result.get().isPresent()) {
+    if (result.get() != null && result.get().isPresent()) {
       return result.get();
     }
     return binaryResult.map((b) -> dataConverter.fromData(b, returnType));

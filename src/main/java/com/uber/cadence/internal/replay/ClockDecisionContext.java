@@ -39,7 +39,9 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Clock that must be used inside workflow definition code to ensure replay determinism. */
+/**
+ * Clock that must be used inside workflow definition code to ensure replay determinism.
+ */
 final class ClockDecisionContext {
 
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
@@ -168,27 +170,23 @@ final class ClockDecisionContext {
   /**
    * @param id mutable side effect id
    * @param func given the value from the last marker returns value to store. If result is empty
-   *     nothing is recorded into the history.
+   * nothing is recorded into the history.
    * @return the latest value returned by func
    */
   Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
     byte[] markerDetails = mutableSideEffectResults.get(id);
     Optional<byte[]> stored = Optional.ofNullable(markerDetails);
-    if (replaying) {
-      return stored;
-    }
     try {
+      if (replaying) {
+        if (stored.isPresent()) {
+          recordMutableSideEffectMarker(id, stored.get());
+        }
+        return stored;
+      }
       Optional<byte[]> toStore = func.apply(stored);
       if (toStore.isPresent()) {
-        // dataConverter should not be used at this level.
-        // So using DataOutputStream to pach both id and data.
-        // Deserialized in handleMutableSideEffectMarker
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(bout);
-        out.writeUTF(id);
-        out.writeInt(toStore.get().length);
-        out.write(toStore.get());
-        decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
+        byte[] data = toStore.get();
+        recordMutableSideEffectMarker(id, data);
         return toStore;
       }
       return stored;
@@ -197,6 +195,18 @@ final class ClockDecisionContext {
     } catch (Exception e) {
       throw new Error("mutableSideEffect function failed", e);
     }
+  }
+
+  private void recordMutableSideEffectMarker(String id, byte[] data) throws IOException {
+    // dataConverter should not be used at this level.
+    // So using DataOutputStream to pach both id and data.
+    // Deserialized in handleMutableSideEffectMarker
+    ByteArrayOutputStream bout = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(bout);
+    out.writeUTF(id);
+    out.writeInt(data.length);
+    out.write(data);
+    decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
   }
 
   void handleMarkerRecorded(HistoryEvent event) {
@@ -211,7 +221,9 @@ final class ClockDecisionContext {
     }
   }
 
-  /** Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}. */
+  /**
+   * Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}.
+   */
   private void handleMutableSideEffectMarker(MarkerRecordedEventAttributes attributes) {
     ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
     DataInputStream in = new DataInputStream(bin);
