@@ -78,27 +78,22 @@ interface TestWorkflowMutableState {
   void failDecisionTask(RespondDecisionTaskFailedRequest request)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a, long initiatedEventId)
+  void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorklfowFailed(
-      String workflowId, ChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
+  void childWorklfowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorklfowTimedOut(
-      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a, long initiatedEventId)
+  void childWorklfowTimedOut(String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void failStartChildWorkflow(
-      String workflowId, StartChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
+  void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowCompleted(
-      String workflowId, ChildWorkflowExecutionCompletedEventAttributes a, long initiatedEventId)
+  void childWorkflowCompleted(String workflowId, ChildWorkflowExecutionCompletedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
-  void childWorkflowCanceled(
-      String workflowId, ChildWorkflowExecutionCanceledEventAttributes a, long initiatedEventId)
+  void childWorkflowCanceled(String workflowId, ChildWorkflowExecutionCanceledEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
   void startWorkflow() throws InternalServiceError, BadRequestError;

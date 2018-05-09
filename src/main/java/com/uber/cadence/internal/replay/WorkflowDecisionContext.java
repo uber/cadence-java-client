@@ -54,13 +54,9 @@ final class WorkflowDecisionContext {
     private final long initiatedEventId;
     private final String workflowId;
 
-    private final BiConsumer<byte[], Exception> callback;
-
-    private ChildWorkflowCancellationHandler(
-        long initiatedEventId, String workflowId, BiConsumer<byte[], Exception> callback) {
+    private ChildWorkflowCancellationHandler(long initiatedEventId, String workflowId) {
       this.initiatedEventId = initiatedEventId;
       this.workflowId = Objects.requireNonNull(workflowId);
-      this.callback = Objects.requireNonNull(callback);
     }
 
     @Override
@@ -149,8 +145,7 @@ final class WorkflowDecisionContext {
         new OpenChildWorkflowRequestInfo(executionCallback);
     context.setCompletionHandle(callback);
     scheduledExternalWorkflows.put(initiatedEventId, context);
-    return new ChildWorkflowCancellationHandler(
-        initiatedEventId, attributes.getWorkflowId(), callback);
+    return new ChildWorkflowCancellationHandler(initiatedEventId, attributes.getWorkflowId());
   }
 
   Consumer<Exception> signalWorkflowExecution(
@@ -210,8 +205,6 @@ final class WorkflowDecisionContext {
     String runId = workflowExecution.getRunId();
     return runId + ":" + decisions.getNextId();
   }
-
-  void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {}
 
   void handleChildWorkflowExecutionCanceled(HistoryEvent event) {
     ChildWorkflowExecutionCanceledEventAttributes attributes =
@@ -318,7 +311,6 @@ final class WorkflowDecisionContext {
   void handleChildWorkflowExecutionCompleted(HistoryEvent event) {
     ChildWorkflowExecutionCompletedEventAttributes attributes =
         event.getChildWorkflowExecutionCompletedEventAttributes();
-    WorkflowExecution execution = attributes.getWorkflowExecution();
     if (decisions.handleChildWorkflowExecutionCompleted(attributes)) {
       OpenChildWorkflowRequestInfo scheduled =
           scheduledExternalWorkflows.remove(attributes.getInitiatedEventId());

@@ -24,12 +24,10 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,15 +166,13 @@ class HistoryHelper {
 
     private EventsIterator events;
 
-    private Queue<HistoryEvent> bufferedEvents = new ArrayDeque<>();
-
     DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator) {
       this.events = new EventsIterator(decisionTaskWithHistoryIterator.getHistory());
     }
 
     @Override
     public boolean hasNext() {
-      return !bufferedEvents.isEmpty() || events.hasNext();
+      return events.hasNext();
     }
 
     @Override

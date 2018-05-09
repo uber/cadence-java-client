@@ -363,8 +363,7 @@ class ReplayDecider {
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
-        decisionsHelper.handleDecisionTaskStartedEvent(
-            decision.isReplay(), decision.getNextDecisionEventId(), decision.getDecisionEvents());
+        decisionsHelper.handleDecisionTaskStartedEvent(decision.getNextDecisionEventId());
         // Markers must be cached first as their data is needed when processing events.
         for (HistoryEvent event : decision.getMarkers()) {
           processEvent(event);

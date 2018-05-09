@@ -584,12 +584,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public void childWorkflowStarted(
-      ChildWorkflowExecutionStartedEventAttributes a, long initiatedEventId)
+  public void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(StateMachines.Action.START, ctx, a, 0);
           scheduleDecision(ctx);
           // No need to lock until completion as child workflow might skip
@@ -599,13 +598,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public void childWorklfowFailed(
-      String activityId, ChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
+  public void childWorklfowFailed(String activityId, ChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          String childId = a.getWorkflowExecution().getWorkflowId();
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(a.getInitiatedEventId());
           scheduleDecision(ctx);
@@ -614,11 +611,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorklfowTimedOut(
-      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a, long initiatedEventId)
+      String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(Action.TIME_OUT, ctx, a.getTimeoutType(), 0);
           childWorkflows.remove(a.getInitiatedEventId());
           scheduleDecision(ctx);
@@ -627,11 +624,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void failStartChildWorkflow(
-      String childId, StartChildWorkflowExecutionFailedEventAttributes a, long initiatedEventId)
+      String childId, StartChildWorkflowExecutionFailedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(StateMachines.Action.FAIL, ctx, a, 0);
           childWorkflows.remove(a.getInitiatedEventId());
           scheduleDecision(ctx);
@@ -641,11 +638,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorkflowCompleted(
-      String activityId, ChildWorkflowExecutionCompletedEventAttributes a, long initiatedEventId)
+      String activityId, ChildWorkflowExecutionCompletedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(StateMachines.Action.COMPLETE, ctx, a, 0);
           childWorkflows.remove(a.getInitiatedEventId());
           scheduleDecision(ctx);
@@ -654,11 +651,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   @Override
   public void childWorkflowCanceled(
-      String activityId, ChildWorkflowExecutionCanceledEventAttributes a, long initiatedEventId)
+      String activityId, ChildWorkflowExecutionCanceledEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<ChildWorkflowData> child = getChildWorkflow(initiatedEventId);
+          StateMachine<ChildWorkflowData> child = getChildWorkflow(a.getInitiatedEventId());
           child.action(StateMachines.Action.CANCEL, ctx, a, 0);
           childWorkflows.remove(a.getInitiatedEventId());
           scheduleDecision(ctx);
@@ -728,10 +725,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                 try {
                   parent
                       .get()
-                      .childWorklfowFailed(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
-                          a,
-                          parentChildInitiatedEventId.getAsLong());
+                      .childWorklfowFailed(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
                 } catch (BadRequestError | InternalServiceError e) {
@@ -763,9 +757,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                   parent
                       .get()
                       .childWorkflowCompleted(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
-                          a,
-                          parentChildInitiatedEventId.getAsLong());
+                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
                 } catch (BadRequestError | InternalServiceError e) {
@@ -795,9 +787,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                   parent
                       .get()
                       .childWorkflowCanceled(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(),
-                          a,
-                          parentChildInitiatedEventId.getAsLong());
+                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Parent might already close
                 } catch (BadRequestError | InternalServiceError e) {
@@ -842,6 +832,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     if (parent.isPresent()) {
       ChildWorkflowExecutionStartedEventAttributes a =
           new ChildWorkflowExecutionStartedEventAttributes()
+              .setInitiatedEventId(parentChildInitiatedEventId.getAsLong())
               .setWorkflowExecution(getExecutionId().getExecution())
               .setDomain(getExecutionId().getDomain())
               .setWorkflowType(startRequest.getWorkflowType());
@@ -849,7 +840,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           .execute(
               () -> {
                 try {
-                  parent.get().childWorkflowStarted(a, parentChildInitiatedEventId.getAsLong());
+                  parent.get().childWorkflowStarted(a);
                 } catch (EntityNotExistsError entityNotExistsError) {
                   // Not a problem. Parent might just close by now.
                 } catch (BadRequestError | InternalServiceError e) {
@@ -1115,12 +1106,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setWorkflowType(startRequest.getWorkflowType())
               .setDomain(ctx.getDomain())
               .setWorkflowExecution(ctx.getExecution());
-      parent
-          .get()
-          .childWorklfowTimedOut(
-              ctx.getExecutionId().getWorkflowId().getWorkflowId(),
-              a,
-              parentChildInitiatedEventId.getAsLong());
+      parent.get().childWorklfowTimedOut(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
     } catch (EntityNotExistsError entityNotExistsError) {
       // Parent might already close
     } catch (BadRequestError | InternalServiceError e) {
