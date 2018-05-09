@@ -62,12 +62,9 @@ final class ActivityDecisionContext {
                 scheduledActivities.remove(scheduledEventId);
             if (scheduled == null) {
               throw new IllegalArgumentException(
-                  "Activity \""
-                      + activityId
-                      + "\" with "
-                      + scheduledEventId
-                      + " "
-                      + "scheduledEventId wasn't found");
+                  String.format(
+                      "Activity with activityId=%s and scheduledEventId=%d wasn't found",
+                      activityId, scheduledEventId));
             }
             callback.accept(null, new CancellationException("Cancelled by request"));
           });
