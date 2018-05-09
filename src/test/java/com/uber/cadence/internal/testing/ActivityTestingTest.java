@@ -22,8 +22,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
+import io.netty.util.internal.ConcurrentSet;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.BeforeClass;
@@ -103,5 +105,37 @@ public class ActivityTestingTest {
     String result = activity.activity1("input1");
     assertEquals("input1", result);
     assertEquals("details1", details.get());
+  }
+
+  public interface InterruptibleTestActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1000, heartbeatTimeoutSeconds = 1)
+    String activity1(String input) throws InterruptedException;
+  }
+
+  private static class BurstHeartbeatActivityImpl implements InterruptibleTestActivity {
+
+    @Override
+    public String activity1(String input) throws InterruptedException {
+      for (int i = 0; i < 10; i++) {
+        Activity.heartbeat(i);
+      }
+      Thread.sleep(1000);
+      for (int i = 10; i < 20; i++) {
+        Activity.heartbeat(i);
+      }
+      return input;
+    }
+  }
+
+  @Test
+  public void testHeartbeatThrottling() throws InterruptedException {
+    testEnvironment.registerActivitiesImplementations(new BurstHeartbeatActivityImpl());
+    ConcurrentSet<Integer> details = new ConcurrentSet<>();
+    testEnvironment.setActivityHeartbeatListener(Integer.class, i -> details.add(i));
+    InterruptibleTestActivity activity = testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    String result = activity.activity1("input1");
+    assertEquals("input1", result);
+    assertEquals(2, details.size());
   }
 }

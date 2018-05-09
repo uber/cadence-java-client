@@ -90,6 +90,8 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
@@ -103,6 +105,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
   private final TestEnvironmentOptions testEnvironmentOptions;
   private final AtomicInteger idSequencer = new AtomicInteger();
   private ClassConsumerPair<Object> activityHeartbetListener;
+  private static final ScheduledExecutorService heartbeatExecutor =
+      Executors.newScheduledThreadPool(20);
 
   public TestActivityEnvironmentInternal(TestEnvironmentOptions options) {
     if (options == null) {
@@ -110,7 +114,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     } else {
       this.testEnvironmentOptions = options;
     }
-    activityTaskHandler = new POJOActivityTaskHandler(testEnvironmentOptions.getDataConverter());
+    activityTaskHandler =
+        new POJOActivityTaskHandler(testEnvironmentOptions.getDataConverter(), heartbeatExecutor);
   }
 
   /**
