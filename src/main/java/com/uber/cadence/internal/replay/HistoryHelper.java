@@ -24,12 +24,10 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,10 +37,9 @@ class HistoryHelper {
   private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
   /**
-   * Events of a single decision.
-   * It includes all new events in the history since the last decision as events. It doesn't
-   * include events that are decision events of the previous decision.
-   * The decision events are events that this decision produced when executed for the first time.
+   * Events of a single decision. It includes all new events in the history since the last decision
+   * as events. It doesn't include events that are decision events of the previous decision. The
+   * decision events are events that this decision produced when executed for the first time.
    */
   static final class DecisionEvents {
 
@@ -118,9 +115,7 @@ class HistoryHelper {
     }
   }
 
-  /**
-   * Allows peeking for the next event.
-   */
+  /** Allows peeking for the next event. */
   private static final class EventsIterator implements PeekingIterator<HistoryEvent> {
 
     private Iterator<HistoryEvent> events;
@@ -171,15 +166,13 @@ class HistoryHelper {
 
     private EventsIterator events;
 
-    private Queue<HistoryEvent> bufferedEvents = new ArrayDeque<>();
-
     DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator) {
       this.events = new EventsIterator(decisionTaskWithHistoryIterator.getHistory());
     }
 
     @Override
     public boolean hasNext() {
-      return !bufferedEvents.isEmpty() || events.hasNext();
+      return events.hasNext();
     }
 
     @Override

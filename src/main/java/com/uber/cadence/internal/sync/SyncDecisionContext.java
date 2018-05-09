@@ -177,8 +177,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Exception cause;
       try {
         @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-            Class<? extends Exception> cc = (Class<? extends Exception>) Class
-            .forName(causeClassName);
+        Class<? extends Exception> cc = (Class<? extends Exception>) Class.forName(causeClassName);
         causeClass = cc;
         cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
       } catch (Exception e) {
@@ -238,9 +237,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     return executeChildWorkflowOnce(name, options, input, executionResult);
   }
 
-  /**
-   * @param executionResult promise that is set bu this method when child workflow is started.
-   */
+  /** @param executionResult promise that is set bu this method when child workflow is started. */
   private Promise<byte[]> executeChildWorkflowOnce(
       String name,
       ChildWorkflowOptions options,
@@ -347,11 +344,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public <R> R sideEffect(Class<R> resultType, Func<R> func) {
     DataConverter dataConverter = getDataConverter();
-    byte[] result = context.sideEffect(
-        () -> {
-          R r = func.apply();
-          return dataConverter.toData(r);
-        });
+    byte[] result =
+        context.sideEffect(
+            () -> {
+              R r = func.apply();
+              return dataConverter.toData(r);
+            });
     return dataConverter.fromData(result, resultType);
   }
 

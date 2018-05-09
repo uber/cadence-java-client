@@ -227,9 +227,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
-  public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {
-    workflowClient.handleChildWorkflowExecutionCancelRequested(event);
-  }
+  public void handleChildWorkflowExecutionCancelRequested(HistoryEvent event) {}
 
   @Override
   public void handleChildWorkflowExecutionCanceled(HistoryEvent event) {

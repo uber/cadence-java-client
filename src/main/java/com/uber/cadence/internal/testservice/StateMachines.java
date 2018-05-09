@@ -450,8 +450,7 @@ class StateMachines {
                         .setCause(ChildWorkflowExecutionFailedCause.WORKFLOW_ALREADY_RUNNING);
                 try {
                   ctx.getWorkflowMutableState()
-                      .failStartChildWorkflow(
-                          data.initiatedEvent.getWorkflowId(), failRequest, initiatedEventId);
+                      .failStartChildWorkflow(data.initiatedEvent.getWorkflowId(), failRequest);
                 } catch (Throwable e) {
                   log.error("Unexpected failure inserting failStart for a child workflow", e);
                 }

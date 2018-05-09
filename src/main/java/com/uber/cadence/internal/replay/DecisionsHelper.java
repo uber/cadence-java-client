@@ -96,9 +96,6 @@ class DecisionsHelper {
   private byte[] workflowContextData;
 
   private byte[] workfowContextFromLastDecisionCompletion;
-  private List<HistoryEvent> decisionEvents;
-  private int decisionEventsIndex;
-  private boolean replay;
 
   DecisionsHelper(PollForDecisionTaskResponse task) {
     this.task = task;
@@ -106,11 +103,6 @@ class DecisionsHelper {
 
   long getNextDecisionEventId() {
     return nextDecisionEventId;
-  }
-
-  private void setDecisionEvents(List<HistoryEvent> decisionEvents) {
-    this.decisionEvents = Objects.requireNonNull(decisionEvents);
-    decisionEventsIndex = 0;
   }
 
   long scheduleActivityTask(ScheduleActivityTaskDecisionAttributes schedule) {
@@ -522,10 +514,7 @@ class DecisionsHelper {
     }
   }
 
-  public void handleDecisionTaskStartedEvent(
-      boolean replay, long nextDecisionEventId, List<HistoryEvent> decisionEvents) {
-    this.replay = replay;
-    setDecisionEvents(decisionEvents);
+  public void handleDecisionTaskStartedEvent(long nextDecisionEventId) {
     this.nextDecisionEventId = nextDecisionEventId;
   }
 

@@ -29,7 +29,7 @@ final class MarkerDecisionStateMachine extends DecisionStateMachineBase {
   }
 
   @Override
-  public com.uber.cadence.Decision getDecision() {
+  public Decision getDecision() {
     if (state == DecisionState.CREATED) {
       return decision;
     }
