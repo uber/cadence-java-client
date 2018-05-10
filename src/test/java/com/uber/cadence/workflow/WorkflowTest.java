@@ -62,6 +62,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,14 +116,13 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (skipDockerService) {
-      return new Object[][]{{false, "TestService"}};
+      return new Object[][] {{false, "TestService"}};
     } else {
-      return new Object[][]{{true, "Docker"}, {false, "TestService"}};
+      return new Object[][] {{true, "Docker"}, {false, "TestService"}};
     }
   }
 
-  @Rule
-  public TestName testName = new TestName();
+  @Rule public TestName testName = new TestName();
 
   @Rule
   public Timeout globalTimeout =
@@ -142,8 +142,7 @@ public class WorkflowTest {
         }
       };
 
-  @Parameter
-  public boolean useExternalService;
+  @Parameter public boolean useExternalService;
 
   @Parameter(1)
   public String testType;
@@ -212,6 +211,7 @@ public class WorkflowTest {
       taskList = "WorkflowTest-" + testMethod + "-" + UUID.randomUUID().toString();
     }
     tracer = new TracingWorkflowInterceptorFactory();
+    // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
     if (useExternalService) {
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
@@ -752,7 +752,7 @@ public class WorkflowTest {
       Async.procedure(testActivities::<Void>execute, "TestActivities::proc3", Void.class, "1", 2, 3)
           .get();
       Async.procedure(
-          testActivities::<Void>execute, "TestActivities::proc4", Void.class, "1", 2, 3, 4)
+              testActivities::<Void>execute, "TestActivities::proc4", Void.class, "1", 2, 3, 4)
           .get();
       return "workflow";
     }
@@ -1424,11 +1424,11 @@ public class WorkflowTest {
       trace.clear(); // clear because of replay
       trace.add("started");
       Async.retry(
-          retryOptions,
-          () -> {
-            trace.add("retry at " + Workflow.currentTimeMillis());
-            return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
-          })
+              retryOptions,
+              () -> {
+                trace.add("retry at " + Workflow.currentTimeMillis());
+                return Workflow.newFailedPromise(new IllegalThreadStateException("simulated"));
+              })
           .get();
       trace.add("beforeSleep");
       Workflow.sleep(60000);
@@ -1442,9 +1442,7 @@ public class WorkflowTest {
     }
   }
 
-  /**
-   * @see DeterministicRunnerTest#testRetry()
-   */
+  /** @see DeterministicRunnerTest#testRetry() */
   @Test
   public void testAsyncRetry() {
     startWorkerFor(TestAsyncRetryWorkflowImpl.class);
@@ -1706,12 +1704,10 @@ public class WorkflowTest {
         () -> {
           assertEquals("initial", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "Hello ");
-          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {
-          }
+          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {}
           assertEquals("Hello ", client.query("QueryableWorkflow::getState", String.class));
           client.signal("testSignal", "World!");
-          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {
-          }
+          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {}
           assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
           assertEquals(
               "Hello World!",
@@ -1797,9 +1793,7 @@ public class WorkflowTest {
     }
   }
 
-  /**
-   * Test that it is not allowed to block in the timer callback thread.
-   */
+  /** Test that it is not allowed to block in the timer callback thread. */
   @Test
   public void testTimerCallbackBlocked() {
     startWorkerFor(TestTimerCallbackBlockedWorkflowImpl.class);
@@ -1884,8 +1878,7 @@ public class WorkflowTest {
 
   public static class TestChildReexecuteWorkflow implements WorkflowIdReusePolicyParent {
 
-    public TestChildReexecuteWorkflow() {
-    }
+    public TestChildReexecuteWorkflow() {}
 
     @Override
     public String execute(boolean parallel, WorkflowIdReusePolicy policy) {
@@ -1965,8 +1958,7 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowRetryWorkflow() {
-    }
+    public TestChildWorkflowRetryWorkflow() {}
 
     @Override
     public String execute(String taskList) {
@@ -2234,8 +2226,7 @@ public class WorkflowTest {
 
     private ITestChild child;
 
-    public TestChildWorkflowAsyncRetryWorkflow() {
-    }
+    public TestChildWorkflowAsyncRetryWorkflow() {}
 
     @Override
     public String execute(String taskList) {
@@ -2383,16 +2374,16 @@ public class WorkflowTest {
     void throwIO();
 
     @ActivityMethod(
-        scheduleToStartTimeoutSeconds = 5,
-        scheduleToCloseTimeoutSeconds = 5,
-        heartbeatTimeoutSeconds = 5,
-        startToCloseTimeoutSeconds = 10
+      scheduleToStartTimeoutSeconds = 5,
+      scheduleToCloseTimeoutSeconds = 5,
+      heartbeatTimeoutSeconds = 5,
+      startToCloseTimeoutSeconds = 10
     )
     @MethodRetry(
-        initialIntervalSeconds = 1,
-        maximumIntervalSeconds = 1,
-        minimumAttempts = 2,
-        maximumAttempts = 3
+      initialIntervalSeconds = 1,
+      maximumIntervalSeconds = 1,
+      minimumAttempts = 2,
+      maximumAttempts = 3
     )
     void throwIOAnnotated();
   }
@@ -2577,10 +2568,10 @@ public class WorkflowTest {
   public interface TestMultiargsWorkflowsFunc1 {
 
     @WorkflowMethod(
-        name = "func1",
-        taskList = ANNOTATION_TASK_LIST,
-        workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
-        executionStartToCloseTimeoutSeconds = 10
+      name = "func1",
+      taskList = ANNOTATION_TASK_LIST,
+      workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
+      executionStartToCloseTimeoutSeconds = 10
     )
     String func1(String input);
   }
@@ -2659,19 +2650,19 @@ public class WorkflowTest {
 
   public static class TestMultiargsWorkflowsImpl
       implements TestMultiargsWorkflowsFunc,
-      TestMultiargsWorkflowsFunc1,
-      TestMultiargsWorkflowsFunc2,
-      TestMultiargsWorkflowsFunc3,
-      TestMultiargsWorkflowsFunc4,
-      TestMultiargsWorkflowsFunc5,
-      TestMultiargsWorkflowsFunc6,
-      TestMultiargsWorkflowsProc,
-      TestMultiargsWorkflowsProc1,
-      TestMultiargsWorkflowsProc2,
-      TestMultiargsWorkflowsProc3,
-      TestMultiargsWorkflowsProc4,
-      TestMultiargsWorkflowsProc5,
-      TestMultiargsWorkflowsProc6 {
+          TestMultiargsWorkflowsFunc1,
+          TestMultiargsWorkflowsFunc2,
+          TestMultiargsWorkflowsFunc3,
+          TestMultiargsWorkflowsFunc4,
+          TestMultiargsWorkflowsFunc5,
+          TestMultiargsWorkflowsFunc6,
+          TestMultiargsWorkflowsProc,
+          TestMultiargsWorkflowsProc1,
+          TestMultiargsWorkflowsProc2,
+          TestMultiargsWorkflowsProc3,
+          TestMultiargsWorkflowsProc4,
+          TestMultiargsWorkflowsProc5,
+          TestMultiargsWorkflowsProc6 {
 
     private String procResult;
 
@@ -2826,8 +2817,8 @@ public class WorkflowTest {
     tracer.setExpected("sideEffect", "sleep PT1S", "executeActivity customActivity1");
   }
 
-  private static final Map<String, Long> mutableSideEffectValue = Collections
-      .synchronizedMap(new HashMap<>());
+  private static final Map<String, Long> mutableSideEffectValue =
+      Collections.synchronizedMap(new HashMap<>());
 
   public static class TestMutableSideEffectWorkflowImpl implements TestWorkflow1 {
 
@@ -2835,22 +2826,13 @@ public class WorkflowTest {
     public String execute(String taskList) {
       StringBuilder result = new StringBuilder();
       for (int i = 0; i < 4; i++) {
-        Optional<Long> value = Workflow.mutableSideEffect("id1", Long.class, (stored) -> {
-          Long externalValue = mutableSideEffectValue.get(taskList);
-          if (!stored.isPresent()) {
-            return Optional.ofNullable(externalValue);
-          } else {
-            if (stored.get().longValue() == externalValue) {
-              return Optional.empty(); // not updated
-            } else {
-              return Optional.of(externalValue);
-            }
-          }
-        });
+        long value =
+            Workflow.mutableSideEffect(
+                "id1", Long.class, Long::compareTo, () -> mutableSideEffectValue.get(taskList));
         if (result.length() > 0) {
           result.append(", ");
         }
-        result.append(value.toString());
+        result.append(value);
         Workflow.sleep(Duration.ofSeconds(1));
       }
       return result.toString();
@@ -2863,13 +2845,21 @@ public class WorkflowTest {
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
-    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
-    testEnvironment.sleep(Duration.ofMillis(500));
     mutableSideEffectValue.put(taskList, 1234L);
-    testEnvironment.sleep(Duration.ofSeconds(2));
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    if (useExternalService) {
+      Thread.sleep(500);
+    } else {
+      testEnvironment.sleep(Duration.ofMillis(500));
+    }
+    mutableSideEffectValue.put(taskList, 123L);
+    if (useExternalService) {
+      Thread.sleep(2000);
+    } else {
+      testEnvironment.sleep(Duration.ofSeconds(2));
+    }
     mutableSideEffectValue.put(taskList, 3456L);
-    result.get();
-    assertEquals("Optional.empty, Optional.empty, Optional.empty, Optional.empty", result);
+    assertEquals("1234, 1234, 1234, 3456", result.get());
   }
 
   private static class TracingWorkflowInterceptorFactory
@@ -2988,10 +2978,9 @@ public class WorkflowTest {
     }
 
     @Override
-    public <R> Optional<R> mutableSideEffect(
-        String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
-      trace.add("mutableSideEffect");
-      return next.mutableSideEffect(id, returnType, func);
+    public <R> R mutableSideEffect(
+        String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
+      return next.mutableSideEffect(id, returnType, comparator, func);
     }
 
     @Override

@@ -39,10 +39,27 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Clock that must be used inside workflow definition code to ensure replay determinism.
- */
+/** Clock that must be used inside workflow definition code to ensure replay determinism. */
 final class ClockDecisionContext {
+
+  private static final class MutableSideEffectEventIdDataPair {
+
+    private final long eventId;
+    private final byte[] data;
+
+    MutableSideEffectEventIdDataPair(long eventId, byte[] data) {
+      this.eventId = eventId;
+      this.data = data;
+    }
+
+    long getEventId() {
+      return eventId;
+    }
+
+    byte[] getData() {
+      return data;
+    }
+  }
 
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
   private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
@@ -75,7 +92,8 @@ final class ClockDecisionContext {
   // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
   // Key is mutableSideEffect id
-  private final Map<String, byte[]> mutableSideEffectResults = new HashMap<>();
+  private final Map<String, MutableSideEffectEventIdDataPair> mutableSideEffectResults =
+      new HashMap<>();
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
@@ -170,15 +188,20 @@ final class ClockDecisionContext {
   /**
    * @param id mutable side effect id
    * @param func given the value from the last marker returns value to store. If result is empty
-   * nothing is recorded into the history.
+   *     nothing is recorded into the history.
    * @return the latest value returned by func
    */
   Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
-    byte[] markerDetails = mutableSideEffectResults.get(id);
-    Optional<byte[]> stored = Optional.ofNullable(markerDetails);
+    MutableSideEffectEventIdDataPair pair = mutableSideEffectResults.get(id);
+    Optional<byte[]> stored;
+    if (pair == null) {
+      stored = Optional.empty();
+    } else {
+      stored = Optional.of(pair.getData());
+    }
     try {
       if (replaying) {
-        if (stored.isPresent()) {
+        if (stored.isPresent() && pair.getEventId() == decisions.getNextDecisionEventId()) {
           recordMutableSideEffectMarker(id, stored.get());
         }
         return stored;
@@ -215,16 +238,15 @@ final class ClockDecisionContext {
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
     } else if (MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
-      handleMutableSideEffectMarker(attributes);
+      handleMutableSideEffectMarker(event.getEventId(), attributes);
     } else {
       log.warn("Unexpected marker: " + event);
     }
   }
 
-  /**
-   * Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}.
-   */
-  private void handleMutableSideEffectMarker(MarkerRecordedEventAttributes attributes) {
+  /** Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}. */
+  private void handleMutableSideEffectMarker(
+      long eventId, MarkerRecordedEventAttributes attributes) {
     ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
     DataInputStream in = new DataInputStream(bin);
     try {
@@ -232,7 +254,7 @@ final class ClockDecisionContext {
       int length = in.readInt();
       byte[] data = new byte[length];
       in.read(data);
-      mutableSideEffectResults.put(id, data);
+      mutableSideEffectResults.put(id, new MutableSideEffectEventIdDataPair(eventId, data));
     } catch (IOException e) {
       throw new Error("Failure deserializing mutableSideEffect details", e);
     }

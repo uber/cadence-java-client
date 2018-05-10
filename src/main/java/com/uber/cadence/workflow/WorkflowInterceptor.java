@@ -20,8 +20,8 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.Functions.Func;
-import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -67,8 +67,7 @@ public interface WorkflowInterceptor {
 
   <R> R sideEffect(Class<R> resultType, Func<R> func);
 
-  <R> Optional<R> mutableSideEffect(
-      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func);
+  <R> R mutableSideEffect(String id, Class<R> returnType, Comparator<R> comparator, Func<R> func);
 
   void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args);

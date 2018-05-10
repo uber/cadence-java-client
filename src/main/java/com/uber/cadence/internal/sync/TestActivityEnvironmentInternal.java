@@ -86,6 +86,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -223,8 +224,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
-    public <R> Optional<R> mutableSideEffect(
-        String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+    public <R> R mutableSideEffect(
+        String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
       throw new UnsupportedOperationException("not implemented");
     }
 

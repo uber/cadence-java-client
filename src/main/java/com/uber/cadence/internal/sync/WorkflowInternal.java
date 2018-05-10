@@ -35,7 +35,6 @@ import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Functions.Func;
-import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.Workflow;
@@ -48,6 +47,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -247,9 +247,9 @@ public final class WorkflowInternal {
     return getWorkflowInterceptor().sideEffect(returnType, func);
   }
 
-  public static <R> Optional<R> mutableSideEffect(
-      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
-    return getWorkflowInterceptor().mutableSideEffect(id, returnType, func);
+  public static <R> R mutableSideEffect(
+      String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
+    return getWorkflowInterceptor().mutableSideEffect(id, returnType, comparator, func);
   }
 
   public static <U> Promise<List<U>> promiseAllOf(Collection<Promise<U>> promises) {

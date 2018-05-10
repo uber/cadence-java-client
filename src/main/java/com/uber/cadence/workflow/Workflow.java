@@ -28,6 +28,7 @@ import com.uber.cadence.workflow.Functions.Func2;
 import com.uber.cadence.workflow.Functions.Proc;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -759,42 +760,42 @@ public final class Workflow {
    * @param returnType type of the side effect
    * @param func function that returns side effect value
    * @return value of the side effect
-   * @see #mutableSideEffect(String, Class, Func1)
+   * @see #mutableSideEffect(String, Class, Comparator, Func)
    */
   public static <R> R sideEffect(Class<R> returnType, Func<R> func) {
     return WorkflowInternal.sideEffect(returnType, func);
   }
 
   /**
-   * {@code mutableSideEffect} executes the provided function passing it a value that was recorded
-   * by previous invocations of this function with the same id. If function returns empty then
-   * previous value is returned from {@code mutableSideEffect}. If it returns non empty value then
-   * it is recorded in the history and returned as a result of the {@code mutableSideEffect}. Note
-   * that if value has not changed then it is expected that the function returns {@link
-   * Optional#empty()}.
+   * {@code mutableSideEffect} is similar to {@link #sideEffect(Class, Func)} in allowing calls of
+   * non-deterministic functions from workflow code.
    *
-   * <p>One good use case of {@code mutableSideEffect} is to access dynamically changing config
-   * without breaking determinism.
+   * <p>The difference between {@code mutableSideEffect} and {@link #sideEffect(Class, Func)} is
+   * that every new {@code sideEffect} call in non-replay mode results in a new marker event
+   * recorded into the history. However, {@code mutableSideEffect} only records a new marker if a
+   * value has changed. During the replay, {@code mutableSideEffect} will not execute the function
+   * again, but it will return the exact same value as it was returning during the non-replay run.
+   *
+   * <p>One good use case of {@code mutableSideEffect} is to access a dynamically changing config
+   * without breaking determinism. Even if called very frequently the config value is recorded only
+   * when it changes not causing any performance degradation due to a large history size.
    *
    * <p>Caution: do not use {@code mutableSideEffect} function to modify any workflow sate. Only use
    * the mutableSideEffect's return value.
-   *
-   * <p>The difference between {@code mutableSideEffect} and {@link #sideEffect(Class, Func)} is
-   * that every new {@code sideEffect} call in non-replay will result in a new marker being recorded
-   * into the history. However, {@code mutableSideEffect} only records a new marker if a value has
-   * changed. During the replay, {@code mutableSideEffect} will not execute the function again, but
-   * it will return the exact same value as it was returning during the non-replay run.
    *
    * <p>If function throws any exception it is not delivered to the workflow code. It is wrapped in
    * {@link Error} causing failure of the current decision.
    *
    * @param id unique identifier of this side effect
+   * @param comparator used to decide if a new value should be recorded. A func result is recorded
+   *     only if it is larger than an already recorded result. Comparator is not called for the
+   *     first value.
    * @param func function that produces a value. This function can contain non deterministic code.
    * @see #sideEffect(Class, Func)
    */
-  public static <R> Optional<R> mutableSideEffect(
-      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
-    return WorkflowInternal.mutableSideEffect(id, returnType, func);
+  public static <R> R mutableSideEffect(
+      String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
+    return WorkflowInternal.mutableSideEffect(id, returnType, comparator, func);
   }
 
   /**

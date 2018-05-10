@@ -44,20 +44,19 @@ import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.ContinueAsNewOptions;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Functions.Func;
-import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -356,29 +355,25 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   @Override
-  public <R> Optional<R> mutableSideEffect(
-      String id, Class<R> returnType, Func1<Optional<R>, Optional<R>> func) {
+  public <R> R mutableSideEffect(
+      String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
     DataConverter dataConverter = getDataConverter();
-    // Used to return data out of lambda
-    AtomicReference<Optional<R>> result = new AtomicReference<>();
     Optional<byte[]> binaryResult =
         context.mutableSideEffect(
             id,
             (storedBinary) -> {
               Optional<R> stored = storedBinary.map((b) -> dataConverter.fromData(b, returnType));
-              Optional<R> funcResult = func.apply(stored);
-              if (funcResult == null) {
-                throw new IllegalStateException("mutableSideEffect function returned null instead"
-                    + " of empty Optional");
+              R funcResult =
+                  Objects.requireNonNull(
+                      func.apply(), "mutableSideEffect function " + "returned null");
+              if (!stored.isPresent() || comparator.compare(funcResult, stored.get()) > 0) {
+                return Optional.of(dataConverter.toData(funcResult));
               }
-              result.set(funcResult);
-              return funcResult.map((r) -> dataConverter.toData(r));
+              return Optional.empty();
             });
-    // Optimization that avoids deserialization of the binaryResult into result
-    if (result.get() != null && result.get().isPresent()) {
-      return result.get();
-    }
-    return binaryResult.map((b) -> dataConverter.fromData(b, returnType));
+    // As lambda above never returns Optional.empty() if there is no stored value
+    // binaryResult is never empty here.
+    return dataConverter.fromData(binaryResult.get(), returnType);
   }
 
   void fireTimers() {
