@@ -182,7 +182,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       if (concurrentDecision && workflow.getState() != State.TIMED_OUT) {
         concurrentToDecision.add(ctx);
         ctx.fireCallbacks(0);
-        store.applyTimerAndLocks(ctx);
+        store.applyTimersAndLocks(ctx);
       } else {
         nextEventId = ctx.commitChanges(store);
       }

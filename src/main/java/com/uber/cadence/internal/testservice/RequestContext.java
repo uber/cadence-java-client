@@ -110,7 +110,7 @@ final class RequestContext {
     return timerLocks;
   }
 
-  void clearTimerAndLocks() {
+  void clearTimersAndLocks() {
     timerLocks = 0;
     timers.clear();
   }

@@ -220,7 +220,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   @Override
-  public void applyTimerAndLocks(RequestContext ctx) {
+  public void applyTimersAndLocks(RequestContext ctx) {
     lock.lock();
     try {
       timerService.updateLocks(ctx.getTimerLocks());
@@ -235,7 +235,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       }
     }
 
-    ctx.clearTimerAndLocks();
+    ctx.clearTimersAndLocks();
   }
 
   @Override
