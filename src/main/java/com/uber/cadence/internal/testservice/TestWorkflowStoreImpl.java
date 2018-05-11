@@ -220,6 +220,25 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   @Override
+  public void applyTimerAndLocks(RequestContext ctx) {
+    lock.lock();
+    try {
+      timerService.updateLocks(ctx.getTimerLocks());
+    } finally {
+      lock.unlock();
+    }
+
+    List<Timer> timers = ctx.getTimers();
+    if (timers != null) {
+      for (Timer t : timers) {
+        timerService.schedule(Duration.ofSeconds(t.getDelaySeconds()), t.getCallback());
+      }
+    }
+
+    ctx.clearTimerAndLocks();
+  }
+
+  @Override
   public void registerDelayedCallback(Duration delay, Runnable r) {
     timerService.schedule(delay, r);
   }
