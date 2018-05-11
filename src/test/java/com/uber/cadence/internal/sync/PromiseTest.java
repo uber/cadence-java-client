@@ -131,7 +131,7 @@ public class PromiseTest {
           "root begin", "root done", "thread1 begin", "thread1 get timeout",
         };
     trace.setExpected(expected);
-    threadPool.shutdown();
+    threadPool.shutdownNow();
     threadPool.awaitTermination(1, TimeUnit.MINUTES);
   }
 
@@ -173,7 +173,7 @@ public class PromiseTest {
           "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
-    threadPool.shutdown();
+    threadPool.shutdownNow();
     threadPool.awaitTermination(1, TimeUnit.MINUTES);
   }
 
@@ -208,7 +208,7 @@ public class PromiseTest {
           "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
-    threadPool.shutdown();
+    threadPool.shutdownNow();
     threadPool.awaitTermination(1, TimeUnit.MINUTES);
   }
 
@@ -243,7 +243,7 @@ public class PromiseTest {
           "root begin", "root done", "thread1 begin", "thread1 get success",
         };
     trace.setExpected(expected);
-    threadPool.shutdown();
+    threadPool.shutdownNow();
     threadPool.awaitTermination(1, TimeUnit.MINUTES);
   }
 

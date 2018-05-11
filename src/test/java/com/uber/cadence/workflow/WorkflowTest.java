@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static sun.misc.ThreadGroupUtils.getRootThreadGroup;
 
 import com.googlecode.junittoolbox.ParallelParameterized;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
@@ -84,6 +85,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -105,7 +107,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -245,10 +247,11 @@ public class WorkflowTest {
 
   @After
   public void tearDown() throws Throwable {
-    worker.shutdown(Duration.ofMillis(1));
     activitiesImpl.close();
     if (testEnvironment != null) {
       testEnvironment.close();
+    } else {
+      worker.shutdown(Duration.ofMinutes(1));
     }
     for (ScheduledFuture<?> result : delayedCallbacks) {
       if (result.isDone() && !result.isCancelled()) {
@@ -263,6 +266,11 @@ public class WorkflowTest {
     if (tracer != null) {
       tracer.assertExpected();
     }
+  }
+
+  @AfterClass
+  public static void tearDownAllTests() {
+    log.info("Active threads count: " + getRootThreadGroup().activeCount());
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
@@ -2401,7 +2409,7 @@ public class WorkflowTest {
     }
 
     void close() {
-      executor.shutdown();
+      executor.shutdownNow();
     }
 
     void assertInvocations(String... expected) {

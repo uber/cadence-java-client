@@ -99,6 +99,14 @@ public interface DecisionContext extends ReplayAware {
   /** Deterministic unique Id generator */
   String generateUniqueId();
 
+  /**
+   * Inserts marker with result of func into the history for the given id.
+   *
+   * @param id used to match multiple invocations of the mutableSideEffect.
+   * @param func Receives previously recorded value as an argument. Returns empty result if a new
+   *     value doesn't need to be recorded.
+   * @return The most recent recorded value.
+   */
   Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func);
 
   /**

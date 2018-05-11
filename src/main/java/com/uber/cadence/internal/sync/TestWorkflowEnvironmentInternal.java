@@ -176,7 +176,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
   public void close() {
     for (Worker w : workers) {
       if (w.isStarted()) {
-        w.shutdown(Duration.ofMillis(10));
+        w.shutdown(Duration.ofMinutes(1));
       } else {
         log.warn("Worker was created, but never started for taskList: " + w.getTaskList());
       }

@@ -46,10 +46,6 @@ public class SyncActivityWorker {
     worker.shutdown();
   }
 
-  public void shutdownNow() {
-    worker.shutdownNow();
-  }
-
   public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
     return worker.awaitTermination(timeout, unit);
   }

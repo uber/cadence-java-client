@@ -93,7 +93,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
         history.add(event);
         completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);
       }
-      newEventsCondition.signal();
+      newEventsCondition.signalAll();
     }
 
     long getNextEventIdLocked() {

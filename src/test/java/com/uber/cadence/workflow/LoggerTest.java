@@ -101,7 +101,7 @@ public class LoggerTest {
     }
   }
 
-  @Test
+  @Test(timeout = 10000)
   public void testWorkflowLogger() {
     TestEnvironmentOptions testOptions =
         new Builder()

@@ -94,7 +94,7 @@ public final class WorkflowWorker implements SuspendableWorker {
       }
       SingleWorkerOptions workerOptions =
           new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
-      Poller.ThrowingRunnable pollTask =
+      PollTask<PollForDecisionTaskResponse> pollTask =
           new PollTask<>(service, domain, taskList, workerOptions, new TaskHandlerImpl(handler));
       poller =
           new Poller(
@@ -127,13 +127,6 @@ public final class WorkflowWorker implements SuspendableWorker {
   public void shutdown() {
     if (poller != null) {
       poller.shutdown();
-    }
-  }
-
-  @Override
-  public void shutdownNow() {
-    if (poller != null) {
-      poller.shutdownNow();
     }
   }
 

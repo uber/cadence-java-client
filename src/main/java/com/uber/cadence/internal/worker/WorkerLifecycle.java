@@ -27,8 +27,6 @@ interface WorkerLifecycle {
 
   void shutdown();
 
-  void shutdownNow();
-
   boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
 
   boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit) throws InterruptedException;

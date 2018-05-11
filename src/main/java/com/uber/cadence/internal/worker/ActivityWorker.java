@@ -86,7 +86,7 @@ public final class ActivityWorker implements SuspendableWorker {
                         + "\", type=\"activity\"")
                 .build();
       }
-      Poller.ThrowingRunnable pollTask =
+      PollTask<MeasurableActivityTask> pollTask =
           new PollTask<>(service, domain, taskList, options, new TaskHandlerImpl(handler));
       poller =
           new Poller(pollerOptions, options.getIdentity(), pollTask, options.getMetricsScope());
@@ -99,13 +99,6 @@ public final class ActivityWorker implements SuspendableWorker {
   public void shutdown() {
     if (poller != null) {
       poller.shutdown();
-    }
-  }
-
-  @Override
-  public void shutdownNow() {
-    if (poller != null) {
-      poller.shutdownNow();
     }
   }
 

@@ -33,12 +33,16 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Hosts activity and workflow implementations. Uses long poll to receive activity and decision
  * tasks and processes them in a correspondent thread pool.
  */
 public final class Worker {
+
+  private static final Logger log = LoggerFactory.getLogger(Worker.class);
 
   private final WorkerOptions options;
   private final String taskList;
@@ -251,18 +255,25 @@ public final class Worker {
    * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
    */
   public void shutdown(Duration timeout) {
+    log.info("shutdown timeout=" + timeout);
+    long time = System.currentTimeMillis();
     try {
-      long time = System.currentTimeMillis();
       if (activityWorker != null) {
         activityWorker.shutdownAndAwaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
       }
+    } catch (Exception e) {
+      log.warn("Failure during activity worker shutdown", e);
+    }
+    try {
       if (workflowWorker != null) {
         long left = timeout.toMillis() - (System.currentTimeMillis() - time);
+        log.info("workflowWorker.shutdownAndAwaitTermination left=" + left);
         workflowWorker.shutdownAndAwaitTermination(left, TimeUnit.MILLISECONDS);
       }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    } catch (Exception e) {
+      log.warn("Failure during workflow worker shutdown", e);
     }
+    log.info("shutdown completed");
   }
 
   @Override
