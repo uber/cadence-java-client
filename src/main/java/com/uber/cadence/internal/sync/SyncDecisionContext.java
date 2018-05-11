@@ -57,6 +57,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -358,7 +359,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public <R> R mutableSideEffect(
       String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
     DataConverter dataConverter = getDataConverter();
-    Optional<byte[]> binaryResult =
+    AtomicReference<R> unserializedResult = new AtomicReference<>();
+    // As lambda below never returns Optional.empty() if there is no stored value
+    // it is safe to call get on mutableSideEffect result.
+    byte[] binaryResult =
         context.mutableSideEffect(
             id,
             (storedBinary) -> {
@@ -367,13 +371,17 @@ final class SyncDecisionContext implements WorkflowInterceptor {
                   Objects.requireNonNull(
                       func.apply(), "mutableSideEffect function " + "returned null");
               if (!stored.isPresent() || comparator.compare(funcResult, stored.get()) > 0) {
+                unserializedResult.set(funcResult);
                 return Optional.of(dataConverter.toData(funcResult));
               }
-              return Optional.empty();
-            });
-    // As lambda above never returns Optional.empty() if there is no stored value
-    // binaryResult is never empty here.
-    return dataConverter.fromData(binaryResult.get(), returnType);
+              return Optional.empty(); // returned only when value doesn't need to be updated
+            }).get();
+    // An optimization that avoids unnecessary deserialization of the result.
+    R unserialized = unserializedResult.get();
+    if (unserialized != null) {
+      return unserialized;
+    }
+    return dataConverter.fromData(binaryResult, returnType);
   }
 
   void fireTimers() {
