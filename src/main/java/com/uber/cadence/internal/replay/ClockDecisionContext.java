@@ -199,17 +199,18 @@ final class ClockDecisionContext {
     } else {
       stored = Optional.of(pair.getData());
     }
+    long eventId = decisions.getNextDecisionEventId();
     try {
       if (replaying) {
-        if (stored.isPresent() && pair.getEventId() == decisions.getNextDecisionEventId()) {
-          recordMutableSideEffectMarker(id, stored.get());
+        if (stored.isPresent() && pair.getEventId() == eventId) {
+          recordMutableSideEffectMarker(id, eventId, stored.get());
         }
         return stored;
       }
       Optional<byte[]> toStore = func.apply(stored);
       if (toStore.isPresent()) {
         byte[] data = toStore.get();
-        recordMutableSideEffectMarker(id, data);
+        recordMutableSideEffectMarker(id, eventId, data);
         return toStore;
       }
       return stored;
@@ -220,7 +221,8 @@ final class ClockDecisionContext {
     }
   }
 
-  private void recordMutableSideEffectMarker(String id, byte[] data) throws IOException {
+  private void recordMutableSideEffectMarker(String id, long eventId, byte[] data)
+      throws IOException {
     // dataConverter should not be used at this level.
     // So using DataOutputStream to pach both id and data.
     // Deserialized in handleMutableSideEffectMarker
@@ -229,6 +231,7 @@ final class ClockDecisionContext {
     out.writeUTF(id);
     out.writeInt(data.length);
     out.write(data);
+    mutableSideEffectResults.put(id, new MutableSideEffectEventIdDataPair(eventId, data));
     decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
   }
 

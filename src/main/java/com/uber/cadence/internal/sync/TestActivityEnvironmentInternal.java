@@ -86,11 +86,11 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.apache.thrift.TException;
@@ -225,7 +225,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public <R> R mutableSideEffect(
-        String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
+        String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
       throw new UnsupportedOperationException("not implemented");
     }
 

@@ -47,9 +47,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -248,8 +248,8 @@ public final class WorkflowInternal {
   }
 
   public static <R> R mutableSideEffect(
-      String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
-    return getWorkflowInterceptor().mutableSideEffect(id, returnType, comparator, func);
+      String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+    return getWorkflowInterceptor().mutableSideEffect(id, returnType, updated, func);
   }
 
   public static <U> Promise<List<U>> promiseAllOf(Collection<Promise<U>> promises) {
