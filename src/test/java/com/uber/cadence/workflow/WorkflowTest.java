@@ -2862,7 +2862,7 @@ public class WorkflowTest {
     if (useExternalService) {
       Thread.sleep(1000);
     } else {
-      testEnvironment.sleep(Duration.ofMillis(1000));
+      testEnvironment.sleep(Duration.ofSeconds(1));
     }
     assertEquals("1234, 1234, 1234, 3456", result.get());
   }

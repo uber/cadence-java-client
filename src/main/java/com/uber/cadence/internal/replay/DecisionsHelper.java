@@ -599,4 +599,8 @@ class DecisionsHelper {
     }
     return String.valueOf(nextDecisionEventId);
   }
+
+  public HistoryEvent getDecisionEvent(long eventId) {
+    return decisionE;
+  }
 }

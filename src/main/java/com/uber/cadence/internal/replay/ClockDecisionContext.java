@@ -42,25 +42,6 @@ import org.slf4j.LoggerFactory;
 /** Clock that must be used inside workflow definition code to ensure replay determinism. */
 final class ClockDecisionContext {
 
-  private static final class MutableSideEffectEventIdDataPair {
-
-    private final long eventId;
-    private final byte[] data;
-
-    MutableSideEffectEventIdDataPair(long eventId, byte[] data) {
-      this.eventId = eventId;
-      this.data = data;
-    }
-
-    long getEventId() {
-      return eventId;
-    }
-
-    byte[] getData() {
-      return data;
-    }
-  }
-
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
   private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
 
@@ -92,8 +73,7 @@ final class ClockDecisionContext {
   // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
   // Key is mutableSideEffect id
-  private final Map<String, MutableSideEffectEventIdDataPair> mutableSideEffectResults =
-      new HashMap<>();
+  private final Map<String, byte[]> mutableSideEffectResults = new HashMap<>();
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
@@ -192,17 +172,11 @@ final class ClockDecisionContext {
    * @return the latest value returned by func
    */
   Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
-    MutableSideEffectEventIdDataPair pair = mutableSideEffectResults.get(id);
-    Optional<byte[]> stored;
-    if (pair == null) {
-      stored = Optional.empty();
-    } else {
-      stored = Optional.of(pair.getData());
-    }
+    Optional<byte[]> stored = Optional.ofNullable(mutableSideEffectResults.get(id));
     long eventId = decisions.getNextDecisionEventId();
     try {
       if (replaying) {
-        if (stored.isPresent() && pair.getEventId() == eventId) {
+        if (stored.isPresent() && decisions.getDecisionEvent(eventId)) {
           recordMutableSideEffectMarker(id, eventId, stored.get());
         }
         return stored;
@@ -240,9 +214,6 @@ final class ClockDecisionContext {
     String name = attributes.getMarkerName();
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
-    } else if (MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
-      handleMutableSideEffectMarker(event.getEventId(), attributes);
-    } else {
       log.warn("Unexpected marker: " + event);
     }
   }
