@@ -29,6 +29,7 @@ import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
 import com.uber.cadence.internal.replay.DecisionContext;
+import com.uber.cadence.internal.replay.DecisionContext.MutableSideEffectData;
 import com.uber.cadence.internal.replay.ExecuteActivityParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
@@ -366,6 +367,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
         context
             .mutableSideEffect(
                 id,
+                (md) -> dataConverter.toData(md),
+                (data) -> dataConverter.fromData(data, MutableSideEffectData.class),
                 (storedBinary) -> {
                   Optional<R> stored =
                       storedBinary.map((b) -> dataConverter.fromData(b, returnType));

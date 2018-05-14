@@ -23,13 +23,9 @@ import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.internal.replay.DecisionContext.MutableSideEffectData;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +59,7 @@ final class ClockDecisionContext {
   }
 
   private static final class MutableSideEffectResult {
+
     private final byte[] data;
     private int accessCount;
 
@@ -190,7 +187,11 @@ final class ClockDecisionContext {
    *     nothing is recorded into the history.
    * @return the latest value returned by func
    */
-  Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
+  Optional<byte[]> mutableSideEffect(
+      String id,
+      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
+      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
+      Func1<Optional<byte[]>, Optional<byte[]>> func) {
     MutableSideEffectResult result = mutableSideEffectResults.get(id);
     Optional<byte[]> stored;
     if (result == null) {
@@ -203,10 +204,11 @@ final class ClockDecisionContext {
     try {
       if (replaying) {
 
-        Optional<byte[]> data = getSideEffectDataFromHistory(eventId, id, accessCount);
+        Optional<byte[]> data =
+            getSideEffectDataFromHistory(eventId, id, accessCount, markerDataDeserializer);
         if (data.isPresent()) {
           // Need to insert marker to ensure that eventId is incremented
-          recordMutableSideEffectMarker(id, eventId, data.get(), accessCount);
+          recordMutableSideEffectMarker(id, eventId, data.get(), accessCount, markerDataSerializer);
           return data;
         }
         return stored;
@@ -214,7 +216,7 @@ final class ClockDecisionContext {
       Optional<byte[]> toStore = func.apply(stored);
       if (toStore.isPresent()) {
         byte[] data = toStore.get();
-        recordMutableSideEffectMarker(id, eventId, data, accessCount);
+        recordMutableSideEffectMarker(id, eventId, data, accessCount, markerDataSerializer);
         return toStore;
       }
       return stored;
@@ -226,7 +228,10 @@ final class ClockDecisionContext {
   }
 
   private Optional<byte[]> getSideEffectDataFromHistory(
-      long eventId, String mutableSideEffectId, int expectedAcccessCount) {
+      long eventId,
+      String mutableSideEffectId,
+      int expectedAcccessCount,
+      Func1<byte[], MutableSideEffectData> markerDataDeserializer) {
     HistoryEvent event = decisions.getDecisionEvent(eventId);
     if (event.getEventType() != EventType.MarkerRecorded) {
       return Optional.empty();
@@ -236,39 +241,24 @@ final class ClockDecisionContext {
     if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
       return Optional.empty();
     }
-    ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
-    DataInputStream in = new DataInputStream(bin);
-    try {
-      String id = in.readUTF();
-      int accessCount = in.readInt();
-      if (accessCount > expectedAcccessCount) {
-        return Optional.empty();
-      }
-      int length = in.readInt();
-      byte[] data = new byte[length];
-      in.read(data);
-      if (!mutableSideEffectId.equals(id)) {
-        return Optional.empty();
-      }
-      return Optional.of(data);
-    } catch (IOException e) {
-      throw new Error("Failure deserializing mutableSideEffect details", e);
+    MutableSideEffectData markerData = markerDataDeserializer.apply(attributes.getDetails());
+    if (!mutableSideEffectId.equals(markerData.getId())
+        || markerData.getAccessCount() > expectedAcccessCount) {
+      return Optional.empty();
     }
+    return Optional.of(markerData.getData());
   }
 
-  private void recordMutableSideEffectMarker(String id, long eventId, byte[] data, int accessCount)
-      throws IOException {
-    // dataConverter should not be used at this level.
-    // So using DataOutputStream to pach both id and data.
-    // Deserialized in handleMutableSideEffectMarker
-    ByteArrayOutputStream bout = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(bout);
-    out.writeUTF(id);
-    out.writeInt(accessCount);
-    out.writeInt(data.length);
-    out.write(data);
+  private void recordMutableSideEffectMarker(
+      String id,
+      long eventId,
+      byte[] data,
+      int accessCount,
+      Func1<MutableSideEffectData, byte[]> markerDataSerializer) {
+    MutableSideEffectData dataObject = new MutableSideEffectData(id, eventId, data, accessCount);
+    byte[] details = markerDataSerializer.apply(dataObject);
     mutableSideEffectResults.put(id, new MutableSideEffectResult(data));
-    decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
+    decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, details);
   }
 
   void handleMarkerRecorded(HistoryEvent event) {

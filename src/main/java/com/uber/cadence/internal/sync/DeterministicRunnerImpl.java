@@ -507,7 +507,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     @Override
     public Optional<byte[]> mutableSideEffect(
-        String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
+        String id,
+        Func1<MutableSideEffectData, byte[]> markerDataSerializer,
+        Func1<byte[], MutableSideEffectData> markerDataDeserializer,
+        Func1<Optional<byte[]>, Optional<byte[]>> func) {
       throw new UnsupportedOperationException("not implemented");
     }
 
