@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
@@ -61,6 +62,24 @@ final class ClockDecisionContext {
     }
   }
 
+  private static final class MutableSideEffectResult {
+    private final byte[] data;
+    private int accessCount;
+
+    private MutableSideEffectResult(byte[] data) {
+      this.data = data;
+    }
+
+    public byte[] getData() {
+      accessCount++;
+      return data;
+    }
+
+    public int getAccessCount() {
+      return accessCount;
+    }
+  }
+
   private final DecisionsHelper decisions;
 
   // key is startedEventId
@@ -73,7 +92,7 @@ final class ClockDecisionContext {
   // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
   // Key is mutableSideEffect id
-  private final Map<String, byte[]> mutableSideEffectResults = new HashMap<>();
+  private final Map<String, MutableSideEffectResult> mutableSideEffectResults = new HashMap<>();
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
@@ -107,7 +126,7 @@ final class ClockDecisionContext {
     long startEventId = decisions.startTimer(timer, null);
     context.setCompletionHandle((ctx, e) -> callback.accept(e));
     scheduledTimers.put(startEventId, context);
-    return new ClockDecisionContext.TimerCancellationHandler(startEventId);
+    return new TimerCancellationHandler(startEventId);
   }
 
   void setReplaying(boolean replaying) {
@@ -172,19 +191,30 @@ final class ClockDecisionContext {
    * @return the latest value returned by func
    */
   Optional<byte[]> mutableSideEffect(String id, Func1<Optional<byte[]>, Optional<byte[]>> func) {
-    Optional<byte[]> stored = Optional.ofNullable(mutableSideEffectResults.get(id));
+    MutableSideEffectResult result = mutableSideEffectResults.get(id);
+    Optional<byte[]> stored;
+    if (result == null) {
+      stored = Optional.empty();
+    } else {
+      stored = Optional.of(result.getData());
+    }
     long eventId = decisions.getNextDecisionEventId();
+    int accessCount = result == null ? 0 : result.getAccessCount();
     try {
       if (replaying) {
-        if (stored.isPresent() && decisions.getDecisionEvent(eventId)) {
-          recordMutableSideEffectMarker(id, eventId, stored.get());
+
+        Optional<byte[]> data = getSideEffectDataFromHistory(eventId, id, accessCount);
+        if (data.isPresent()) {
+          // Need to insert marker to ensure that eventId is incremented
+          recordMutableSideEffectMarker(id, eventId, data.get(), accessCount);
+          return data;
         }
         return stored;
       }
       Optional<byte[]> toStore = func.apply(stored);
       if (toStore.isPresent()) {
         byte[] data = toStore.get();
-        recordMutableSideEffectMarker(id, eventId, data);
+        recordMutableSideEffectMarker(id, eventId, data, accessCount);
         return toStore;
       }
       return stored;
@@ -195,7 +225,38 @@ final class ClockDecisionContext {
     }
   }
 
-  private void recordMutableSideEffectMarker(String id, long eventId, byte[] data)
+  private Optional<byte[]> getSideEffectDataFromHistory(
+      long eventId, String mutableSideEffectId, int expectedAcccessCount) {
+    HistoryEvent event = decisions.getDecisionEvent(eventId);
+    if (event.getEventType() != EventType.MarkerRecorded) {
+      return Optional.empty();
+    }
+    MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
+    String name = attributes.getMarkerName();
+    if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
+      return Optional.empty();
+    }
+    ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
+    DataInputStream in = new DataInputStream(bin);
+    try {
+      String id = in.readUTF();
+      int accessCount = in.readInt();
+      if (accessCount > expectedAcccessCount) {
+        return Optional.empty();
+      }
+      int length = in.readInt();
+      byte[] data = new byte[length];
+      in.read(data);
+      if (!mutableSideEffectId.equals(id)) {
+        return Optional.empty();
+      }
+      return Optional.of(data);
+    } catch (IOException e) {
+      throw new Error("Failure deserializing mutableSideEffect details", e);
+    }
+  }
+
+  private void recordMutableSideEffectMarker(String id, long eventId, byte[] data, int accessCount)
       throws IOException {
     // dataConverter should not be used at this level.
     // So using DataOutputStream to pach both id and data.
@@ -203,9 +264,10 @@ final class ClockDecisionContext {
     ByteArrayOutputStream bout = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(bout);
     out.writeUTF(id);
+    out.writeInt(accessCount);
     out.writeInt(data.length);
     out.write(data);
-    mutableSideEffectResults.put(id, new MutableSideEffectEventIdDataPair(eventId, data));
+    mutableSideEffectResults.put(id, new MutableSideEffectResult(data));
     decisions.recordMarker(MUTABLE_SIDE_EFFECT_MARKER_NAME, bout.toByteArray());
   }
 
@@ -215,22 +277,6 @@ final class ClockDecisionContext {
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
       log.warn("Unexpected marker: " + event);
-    }
-  }
-
-  /** Id and data are serialized into details in {@link #mutableSideEffect(String, Func1)}. */
-  private void handleMutableSideEffectMarker(
-      long eventId, MarkerRecordedEventAttributes attributes) {
-    ByteArrayInputStream bin = new ByteArrayInputStream(attributes.getDetails());
-    DataInputStream in = new DataInputStream(bin);
-    try {
-      String id = in.readUTF();
-      int length = in.readInt();
-      byte[] data = new byte[length];
-      in.read(data);
-      mutableSideEffectResults.put(id, new MutableSideEffectEventIdDataPair(eventId, data));
-    } catch (IOException e) {
-      throw new Error("Failure deserializing mutableSideEffect details", e);
     }
   }
 }

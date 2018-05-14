@@ -51,6 +51,7 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,6 +86,8 @@ class DecisionsHelper {
    * next decision to be added.
    */
   private long nextDecisionEventId;
+
+  private DecisionEvents decisionEvents;
 
   /** Use access-order to ensure that decisions are emitted in order of their creation */
   private final Map<DecisionId, DecisionStateMachine> decisions =
@@ -514,8 +517,9 @@ class DecisionsHelper {
     }
   }
 
-  public void handleDecisionTaskStartedEvent(long nextDecisionEventId) {
-    this.nextDecisionEventId = nextDecisionEventId;
+  public void handleDecisionTaskStartedEvent(DecisionEvents decision) {
+    this.decisionEvents = decision;
+    this.nextDecisionEventId = decision.getNextDecisionEventId();
   }
 
   void notifyDecisionSent() {
@@ -601,6 +605,6 @@ class DecisionsHelper {
   }
 
   public HistoryEvent getDecisionEvent(long eventId) {
-    return decisionE;
+    return decisionEvents.getDecisionEvent(eventId);
   }
 }
