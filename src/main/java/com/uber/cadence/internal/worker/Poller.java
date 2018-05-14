@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 final class Poller implements SuspendableWorker {
 
   interface ThrowingRunnable {
+
     void run() throws Throwable;
   }
 
@@ -71,8 +72,9 @@ final class Poller implements SuspendableWorker {
         task.run();
         pollBackoffThrottler.success();
       } catch (Throwable e) {
-        pollBackoffThrottler.failure();
-        if (!(e.getCause() instanceof InterruptedException)) {
+        if (!(e.getCause() instanceof InterruptedException)
+            && !"java.lang.InterruptedException".equals(e.getMessage())) {
+          pollBackoffThrottler.failure();
           uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
         }
       } finally {
@@ -92,7 +94,7 @@ final class Poller implements SuspendableWorker {
 
   private final String identity;
 
-  private final ThrowingRunnable task;
+  private final PollTask task;
 
   private ThreadPoolExecutor pollExecutor;
 
@@ -107,7 +109,7 @@ final class Poller implements SuspendableWorker {
   private Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
       (t, e) -> log.error("Failure in thread " + t.getName(), e);
 
-  Poller(PollerOptions options, String identity, ThrowingRunnable task, Scope metricsScope) {
+  Poller(PollerOptions options, String identity, PollTask task, Scope metricsScope) {
     this.options = options;
     this.identity = identity;
     this.task = task;
@@ -162,16 +164,8 @@ final class Poller implements SuspendableWorker {
     if (!isStarted()) {
       return;
     }
-    pollExecutor.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    log.info("shutdownNow poller=" + this.options.getPollThreadNamePrefix());
-    if (!isStarted()) {
-      return;
-    }
     pollExecutor.shutdownNow();
+    task.shutdownNow();
   }
 
   @Override
@@ -181,6 +175,7 @@ final class Poller implements SuspendableWorker {
       return true;
     }
     boolean result = pollExecutor.awaitTermination(timeout, unit);
+    result = task.shutdownAndAwaitTermination(timeout, unit) && result;
     log.info("awaitTermination done");
     return result;
   }
@@ -189,7 +184,7 @@ final class Poller implements SuspendableWorker {
   public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit)
       throws InterruptedException {
     log.info("shutdownAndAwaitTermination poller=" + this.options.getPollThreadNamePrefix());
-    if (!isStarted()) {
+    if (!isStarted() || pollExecutor.isShutdown()) {
       return true;
     }
     pollExecutor.shutdownNow();

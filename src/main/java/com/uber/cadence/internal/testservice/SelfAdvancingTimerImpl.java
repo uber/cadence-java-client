@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.testservice;
 
+import static sun.misc.ThreadGroupUtils.getRootThreadGroup;
+
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.util.Comparator;
@@ -94,7 +96,7 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
                   }
                 });
           } catch (Throwable e) {
-            log.error("Timer task failure", e);
+            log.error("Timer task failure. ThreadCount=" + getRootThreadGroup().activeCount(), e);
           }
           continue;
         }
@@ -240,7 +242,12 @@ final class SelfAdvancingTimerImpl implements SelfAdvancingTimer {
 
   @Override
   public void shutdown() {
-    executor.shutdown();
+    executor.shutdownNow();
+    try {
+      executor.awaitTermination(1, TimeUnit.MINUTES);
+    } catch (InterruptedException e) {
+      log.warn("Interrupted during shutdown", e);
+    }
     timerPump.interrupt();
     Uninterruptibles.joinUninterruptibly(timerPump);
   }

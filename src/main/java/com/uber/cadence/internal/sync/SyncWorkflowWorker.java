@@ -27,6 +27,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -37,6 +38,7 @@ public class SyncWorkflowWorker {
   private final WorkflowWorker worker;
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
+  private ThreadPoolExecutor workflowThreadPool;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -45,13 +47,16 @@ public class SyncWorkflowWorker {
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       SingleWorkerOptions options,
       int workflowThreadPoolSize) {
-    ThreadPoolExecutor workflowThreadPool =
+    ThreadGroup threadGroup = new ThreadGroup("workflow-threads");
+    ThreadFactory threadFactory = r -> new Thread(threadGroup, r, "workflow-thread-pool");
+    workflowThreadPool =
         new ThreadPoolExecutor(
+            1,
             workflowThreadPoolSize,
-            workflowThreadPoolSize,
-            10,
+            1,
             TimeUnit.SECONDS,
-            new SynchronousQueue<>());
+            new SynchronousQueue<>(),
+            threadFactory);
     factory =
         new POJOWorkflowImplementationFactory(
             options.getDataConverter(), workflowThreadPool, interceptorFactory);
@@ -74,19 +79,21 @@ public class SyncWorkflowWorker {
 
   public void shutdown() {
     worker.shutdown();
-  }
-
-  public void shutdownNow() {
-    worker.shutdownNow();
+    workflowThreadPool.shutdownNow();
   }
 
   public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    return worker.awaitTermination(timeout, unit);
+    long time = System.currentTimeMillis();
+    boolean result = true;
+    result = worker.awaitTermination(timeout, unit) && result;
+    long left = unit.toMillis(timeout) - (System.currentTimeMillis() - time);
+    return workflowThreadPool.awaitTermination(left, TimeUnit.MILLISECONDS) && result;
   }
 
   public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit)
       throws InterruptedException {
-    return worker.shutdownAndAwaitTermination(timeout, unit);
+    shutdown();
+    return awaitTermination(timeout, unit);
   }
 
   public boolean isRunning() {

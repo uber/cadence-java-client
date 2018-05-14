@@ -56,6 +56,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -177,7 +179,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Exception cause;
       try {
         @SuppressWarnings("unchecked") // cc is just to have a place to put this annotation
-        Class<? extends Exception> cc = (Class<? extends Exception>) Class.forName(causeClassName);
+            Class<? extends Exception> cc = (Class<? extends Exception>) Class
+            .forName(causeClassName);
         causeClass = cc;
         cause = getDataConverter().fromData(taskFailed.getDetails(), causeClass);
       } catch (Exception e) {
@@ -237,7 +240,9 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     return executeChildWorkflowOnce(name, options, input, executionResult);
   }
 
-  /** @param executionResult promise that is set bu this method when child workflow is started. */
+  /**
+   * @param executionResult promise that is set bu this method when child workflow is started.
+   */
   private Promise<byte[]> executeChildWorkflowOnce(
       String name,
       ChildWorkflowOptions options,
@@ -351,6 +356,36 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               return dataConverter.toData(r);
             });
     return dataConverter.fromData(result, resultType);
+  }
+
+  @Override
+  public <R> R mutableSideEffect(
+      String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+    DataConverter dataConverter = getDataConverter();
+    AtomicReference<R> unserializedResult = new AtomicReference<>();
+    // As lambda below never returns Optional.empty() if there is no stored value
+    // it is safe to call get on mutableSideEffect result.
+    byte[] binaryResult = context.mutableSideEffect(
+        id,
+        (storedBinary) -> {
+          Optional<R> stored =
+              storedBinary.map((b) -> dataConverter.fromData(b, returnType));
+          R funcResult =
+              Objects.requireNonNull(
+                  func.apply(), "mutableSideEffect function " + "returned null");
+          if (!stored.isPresent() || updated.test(stored.get(), funcResult)) {
+            unserializedResult.set(funcResult);
+            return Optional.of(dataConverter.toData(funcResult));
+          }
+          return Optional.empty(); // returned only when value doesn't need to be updated
+        })
+        .get();
+    // An optimization that avoids unnecessary deserialization of the result.
+    R unserialized = unserializedResult.get();
+    if (unserialized != null) {
+      return unserialized;
+    }
+    return dataConverter.fromData(binaryResult, returnType);
   }
 
   void fireTimers() {

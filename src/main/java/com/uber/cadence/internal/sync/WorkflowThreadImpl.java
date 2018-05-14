@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.sync;
 
+import static sun.misc.ThreadGroupUtils.getRootThreadGroup;
+
 import com.uber.cadence.workflow.Promise;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -205,7 +207,13 @@ class WorkflowThreadImpl implements WorkflowThread {
     }
     context.setStatus(Status.RUNNING);
     try {
+      log.debug("Start. Currently running threads: " + getRootThreadGroup().activeCount());
       taskFuture = threadPool.submit(task);
+    } catch (OutOfMemoryError e) {
+      log.error(
+          "Cannot create a new thread. Currently running threads: "
+              + getRootThreadGroup().activeCount());
+      throw e;
     } catch (RejectedExecutionException e) {
       throw new Error(
           "Not enough threads to execute workflows. "

@@ -30,16 +30,12 @@ import java.util.concurrent.TimeUnit;
 final class PollTask<T> implements Poller.ThrowingRunnable {
 
   public interface TaskHandler<TT> {
+
     void handle(IWorkflowService service, String domain, String taskList, TT task) throws Exception;
 
     TT poll(IWorkflowService service, String domain, String taskList) throws Exception;
 
     Throwable wrapFailure(TT task, Throwable failure);
-  }
-
-  @FunctionalInterface
-  public interface Poller<T> {
-    T poll() throws Exception;
   }
 
   private final IWorkflowService service;
@@ -70,10 +66,19 @@ final class PollTask<T> implements Poller.ThrowingRunnable {
             new SynchronousQueue<>());
     taskExecutor.setThreadFactory(
         new ExecutorThreadFactory(
-            options.getPollerOptions().getPollThreadNamePrefix() + " " + taskList + " ",
+            options.getPollerOptions().getPollThreadNamePrefix() + " " + taskList + " taskExecutor",
             options.getPollerOptions().getUncaughtExceptionHandler()));
     taskExecutor.setRejectedExecutionHandler(new BlockCallerPolicy());
     this.pollSemaphore = new Semaphore(options.getTaskExecutorThreadPoolSize());
+  }
+
+  boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    taskExecutor.shutdownNow();
+    return taskExecutor.awaitTermination(timeout, unit);
+  }
+
+  public void shutdownNow() {
+    taskExecutor.shutdownNow();
   }
 
   /** Poll for a task and execute correspondent implementation using provided executor service. */
@@ -90,6 +95,9 @@ final class PollTask<T> implements Poller.ThrowingRunnable {
       }
       synchronousSemaphoreRelease = false; // released by the task
       try {
+        if (taskExecutor.isTerminating()) {
+          return;
+        }
         taskExecutor.execute(
             () -> {
               try {

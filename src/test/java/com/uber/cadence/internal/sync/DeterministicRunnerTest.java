@@ -68,7 +68,7 @@ public class DeterministicRunnerTest {
 
   @After
   public void tearDown() throws InterruptedException {
-    threadPool.shutdown();
+    threadPool.shutdownNow();
     threadPool.awaitTermination(10, TimeUnit.SECONDS);
   }
 

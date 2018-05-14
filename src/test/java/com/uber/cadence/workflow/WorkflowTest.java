@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static sun.misc.ThreadGroupUtils.getRootThreadGroup;
 
 import com.googlecode.junittoolbox.ParallelParameterized;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
@@ -59,12 +60,16 @@ import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -78,9 +83,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -102,7 +109,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -208,6 +215,7 @@ public class WorkflowTest {
       taskList = "WorkflowTest-" + testMethod + "-" + UUID.randomUUID().toString();
     }
     tracer = new TracingWorkflowInterceptorFactory();
+    // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
     if (useExternalService) {
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
@@ -241,10 +249,11 @@ public class WorkflowTest {
 
   @After
   public void tearDown() throws Throwable {
-    worker.shutdown(Duration.ofMillis(1));
     activitiesImpl.close();
     if (testEnvironment != null) {
       testEnvironment.close();
+    } else {
+      worker.shutdown(Duration.ofMinutes(1));
     }
     for (ScheduledFuture<?> result : delayedCallbacks) {
       if (result.isDone() && !result.isCancelled()) {
@@ -259,6 +268,11 @@ public class WorkflowTest {
     if (tracer != null) {
       tracer.assertExpected();
     }
+  }
+
+  @AfterClass
+  public static void tearDownAllTests() {
+    log.info("Active threads count: " + getRootThreadGroup().activeCount());
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
@@ -2397,7 +2411,7 @@ public class WorkflowTest {
     }
 
     void close() {
-      executor.shutdown();
+      executor.shutdownNow();
     }
 
     void assertInvocations(String... expected) {
@@ -2803,7 +2817,6 @@ public class WorkflowTest {
   }
 
   @Test
-  //  @Ignore("Side effect is not implemented yet")
   public void testSideEffect() {
     startWorkerFor(TestSideEffectWorkflowImpl.class);
     TestWorkflow1 workflowStub =
@@ -2812,6 +2825,54 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("activity1", result);
     tracer.setExpected("sideEffect", "sleep PT1S", "executeActivity customActivity1");
+  }
+
+  private static final Map<String, Queue<Long>> mutableSideEffectValue =
+      Collections.synchronizedMap(new HashMap<>());
+
+  public static class TestMutableSideEffectWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      StringBuilder result = new StringBuilder();
+      for (int i = 0; i < 4; i++) {
+        long value =
+            Workflow.mutableSideEffect(
+                "id1",
+                Long.class,
+                (o, n) -> n > o,
+                () -> mutableSideEffectValue.get(taskList).poll());
+        if (result.length() > 0) {
+          result.append(", ");
+        }
+        result.append(value);
+        if (i >= 3) {
+          Workflow.sleep(Duration.ofSeconds(1));
+        }
+      }
+      return result.toString();
+    }
+  }
+
+  @Test
+  public void testMutableSideEffect() throws ExecutionException, InterruptedException {
+    startWorkerFor(TestMutableSideEffectWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    ArrayDeque<Long> values = new ArrayDeque<>();
+    values.add(1234L);
+    values.add(1234L);
+    values.add(123L); // expected to be ignored as it is smaller than 1234.
+    values.add(3456L);
+    mutableSideEffectValue.put(taskList, values);
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    if (useExternalService) {
+      Thread.sleep(1000);
+    } else {
+      testEnvironment.sleep(Duration.ofMillis(1000));
+    }
+    assertEquals("1234, 1234, 1234, 3456", result.get());
   }
 
   private static class TracingWorkflowInterceptorFactory
@@ -2927,6 +2988,12 @@ public class WorkflowTest {
     public <R> R sideEffect(Class<R> resultType, Func<R> func) {
       trace.add("sideEffect");
       return next.sideEffect(resultType, func);
+    }
+
+    @Override
+    public <R> R mutableSideEffect(
+        String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+      return next.mutableSideEffect(id, returnType, updated, func);
     }
 
     @Override
