@@ -61,6 +61,12 @@ final class ClockDecisionContext {
   private static final class MutableSideEffectResult {
 
     private final byte[] data;
+
+    /**
+     * Count of how many times the mutableSideEffect was called since the last marker recorded. It
+     * is used to ensure that an updated value is returned after the same exact number of times
+     * during a replay.
+     */
     private int accessCount;
 
     private MutableSideEffectResult(byte[] data) {
