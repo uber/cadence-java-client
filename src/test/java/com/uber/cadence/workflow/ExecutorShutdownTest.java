@@ -1,5 +1,3 @@
 package com.uber.cadence.workflow;
 
-public class ExecutorShutdownTest {
-
-}
+public class ExecutorShutdownTest {}

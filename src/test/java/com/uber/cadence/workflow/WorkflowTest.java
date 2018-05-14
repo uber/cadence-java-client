@@ -59,15 +59,16 @@ import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -81,6 +82,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.After;
@@ -2817,7 +2819,7 @@ public class WorkflowTest {
     tracer.setExpected("sideEffect", "sleep PT1S", "executeActivity customActivity1");
   }
 
-  private static final Map<String, Long> mutableSideEffectValue =
+  private static final Map<String, Queue<Long>> mutableSideEffectValue =
       Collections.synchronizedMap(new HashMap<>());
 
   public static class TestMutableSideEffectWorkflowImpl implements TestWorkflow1 {
@@ -2828,12 +2830,17 @@ public class WorkflowTest {
       for (int i = 0; i < 4; i++) {
         long value =
             Workflow.mutableSideEffect(
-                "id1", Long.class, Long::compareTo, () -> mutableSideEffectValue.get(taskList));
+                "id1",
+                Long.class,
+                (o, n) -> n > o,
+                () -> mutableSideEffectValue.get(taskList).poll());
         if (result.length() > 0) {
           result.append(", ");
         }
         result.append(value);
-        Workflow.sleep(Duration.ofSeconds(1));
+        if (i >= 3) {
+          Workflow.sleep(Duration.ofSeconds(1));
+        }
       }
       return result.toString();
     }
@@ -2845,20 +2852,18 @@ public class WorkflowTest {
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
-    mutableSideEffectValue.put(taskList, 1234L);
+    ArrayDeque<Long> values = new ArrayDeque<>();
+    values.add(1234L);
+    values.add(1234L);
+    values.add(123L); // expected to be ignored as it is smaller than 1234.
+    values.add(3456L);
+    mutableSideEffectValue.put(taskList, values);
     CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
     if (useExternalService) {
-      Thread.sleep(500);
+      Thread.sleep(1000);
     } else {
-      testEnvironment.sleep(Duration.ofMillis(500));
+      testEnvironment.sleep(Duration.ofMillis(1000));
     }
-    mutableSideEffectValue.put(taskList, 123L);
-    if (useExternalService) {
-      Thread.sleep(2000);
-    } else {
-      testEnvironment.sleep(Duration.ofSeconds(2));
-    }
-    mutableSideEffectValue.put(taskList, 3456L);
     assertEquals("1234, 1234, 1234, 3456", result.get());
   }
 
@@ -2979,8 +2984,8 @@ public class WorkflowTest {
 
     @Override
     public <R> R mutableSideEffect(
-        String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
-      return next.mutableSideEffect(id, returnType, comparator, func);
+        String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+      return next.mutableSideEffect(id, returnType, updated, func);
     }
 
     @Override

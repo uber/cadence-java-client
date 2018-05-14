@@ -28,10 +28,10 @@ import com.uber.cadence.workflow.Functions.Func2;
 import com.uber.cadence.workflow.Functions.Proc;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 
@@ -760,7 +760,7 @@ public final class Workflow {
    * @param returnType type of the side effect
    * @param func function that returns side effect value
    * @return value of the side effect
-   * @see #mutableSideEffect(String, Class, Comparator, Func)
+   * @see #mutableSideEffect(String, Class, BiPredicate, Func)
    */
   public static <R> R sideEffect(Class<R> returnType, Func<R> func) {
     return WorkflowInternal.sideEffect(returnType, func);
@@ -787,15 +787,15 @@ public final class Workflow {
    * {@link Error} causing failure of the current decision.
    *
    * @param id unique identifier of this side effect
-   * @param comparator used to decide if a new value should be recorded. A func result is recorded
-   *     only if it is larger than an already recorded result. Comparator is not called for the
-   *     first value.
+   * @param updated used to decide if a new value should be recorded. A func result is recorded only
+   *     if call to updated with stored and a new value as arguments returns true. It is not called
+   *     for the first value.
    * @param func function that produces a value. This function can contain non deterministic code.
    * @see #sideEffect(Class, Func)
    */
   public static <R> R mutableSideEffect(
-      String id, Class<R> returnType, Comparator<R> comparator, Func<R> func) {
-    return WorkflowInternal.mutableSideEffect(id, returnType, comparator, func);
+      String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+    return WorkflowInternal.mutableSideEffect(id, returnType, updated, func);
   }
 
   /**
