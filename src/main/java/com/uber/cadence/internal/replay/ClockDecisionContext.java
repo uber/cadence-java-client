@@ -248,6 +248,7 @@ final class ClockDecisionContext {
       return Optional.empty();
     }
     MutableSideEffectData markerData = markerDataDeserializer.apply(attributes.getDetails());
+    // access count is used to not return data from the marker before the recorded number of calls
     if (!mutableSideEffectId.equals(markerData.getId())
         || markerData.getAccessCount() > expectedAcccessCount) {
       return Optional.empty();
@@ -272,6 +273,7 @@ final class ClockDecisionContext {
     String name = attributes.getMarkerName();
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
+    } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
       log.warn("Unexpected marker: " + event);
     }
   }
