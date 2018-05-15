@@ -207,30 +207,24 @@ final class ClockDecisionContext {
     }
     long eventId = decisions.getNextDecisionEventId();
     int accessCount = result == null ? 0 : result.getAccessCount();
-    try {
-      if (replaying) {
+    if (replaying) {
 
-        Optional<byte[]> data =
-            getSideEffectDataFromHistory(eventId, id, accessCount, markerDataDeserializer);
-        if (data.isPresent()) {
-          // Need to insert marker to ensure that eventId is incremented
-          recordMutableSideEffectMarker(id, eventId, data.get(), accessCount, markerDataSerializer);
-          return data;
-        }
-        return stored;
-      }
-      Optional<byte[]> toStore = func.apply(stored);
-      if (toStore.isPresent()) {
-        byte[] data = toStore.get();
-        recordMutableSideEffectMarker(id, eventId, data, accessCount, markerDataSerializer);
-        return toStore;
+      Optional<byte[]> data =
+          getSideEffectDataFromHistory(eventId, id, accessCount, markerDataDeserializer);
+      if (data.isPresent()) {
+        // Need to insert marker to ensure that eventId is incremented
+        recordMutableSideEffectMarker(id, eventId, data.get(), accessCount, markerDataSerializer);
+        return data;
       }
       return stored;
-    } catch (Error e) {
-      throw e;
-    } catch (Exception e) {
-      throw new Error("mutableSideEffect function failed", e);
     }
+    Optional<byte[]> toStore = func.apply(stored);
+    if (toStore.isPresent()) {
+      byte[] data = toStore.get();
+      recordMutableSideEffectMarker(id, eventId, data, accessCount, markerDataSerializer);
+      return toStore;
+    }
+    return stored;
   }
 
   private Optional<byte[]> getSideEffectDataFromHistory(

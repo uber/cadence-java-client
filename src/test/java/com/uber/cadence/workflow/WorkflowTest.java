@@ -2838,6 +2838,7 @@ public class WorkflowTest {
           result.append(", ");
         }
         result.append(value);
+        // Sleep is here to ensure that mutableSideEffect works when replaying a history.
         if (i >= 3) {
           Workflow.sleep(Duration.ofSeconds(1));
         }
@@ -2858,13 +2859,8 @@ public class WorkflowTest {
     values.add(123L); // expected to be ignored as it is smaller than 1234.
     values.add(3456L);
     mutableSideEffectValue.put(taskList, values);
-    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
-    if (useExternalService) {
-      Thread.sleep(1000);
-    } else {
-      testEnvironment.sleep(Duration.ofSeconds(1));
-    }
-    assertEquals("1234, 1234, 1234, 3456", result.get());
+    String result = workflowStub.execute(taskList);
+    assertEquals("1234, 1234, 1234, 3456", result);
   }
 
   private static class TracingWorkflowInterceptorFactory
@@ -2985,6 +2981,7 @@ public class WorkflowTest {
     @Override
     public <R> R mutableSideEffect(
         String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
+      trace.add("mutableSideEffect");
       return next.mutableSideEffect(id, returnType, updated, func);
     }
 
