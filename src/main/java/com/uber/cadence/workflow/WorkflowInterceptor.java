@@ -22,6 +22,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
@@ -74,4 +75,6 @@ public interface WorkflowInterceptor {
 
   void registerQuery(
       String queryType, Class<?>[] argTypes, Functions.Func1<Object[], Object> callback);
+
+  UUID randomUUID();
 }

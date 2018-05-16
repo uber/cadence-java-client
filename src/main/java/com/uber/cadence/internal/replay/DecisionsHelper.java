@@ -87,6 +87,8 @@ class DecisionsHelper {
    */
   private long nextDecisionEventId;
 
+  private long idCounter;
+
   private DecisionEvents decisionEvents;
 
   /** Use access-order to ensure that decisions are emitted in order of their creation */
@@ -598,10 +600,7 @@ class DecisionsHelper {
   }
 
   String getNextId() {
-    if (nextDecisionEventId == 0) {
-      throw new IllegalStateException("nextDecisionEventId is not set");
-    }
-    return String.valueOf(nextDecisionEventId);
+    return String.valueOf(idCounter++);
   }
 
   public HistoryEvent getDecisionEvent(long eventId) {

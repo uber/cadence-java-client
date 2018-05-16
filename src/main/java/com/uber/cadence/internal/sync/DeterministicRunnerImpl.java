@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -501,11 +502,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public String generateUniqueId() {
-      throw new UnsupportedOperationException("not implemented");
-    }
-
-    @Override
     public Optional<byte[]> mutableSideEffect(
         String id,
         Func1<MutableSideEffectData, byte[]> markerDataSerializer,
@@ -542,6 +538,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public boolean getEnableLoggingInReplay() {
       return false;
+    }
+
+    @Override
+    public UUID randomUUID() {
+      throw new UnsupportedOperationException("not implemented");
     }
   }
 }
