@@ -865,12 +865,7 @@ public final class Workflow {
    *
    * <pre><code>
    * Workflow.getVersion("fooChange", 2, 2);
-   * String result;
-   * if (version == 1) {
-   *   result = testActivities.activity2();
-   * } else {
-   *   result = testActivities.activity3();
-   * }
+   * result = testActivities.activity3();
    * </code></pre>
    *
    * The reason to keep it is: 1) it ensures that if there is older version execution still running,
@@ -884,7 +879,9 @@ public final class Workflow {
    * changeID. If you ever need to make changes to that same part, you would need to use a different
    * changeID like “fooChange-fix2”, and start minVersion from DefaultVersion again.
    *
-   * @param changeID identifier of a particular change
+   * @param changeID identifier of a particular change. All calls to getVersion that share a
+   *     changeID are guaranteed to return the same version number. Use this to perform multiple
+   *     coordinated changes that should be enabled together.
    * @param minSupported min version supported for the change
    * @param maxSupported max version supported for the change
    * @return version

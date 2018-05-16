@@ -213,7 +213,9 @@ final class ClockDecisionContext {
     if (!result.isPresent()) {
       return WorkflowInternal.DEFAULT_VERSION;
     }
-    return ByteBuffer.wrap(result.get()).getInt();
+    int version = ByteBuffer.wrap(result.get()).getInt();
+    validateVersion(changeId, version, minSupported, maxSupported);
+    return version;
   }
 
   private void validateVersion(String changeID, int version, int minSupported, int maxSupported) {
