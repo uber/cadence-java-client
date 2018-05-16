@@ -23,6 +23,7 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
@@ -103,5 +104,10 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   public void registerQuery(
       String queryType, Class<?>[] argTypes, Func1<Object[], Object> callback) {
     next.registerQuery(queryType, argTypes, callback);
+  }
+
+  @Override
+  public UUID randomUUID() {
+    return next.randomUUID();
   }
 }

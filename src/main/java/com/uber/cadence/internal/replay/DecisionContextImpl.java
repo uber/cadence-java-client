@@ -32,6 +32,7 @@ import com.uber.cadence.workflow.Workflow;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -69,6 +70,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public boolean getEnableLoggingInReplay() {
     return enableLoggingInReplay;
+  }
+
+  @Override
+  public UUID randomUUID() {
+    return workflowClient.randomUUID();
   }
 
   @Override

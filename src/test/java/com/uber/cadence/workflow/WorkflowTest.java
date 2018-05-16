@@ -3193,5 +3193,11 @@ public class WorkflowTest {
       trace.add("registerQuery " + queryType);
       next.registerQuery(queryType, argTypes, callback);
     }
+
+    @Override
+    public UUID randomUUID() {
+      trace.add("randomUUID");
+      return next.randomUUID();
+    }
   }
 }

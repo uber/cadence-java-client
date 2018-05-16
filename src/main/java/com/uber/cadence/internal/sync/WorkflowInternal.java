@@ -49,6 +49,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -334,6 +335,10 @@ public final class WorkflowInternal {
 
   private static boolean isLoggingEnabledInReplay() {
     return getRootDecisionContext().isLoggingEnabledInReplay();
+  }
+
+  public static UUID randomUUID() {
+    return getRootDecisionContext().randomUUID();
   }
 
   public static Logger getLogger(Class<?> clazz) {

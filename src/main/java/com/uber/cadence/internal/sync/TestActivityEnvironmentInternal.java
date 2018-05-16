@@ -246,6 +246,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
       throw new UnsupportedOperationException("not implemented");
     }
 
+    @Override
+    public UUID randomUUID() {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
     private <T> T getReply(
         PollForActivityTaskResponse task,
         ActivityTaskHandler.Result response,
