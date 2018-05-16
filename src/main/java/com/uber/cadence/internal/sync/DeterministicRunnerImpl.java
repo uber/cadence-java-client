@@ -535,6 +535,16 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public int getVersion(
+        String changeID,
+        Func1<MutableSideEffectData, byte[]> markerDataSerializer,
+        Func1<byte[], MutableSideEffectData> markerDataDeserializer,
+        int minSupported,
+        int maxSupported) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public Scope getMetricsScope() {
       throw new UnsupportedOperationException("not implemented");
     }

@@ -209,6 +209,17 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
+  public int getVersion(
+      String changeID,
+      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
+      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
+      int minSupported,
+      int maxSupported) {
+    return workflowClock.getVersion(
+        changeID, markerDataSerializer, markerDataDeserializer, minSupported, maxSupported);
+  }
+
+  @Override
   public long currentTimeMillis() {
     return workflowClock.currentTimeMillis();
   }

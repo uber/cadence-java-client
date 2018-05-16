@@ -390,6 +390,17 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     return dataConverter.fromData(binaryResult, returnType);
   }
 
+  @Override
+  public int getVersion(String changeID, int minSupported, int maxSupported) {
+    DataConverter dataConverter = getDataConverter();
+    return context.getVersion(
+        changeID,
+        (md) -> dataConverter.toData(md),
+        (data) -> dataConverter.fromData(data, MutableSideEffectData.class),
+        minSupported,
+        maxSupported);
+  }
+
   void fireTimers() {
     timers.fireTimers(context.currentTimeMillis());
   }

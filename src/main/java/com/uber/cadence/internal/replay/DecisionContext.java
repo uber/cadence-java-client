@@ -166,6 +166,28 @@ public interface DecisionContext extends ReplayAware {
    */
   byte[] sideEffect(Func<byte[]> func);
 
+  /**
+   * GetVersion is used to safely perform backwards incompatible changes to workflow definitions. It
+   * is not allowed to update workflow code while there are workflows running as it is going to
+   * break determinism. The solution is to have both old code that is used to replay existing
+   * workflows as well as the new one that is used when it is executed for the first time.
+   * GetVersion returns maxSupported version when executed for the first time. This version is
+   * recorded into the workflow history as a marker event. Even if maxSupported version is changed
+   * the version that was recorded is returned on replay. DefaultVersion constant contains version
+   * of code that wasn't versioned before.
+   *
+   * @param changeID identifier of a particular change
+   * @param minSupported min version supported for the change
+   * @param maxSupported max version supported for the change
+   * @return version
+   */
+  int getVersion(
+      String changeID,
+      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
+      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
+      int minSupported,
+      int maxSupported);
+
   /** @return scope to be used for metrics reporting. */
   Scope getMetricsScope();
 

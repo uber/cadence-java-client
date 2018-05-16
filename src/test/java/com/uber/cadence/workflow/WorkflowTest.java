@@ -64,11 +64,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -107,7 +109,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -2848,7 +2850,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testMutableSideEffect() throws ExecutionException, InterruptedException {
+  public void testMutableSideEffect() {
     startWorkerFor(TestMutableSideEffectWorkflowImpl.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
@@ -2861,6 +2863,78 @@ public class WorkflowTest {
     mutableSideEffectValue.put(taskList, values);
     String result = workflowStub.execute(taskList);
     assertEquals("1234, 1234, 1234, 3456", result);
+  }
+
+  private static final Set<String> getVersionExecuted =
+      Collections.synchronizedSet(new HashSet<>());
+
+  public static class TestGetVersionWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+
+      // Test adding a version check in non-replay code.
+      int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+      String result = "";
+      if (version == Workflow.DEFAULT_VERSION) {
+        result += testActivities.activity1("activity1");
+      } else {
+        result += testActivities.activity2("activity2", 2); // This is executed.
+      }
+
+      // Test version change in non-replay code.
+      version = Workflow.getVersion("test_change", 1, 2);
+      if (version == 1) {
+        result += testActivities.activity1("activity1"); // This is executed.
+      } else {
+        result += testActivities.activity2("activity2", 2);
+      }
+
+      // Test adding a version check in replay code.
+      if (!getVersionExecuted.contains(taskList)) {
+        result += testActivities.activity1("activity1"); // This is executed in non-replay mode.
+        getVersionExecuted.add(taskList);
+      } else {
+        int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+        if (version2 == Workflow.DEFAULT_VERSION) {
+          result += testActivities.activity1("activity1"); // This is executed in replay mode.
+        } else {
+          result += testActivities.activity2("activity2", 2);
+        }
+      }
+
+      // Test get version in replay mode.
+      Workflow.sleep(1000);
+      version = Workflow.getVersion("test_change", 1, 2);
+      if (version == 1) {
+        result += testActivities.activity1("activity1"); // This is executed.
+      } else {
+        result += testActivities.activity2("activity2", 2);
+      }
+
+      return result;
+    }
+  }
+
+  @Test
+  public void testGetVersion() {
+    startWorkerFor(TestGetVersionWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("activity22activity1activity1activity1", result);
+    tracer.setExpected(
+        "getVersion",
+        "executeActivity TestActivities::activity2",
+        "getVersion",
+        "executeActivity customActivity1",
+        "executeActivity customActivity1",
+        "sleep PT1S",
+        "getVersion",
+        "executeActivity customActivity1");
   }
 
   private static class TracingWorkflowInterceptorFactory
@@ -2983,6 +3057,12 @@ public class WorkflowTest {
         String id, Class<R> returnType, BiPredicate<R, R> updated, Func<R> func) {
       trace.add("mutableSideEffect");
       return next.mutableSideEffect(id, returnType, updated, func);
+    }
+
+    @Override
+    public int getVersion(String changeID, int minSupported, int maxSupported) {
+      trace.add("getVersion");
+      return next.getVersion(changeID, minSupported, maxSupported);
     }
 
     @Override
