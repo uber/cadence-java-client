@@ -35,37 +35,6 @@ import java.util.function.Consumer;
  */
 public interface DecisionContext extends ReplayAware {
 
-  final class MutableSideEffectData {
-
-    private final String id;
-    private final long eventId;
-    private final byte[] data;
-    private final int accessCount;
-
-    public MutableSideEffectData(String id, long eventId, byte[] data, int accessCount) {
-      this.id = id;
-      this.eventId = eventId;
-      this.data = data;
-      this.accessCount = accessCount;
-    }
-
-    public String getId() {
-      return id;
-    }
-
-    public long getEventId() {
-      return eventId;
-    }
-
-    public byte[] getData() {
-      return data;
-    }
-
-    public int getAccessCount() {
-      return accessCount;
-    }
-  }
-
   WorkflowExecution getWorkflowExecution();
 
   // TODO: Add to Cadence

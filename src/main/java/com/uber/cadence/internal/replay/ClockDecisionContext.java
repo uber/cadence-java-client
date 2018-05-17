@@ -71,14 +71,14 @@ final class ClockDecisionContext {
   // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
 
-  private final MutableSideEffectHandler mutableSideEffectHandler;
-  private final MutableSideEffectHandler versionHandler;
+  private final MutableMarkerHandler mutableSideEffectHandler;
+  private final MutableMarkerHandler versionHandler;
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
     mutableSideEffectHandler =
-        new MutableSideEffectHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
-    versionHandler = new MutableSideEffectHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
+        new MutableMarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
+    versionHandler = new MutableMarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
   }
 
   long currentTimeMillis() {
