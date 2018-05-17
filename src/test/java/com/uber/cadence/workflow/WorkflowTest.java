@@ -2937,6 +2937,8 @@ public class WorkflowTest {
         "executeActivity customActivity1");
   }
 
+  // The following test covers the scenario where getVersion call is removed before a
+  // non-version-marker decision.
   public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflow1 {
 
     @Override
@@ -2958,7 +2960,6 @@ public class WorkflowTest {
       }
 
       result += testActivities.activity();
-
       return result;
     }
   }
@@ -2975,6 +2976,38 @@ public class WorkflowTest {
         "getVersion",
         "executeActivity TestActivities::activity2",
         "executeActivity TestActivities::activity");
+  }
+
+  // The following test covers the scenario where getVersion call is removed before another
+  // version-marker decision.
+  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      // Test removing a version check in replay code.
+      if (!getVersionExecuted.contains(taskList)) {
+        Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+        Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 2);
+        getVersionExecuted.add(taskList);
+      } else {
+        Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 2);
+      }
+
+      return testActivities.activity();
+    }
+  }
+
+  @Test
+  public void testGetVersionRemovedInReplay2() {
+    startWorkerFor(TestGetVersionRemovedInReplay2WorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("activity", result);
+    tracer.setExpected("getVersion", "getVersion", "executeActivity TestActivities::activity");
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {

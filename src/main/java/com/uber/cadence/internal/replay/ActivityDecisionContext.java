@@ -137,6 +137,11 @@ final class ActivityDecisionContext {
         byte[] result = attributes.getResult();
         BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
         completionHandle.accept(result, null);
+      } else {
+        throw new Error(
+            "Trying to complete activity event "
+                + attributes.getScheduledEventId()
+                + " that is not in scheduledActivities");
       }
     }
   }

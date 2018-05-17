@@ -64,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 class DecisionsHelper {
 
@@ -112,7 +113,7 @@ class DecisionsHelper {
   }
 
   long scheduleActivityTask(ScheduleActivityTaskDecisionAttributes schedule) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     long nextDecisionEventId = getNextDecisionEventId();
     schedule.setActivityId(getNextId());
@@ -195,7 +196,7 @@ class DecisionsHelper {
 
   long startChildWorkflowExecution(
       StartChildWorkflowExecutionDecisionAttributes childWorkflow, String runId) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     if (childWorkflow.getWorkflowId() == null) {
       childWorkflow.setWorkflowId(runId + ":" + getNextId());
@@ -229,7 +230,7 @@ class DecisionsHelper {
    */
   long requestCancelExternalWorkflowExecution(
       RequestCancelExternalWorkflowExecutionDecisionAttributes schedule) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     long nextDecisionEventId = getNextDecisionEventId();
     DecisionId decisionId =
@@ -266,7 +267,7 @@ class DecisionsHelper {
   }
 
   long signalExternalWorkflowExecution(SignalExternalWorkflowExecutionDecisionAttributes signal) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     signal.setControl(getNextId().getBytes(StandardCharsets.UTF_8));
 
@@ -301,7 +302,7 @@ class DecisionsHelper {
   }
 
   long startTimer(StartTimerDecisionAttributes request) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     long startEventId = getNextDecisionEventId();
     DecisionId decisionId = new DecisionId(DecisionTarget.TIMER, startEventId);
@@ -414,7 +415,7 @@ class DecisionsHelper {
   }
 
   void completeWorkflowExecution(byte[] output) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     Decision decision = new Decision();
     CompleteWorkflowExecutionDecisionAttributes complete =
@@ -427,7 +428,7 @@ class DecisionsHelper {
   }
 
   void continueAsNewWorkflowExecution(ContinueAsNewWorkflowExecutionParameters continueParameters) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     WorkflowExecutionStartedEventAttributes startedEvent =
         task.getHistory().getEvents().get(0).getWorkflowExecutionStartedEventAttributes();
@@ -466,7 +467,7 @@ class DecisionsHelper {
   }
 
   void failWorkflowExecution(WorkflowExecutionException failure) {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     Decision decision = new Decision();
     FailWorkflowExecutionDecisionAttributes failAttributes =
@@ -484,7 +485,7 @@ class DecisionsHelper {
    *     CancelWorkflowExecution was created.
    */
   void cancelWorkflowExecution() {
-    addAllMissingVersionMarker(Optional.empty(), Optional.empty());
+    addAllMissingVersionMarker(false, Optional.empty());
 
     Decision decision = new Decision();
     CancelWorkflowExecutionDecisionAttributes cancel =
@@ -497,7 +498,7 @@ class DecisionsHelper {
   }
 
   void recordMarker(String markerName, byte[] details) {
-    addAllMissingVersionMarker(Optional.of(markerName), Optional.of(details));
+    // no need to call addAllMissingVersionMarker here as all the callers are already doing it.
 
     RecordMarkerDecisionAttributes marker =
         new RecordMarkerDecisionAttributes().setMarkerName(markerName).setDetails(details);
@@ -621,14 +622,16 @@ class DecisionsHelper {
 
   // This is to support the case where a getVersion call presents during workflow execution but
   // is removed in replay.
-  void addAllMissingVersionMarker(Optional<String> markerName, Optional<byte[]> details) {
+  void addAllMissingVersionMarker(
+      boolean isNextDecisionVersionMarker, Optional<Predicate<byte[]>> isDifferentChange) {
     boolean added;
     do {
-      added = addMissingVersionMarker(markerName, details);
+      added = addMissingVersionMarker(isNextDecisionVersionMarker, isDifferentChange);
     } while (added);
   }
 
-  private boolean addMissingVersionMarker(Optional<String> markerName, Optional<byte[]> details) {
+  private boolean addMissingVersionMarker(
+      boolean isNextDecisionVersionMarker, Optional<Predicate<byte[]>> changeIdEquals) {
     Optional<HistoryEvent> optionalEvent = getOptionalDecisionEvent(nextDecisionEventId);
     if (!optionalEvent.isPresent()) {
       return false;
@@ -647,9 +650,9 @@ class DecisionsHelper {
     }
 
     // If we have a version marker in history event but not in decisions, let's add one.
-    if (!markerName.isPresent()
-        || !markerName.get().equals(ClockDecisionContext.VERSION_MARKER_NAME)
-        || !Arrays.equals(event.getMarkerRecordedEventAttributes().getDetails(), details.get())) {
+    if (!isNextDecisionVersionMarker
+        || (changeIdEquals.isPresent()
+            && changeIdEquals.get().test(event.getMarkerRecordedEventAttributes().getDetails()))) {
 
       RecordMarkerDecisionAttributes marker =
           new RecordMarkerDecisionAttributes()

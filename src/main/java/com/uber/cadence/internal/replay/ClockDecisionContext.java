@@ -23,6 +23,7 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.replay.MutableMarkerHandler.MutableMarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
@@ -33,6 +34,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,6 +148,7 @@ final class ClockDecisionContext {
   }
 
   byte[] sideEffect(Func<byte[]> func) {
+    decisions.addAllMissingVersionMarker(false, Optional.empty());
     long sideEffectEventId = decisions.getNextDecisionEventId();
     byte[] result;
     if (replaying) {
@@ -174,6 +177,7 @@ final class ClockDecisionContext {
    */
   Optional<byte[]> mutableSideEffect(
       String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
+    decisions.addAllMissingVersionMarker(false, Optional.empty());
     return mutableSideEffectHandler.handle(id, converter, func);
   }
 
@@ -188,6 +192,13 @@ final class ClockDecisionContext {
   }
 
   int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
+    Predicate<byte[]> changeIdEquals =
+        (bytesInEvent) -> {
+          MutableMarkerData markerData = converter.fromData(bytesInEvent, MutableMarkerData.class);
+          return !markerData.getId().equals(changeId);
+        };
+    decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
+
     Optional<byte[]> result =
         versionHandler.handle(
             changeId,

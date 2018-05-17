@@ -52,7 +52,7 @@ class MutableMarkerHandler {
     }
   }
 
-  private static final class MutableMarkerData {
+  static final class MutableMarkerData {
 
     private final String id;
     private final long eventId;
