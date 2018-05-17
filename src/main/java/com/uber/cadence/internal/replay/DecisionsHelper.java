@@ -614,6 +614,12 @@ class DecisionsHelper {
     return task;
   }
 
+  // addAllMissingVersionMarker should always be called before addDecision. In non-replay mode,
+  // addAllMissingVersionMarker is a no-op. In replay mode, it tries to insert back missing
+  // version marker decisions, as we allow user to remove getVersion and not breaking their code.
+  // Be careful that addAllMissingVersionMarker can add decision and hence change
+  // nextDecisionEventId, so any call to determine the event ID for the next decision should happen
+  // after that.
   private void addDecision(DecisionId decisionId, DecisionStateMachine decision) {
     Objects.requireNonNull(decisionId);
     decisions.put(decisionId, decision);
