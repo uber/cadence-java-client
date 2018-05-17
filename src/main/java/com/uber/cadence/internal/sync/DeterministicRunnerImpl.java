@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
@@ -502,10 +503,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     @Override
     public Optional<byte[]> mutableSideEffect(
-        String id,
-        Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-        Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-        Func1<Optional<byte[]>, Optional<byte[]>> func) {
+        String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
       throw new UnsupportedOperationException("not implemented");
     }
 
@@ -531,11 +529,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     @Override
     public int getVersion(
-        String changeID,
-        Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-        Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-        int minSupported,
-        int maxSupported) {
+        String changeID, DataConverter converter, int minSupported, int maxSupported) {
       throw new UnsupportedOperationException("not implemented");
     }
 

@@ -20,6 +20,7 @@ package com.uber.cadence.internal.replay;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.DecisionContext.MutableSideEffectData;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.util.HashMap;
@@ -73,10 +74,7 @@ public class MutableSideEffectHandler {
    * @return the latest value returned by func
    */
   Optional<byte[]> handle(
-      String id,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-      Func1<Optional<byte[]>, Optional<byte[]>> func) {
+      String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
     MutableSideEffectResult result = mutableSideEffectResults.get(id);
     Optional<byte[]> stored;
     if (result == null) {
@@ -88,11 +86,10 @@ public class MutableSideEffectHandler {
     int accessCount = result == null ? 0 : result.getAccessCount();
 
     if (replayContext.isReplaying()) {
-      Optional<byte[]> data =
-          getSideEffectDataFromHistory(eventId, id, accessCount, markerDataDeserializer);
+      Optional<byte[]> data = getSideEffectDataFromHistory(eventId, id, accessCount, converter);
       if (data.isPresent()) {
         // Need to insert marker to ensure that eventId is incremented
-        recordMutableSideEffectMarker(id, eventId, data.get(), accessCount, markerDataSerializer);
+        recordMutableSideEffectMarker(id, eventId, data.get(), accessCount, converter);
         return data;
       }
       return stored;
@@ -100,17 +97,14 @@ public class MutableSideEffectHandler {
     Optional<byte[]> toStore = func.apply(stored);
     if (toStore.isPresent()) {
       byte[] data = toStore.get();
-      recordMutableSideEffectMarker(id, eventId, data, accessCount, markerDataSerializer);
+      recordMutableSideEffectMarker(id, eventId, data, accessCount, converter);
       return toStore;
     }
     return stored;
   }
 
   private Optional<byte[]> getSideEffectDataFromHistory(
-      long eventId,
-      String mutableSideEffectId,
-      int expectedAcccessCount,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer) {
+      long eventId, String mutableSideEffectId, int expectedAcccessCount, DataConverter converter) {
     HistoryEvent event = decisions.getDecisionEvent(eventId);
     if (event.getEventType() != EventType.MarkerRecorded) {
       return Optional.empty();
@@ -120,7 +114,8 @@ public class MutableSideEffectHandler {
     if (!markerName.equals(name)) {
       return Optional.empty();
     }
-    MutableSideEffectData markerData = markerDataDeserializer.apply(attributes.getDetails());
+    MutableSideEffectData markerData =
+        converter.fromData(attributes.getDetails(), MutableSideEffectData.class);
     // access count is used to not return data from the marker before the recorded number of calls
     if (!mutableSideEffectId.equals(markerData.getId())
         || markerData.getAccessCount() > expectedAcccessCount) {
@@ -130,13 +125,9 @@ public class MutableSideEffectHandler {
   }
 
   private void recordMutableSideEffectMarker(
-      String id,
-      long eventId,
-      byte[] data,
-      int accessCount,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer) {
+      String id, long eventId, byte[] data, int accessCount, DataConverter converter) {
     MutableSideEffectData dataObject = new MutableSideEffectData(id, eventId, data, accessCount);
-    byte[] details = markerDataSerializer.apply(dataObject);
+    byte[] details = converter.toData(dataObject);
     mutableSideEffectResults.put(id, new MutableSideEffectResult(data));
     decisions.recordMarker(markerName, details);
   }

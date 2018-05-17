@@ -22,11 +22,10 @@ import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.internal.replay.DecisionContext.MutableSideEffectData;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -174,11 +173,8 @@ final class ClockDecisionContext {
    * @return the latest value returned by func
    */
   Optional<byte[]> mutableSideEffect(
-      String id,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-      Func1<Optional<byte[]>, Optional<byte[]>> func) {
-    return mutableSideEffectHandler.handle(id, markerDataSerializer, markerDataDeserializer, func);
+      String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
+    return mutableSideEffectHandler.handle(id, converter, func);
   }
 
   void handleMarkerRecorded(HistoryEvent event) {
@@ -191,28 +187,22 @@ final class ClockDecisionContext {
     }
   }
 
-  int getVersion(
-      String changeId,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-      int minSupported,
-      int maxSupported) {
+  int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
     Optional<byte[]> result =
         versionHandler.handle(
             changeId,
-            markerDataSerializer,
-            markerDataDeserializer,
+            converter,
             (stored) -> {
               if (stored.isPresent()) {
                 return Optional.empty();
               }
-              return Optional.of(ByteBuffer.allocate(4).putInt(maxSupported).array());
+              return Optional.of(converter.toData(maxSupported));
             });
 
     if (!result.isPresent()) {
       return WorkflowInternal.DEFAULT_VERSION;
     }
-    int version = ByteBuffer.wrap(result.get()).getInt();
+    int version = converter.fromData(result.get(), Integer.class);
     validateVersion(changeId, version, minSupported, maxSupported);
     return version;
   }

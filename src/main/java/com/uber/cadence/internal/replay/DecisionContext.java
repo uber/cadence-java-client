@@ -19,6 +19,7 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
@@ -128,10 +129,7 @@ public interface DecisionContext extends ReplayAware {
   void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters);
 
   Optional<byte[]> mutableSideEffect(
-      String id,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-      Func1<Optional<byte[]>, Optional<byte[]>> func);
+      String id, DataConverter dataConverter, Func1<Optional<byte[]>, Optional<byte[]>> func);
 
   /**
    * @return time of the {@link com.uber.cadence.PollForDecisionTaskResponse} start event of the
@@ -178,12 +176,7 @@ public interface DecisionContext extends ReplayAware {
    * @param maxSupported max version supported for the change
    * @return version
    */
-  int getVersion(
-      String changeID,
-      Func1<MutableSideEffectData, byte[]> markerDataSerializer,
-      Func1<byte[], MutableSideEffectData> markerDataDeserializer,
-      int minSupported,
-      int maxSupported);
+  int getVersion(String changeID, DataConverter dataConverter, int minSupported, int maxSupported);
 
   /** @return scope to be used for metrics reporting. */
   Scope getMetricsScope();
