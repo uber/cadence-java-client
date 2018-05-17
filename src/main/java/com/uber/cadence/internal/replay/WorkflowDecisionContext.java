@@ -211,7 +211,7 @@ final class WorkflowDecisionContext {
     return UUID.nameUUIDFromBytes(bytes);
   }
 
-  Random getRandom() {
+  Random newRandom() {
     return new Random(randomUUID().getLeastSignificantBits());
   }
 
