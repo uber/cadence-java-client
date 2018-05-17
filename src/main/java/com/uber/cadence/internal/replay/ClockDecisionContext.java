@@ -42,7 +42,7 @@ final class ClockDecisionContext {
 
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
   private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
-  private static final String VERSION_MARKER_NAME = "Version";
+  public static final String VERSION_MARKER_NAME = "Version";
 
   private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
@@ -106,8 +106,7 @@ final class ClockDecisionContext {
     final OpenRequestInfo<?, Long> context = new OpenRequestInfo<>(firingTime);
     final StartTimerDecisionAttributes timer = new StartTimerDecisionAttributes();
     timer.setStartToFireTimeoutSeconds(delaySeconds);
-    timer.setTimerId(String.valueOf(decisions.getNextId()));
-    long startEventId = decisions.startTimer(timer, null);
+    long startEventId = decisions.startTimer(timer);
     context.setCompletionHandle((ctx, e) -> callback.accept(e));
     scheduledTimers.put(startEventId, context);
     return new TimerCancellationHandler(startEventId);
@@ -187,7 +186,7 @@ final class ClockDecisionContext {
     String name = attributes.getMarkerName();
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
-    } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name)) {
+    } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name) && !VERSION_MARKER_NAME.equals(name)) {
       log.warn("Unexpected marker: " + event);
     }
   }

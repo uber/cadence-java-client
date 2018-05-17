@@ -172,11 +172,6 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     workflowClient.continueAsNewOnCompletion(parameters);
   }
 
-  @Override
-  public String generateUniqueId() {
-    return workflowClient.generateUniqueId();
-  }
-
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
     if (replayCurrentTimeMilliseconds < workflowClock.currentTimeMillis()) {
       throw new IllegalArgumentException("workflow clock moved back");

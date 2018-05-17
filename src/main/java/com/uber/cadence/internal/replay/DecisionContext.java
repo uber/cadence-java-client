@@ -127,9 +127,6 @@ public interface DecisionContext extends ReplayAware {
 
   void continueAsNewOnCompletion(ContinueAsNewWorkflowExecutionParameters parameters);
 
-  /** Deterministic unique Id generator */
-  String generateUniqueId();
-
   Optional<byte[]> mutableSideEffect(
       String id,
       Func1<MutableSideEffectData, byte[]> markerDataSerializer,

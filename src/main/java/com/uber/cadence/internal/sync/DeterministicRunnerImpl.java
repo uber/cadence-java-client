@@ -501,11 +501,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public String generateUniqueId() {
-      throw new UnsupportedOperationException("not implemented");
-    }
-
-    @Override
     public Optional<byte[]> mutableSideEffect(
         String id,
         Func1<MutableSideEffectData, byte[]> markerDataSerializer,

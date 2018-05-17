@@ -2893,9 +2893,9 @@ public class WorkflowTest {
       }
 
       // Test adding a version check in replay code.
-      if (!getVersionExecuted.contains(taskList+"-test_change_2")) {
+      if (!getVersionExecuted.contains(taskList + "-test_change_2")) {
         result += testActivities.activity1("activity1"); // This is executed in non-replay mode.
-        getVersionExecuted.add(taskList+"-test_change_2");
+        getVersionExecuted.add(taskList + "-test_change_2");
       } else {
         int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
         if (version2 == Workflow.DEFAULT_VERSION) {
@@ -2903,20 +2903,6 @@ public class WorkflowTest {
         } else {
           result += testActivities.activity2("activity2", 2);
         }
-      }
-
-      // Test removing a version check in replay code.
-      if (!getVersionExecuted.contains(taskList+"-test_change_3")) {
-        int version3 = Workflow.getVersion("test_change_3", Workflow.DEFAULT_VERSION, 1);
-        if (version3 == Workflow.DEFAULT_VERSION) {
-          result += testActivities.activity1("activity1");
-        } else {
-          result += testActivities.activity2("activity2", 2); // This is executed in non-replay mode.
-        }
-        getVersionExecuted.add(taskList+"-test_change_3");
-      } else {
-//        Workflow.getVersion("test_change_3", Workflow.DEFAULT_VERSION, 1);
-        result += testActivities.activity2("activity2", 2);
       }
 
       // Test get version in replay mode.
@@ -2949,6 +2935,46 @@ public class WorkflowTest {
         "sleep PT1S",
         "getVersion",
         "executeActivity customActivity1");
+  }
+
+  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      String result;
+      // Test removing a version check in replay code.
+      if (!getVersionExecuted.contains(taskList)) {
+        int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+        if (version == Workflow.DEFAULT_VERSION) {
+          result = testActivities.activity1("activity1");
+        } else {
+          result = testActivities.activity2("activity2", 2); // This is executed in non-replay mode.
+        }
+        getVersionExecuted.add(taskList);
+      } else {
+        result = testActivities.activity2("activity2", 2);
+      }
+
+      result += testActivities.activity();
+
+      return result;
+    }
+  }
+
+  @Test
+  public void testGetVersionRemovedInReplay() {
+    startWorkerFor(TestGetVersionRemovedInReplayWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("activity22activity", result);
+    tracer.setExpected(
+        "getVersion",
+        "executeActivity TestActivities::activity2",
+        "executeActivity TestActivities::activity");
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
