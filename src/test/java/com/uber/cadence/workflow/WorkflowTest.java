@@ -2895,6 +2895,38 @@ public class WorkflowTest {
     }
   }
 
+  public static class TestUUIDAndRandom implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities activities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      Random rand1 = Workflow.newRandom();
+      int r11 = rand1.nextInt();
+      int r12 = r11 += rand1.nextInt();
+      int savedInt = Workflow.sideEffect(int.class, () -> r12);
+      String id = Workflow.randomUUID().toString() + "-" + Workflow.randomUUID().toString();
+      String savedId = Workflow.sideEffect(String.class, () -> id);
+      // Invoke activity in a blocking mode to ensure that asserts run after replay.
+      String result = activities.activity2("foo", 10);
+      // Assert that during replay values didn't change.
+      assertEquals(savedId, id);
+      assertEquals(savedInt, r12);
+      return result;
+    }
+  }
+
+  @Test
+  public void testUUIDAndRandom() {
+    startWorkerFor(TestUUIDAndRandom.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("foo10", result);
+    tracer.setExpected("sideEffect", "sideEffect", "executeActivity TestActivities::activity2");
+  }
+
   private static class FilteredTrace {
 
     private final List<String> impl = Collections.synchronizedList(new ArrayList<>());
