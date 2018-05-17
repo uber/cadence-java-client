@@ -138,7 +138,7 @@ final class ActivityDecisionContext {
         BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
         completionHandle.accept(result, null);
       } else {
-        throw new Error(
+        throw new NonDeterminisicWorkflowError(
             "Trying to complete activity event "
                 + attributes.getScheduledEventId()
                 + " that is not in scheduledActivities");

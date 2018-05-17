@@ -23,7 +23,7 @@ import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.replay.MutableMarkerHandler.MutableMarkerData;
+import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
@@ -73,14 +73,14 @@ final class ClockDecisionContext {
   // Key is side effect marker eventId
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
 
-  private final MutableMarkerHandler mutableSideEffectHandler;
-  private final MutableMarkerHandler versionHandler;
+  private final MarkerHandler mutableSideEffectHandler;
+  private final MarkerHandler versionHandler;
 
   ClockDecisionContext(DecisionsHelper decisions) {
     this.decisions = decisions;
     mutableSideEffectHandler =
-        new MutableMarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
-    versionHandler = new MutableMarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
+        new MarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
+    versionHandler = new MarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
   }
 
   long currentTimeMillis() {
@@ -194,8 +194,8 @@ final class ClockDecisionContext {
   int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
     Predicate<byte[]> changeIdEquals =
         (bytesInEvent) -> {
-          MutableMarkerData markerData = converter.fromData(bytesInEvent, MutableMarkerData.class);
-          return !markerData.getId().equals(changeId);
+          MarkerData markerData = converter.fromData(bytesInEvent, MarkerData.class);
+          return markerData.getId().equals(changeId);
         };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
 

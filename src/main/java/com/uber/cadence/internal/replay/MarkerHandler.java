@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-class MutableMarkerHandler {
-  private static final class MutableMarkerResult {
+class MarkerHandler {
+  private static final class MarkerResult {
 
     private final byte[] data;
 
@@ -38,7 +38,7 @@ class MutableMarkerHandler {
      */
     private int accessCount;
 
-    private MutableMarkerResult(byte[] data) {
+    private MarkerResult(byte[] data) {
       this.data = data;
     }
 
@@ -52,14 +52,14 @@ class MutableMarkerHandler {
     }
   }
 
-  static final class MutableMarkerData {
+  static final class MarkerData {
 
     private final String id;
     private final long eventId;
     private final byte[] data;
     private final int accessCount;
 
-    MutableMarkerData(String id, long eventId, byte[] data, int accessCount) {
+    MarkerData(String id, long eventId, byte[] data, int accessCount) {
       this.id = id;
       this.eventId = eventId;
       this.data = data;
@@ -88,23 +88,23 @@ class MutableMarkerHandler {
   private final ReplayAware replayContext;
 
   // Key is marker id
-  private final Map<String, MutableMarkerResult> mutableMarkerResults = new HashMap<>();
+  private final Map<String, MarkerResult> mutableMarkerResults = new HashMap<>();
 
-  MutableMarkerHandler(DecisionsHelper decisions, String markerName, ReplayAware replayContext) {
+  MarkerHandler(DecisionsHelper decisions, String markerName, ReplayAware replayContext) {
     this.decisions = decisions;
     this.markerName = markerName;
     this.replayContext = replayContext;
   }
 
   /**
-   * @param id mutable marker id
+   * @param id marker id
    * @param func given the value from the last marker returns value to store. If result is empty
    *     nothing is recorded into the history.
    * @return the latest value returned by func
    */
   Optional<byte[]> handle(
       String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
-    MutableMarkerResult result = mutableMarkerResults.get(id);
+    MarkerResult result = mutableMarkerResults.get(id);
     Optional<byte[]> stored;
     if (result == null) {
       stored = Optional.empty();
@@ -143,8 +143,7 @@ class MutableMarkerHandler {
     if (!markerName.equals(name)) {
       return Optional.empty();
     }
-    MutableMarkerData markerData =
-        converter.fromData(attributes.getDetails(), MutableMarkerData.class);
+    MarkerData markerData = converter.fromData(attributes.getDetails(), MarkerData.class);
     // access count is used to not return data from the marker before the recorded number of calls
     if (!markerId.equals(markerData.getId())
         || markerData.getAccessCount() > expectedAcccessCount) {
@@ -155,9 +154,9 @@ class MutableMarkerHandler {
 
   private void recordMutableMarker(
       String id, long eventId, byte[] data, int accessCount, DataConverter converter) {
-    MutableMarkerData dataObject = new MutableMarkerData(id, eventId, data, accessCount);
+    MarkerData dataObject = new MarkerData(id, eventId, data, accessCount);
     byte[] details = converter.toData(dataObject);
-    mutableMarkerResults.put(id, new MutableMarkerResult(data));
+    mutableMarkerResults.put(id, new MarkerResult(data));
     decisions.recordMarker(markerName, details);
   }
 }

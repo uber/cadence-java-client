@@ -649,26 +649,27 @@ class DecisionsHelper {
       return false;
     }
 
-    // If we have a version marker in history event but not in decisions, let's add one.
-    if (!isNextDecisionVersionMarker
-        || (changeIdEquals.isPresent()
-            && changeIdEquals.get().test(event.getMarkerRecordedEventAttributes().getDetails()))) {
-
-      RecordMarkerDecisionAttributes marker =
-          new RecordMarkerDecisionAttributes()
-              .setMarkerName(ClockDecisionContext.VERSION_MARKER_NAME)
-              .setDetails(event.getMarkerRecordedEventAttributes().getDetails());
-      Decision markerDecision =
-          new Decision()
-              .setDecisionType(DecisionType.RecordMarker)
-              .setRecordMarkerDecisionAttributes(marker);
-      DecisionId markerDecisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
-      decisions.put(
-          markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
-      nextDecisionEventId++;
-      return true;
+    // Next decision is for version marker and the event is for the same.
+    byte[] markerDetailsFromEvent = event.getMarkerRecordedEventAttributes().getDetails();
+    if (isNextDecisionVersionMarker
+        && (!changeIdEquals.isPresent() || changeIdEquals.get().test(markerDetailsFromEvent))) {
+      return false;
     }
-    return false;
+
+    // If we have a version marker in history event but not in decisions, let's add one.
+    RecordMarkerDecisionAttributes marker =
+        new RecordMarkerDecisionAttributes()
+            .setMarkerName(ClockDecisionContext.VERSION_MARKER_NAME)
+            .setDetails(markerDetailsFromEvent);
+    Decision markerDecision =
+        new Decision()
+            .setDecisionType(DecisionType.RecordMarker)
+            .setRecordMarkerDecisionAttributes(marker);
+    DecisionId markerDecisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
+    decisions.put(
+        markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
+    nextDecisionEventId++;
+    return true;
   }
 
   private DecisionStateMachine getDecision(DecisionId decisionId) {
