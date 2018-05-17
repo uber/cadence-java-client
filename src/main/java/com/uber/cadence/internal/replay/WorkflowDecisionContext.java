@@ -43,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -98,7 +100,7 @@ final class WorkflowDecisionContext {
     attributes.setWorkflowType(parameters.getWorkflowType());
     String workflowId = parameters.getWorkflowId();
     if (workflowId == null) {
-      workflowId = generateUniqueId();
+      workflowId = randomUUID().toString();
     }
     attributes.setWorkflowId(workflowId);
     if (parameters.getDomain() == null) {
@@ -200,10 +202,17 @@ final class WorkflowDecisionContext {
     workflowContext.setContinueAsNewOnCompletion(continueParameters);
   }
 
-  String generateUniqueId() {
+  /** Replay safe UUID */
+  UUID randomUUID() {
     WorkflowExecution workflowExecution = workflowContext.getWorkflowExecution();
     String runId = workflowExecution.getRunId();
-    return runId + ":" + decisions.getNextId();
+    String id = runId + ":" + decisions.getNextId();
+    byte[] bytes = id.getBytes(StandardCharsets.UTF_8);
+    return UUID.nameUUIDFromBytes(bytes);
+  }
+
+  Random newRandom() {
+    return new Random(randomUUID().getLeastSignificantBits());
   }
 
   void handleChildWorkflowExecutionCanceled(HistoryEvent event) {
