@@ -22,6 +22,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
@@ -52,6 +53,8 @@ public interface WorkflowInterceptor {
 
   <R> WorkflowResult<R> executeChildWorkflow(
       String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options);
+
+  Random newRandom();
 
   Promise<Void> signalExternalWorkflow(
       WorkflowExecution execution, String signalName, Object[] args);

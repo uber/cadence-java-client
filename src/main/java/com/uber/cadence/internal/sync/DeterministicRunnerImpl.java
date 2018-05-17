@@ -42,6 +42,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -531,6 +532,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public int getVersion(
         String changeID, DataConverter converter, int minSupported, int maxSupported) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Random newRandom() {
       throw new UnsupportedOperationException("not implemented");
     }
 

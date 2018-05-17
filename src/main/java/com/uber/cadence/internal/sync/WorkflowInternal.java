@@ -49,6 +49,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
@@ -339,6 +340,10 @@ public final class WorkflowInternal {
 
   public static UUID randomUUID() {
     return getRootDecisionContext().randomUUID();
+  }
+
+  public static Random newRandom() {
+    return getRootDecisionContext().newRandom();
   }
 
   public static Logger getLogger(Class<?> clazz) {

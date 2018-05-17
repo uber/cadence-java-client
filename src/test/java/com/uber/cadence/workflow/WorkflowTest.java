@@ -70,6 +70,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -3122,6 +3123,12 @@ public class WorkflowTest {
         String workflowType, Class<R> returnType, Object[] args, ChildWorkflowOptions options) {
       trace.add("executeChildWorkflow " + workflowType);
       return next.executeChildWorkflow(workflowType, returnType, args, options);
+    }
+
+    @Override
+    public Random newRandom() {
+      trace.add("newRandom");
+      return next.newRandom();
     }
 
     @Override

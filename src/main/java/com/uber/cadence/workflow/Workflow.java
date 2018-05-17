@@ -29,6 +29,7 @@ import com.uber.cadence.workflow.Functions.Proc;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.function.BiPredicate;
@@ -712,6 +713,11 @@ public final class Workflow {
    */
   public static UUID randomUUID() {
     return WorkflowInternal.randomUUID();
+  }
+
+  /** Replay safe random numbers generator. Seeded differently for each workflow instance. */
+  public static Random newRandom() {
+    return WorkflowInternal.newRandom();
   }
 
   /**
