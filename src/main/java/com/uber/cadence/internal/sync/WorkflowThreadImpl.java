@@ -72,6 +72,7 @@ class WorkflowThreadImpl implements WorkflowThread {
       originalName = thread.getName();
       thread.setName(name);
       DeterministicRunnerImpl.setCurrentThreadInternal(WorkflowThreadImpl.this);
+      decisionContext.getWorkflowId();
       MDC.put(LoggerTag.WORKFLOW_ID, decisionContext.getWorkflowId());
       MDC.put(LoggerTag.WORKFLOW_TYPE, decisionContext.getWorkflowType().getName());
       MDC.put(LoggerTag.RUN_ID, decisionContext.getRunId());
@@ -177,8 +178,14 @@ class WorkflowThreadImpl implements WorkflowThread {
     if (name == null) {
       name = "workflow-" + super.hashCode();
     }
-    this.task = new RunnableWrapper(context, runner.getDecisionContext().getContext(), name,
-        detached, parentCancellationScope, runnable);
+    this.task =
+        new RunnableWrapper(
+            context,
+            runner.getDecisionContext().getContext(),
+            name,
+            detached,
+            parentCancellationScope,
+            runnable);
   }
 
   @Override
@@ -296,8 +303,8 @@ class WorkflowThreadImpl implements WorkflowThread {
   }
 
   /**
-   * Evaluates function in the threadContext of the coroutine without unblocking it. Used to get current
-   * coroutine status, like stack trace.
+   * Evaluates function in the threadContext of the coroutine without unblocking it. Used to get
+   * current coroutine status, like stack trace.
    *
    * @param function Parameter is reason for current goroutine blockage.
    */
