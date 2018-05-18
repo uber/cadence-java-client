@@ -85,19 +85,18 @@ class HistoryHelper {
 
     HistoryEvent getDecisionEvent(long eventId) {
       int index = (int) (eventId - nextDecisionEventId);
-      if (index < 0 || index > decisionEvents.size()) {
+      if (index < 0 || index >= decisionEvents.size()) {
         throw new IllegalArgumentException("No decision event found at eventId=" + eventId);
       }
       return decisionEvents.get(index);
     }
 
     Optional<HistoryEvent> getOptionalDecisionEvent(long eventId) {
-      try {
-        HistoryEvent event = getDecisionEvent(eventId);
-        return Optional.of(event);
-      } catch (Exception e) {
+      int index = (int) (eventId - nextDecisionEventId);
+      if (index < 0 || index >= decisionEvents.size()) {
         return Optional.empty();
       }
+      return Optional.of(decisionEvents.get(index));
     }
 
     public List<HistoryEvent> getMarkers() {
