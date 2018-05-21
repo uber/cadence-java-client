@@ -19,10 +19,16 @@ repositories {
 
 apply plugin: 'java'
 apply plugin: 'maven'
-apply plugin: 'signing'
 apply plugin: "org.jruyi.thrift"
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.sherter.google-java-format'
+
+if (hasProperty("signing.keyId")) {
+    apply plugin: 'signing'
+    signing {
+        sign configurations.archives
+    }
+}
 
 googleJavaFormat {
     toolVersion '1.5'
@@ -87,10 +93,6 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 
 artifacts {
     archives javadocJar, sourcesJar
-}
-
-signing {
-    sign configurations.archives
 }
 
 def ossrhUsername = hasProperty('ossrhUsername') ? property('ossrhUsername') : ""
