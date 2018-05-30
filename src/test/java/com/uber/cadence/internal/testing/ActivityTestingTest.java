@@ -20,12 +20,21 @@ package com.uber.cadence.internal.testing;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.client.ActivityCancelledException;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
+import io.netty.util.internal.ConcurrentSet;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.thrift.TException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -103,5 +112,96 @@ public class ActivityTestingTest {
     String result = activity.activity1("input1");
     assertEquals("input1", result);
     assertEquals("details1", details.get());
+  }
+
+  public interface InterruptibleTestActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1000, heartbeatTimeoutSeconds = 1)
+    void activity1() throws InterruptedException;
+  }
+
+  private static class BurstHeartbeatActivityImpl implements InterruptibleTestActivity {
+
+    @Override
+    public void activity1() throws InterruptedException {
+      for (int i = 0; i < 10; i++) {
+        Activity.heartbeat(i);
+      }
+      Thread.sleep(1000);
+      for (int i = 10; i < 20; i++) {
+        Activity.heartbeat(i);
+      }
+    }
+  }
+
+  @Test
+  public void testHeartbeatThrottling() throws InterruptedException {
+    testEnvironment.registerActivitiesImplementations(new BurstHeartbeatActivityImpl());
+    ConcurrentSet<Integer> details = new ConcurrentSet<>();
+    testEnvironment.setActivityHeartbeatListener(Integer.class, i -> details.add(i));
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    activity.activity1();
+    assertEquals(2, details.size());
+  }
+
+  private static class HeartbeatCancellationActivityImpl implements InterruptibleTestActivity {
+
+    @Override
+    public void activity1() throws InterruptedException {
+      try {
+        Activity.heartbeat(null);
+        fail("unreachable");
+      } catch (ActivityCancelledException e) {
+        System.out.println("activity cancelled");
+      }
+    }
+  }
+
+  @Test
+  public void testHeartbeatCancellation() throws InterruptedException, TException {
+    testEnvironment.registerActivitiesImplementations(new HeartbeatCancellationActivityImpl());
+    IWorkflowService workflowService = mock(IWorkflowService.class);
+    RecordActivityTaskHeartbeatResponse resp = new RecordActivityTaskHeartbeatResponse();
+    resp.setCancelRequested(true);
+    when(workflowService.RecordActivityTaskHeartbeat(any())).thenReturn(resp);
+    testEnvironment.setWorkflowService(workflowService);
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    activity.activity1();
+  }
+
+  private static class CancellationOnNextHeartbeatActivityImpl
+      implements InterruptibleTestActivity {
+
+    @Override
+    public void activity1() throws InterruptedException {
+      Activity.heartbeat(null);
+      Thread.sleep(100);
+      Activity.heartbeat(null);
+      Thread.sleep(1000);
+      try {
+        Activity.heartbeat(null);
+        fail("unreachable");
+      } catch (ActivityCancelledException e) {
+        System.out.println("activity cancelled");
+      }
+    }
+  }
+
+  @Test
+  public void testCancellationOnNextHeartbeat() throws InterruptedException, TException {
+    testEnvironment.registerActivitiesImplementations(
+        new CancellationOnNextHeartbeatActivityImpl());
+    IWorkflowService workflowService = mock(IWorkflowService.class);
+    RecordActivityTaskHeartbeatResponse resp = new RecordActivityTaskHeartbeatResponse();
+    resp.setCancelRequested(true);
+    when(workflowService.RecordActivityTaskHeartbeat(any()))
+        .thenReturn(new RecordActivityTaskHeartbeatResponse())
+        .thenReturn(resp);
+    testEnvironment.setWorkflowService(workflowService);
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    activity.activity1();
   }
 }
