@@ -139,7 +139,8 @@ public class ActivityTestingTest {
     testEnvironment.registerActivitiesImplementations(new BurstHeartbeatActivityImpl());
     ConcurrentSet<Integer> details = new ConcurrentSet<>();
     testEnvironment.setActivityHeartbeatListener(Integer.class, i -> details.add(i));
-    InterruptibleTestActivity activity = testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
     assertEquals(2, details.size());
   }
@@ -165,11 +166,13 @@ public class ActivityTestingTest {
     resp.setCancelRequested(true);
     when(workflowService.RecordActivityTaskHeartbeat(any())).thenReturn(resp);
     testEnvironment.setWorkflowService(workflowService);
-    InterruptibleTestActivity activity = testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
   }
 
-  private static class CancellationOnNextHeartbeatActivityImpl implements InterruptibleTestActivity {
+  private static class CancellationOnNextHeartbeatActivityImpl
+      implements InterruptibleTestActivity {
 
     @Override
     public void activity1() throws InterruptedException {
@@ -188,7 +191,8 @@ public class ActivityTestingTest {
 
   @Test
   public void testCancellationOnNextHeartbeat() throws InterruptedException, TException {
-    testEnvironment.registerActivitiesImplementations(new CancellationOnNextHeartbeatActivityImpl());
+    testEnvironment.registerActivitiesImplementations(
+        new CancellationOnNextHeartbeatActivityImpl());
     IWorkflowService workflowService = mock(IWorkflowService.class);
     RecordActivityTaskHeartbeatResponse resp = new RecordActivityTaskHeartbeatResponse();
     resp.setCancelRequested(true);
@@ -196,7 +200,8 @@ public class ActivityTestingTest {
         .thenReturn(new RecordActivityTaskHeartbeatResponse())
         .thenReturn(resp);
     testEnvironment.setWorkflowService(workflowService);
-    InterruptibleTestActivity activity = testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
   }
 }

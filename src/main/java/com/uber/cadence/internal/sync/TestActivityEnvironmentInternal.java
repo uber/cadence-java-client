@@ -144,8 +144,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     ActivityOptions options =
         new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofDays(1)).build();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(
-            options, new TestActivityExecutor(workflowService));
+        ActivityInvocationHandler.newInstance(options, new TestActivityExecutor(workflowService));
     invocationHandler = new DeterministicRunnerWrapper(invocationHandler);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
   }
