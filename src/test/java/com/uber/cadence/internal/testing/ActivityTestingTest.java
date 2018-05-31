@@ -33,17 +33,18 @@ import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
 import io.netty.util.internal.ConcurrentSet;
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.TException;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ActivityTestingTest {
 
-  private static TestActivityEnvironment testEnvironment;
+  private TestActivityEnvironment testEnvironment;
 
-  @BeforeClass
-  public static void setUp() {
+  @Before
+  public void setUp() {
     testEnvironment = TestActivityEnvironment.newInstance();
   }
 
@@ -145,6 +146,30 @@ public class ActivityTestingTest {
     assertEquals(2, details.size());
   }
 
+  private static class BurstHeartbeatActivity2Impl implements InterruptibleTestActivity {
+
+    @Override
+    public void activity1() throws InterruptedException {
+      for (int i = 0; i < 10; i++) {
+        Activity.heartbeat(null);
+      }
+      Thread.sleep(1200);
+    }
+  }
+
+  // This test covers the logic where another heartbeat request is sent by the background thread,
+  // after wait period expires.
+  @Test
+  public void testHeartbeatThrottling2() throws InterruptedException {
+    testEnvironment.registerActivitiesImplementations(new BurstHeartbeatActivity2Impl());
+    AtomicInteger count = new AtomicInteger();
+    testEnvironment.setActivityHeartbeatListener(Void.class, i -> count.incrementAndGet());
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    activity.activity1();
+    assertEquals(2, count.get());
+  }
+
   private static class HeartbeatCancellationActivityImpl implements InterruptibleTestActivity {
 
     @Override
@@ -203,5 +228,32 @@ public class ActivityTestingTest {
     InterruptibleTestActivity activity =
         testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
+  }
+
+  private static class SimpleHeartbeatActivityImpl implements InterruptibleTestActivity {
+
+    @Override
+    public void activity1() throws InterruptedException {
+      Activity.heartbeat(null);
+      // Make sure that the activity lasts longer than the retry period.
+      Thread.sleep(3000);
+    }
+  }
+
+  @Test
+  public void testHeartbeatIntermittentError() throws TException, InterruptedException {
+    testEnvironment.registerActivitiesImplementations(new SimpleHeartbeatActivityImpl());
+    IWorkflowService workflowService = mock(IWorkflowService.class);
+    when(workflowService.RecordActivityTaskHeartbeat(any()))
+        .thenThrow(new TException("intermittent error"))
+        .thenThrow(new TException("intermittent error"))
+        .thenReturn(new RecordActivityTaskHeartbeatResponse());
+    testEnvironment.setWorkflowService(workflowService);
+    AtomicInteger count = new AtomicInteger();
+    testEnvironment.setActivityHeartbeatListener(Void.class, i -> count.incrementAndGet());
+    InterruptibleTestActivity activity =
+        testEnvironment.newActivityStub(InterruptibleTestActivity.class);
+    activity.activity1();
+    assertEquals(3, count.get());
   }
 }

@@ -29,6 +29,7 @@ import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -47,14 +48,15 @@ import org.slf4j.LoggerFactory;
 class ActivityExecutionContextImpl implements ActivityExecutionContext {
 
   private static final Logger log = LoggerFactory.getLogger(ActivityExecutionContextImpl.class);
+  private static final long HEARTBEAT_RETRY_WAIT_MILLIS = 1000;
 
   private final IWorkflowService service;
   private final String domain;
   private final ActivityTask task;
   private final DataConverter dataConverter;
   private boolean doNotCompleteOnReturn;
-  private final long heartbeatIntervalNanos;
-  private Object lastDetails;
+  private final long heartbeatIntervalMillis;
+  private Optional<Object> lastDetails;
   private final ScheduledExecutorService heartbeatExecutor;
   private Lock lock = new ReentrantLock();
   private ScheduledFuture future;
@@ -71,7 +73,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     this.service = service;
     this.task = task;
     this.dataConverter = dataConverter;
-    this.heartbeatIntervalNanos = (long) (0.8 * task.getHeartbeatTimeout().toNanos());
+    this.heartbeatIntervalMillis = (long) (0.8 * task.getHeartbeatTimeout().toMillis());
     this.heartbeatExecutor = heartbeatExecutor;
   }
 
@@ -80,11 +82,14 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   public void recordActivityHeartbeat(Object details) throws ActivityCompletionException {
     lock.lock();
     try {
+      // always set lastDetail. Successful heartbeat will clear it.
+      lastDetails = details == null ? Optional.empty() : Optional.of(details);
+
+      // Only do sync heartbeat if there is no such call scheduled.
       if (future == null) {
         doHeartBeat(details);
-      } else {
-        lastDetails = details;
       }
+
       if (lastException != null) {
         throw lastException;
       }
@@ -94,31 +99,31 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   }
 
   private void doHeartBeat(Object details) {
+    long nextHeartbeatDelay;
     try {
-      sendHeartbeatDetails(details);
-      onHeartbeatSucceed();
+      sendHeartbeatRequest(details);
+      // Clear lastDetails only if heartbeat succeeds.
+      lastDetails = null;
+      nextHeartbeatDelay = heartbeatIntervalMillis;
     } catch (TException e) {
       // Not rethrowing to not fail activity implementation on intermittent connection or Cadence
       // errors.
-      log.warn(
-          "Failure heartbeating on activityID="
-              + task.getActivityId()
-              + " of Workflow="
-              + task.getWorkflowExecution(),
-          e);
+      log.warn("Heartbeat failed.", e);
+      nextHeartbeatDelay = HEARTBEAT_RETRY_WAIT_MILLIS;
     }
+
+    scheduleNextHeartbeat(nextHeartbeatDelay);
   }
 
-  private void onHeartbeatSucceed() {
-    lastDetails = null;
-
+  private void scheduleNextHeartbeat(long delay) {
     future =
         heartbeatExecutor.schedule(
             () -> {
               lock.lock();
               try {
                 if (lastDetails != null) {
-                  doHeartBeat(lastDetails);
+                  Object details = lastDetails.orElse(null);
+                  doHeartBeat(details);
                 } else {
                   future = null;
                 }
@@ -126,13 +131,11 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
                 lock.unlock();
               }
             },
-            heartbeatIntervalNanos,
-            TimeUnit.NANOSECONDS);
+            delay,
+            TimeUnit.MILLISECONDS);
   }
 
-  private void sendHeartbeatDetails(Object details) throws TException {
-    // TODO: call service with the specified minimal interval (through @ActivityExecutionOptions)
-    // allowing more frequent calls of this method.
+  private void sendHeartbeatRequest(Object details) throws TException {
     RecordActivityTaskHeartbeatRequest r = new RecordActivityTaskHeartbeatRequest();
     r.setTaskToken(task.getTaskToken());
     byte[] serialized = dataConverter.toData(details);
