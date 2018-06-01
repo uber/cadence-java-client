@@ -389,25 +389,26 @@ public class WorkflowTest {
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .setScheduleToStartTimeout(Duration.ofSeconds(5))
               .setStartToCloseTimeout(Duration.ofSeconds(10));
+      RetryOptions retryOptions;
       if (Workflow.isReplaying()) {
-        options.setRetryOptions(
+        retryOptions =
             new RetryOptions.Builder()
                 .setMinimumAttempts(1)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(3)
-                .build());
+                .build();
       } else {
-        options.setRetryOptions(
+        retryOptions =
             new RetryOptions.Builder()
                 .setMinimumAttempts(2)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)
-                .build());
+                .build();
       }
       TestActivities activities = Workflow.newActivityStub(TestActivities.class, options.build());
-      activities.throwIO();
+      Workflow.retry(retryOptions, () -> activities.throwIO());
       return "ignored";
     }
   }
@@ -424,7 +425,7 @@ public class WorkflowTest {
     } catch (WorkflowException e) {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
-    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    assertEquals(activitiesImpl.toString(), 2, activitiesImpl.invocations.size());
   }
 
   public static class TestUntypedActivityRetry implements TestWorkflow1 {
@@ -587,7 +588,7 @@ public class WorkflowTest {
     } catch (WorkflowException e) {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
-    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    assertEquals(activitiesImpl.toString(), 2, activitiesImpl.invocations.size());
   }
 
   public static class TestHeartbeatTimeoutDetails implements TestWorkflow1 {

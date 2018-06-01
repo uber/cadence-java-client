@@ -68,10 +68,10 @@ final class WorkflowRetryerInternal {
     long startTime = WorkflowInternal.currentTimeMillis();
     // Records retry options in the history allowing changing them without breaking determinism.
     String retryId = WorkflowInternal.randomUUID().toString();
+    RetryOptions retryOptions =
+        WorkflowInternal.mutableSideEffect(
+            retryId, RetryOptions.class, Object::equals, () -> options);
     while (true) {
-      RetryOptions retryOptions =
-          WorkflowInternal.mutableSideEffect(
-              retryId, RetryOptions.class, Object::equals, () -> options);
       long nextSleepTime = calculateSleepTime(attempt, retryOptions);
       try {
         return func.apply();
@@ -106,6 +106,10 @@ final class WorkflowRetryerInternal {
       long startTime,
       long attempt) {
     options.validate();
+    RetryOptions retryOptions =
+        WorkflowInternal.mutableSideEffect(
+            retryId, RetryOptions.class, Object::equals, () -> options);
+
     CompletablePromise<R> funcResult = WorkflowInternal.newCompletablePromise();
     try {
       funcResult.completeFrom(func.apply());
@@ -119,9 +123,6 @@ final class WorkflowRetryerInternal {
                 return WorkflowInternal.newPromise(r);
               }
               long elapsed = WorkflowInternal.currentTimeMillis() - startTime;
-              RetryOptions retryOptions =
-                  WorkflowInternal.mutableSideEffect(
-                      retryId, RetryOptions.class, Object::equals, () -> options);
               long sleepTime = calculateSleepTime(attempt, retryOptions);
               if (shouldRethrow(e, retryOptions, attempt, elapsed, sleepTime)) {
                 throw e;
