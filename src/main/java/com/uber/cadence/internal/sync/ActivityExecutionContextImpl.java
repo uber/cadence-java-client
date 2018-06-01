@@ -49,6 +49,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
 
   private static final Logger log = LoggerFactory.getLogger(ActivityExecutionContextImpl.class);
   private static final long HEARTBEAT_RETRY_WAIT_MILLIS = 1000;
+  private static final long MAX_HEARTBEAT_INTERVAL_MILLIS = 30000;
 
   private final IWorkflowService service;
   private final String domain;
@@ -73,7 +74,9 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     this.service = service;
     this.task = task;
     this.dataConverter = dataConverter;
-    this.heartbeatIntervalMillis = (long) (0.8 * task.getHeartbeatTimeout().toMillis());
+    this.heartbeatIntervalMillis =
+        Math.min(
+            (long) (0.8 * task.getHeartbeatTimeout().toMillis()), MAX_HEARTBEAT_INTERVAL_MILLIS);
     this.heartbeatExecutor = heartbeatExecutor;
   }
 
