@@ -214,7 +214,7 @@ public final class JsonDataConverter implements DataConverter {
           @Override
           public void write(JsonWriter out, T value) throws IOException {
             out.beginObject();
-            String className = value.getClass().getName();
+            String className = ((Class) value).getName();
             out.name(CLASS_NAME_FIELD_NAME).value(className);
             out.endObject();
           }
