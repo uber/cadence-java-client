@@ -158,10 +158,6 @@ public final class JsonDataConverter implements DataConverter {
         throw new DataConverterException(
             "Content doesn't match expected arguments", content, valueTypes);
       }
-      if ((content == null || content.length == 0)
-          && (valueTypes == null || valueTypes.length == 0)) {
-        return EMPTY_OBJECT_ARRAY;
-      }
       if (valueTypes.length == 1) {
         Object result = gson.fromJson(new String(content, StandardCharsets.UTF_8), valueTypes[0]);
         return new Object[] {result};
