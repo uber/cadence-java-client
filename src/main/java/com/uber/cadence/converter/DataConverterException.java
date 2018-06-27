@@ -57,11 +57,11 @@ public class DataConverterException extends RuntimeException {
   }
 
   private static String truncateContent(byte[] content) {
-    if (content != null) {
-      // Limit size of the string.
-      int maxIndex = Math.min(content.length, 255);
-      return new String(content, 0, maxIndex, StandardCharsets.UTF_8);
+    if (content == null) {
+      return "";
     }
-    return "";
+    // Limit size of the string.
+    int maxIndex = Math.min(content.length, 255);
+    return new String(content, 0, maxIndex, StandardCharsets.UTF_8);
   }
 }
