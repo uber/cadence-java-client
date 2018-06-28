@@ -17,6 +17,7 @@
 
 package com.uber.cadence.converter;
 
+import com.google.common.base.Defaults;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -165,7 +166,12 @@ public final class JsonDataConverter implements DataConverter {
       JsonArray array = parser.parse(new String(content, StandardCharsets.UTF_8)).getAsJsonArray();
       Object[] result = new Object[valueTypes.length];
       for (int i = 0; i < valueTypes.length; i++) {
-        result[i] = gson.fromJson(array.get(i), valueTypes[i]);
+
+        if(i >= array.size()){ //Missing arugments => add defaults
+          result[i] = Defaults.defaultValue(valueTypes[i].getClass());
+        } else {
+          result[i] = gson.fromJson(array.get(i), valueTypes[i]);
+        }
       }
       return result;
     } catch (DataConverterException e) {
