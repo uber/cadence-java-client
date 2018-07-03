@@ -34,6 +34,7 @@ import com.google.gson.stream.JsonWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.Array;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
@@ -163,12 +164,26 @@ public final class JsonDataConverter implements DataConverter {
         Object result = gson.fromJson(new String(content, StandardCharsets.UTF_8), valueTypes[0]);
         return new Object[] {result};
       }
-      JsonArray array = parser.parse(new String(content, StandardCharsets.UTF_8)).getAsJsonArray();
+
+      JsonElement element = parser.parse(new String(content, StandardCharsets.UTF_8));
+      JsonArray array;
+      if(element instanceof JsonArray){
+        array = element.getAsJsonArray();
+      } else {
+        array = new JsonArray();
+        array.add(element);
+      }
+
       Object[] result = new Object[valueTypes.length];
       for (int i = 0; i < valueTypes.length; i++) {
 
         if(i >= array.size()){ //Missing arugments => add defaults
-          result[i] = Defaults.defaultValue(valueTypes[i].getClass());
+          Type t = valueTypes[i];
+          if(t instanceof Class){
+            result[i] = Defaults.defaultValue((Class)t);
+          } else {
+            result[i] = null;
+          }
         } else {
           result[i] = gson.fromJson(array.get(i), valueTypes[i]);
         }
@@ -179,6 +194,10 @@ public final class JsonDataConverter implements DataConverter {
     } catch (Exception e) {
       throw new DataConverterException(content, valueTypes, e);
     }
+  }
+
+  private static <T> T getDefaultValue(Class<T> c) {
+    return (T) Array.get(Array.newInstance(c, 1), 0);
   }
 
   /**

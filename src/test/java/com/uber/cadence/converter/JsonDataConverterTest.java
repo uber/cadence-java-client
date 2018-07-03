@@ -100,12 +100,12 @@ public class JsonDataConverterTest {
     Type[] arg = m.getGenericParameterTypes();
 
     DataConverter converter = JsonDataConverter.getInstance();
-    byte[] data = converter.toData(1,2);
+    byte[] data = converter.toData(1);
     @SuppressWarnings("unchecked")
     Object[] deserializedArguments = converter.fromDataArray(data, arg);
     assertEquals(5, deserializedArguments.length);
     assertEquals(1, (int)deserializedArguments[0]);
-    assertEquals(2, (int)deserializedArguments[1]);
+    assertEquals(0, (int)deserializedArguments[1]);
     assertEquals(null, deserializedArguments[2]);
     assertEquals(null, deserializedArguments[3]);
     assertEquals(null, deserializedArguments[4]);
