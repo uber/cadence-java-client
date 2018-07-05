@@ -200,10 +200,6 @@ public final class JsonDataConverter implements DataConverter {
         }
     }
 
-    private static <T> T getDefaultValue(Class<T> c) {
-        return (T) Array.get(Array.newInstance(c, 1), 0);
-    }
-
     /**
      * Special handling of exception serialization and deserialization. Default JSON for stack traces
      * is very space consuming and not readable by humans. So convert it into single text field and
