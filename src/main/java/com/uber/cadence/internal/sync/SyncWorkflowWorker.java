@@ -55,7 +55,10 @@ public class SyncWorkflowWorker {
         r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
     factory =
         new POJOWorkflowImplementationFactory(
-            options.getDataConverter(), workflowThreadPool, interceptorFactory);
+            options.getDataConverter(),
+            workflowThreadPool,
+            interceptorFactory,
+            options.getMetricsScope());
     DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, options);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
