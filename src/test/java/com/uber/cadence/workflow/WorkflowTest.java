@@ -251,7 +251,7 @@ public class WorkflowTest {
 
   @After
   public void tearDown() throws Throwable {
-    worker.shutdown(Duration.ofMillis(1));
+    worker.shutdown(Duration.ofMinutes(1));
     activitiesImpl.close();
     if (testEnvironment != null) {
       testEnvironment.close();
@@ -2581,14 +2581,15 @@ public class WorkflowTest {
     final List<String> invocations = Collections.synchronizedList(new ArrayList<>());
     final List<String> procResult = Collections.synchronizedList(new ArrayList<>());
     private final ThreadPoolExecutor executor =
-        new ThreadPoolExecutor(2, 100, 1, TimeUnit.MINUTES, new LinkedBlockingQueue<>());
+        new ThreadPoolExecutor(0, 100, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
     private TestActivitiesImpl(ActivityCompletionClient completionClient) {
       this.completionClient = completionClient;
     }
 
-    void close() {
-      executor.shutdown();
+    void close() throws InterruptedException {
+      executor.shutdownNow();
+      executor.awaitTermination(1, TimeUnit.MINUTES);
     }
 
     void assertInvocations(String... expected) {
