@@ -128,7 +128,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         new ThreadFactory() {
           @Override
           public Thread newThread(Runnable r) {
-            return new Thread(r, "determinstic runner thread");
+            return new Thread(r, "deterministic runner thread");
           }
         });
     return result;
