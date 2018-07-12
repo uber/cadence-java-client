@@ -401,4 +401,8 @@ class ReplayDecider {
     decideImpl(() -> result.set(workflow.query(query)));
     return result.get();
   }
+
+  public void Close() {
+    workflow.close();
+  }
 }
