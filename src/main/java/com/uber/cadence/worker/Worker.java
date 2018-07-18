@@ -20,6 +20,7 @@ package com.uber.cadence.worker;
 import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.common.Validate;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
@@ -33,10 +34,12 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.util.ImmutableMap;
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 /**
  * Hosts activity and workflow implementations. Uses long poll to receive activity and decision
@@ -58,7 +61,7 @@ public final class Worker {
    * @param taskList task list name worker uses to poll. It uses this name for both decision and
    *     activity task list polls.
    */
-  public Worker(String domain, String taskList) {
+  private Worker(String domain, String taskList) {
     this(domain, taskList, null);
   }
 
@@ -71,7 +74,7 @@ public final class Worker {
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
    */
-  public Worker(String domain, String taskList, WorkerOptions options) {
+  private Worker(String domain, String taskList, WorkerOptions options) {
     this(new WorkflowServiceTChannel(), domain, taskList, options);
   }
 
@@ -84,7 +87,7 @@ public final class Worker {
    * @param taskList task list name worker uses to poll. It uses this name for both decision and
    *     activity task list polls.
    */
-  public Worker(String host, int port, String domain, String taskList) {
+  private Worker(String host, int port, String domain, String taskList) {
     this(new WorkflowServiceTChannel(host, port), domain, taskList, null);
   }
 
@@ -98,7 +101,7 @@ public final class Worker {
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
    */
-  public Worker(String host, int port, String domain, String taskList, WorkerOptions options) {
+  private Worker(String host, int port, String domain, String taskList, WorkerOptions options) {
     this(new WorkflowServiceTChannel(host, port), domain, taskList, options);
   }
 
@@ -111,7 +114,7 @@ public final class Worker {
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
    */
-  public Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
+  private Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
     Objects.requireNonNull(service, "service");
     Objects.requireNonNull(domain, "domain");
     this.taskList = Objects.requireNonNull(taskList, "taskList");
@@ -247,7 +250,7 @@ public final class Worker {
     }
   }
 
-  public void start() {
+  private void start() {
     if (!started.compareAndSet(false, true)) {
       return;
     }
@@ -266,7 +269,7 @@ public final class Worker {
   /**
    * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
    */
-  public void shutdown(Duration timeout) {
+  private void shutdown(Duration timeout) {
     try {
       long time = System.currentTimeMillis();
       if (activityWorker != null) {
@@ -343,5 +346,97 @@ public final class Worker {
 
   public String getTaskList() {
     return taskList;
+  }
+
+  public static final class Factory {
+
+    private final WorkerFactoryOptions factoryOptions;
+    private final ArrayList<Worker> workers = new ArrayList<>();
+    private final Supplier<IWorkflowService> getWorkFlowService;
+    private String domain;
+    private State state = State.Initial;
+
+    private final String statusErrorMessage =
+        "attempted to %s while in %s state. Acceptable States: %s";
+
+    public Factory(String domain) {
+      this(domain, null);
+    }
+
+    public Factory(String domain, WorkerFactoryOptions options) {
+      this(() -> new WorkflowServiceTChannel(), domain, options);
+    }
+
+    public Factory(String host, int port, String domain, WorkerFactoryOptions options) {
+      this(() -> new WorkflowServiceTChannel(host, port), domain, options);
+    }
+
+    public Factory(
+        Supplier<IWorkflowService> getWorkFlowService,
+        String domain,
+        WorkerFactoryOptions options) {
+      Validate.ArgumentNotNull(getWorkFlowService, "getWorkFlowService");
+      Validate.ArgumentNotEmpty(domain, "domain");
+
+      this.getWorkFlowService = getWorkFlowService;
+      this.domain = domain;
+      this.factoryOptions = options;
+    }
+
+    public Worker newWorker(String taskList) {
+      return newWorker(taskList, null);
+    }
+
+    public Worker newWorker(String taskList, WorkerOptions options) {
+      Validate.ArgumentNotEmpty(taskList, "taskList");
+
+      synchronized (this) {
+        Validate.Condition(
+            state == State.Initial,
+            String.format(
+                statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
+      }
+
+      Worker worker = new Worker(getWorkFlowService.get(), domain, taskList, options);
+      workers.add(worker);
+      return worker;
+    }
+
+    public void start() {
+      synchronized (this) {
+        Validate.Condition(
+            state == State.Initial,
+            String.format(
+                statusErrorMessage, "start WorkerFactory", state.name(), State.Initial.name()));
+        state = State.Started;
+      }
+
+      for (Worker worker : workers) {
+        worker.start();
+      }
+    }
+
+    public void shutdown(Duration timeout) {
+      synchronized (this) {
+        Validate.Condition(
+            state == State.Started || state == State.Initial,
+            String.format(
+                statusErrorMessage,
+                "shutdown WorkerFactory",
+                state.name(),
+                String.format("%s, %s", State.Started.name(), State.Initial.name())));
+        state = State.Shutdown;
+      }
+
+      for (Worker worker : workers) {
+        worker.shutdown(timeout);
+      }
+    }
+
+    enum State {
+      Initial,
+      Started,
+      Shutdown
+    }
   }
 }
