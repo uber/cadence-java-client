@@ -122,7 +122,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 10 : 20));
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 20 : 20));
 
   @Rule
   public TestWatcher watchman =
@@ -264,7 +264,7 @@ public class WorkflowTest {
             log.error("Test is stuck:\n" + dump.toString());
           }
         },
-        8);
+        16000);
   }
 
   @After
