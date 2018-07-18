@@ -25,7 +25,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.googlecode.junittoolbox.ParallelParameterized;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
@@ -58,22 +57,12 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -99,12 +88,13 @@ import org.junit.rules.TestWatcher;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(ParallelParameterized.class)
+@RunWith(Parameterized.class)
 public class WorkflowTest {
 
   /**
@@ -116,8 +106,8 @@ public class WorkflowTest {
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
-  private static final boolean skipDockerService =
-      Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
+  private static final boolean skipDockerService = true;
+  //      Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
 
   @Parameters(name = "{1}")
   public static Object[] data() {
@@ -132,7 +122,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 20 : 20));
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 10 : 20));
 
   @Rule
   public TestWatcher watchman =
@@ -208,6 +198,8 @@ public class WorkflowTest {
     return new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(20)).build();
   }
 
+  Timer timer = new Timer();
+
   @Before
   public void setUp() {
     String testMethod = testName.getMethodName();
@@ -247,6 +239,32 @@ public class WorkflowTest {
     newActivityOptions1(taskList);
     activitiesImpl.invocations.clear();
     activitiesImpl.procResult.clear();
+    timer.schedule(
+        new TimerTask() {
+          @Override
+          public void run() {
+            final StringBuilder dump = new StringBuilder();
+            final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+            final ThreadInfo[] threadInfos =
+                threadMXBean.getThreadInfo(threadMXBean.getAllThreadIds(), 100);
+            for (ThreadInfo threadInfo : threadInfos) {
+              dump.append('"');
+              dump.append(threadInfo.getThreadName());
+              dump.append("\" ");
+              final Thread.State state = threadInfo.getThreadState();
+              dump.append("\n   java.lang.Thread.State: ");
+              dump.append(state);
+              final StackTraceElement[] stackTraceElements = threadInfo.getStackTrace();
+              for (final StackTraceElement stackTraceElement : stackTraceElements) {
+                dump.append("\n        at ");
+                dump.append(stackTraceElement);
+              }
+              dump.append("\n\n");
+            }
+            log.error("Test is stuck:\n" + dump.toString());
+          }
+        },
+        8);
   }
 
   @After
@@ -269,6 +287,7 @@ public class WorkflowTest {
     if (tracer != null) {
       tracer.assertExpected();
     }
+    timer.cancel();
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
