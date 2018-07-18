@@ -52,6 +52,7 @@ public final class Worker {
   private final SyncWorkflowWorker workflowWorker;
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
+  private final AtomicBoolean closed = new AtomicBoolean();
 
   /**
    * Creates worker that connects to the local instance of the Cadence Service that listens on a
@@ -266,6 +267,10 @@ public final class Worker {
     return started.get();
   }
 
+  public boolean isClosed() {
+    return closed.get();
+  }
+
   /**
    * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
    */
@@ -279,6 +284,7 @@ public final class Worker {
         long left = timeout.toMillis() - (System.currentTimeMillis() - time);
         workflowWorker.shutdownAndAwaitTermination(left, TimeUnit.MILLISECONDS);
       }
+      closed.set(true);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -350,7 +356,6 @@ public final class Worker {
 
   public static final class Factory {
 
-    private final WorkerFactoryOptions factoryOptions;
     private final ArrayList<Worker> workers = new ArrayList<>();
     private final Supplier<IWorkflowService> getWorkFlowService;
     private String domain;
@@ -360,27 +365,19 @@ public final class Worker {
         "attempted to %s while in %s state. Acceptable States: %s";
 
     public Factory(String domain) {
-      this(domain, null);
+      this(() -> new WorkflowServiceTChannel(), domain);
     }
 
-    public Factory(String domain, WorkerFactoryOptions options) {
-      this(() -> new WorkflowServiceTChannel(), domain, options);
+    public Factory(String host, int port, String domain) {
+      this(() -> new WorkflowServiceTChannel(host, port), domain);
     }
 
-    public Factory(String host, int port, String domain, WorkerFactoryOptions options) {
-      this(() -> new WorkflowServiceTChannel(host, port), domain, options);
-    }
-
-    public Factory(
-        Supplier<IWorkflowService> getWorkFlowService,
-        String domain,
-        WorkerFactoryOptions options) {
+    public Factory(Supplier<IWorkflowService> getWorkFlowService, String domain) {
       Validate.ArgumentNotNull(getWorkFlowService, "getWorkFlowService");
       Validate.ArgumentNotEmpty(domain, "domain");
 
       this.getWorkFlowService = getWorkFlowService;
       this.domain = domain;
-      this.factoryOptions = options;
     }
 
     public Worker newWorker(String taskList) {
@@ -405,9 +402,15 @@ public final class Worker {
     public void start() {
       synchronized (this) {
         Validate.Condition(
-            state == State.Initial,
+            state == State.Initial || state == State.Started,
             String.format(
-                statusErrorMessage, "start WorkerFactory", state.name(), State.Initial.name()));
+                statusErrorMessage,
+                "start WorkerFactory",
+                state.name(),
+                String.format("%s, %s", State.Initial.name(), State.Initial.name())));
+        if (state == State.Started) {
+          return;
+        }
         state = State.Started;
       }
 
@@ -418,13 +421,6 @@ public final class Worker {
 
     public void shutdown(Duration timeout) {
       synchronized (this) {
-        Validate.Condition(
-            state == State.Started || state == State.Initial,
-            String.format(
-                statusErrorMessage,
-                "shutdown WorkerFactory",
-                state.name(),
-                String.format("%s, %s", State.Started.name(), State.Initial.name())));
         state = State.Shutdown;
       }
 

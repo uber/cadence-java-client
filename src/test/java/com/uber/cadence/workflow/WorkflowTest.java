@@ -221,7 +221,7 @@ public class WorkflowTest {
     if (useExternalService) {
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
-      Worker.Factory workerFactory = new Worker.Factory(() -> service, DOMAIN, null);
+      Worker.Factory workerFactory = new Worker.Factory(() -> service, DOMAIN);
       worker = workerFactory.newWorker(taskList, workerOptions);
       workflowClient = WorkflowClient.newInstance(DOMAIN);
       WorkflowClientOptions clientOptions =
@@ -1841,7 +1841,7 @@ public class WorkflowTest {
           // Test getTrace through replay by a local worker.
           Worker queryWorker;
           if (useExternalService) {
-            Worker.Factory workerFactory = new Worker.Factory(() -> service, DOMAIN, null);
+            Worker.Factory workerFactory = new Worker.Factory(() -> service, DOMAIN);
             queryWorker = workerFactory.newWorker(taskList);
           } else {
             queryWorker = testEnvironment.newWorker(taskList);
