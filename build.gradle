@@ -216,4 +216,4 @@ uploadArchives {
     }
 }
 
-logging.captureStandardOutput LogLevel.INFO
+//logging.captureStandardOutput LogLevel.INFO
