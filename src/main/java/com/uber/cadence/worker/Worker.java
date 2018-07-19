@@ -35,6 +35,7 @@ import com.uber.m3.util.ImmutableMap;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -356,9 +357,9 @@ public final class Worker {
 
   public static final class Factory {
 
-    private final ArrayList<Worker> workers = new ArrayList<>();
+    private final List<Worker> workers = new ArrayList<>();
     private final Supplier<IWorkflowService> getWorkFlowService;
-    private String domain;
+    private final String domain;
     private State state = State.Initial;
 
     private final String statusErrorMessage =
