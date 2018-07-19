@@ -18,6 +18,7 @@
 package com.uber.cadence.worker;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
@@ -71,7 +72,7 @@ public final class Worker {
         taskList != null && !"".equals(taskList), "taskList should not be an empty string");
 
     this.taskList = taskList;
-    this.options = options == null ? new Builder().build() : options;
+    this.options = MoreObjects.firstNonNull(options, new Builder().build());
 
     SingleWorkerOptions activityOptions = toActivityOptions(options, domain, taskList);
     activityWorker =
