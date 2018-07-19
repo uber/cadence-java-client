@@ -74,23 +74,23 @@ public final class Worker {
     this.taskList = taskList;
     this.options = MoreObjects.firstNonNull(options, new Builder().build());
 
-    SingleWorkerOptions activityOptions = toActivityOptions(options, domain, taskList);
+    SingleWorkerOptions activityOptions = toActivityOptions(this.options, domain, taskList);
     activityWorker =
-        options.isDisableActivityWorker()
+            this.options.isDisableActivityWorker()
             ? null
             : new SyncActivityWorker(service, domain, taskList, activityOptions);
 
-    SingleWorkerOptions workflowOptions = toWorkflowOptions(options, domain, taskList);
+    SingleWorkerOptions workflowOptions = toWorkflowOptions(this.options, domain, taskList);
     workflowWorker =
-        options.isDisableWorkflowWorker()
+        this.options.isDisableWorkflowWorker()
             ? null
             : new SyncWorkflowWorker(
                 service,
                 domain,
                 taskList,
-                options.getInterceptorFactory(),
+                this.options.getInterceptorFactory(),
                 workflowOptions,
-                options.getMaxWorkflowThreads());
+                this.options.getMaxWorkflowThreads());
   }
 
   private SingleWorkerOptions toActivityOptions(
