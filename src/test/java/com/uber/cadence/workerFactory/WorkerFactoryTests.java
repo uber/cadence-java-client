@@ -23,10 +23,10 @@ import com.uber.cadence.worker.Worker;
 import java.time.Duration;
 import org.junit.Test;
 
-public class workerFactoryTests {
+public class WorkerFactoryTests {
 
   @Test
-  public void WhenAFactoryIsStartedAllWorkersStart() {
+  public void whenAFactoryIsStartedAllWorkersStart() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
     Worker worker2 = factory.newWorker("task2");
@@ -37,7 +37,7 @@ public class workerFactoryTests {
   }
 
   @Test
-  public void WhenAFactoryIsShutdownAllWorkersAreShutdown() {
+  public void whenAFactoryIsShutdownAllWorkersAreShutdown() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
     Worker worker2 = factory.newWorker("task2");
@@ -50,7 +50,7 @@ public class workerFactoryTests {
   }
 
   @Test
-  public void AFactoryCanBeStartedMoreThanOnce() {
+  public void aFactoryCanBeStartedMoreThanOnce() {
     Worker.Factory factory = new Worker.Factory("domain");
 
     factory.start();
@@ -58,7 +58,7 @@ public class workerFactoryTests {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void AFactoryCannotBeStartedAfterShutdown() {
+  public void aFactoryCannotBeStartedAfterShutdown() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
 
@@ -67,7 +67,7 @@ public class workerFactoryTests {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void WorkersCannotBeCreatedAfterFactoryHasStarted() {
+  public void workersCannotBeCreatedAfterFactoryHasStarted() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
 
@@ -77,7 +77,7 @@ public class workerFactoryTests {
   }
 
   @Test(expected = IllegalStateException.class)
-  public void WorkersCannotBeCreatedAfterFactoryIsShutdown() {
+  public void workersCannotBeCreatedAfterFactoryIsShutdown() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
 
@@ -87,7 +87,7 @@ public class workerFactoryTests {
   }
 
   @Test
-  public void FactoryCanOnlyBeShutdownMoreThanOnce() {
+  public void factoryCanOnlyBeShutdownMoreThanOnce() {
     Worker.Factory factory = new Worker.Factory("domain");
     Worker worker1 = factory.newWorker("task1");
 

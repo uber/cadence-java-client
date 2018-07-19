@@ -18,9 +18,9 @@
 package com.uber.cadence.worker;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.common.Validate;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
@@ -373,8 +373,9 @@ public final class Worker {
     }
 
     public Factory(Supplier<IWorkflowService> getWorkFlowService, String domain) {
-      Validate.ArgumentNotNull(getWorkFlowService, "getWorkFlowService");
-      Validate.ArgumentNotEmpty(domain, "domain");
+      Preconditions.checkNotNull(getWorkFlowService, "getWorkFlowService should not be null");
+      Preconditions.checkArgument(
+          domain != null && !"".equals(domain), "domain should not be an empty string");
 
       this.getWorkFlowService = getWorkFlowService;
       this.domain = domain;
@@ -385,23 +386,23 @@ public final class Worker {
     }
 
     public Worker newWorker(String taskList, WorkerOptions options) {
-      Validate.ArgumentNotEmpty(taskList, "taskList");
+      Preconditions.checkArgument(
+          taskList != null && !"".equals(taskList), "taskList should not be an empty string");
 
       synchronized (this) {
-        Validate.Condition(
+        Preconditions.checkState(
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
+        Worker worker = new Worker(getWorkFlowService.get(), domain, taskList, options);
+        workers.add(worker);
+        return worker;
       }
-
-      Worker worker = new Worker(getWorkFlowService.get(), domain, taskList, options);
-      workers.add(worker);
-      return worker;
     }
 
     public void start() {
       synchronized (this) {
-        Validate.Condition(
+        Preconditions.checkState(
             state == State.Initial || state == State.Started,
             String.format(
                 statusErrorMessage,
@@ -422,10 +423,10 @@ public final class Worker {
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
-      }
 
-      for (Worker worker : workers) {
-        worker.shutdown(timeout);
+        for (Worker worker : workers) {
+          worker.shutdown(timeout);
+        }
       }
     }
 
