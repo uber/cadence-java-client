@@ -37,7 +37,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
@@ -56,58 +55,6 @@ public final class Worker {
   private final AtomicBoolean closed = new AtomicBoolean();
 
   /**
-   * Creates worker that connects to the local instance of the Cadence Service that listens on a
-   * default port (7933).
-   *
-   * @param domain domain that worker uses to poll.
-   * @param taskList task list name worker uses to poll. It uses this name for both decision and
-   *     activity task list polls.
-   */
-  private Worker(String domain, String taskList) {
-    this(domain, taskList, null);
-  }
-
-  /**
-   * Creates worker that connects to the local instance of the Cadence Service that listens on a
-   * default port (7933).
-   *
-   * @param domain domain that worker uses to poll.
-   * @param taskList task list name worker uses to poll. It uses this name for both decision and
-   *     activity task list polls.
-   * @param options Options (like {@link DataConverter} override) for configuring worker.
-   */
-  private Worker(String domain, String taskList, WorkerOptions options) {
-    this(new WorkflowServiceTChannel(), domain, taskList, options);
-  }
-
-  /**
-   * Creates worker that connects to an instance of the Cadence Service.
-   *
-   * @param host of the Cadence Service endpoint
-   * @param port of the Cadence Service endpoint
-   * @param domain domain that worker uses to poll.
-   * @param taskList task list name worker uses to poll. It uses this name for both decision and
-   *     activity task list polls.
-   */
-  private Worker(String host, int port, String domain, String taskList) {
-    this(new WorkflowServiceTChannel(host, port), domain, taskList, null);
-  }
-
-  /**
-   * Creates worker that connects to an instance of the Cadence Service.
-   *
-   * @param host of the Cadence Service endpoint
-   * @param port of the Cadence Service endpoint
-   * @param domain domain that worker uses to poll.
-   * @param taskList task list name worker uses to poll. It uses this name for both decision and
-   *     activity task list polls.
-   * @param options Options (like {@link DataConverter} override) for configuring worker.
-   */
-  private Worker(String host, int port, String domain, String taskList, WorkerOptions options) {
-    this(new WorkflowServiceTChannel(host, port), domain, taskList, options);
-  }
-
-  /**
    * Creates worker that connects to an instance of the Cadence Service.
    *
    * @param service client to the Cadence Service endpoint.
@@ -117,32 +64,32 @@ public final class Worker {
    * @param options Options (like {@link DataConverter} override) for configuring worker.
    */
   private Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
-    Objects.requireNonNull(service, "service");
-    Objects.requireNonNull(domain, "domain");
-    this.taskList = Objects.requireNonNull(taskList, "taskList");
-    if (options == null) {
-      options = new Builder().build();
-    }
-    this.options = options;
+    Preconditions.checkNotNull(service, "service should not be null");
+    Preconditions.checkArgument(
+        domain != null && !"".equals(domain), "domain should not be an empty string");
+    Preconditions.checkArgument(
+        taskList != null && !"".equals(taskList), "taskList should not be an empty string");
+
+    this.taskList = taskList;
+    this.options = options == null ? new Builder().build() : options;
+
     SingleWorkerOptions activityOptions = toActivityOptions(options, domain, taskList);
-    if (!options.isDisableActivityWorker()) {
-      activityWorker = new SyncActivityWorker(service, domain, taskList, activityOptions);
-    } else {
-      activityWorker = null;
-    }
+    activityWorker =
+        options.isDisableActivityWorker()
+            ? null
+            : new SyncActivityWorker(service, domain, taskList, activityOptions);
+
     SingleWorkerOptions workflowOptions = toWorkflowOptions(options, domain, taskList);
-    if (!options.isDisableWorkflowWorker()) {
-      workflowWorker =
-          new SyncWorkflowWorker(
-              service,
-              domain,
-              taskList,
-              options.getInterceptorFactory(),
-              workflowOptions,
-              options.getMaxWorkflowThreads());
-    } else {
-      workflowWorker = null;
-    }
+    workflowWorker =
+        options.isDisableWorkflowWorker()
+            ? null
+            : new SyncWorkflowWorker(
+                service,
+                domain,
+                taskList,
+                options.getInterceptorFactory(),
+                workflowOptions,
+                options.getMaxWorkflowThreads());
   }
 
   private SingleWorkerOptions toActivityOptions(
@@ -195,10 +142,13 @@ public final class Worker {
    * workflows are stateful and a new instance is created for each workflow execution.
    */
   public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
-    if (workflowWorker == null) {
-      throw new IllegalStateException("disableWorkflowWorker is set in worker options");
-    }
-    checkNotStarted();
+    Preconditions.checkState(
+        workflowWorker != null,
+        "registerWorkflowImplementationTypes is not allowed when disableWorkflowWorker is set in worker options");
+    Preconditions.checkState(
+        !started.get(),
+        "registerWorkflowImplementationTypes is not allowed after worker has started");
+
     workflowWorker.setWorkflowImplementationTypes(workflowImplementationClasses);
   }
 
@@ -239,17 +189,14 @@ public final class Worker {
    * <p>
    */
   public void registerActivitiesImplementations(Object... activityImplementations) {
-    if (activityWorker == null) {
-      throw new IllegalStateException("disableActivityWorker is set in worker options");
-    }
-    checkNotStarted();
-    activityWorker.setActivitiesImplementation(activityImplementations);
-  }
+    Preconditions.checkState(
+        activityWorker != null,
+        "registerActivitiesImplementations is not allowed when disableWorkflowWorker is set in worker options");
+    Preconditions.checkState(
+        !started.get(),
+        "registerActivitiesImplementations is not allowed after worker has started");
 
-  private void checkNotStarted() {
-    if (started.get()) {
-      throw new IllegalStateException("already started");
-    }
+    activityWorker.setActivitiesImplementation(activityImplementations);
   }
 
   private void start() {
