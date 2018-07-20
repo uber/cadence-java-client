@@ -76,7 +76,7 @@ public final class Worker {
 
     SingleWorkerOptions activityOptions = toActivityOptions(this.options, domain, taskList);
     activityWorker =
-            this.options.isDisableActivityWorker()
+        this.options.isDisableActivityWorker()
             ? null
             : new SyncActivityWorker(service, domain, taskList, activityOptions);
 

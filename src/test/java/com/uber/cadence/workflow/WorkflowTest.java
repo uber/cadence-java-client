@@ -239,8 +239,6 @@ public class WorkflowTest {
 
   @After
   public void tearDown() throws Throwable {
-    workerfactory.shutdown(Duration.ofMinutes(1));
-
     activitiesImpl.close();
     if (testEnvironment != null) {
       testEnvironment.close();
