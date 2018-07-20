@@ -216,3 +216,5 @@ uploadArchives {
         }
     }
 }
+
+//logging.captureStandardOutput LogLevel.INFO
