@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.internal.worker;
 
 import com.google.common.base.Preconditions;
@@ -9,7 +26,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class WorkflowPollService implements Poller2.Poll<PollForDecisionTaskResponse>{
+public final class WorkflowPollService implements Poller.Poll<PollForDecisionTaskResponse> {
 
   private SingleWorkerOptions options;
   private IWorkflowService service;
@@ -17,12 +34,12 @@ public final class WorkflowPollService implements Poller2.Poll<PollForDecisionTa
   private String taskList;
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
-  WorkflowPollService(IWorkflowService service, String domain, String taskList, SingleWorkerOptions options){
+  WorkflowPollService(
+      IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
     Preconditions.checkNotNull(service, "service should not be null");
     Preconditions.checkNotNull(domain, "domain should not be null");
     Preconditions.checkNotNull(taskList, "taskList should not be null");
     Preconditions.checkNotNull(options, "options should not be null");
-
 
     this.service = service;
     this.domain = domain;
@@ -50,10 +67,7 @@ public final class WorkflowPollService implements Poller2.Poll<PollForDecisionTa
     try {
       result = service.PollForDecisionTask(pollRequest);
     } catch (InternalServiceError | ServiceBusyError e) {
-      options
-              .getMetricsScope()
-              .counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER)
-              .inc(1);
+      options.getMetricsScope().counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
       throw e;
     } catch (TException e) {
       options.getMetricsScope().counter(MetricsType.DECISION_POLL_FAILED_COUNTER).inc(1);
@@ -62,17 +76,17 @@ public final class WorkflowPollService implements Poller2.Poll<PollForDecisionTa
 
     if (log.isDebugEnabled()) {
       log.debug(
-              "poll request returned decision task: workflowType="
-                      + result.getWorkflowType()
-                      + ", workflowExecution="
-                      + result.getWorkflowExecution()
-                      + ", startedEventId="
-                      + result.getStartedEventId()
-                      + ", previousStartedEventId="
-                      + result.getPreviousStartedEventId()
-                      + (result.getQuery() != null
-                      ? ", queryType=" + result.getQuery().getQueryType()
-                      : ""));
+          "poll request returned decision task: workflowType="
+              + result.getWorkflowType()
+              + ", workflowExecution="
+              + result.getWorkflowExecution()
+              + ", startedEventId="
+              + result.getStartedEventId()
+              + ", previousStartedEventId="
+              + result.getPreviousStartedEventId()
+              + (result.getQuery() != null
+                  ? ", queryType=" + result.getQuery().getQueryType()
+                  : ""));
     }
 
     if (result == null || result.getTaskToken() == null) {
