@@ -105,7 +105,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
     service = new WorkflowServiceWrapper();
     service.lockTimeSkipping("TestWorkflowEnvironmentInternal constructor");
-    workerFactory = new Worker.Factory(() -> service, options.getDomain());
+    workerFactory = new Worker.Factory(service, options.getDomain());
   }
 
   @Override

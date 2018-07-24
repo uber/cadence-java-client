@@ -306,7 +306,7 @@ public final class Worker {
   public static final class Factory {
 
     private final List<Worker> workers = new ArrayList<>();
-    private final Supplier<IWorkflowService> getWorkFlowService;
+    private final IWorkflowService workflowService;
     private final String domain;
     private State state = State.Initial;
 
@@ -314,19 +314,19 @@ public final class Worker {
         "attempted to %s while in %s state. Acceptable States: %s";
 
     public Factory(String domain) {
-      this(() -> new WorkflowServiceTChannel(), domain);
+      this(new WorkflowServiceTChannel(), domain);
     }
 
     public Factory(String host, int port, String domain) {
-      this(() -> new WorkflowServiceTChannel(host, port), domain);
+      this(new WorkflowServiceTChannel(host, port), domain);
     }
 
-    public Factory(Supplier<IWorkflowService> getWorkFlowService, String domain) {
-      Preconditions.checkNotNull(getWorkFlowService, "getWorkFlowService should not be null");
+    public Factory(IWorkflowService workflowService, String domain) {
+      Preconditions.checkNotNull(workflowService, "workflowService should not be null");
       Preconditions.checkArgument(
           domain != null && !"".equals(domain), "domain should not be an empty string");
 
-      this.getWorkFlowService = getWorkFlowService;
+      this.workflowService = workflowService;
       this.domain = domain;
     }
 
@@ -343,7 +343,7 @@ public final class Worker {
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker = new Worker(getWorkFlowService.get(), domain, taskList, options);
+        Worker worker = new Worker(workflowService, domain, taskList, options);
         workers.add(worker);
         return worker;
       }
@@ -362,10 +362,10 @@ public final class Worker {
           return;
         }
         state = State.Started;
-      }
 
-      for (Worker worker : workers) {
-        worker.start();
+        for (Worker worker : workers) {
+          worker.start();
+        }
       }
     }
 
