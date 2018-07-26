@@ -20,6 +20,7 @@ package com.uber.cadence.worker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.DataConverter;
@@ -38,9 +39,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 
 /**
  * Hosts activity and workflow implementations. Uses long poll to receive activity and decision
@@ -65,11 +66,11 @@ public final class Worker {
    * @param options Options (like {@link DataConverter} override) for configuring worker.
    */
   private Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
-    Preconditions.checkNotNull(service, "service should not be null");
+    Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
-        domain != null && !"".equals(domain), "domain should not be an empty string");
+        !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
     Preconditions.checkArgument(
-        taskList != null && !"".equals(taskList), "taskList should not be an empty string");
+        !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
 
     this.taskList = taskList;
     this.options = MoreObjects.firstNonNull(options, new Builder().build());
