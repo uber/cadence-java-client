@@ -87,7 +87,7 @@ public final class ActivityWorker implements SuspendableWorker {
       poller =
           new Poller<>(
               options.getIdentity(),
-              new ActivityPollService(service, domain, taskList, options),
+              new ActivityPollTask(service, domain, taskList, options),
               new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
               pollerOptions,
               options.getMetricsScope());
@@ -149,7 +149,7 @@ public final class ActivityWorker implements SuspendableWorker {
     }
   }
 
-  public static class MeasurableActivityTask {
+  static class MeasurableActivityTask {
     PollForActivityTaskResponse task;
     Stopwatch sw;
 

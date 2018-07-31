@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.slf4j.MDC;
 
-public final class PollTaskExecutor<T> implements Consumer<T> {
+final class PollTaskExecutor<T> implements Consumer<T> {
 
   public interface TaskHandler<TT> {
     void handle(TT task) throws Exception;
@@ -33,11 +33,11 @@ public final class PollTaskExecutor<T> implements Consumer<T> {
     Throwable wrapFailure(TT task, Throwable failure);
   }
 
-  ThreadPoolExecutor taskExecutor;
-  private SingleWorkerOptions options;
-  private String domain;
-  private String taskList;
-  private TaskHandler<T> handler;
+  private final ThreadPoolExecutor taskExecutor;
+  private final SingleWorkerOptions options;
+  private final String domain;
+  private final String taskList;
+  private final TaskHandler<T> handler;
 
   public PollTaskExecutor(
       String domain, String taskList, SingleWorkerOptions options, TaskHandler<T> handler) {

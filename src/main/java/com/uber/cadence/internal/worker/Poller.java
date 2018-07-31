@@ -21,6 +21,8 @@ import com.google.common.base.Preconditions;
 import com.uber.cadence.internal.common.BackoffThrottler;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
+
+import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -30,9 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public final class Poller<T> implements SuspendableWorker {
 
-  private String identity;
-
-  public interface Poll<TT> {
+  interface PollTask<TT> {
     TT poll() throws TException;
   }
 
@@ -40,8 +40,9 @@ public final class Poller<T> implements SuspendableWorker {
     void run() throws Throwable;
   }
 
+  private final String identity;
   private final Consumer<T> consumer;
-  private final Poll<T> pollService;
+  private final PollTask<T> pollTask;
   private final PollerOptions pollerOptions;
   private static final Logger log = LoggerFactory.getLogger(Poller.class);
   private ThreadPoolExecutor pollExecutor;
@@ -57,18 +58,18 @@ public final class Poller<T> implements SuspendableWorker {
 
   Poller(
       String identity,
-      Poll<T> pollService,
+      PollTask<T> pollTask,
       Consumer<T> consumer,
       PollerOptions pollerOptions,
       Scope metricsScope) {
-    Preconditions.checkNotNull(identity, "identity cannot be null");
-    Preconditions.checkNotNull(pollService, "poll service should not be null");
-    Preconditions.checkNotNull(consumer, "consumer should not be null");
-    Preconditions.checkNotNull(pollerOptions, "pollerOptions should not be null");
-    Preconditions.checkNotNull(metricsScope, "metricsScope should not be null");
+    Objects.requireNonNull(identity, "identity cannot be null");
+    Objects.requireNonNull(pollTask, "poll service should not be null");
+    Objects.requireNonNull(consumer, "consumer should not be null");
+    Objects.requireNonNull(pollerOptions, "pollerOptions should not be null");
+    Objects.requireNonNull(metricsScope, "metricsScope should not be null");
 
     this.identity = identity;
-    this.pollService = pollService;
+    this.pollTask = pollTask;
     this.consumer = consumer;
     this.pollerOptions = pollerOptions;
     this.metricsScope = metricsScope;
@@ -240,7 +241,7 @@ public final class Poller<T> implements SuspendableWorker {
     public void run() throws Exception {
       try {
         pollSemaphore.acquire();
-        T task = pollService.poll();
+        T task = pollTask.poll();
         if (task == null) {
           return;
         }

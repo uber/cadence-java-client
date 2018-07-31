@@ -96,7 +96,7 @@ public final class WorkflowWorker implements SuspendableWorker {
       poller =
           new Poller<>(
               options.getIdentity(),
-              new WorkflowPollService(service, domain, taskList, options),
+              new WorkflowPollTask(service, domain, taskList, options),
               new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
               pollerOptions,
               workerOptions.getMetricsScope());

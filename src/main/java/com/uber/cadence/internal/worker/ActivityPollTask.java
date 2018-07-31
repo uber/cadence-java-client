@@ -25,16 +25,16 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class ActivityPollService
-    implements Poller.Poll<ActivityWorker.MeasurableActivityTask> {
+final class ActivityPollTask
+    implements Poller.PollTask<ActivityWorker.MeasurableActivityTask> {
 
   private IWorkflowService service;
   private String domain;
   private String taskList;
   private SingleWorkerOptions options;
-  private static final Logger log = LoggerFactory.getLogger(ActivityPollService.class);
+  private static final Logger log = LoggerFactory.getLogger(ActivityPollTask.class);
 
-  public ActivityPollService(
+  public ActivityPollTask(
       IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
 
     this.service = service;
