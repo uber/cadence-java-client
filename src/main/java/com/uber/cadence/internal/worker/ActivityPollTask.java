@@ -28,10 +28,10 @@ import org.slf4j.LoggerFactory;
 final class ActivityPollTask
     implements Poller.PollTask<ActivityWorker.MeasurableActivityTask> {
 
-  private IWorkflowService service;
-  private String domain;
-  private String taskList;
-  private SingleWorkerOptions options;
+  private final IWorkflowService service;
+  private final String domain;
+  private final String taskList;
+  private final SingleWorkerOptions options;
   private static final Logger log = LoggerFactory.getLogger(ActivityPollTask.class);
 
   public ActivityPollTask(
