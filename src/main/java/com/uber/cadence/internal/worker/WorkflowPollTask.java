@@ -28,10 +28,10 @@ import org.slf4j.LoggerFactory;
 
 final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskResponse> {
 
-  private SingleWorkerOptions options;
-  private IWorkflowService service;
-  private String domain;
-  private String taskList;
+  private final SingleWorkerOptions options;
+  private final IWorkflowService service;
+  private final String domain;
+  private final String taskList;
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
   WorkflowPollTask(
