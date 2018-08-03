@@ -17,12 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.EventType;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
@@ -78,12 +73,18 @@ class ReplayDecider {
     this.decisionsHelper = decisionsHelper;
     this.metricsScope = metricsScope;
     PollForDecisionTaskResponse decisionTask = decisionsHelper.getTask();
+    WorkflowExecutionStartedEventAttributes startedEvent = decisionTask.getHistory().events.get(0).getWorkflowExecutionStartedEventAttributes();
+    if (startedEvent == null) {
+      throw new IllegalArgumentException(
+              "First event in the history is not WorkflowExecutionStarted");
+    }
+
     context =
         new DecisionContextImpl(
             decisionsHelper,
             domain,
             decisionTask,
-            decisionTask.getHistory().events.get(0).getWorkflowExecutionStartedEventAttributes(),
+            startedEvent,
             enableLoggingInReplay);
     context.setMetricsScope(metricsScope);
   }
