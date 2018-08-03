@@ -73,19 +73,16 @@ class ReplayDecider {
     this.decisionsHelper = decisionsHelper;
     this.metricsScope = metricsScope;
     PollForDecisionTaskResponse decisionTask = decisionsHelper.getTask();
-    WorkflowExecutionStartedEventAttributes startedEvent = decisionTask.getHistory().events.get(0).getWorkflowExecutionStartedEventAttributes();
+    WorkflowExecutionStartedEventAttributes startedEvent =
+        decisionTask.getHistory().events.get(0).getWorkflowExecutionStartedEventAttributes();
     if (startedEvent == null) {
       throw new IllegalArgumentException(
-              "First event in the history is not WorkflowExecutionStarted");
+          "First event in the history is not WorkflowExecutionStarted");
     }
 
     context =
         new DecisionContextImpl(
-            decisionsHelper,
-            domain,
-            decisionTask,
-            startedEvent,
-            enableLoggingInReplay);
+            decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay);
     context.setMetricsScope(metricsScope);
   }
 

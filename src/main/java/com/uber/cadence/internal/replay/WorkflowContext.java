@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 
