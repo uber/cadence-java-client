@@ -48,8 +48,6 @@ class ReplayDecider {
 
   private static final int MILLION = 1000000;
 
-  private final HistoryHelper historyHelper;
-
   private final DecisionsHelper decisionsHelper;
 
   private final DecisionContextImpl context;
@@ -73,21 +71,19 @@ class ReplayDecider {
   ReplayDecider(
       String domain,
       ReplayWorkflow workflow,
-      HistoryHelper historyHelper,
       DecisionsHelper decisionsHelper,
       Scope metricsScope,
       boolean enableLoggingInReplay) {
     this.workflow = workflow;
-    this.historyHelper = historyHelper;
     this.decisionsHelper = decisionsHelper;
     this.metricsScope = metricsScope;
-    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+    PollForDecisionTaskResponse decisionTask = decisionsHelper.getTask();
     context =
         new DecisionContextImpl(
             decisionsHelper,
             domain,
             decisionTask,
-            historyHelper.getWorkflowExecutionStartedEventAttributes(),
+            decisionTask.getHistory().events.get(0).getWorkflowExecutionStartedEventAttributes(),
             enableLoggingInReplay);
     context.setMetricsScope(metricsScope);
   }
@@ -351,11 +347,11 @@ class ReplayDecider {
     decisionsHelper.handleDecisionCompletion(event.getDecisionTaskCompletedEventAttributes());
   }
 
-  void decide() throws Throwable {
-    decideImpl(null);
+  void decide(HistoryHelper historyHelper) throws Throwable {
+    decideImpl(historyHelper, null);
   }
 
-  private void decideImpl(Functions.Proc query) throws Throwable {
+  private void decideImpl(HistoryHelper historyHelper, Functions.Proc query) throws Throwable {
     try {
       DecisionEventsIterator iterator = historyHelper.getIterator();
       while (iterator.hasNext()) {
@@ -396,9 +392,9 @@ class ReplayDecider {
     return decisionsHelper;
   }
 
-  public byte[] query(WorkflowQuery query) throws Throwable {
+  public byte[] query(HistoryHelper historyHelper, WorkflowQuery query) throws Throwable {
     AtomicReference<byte[]> result = new AtomicReference<>();
-    decideImpl(() -> result.set(workflow.query(query)));
+    decideImpl(historyHelper, () -> result.set(workflow.query(query)));
     return result.get();
   }
 }
