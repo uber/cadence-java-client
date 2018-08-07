@@ -706,7 +706,6 @@ public class WorkflowTest {
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     client.start(taskList);
     client.cancel();
-
     try {
       client.getResult(String.class);
       fail("unreachable");
