@@ -282,7 +282,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         c.stop();
       }
       threads.clear();
-      for (Promise<?> f : failedPromises) {
+      Set<Promise> failedPromisesLoop = new HashSet<>(failedPromises);
+      for (Promise f : failedPromisesLoop) {
         if (!f.isCompleted()) {
           throw new Error("expected failed");
         }
