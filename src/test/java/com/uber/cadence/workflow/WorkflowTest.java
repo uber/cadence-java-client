@@ -692,21 +692,14 @@ public class WorkflowTest {
 
     @Override
     public String execute(String taskList) {
-      Workflow.await(() -> false);
+      Promise<String> cancellationRequest = CancellationScope.current().getCancellationRequest();
+      cancellationRequest.get();
       return "done";
     }
   }
 
-  public static class TestCancellationScopePromiseChild implements TestWorkflow1 {
-    @Override
-    public String execute(String taskList) {
-      Workflow.await(() -> false);
-      return null;
-    }
-  }
-
   @Test
-  public void testWorkflowCancellationScopePromise() throws Throwable {
+  public void testWorkflowCancellationScopePromise() {
     startWorkerFor(TestCancellationScopePromise.class);
     WorkflowStub client =
         workflowClient.newUntypedWorkflowStub(
@@ -714,8 +707,6 @@ public class WorkflowTest {
     client.start(taskList);
     client.cancel();
 
-    //      client.getResult(String.class);
-    //    client.wait();
     try {
       client.getResult(String.class);
       fail("unreachable");
