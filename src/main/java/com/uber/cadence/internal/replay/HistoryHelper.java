@@ -36,6 +36,11 @@ class HistoryHelper {
 
   private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
+  public void resetHistory() {
+    this.decisionTaskWithHistoryIterator.resetHistory();
+    this.iterator = new DecisionEventsIterator(decisionTaskWithHistoryIterator);
+  }
+
   /**
    * Events of a single decision. It includes all new events in the history since the last decision
    * as events. It doesn't include events that are decision events of the previous decision. The
@@ -243,7 +248,7 @@ class HistoryHelper {
   }
 
   private final DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator;
-  private final DecisionEventsIterator iterator;
+  private DecisionEventsIterator iterator;
 
   HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks) {
     this.decisionTaskWithHistoryIterator = decisionTasks;

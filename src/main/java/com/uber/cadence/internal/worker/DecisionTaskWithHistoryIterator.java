@@ -24,6 +24,8 @@ import java.util.Iterator;
 /** Contains DecisionTask and history iterator that paginates history behind the scene. */
 public interface DecisionTaskWithHistoryIterator {
 
+  void resetHistory();
+
   PollForDecisionTaskResponse getDecisionTask();
 
   Iterator<HistoryEvent> getHistory();

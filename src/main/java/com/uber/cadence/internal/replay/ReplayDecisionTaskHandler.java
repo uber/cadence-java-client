@@ -17,14 +17,10 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.Decision;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryTaskCompletedType;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
@@ -44,13 +40,18 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
   private final ReplayWorkflowFactory workflowFactory;
   private final String domain;
+  private LoadingCache<String, ReplayDecider> cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
 
   public ReplayDecisionTaskHandler(
-      String domain, ReplayWorkflowFactory asyncWorkflowFactory, SingleWorkerOptions options) {
+      String domain,
+      ReplayWorkflowFactory asyncWorkflowFactory,
+      LoadingCache<String, ReplayDecider> cache,
+      SingleWorkerOptions options) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
+    this.cache = cache;
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
   }
@@ -98,7 +99,16 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       throws Throwable {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
-    ReplayDecider decider = createDecider(decisionTask);
+
+    String runId = historyHelper.getDecisionTask().getWorkflowExecution().getRunId();
+    ReplayDecider decider = cache.get(runId);
+    if(decider == null || decider.isStateStale(historyHelper)){
+      decider = createDecider(decisionTask);
+      cache.put(runId, decider);
+    }
+    if(decider.isStateStale(historyHelper)){
+      historyHelper.resetHistory();
+    }
 
     if (decisionTask.isSetQuery()) {
       RespondQueryTaskCompletedRequest queryCompletedRequest =

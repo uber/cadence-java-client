@@ -17,8 +17,12 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.replay.ReplayDecider;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -59,7 +63,19 @@ public class SyncWorkflowWorker {
             workflowThreadPool,
             interceptorFactory,
             options.getMetricsScope());
-    DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, options);
+
+    LoadingCache<String, ReplayDecider> cache =
+            CacheBuilder.newBuilder()
+                    .maximumSize(1000)
+                    .build(
+                            new CacheLoader<String, ReplayDecider>() {
+                              @Override
+                              public ReplayDecider load(String key){
+                                return null;
+                              }
+                            });
+
+    DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, cache, options);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }

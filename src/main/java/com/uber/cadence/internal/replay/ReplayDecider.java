@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * Implements decider that relies on replay of a worklfow code. An instance of this class is created
  * per decision.
  */
-class ReplayDecider {
+public class ReplayDecider {
 
   private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
@@ -63,7 +63,7 @@ class ReplayDecider {
 
   private long wfStartTime = -1;
 
-  ReplayDecider(
+  public ReplayDecider(
       String domain,
       ReplayWorkflow workflow,
       DecisionsHelper decisionsHelper,
@@ -347,6 +347,10 @@ class ReplayDecider {
 
   void decide(HistoryHelper historyHelper) throws Throwable {
     decideImpl(historyHelper, null);
+  }
+
+  boolean isStateStale(HistoryHelper historyHelper) {
+      return false;
   }
 
   private void decideImpl(HistoryHelper historyHelper, Functions.Proc query) throws Throwable {
