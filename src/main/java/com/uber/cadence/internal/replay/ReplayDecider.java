@@ -349,15 +349,20 @@ public class ReplayDecider {
     decideImpl(historyHelper, null);
   }
 
-  boolean isStateStale(HistoryHelper historyHelper) {
-      return false;
-  }
-
   private void decideImpl(HistoryHelper historyHelper, Functions.Proc query) throws Throwable {
     try {
       DecisionEventsIterator iterator = historyHelper.getIterator();
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
+        if (decision.getEvents().size() > 0
+            && decision.getEvents().get(0).getEventId()
+                != decisionsHelper.getNextDecisionEventId()) {
+          throw new IllegalStateException(
+              String.format(
+                  "ReplayDecider expects next event id at %d. History's previous started event id is %d",
+                  decisionsHelper.getNextDecisionEventId(),
+                  decision.getEvents().get(0).getEventId()));
+        }
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 

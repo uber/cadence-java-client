@@ -65,17 +65,18 @@ public class SyncWorkflowWorker {
             options.getMetricsScope());
 
     LoadingCache<String, ReplayDecider> cache =
-            CacheBuilder.newBuilder()
-                    .maximumSize(1000)
-                    .build(
-                            new CacheLoader<String, ReplayDecider>() {
-                              @Override
-                              public ReplayDecider load(String key){
-                                return null;
-                              }
-                            });
+        CacheBuilder.newBuilder()
+            .maximumSize(1000)
+            .build(
+                new CacheLoader<String, ReplayDecider>() {
+                  @Override
+                  public ReplayDecider load(String key) {
+                    return null;
+                  }
+                });
 
-    DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, cache, options);
+    DecisionTaskHandler taskHandler =
+        new ReplayDecisionTaskHandler(domain, factory, cache, options);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }

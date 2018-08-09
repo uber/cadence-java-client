@@ -35,7 +35,6 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Stopwatch;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -266,15 +265,6 @@ public final class WorkflowWorker implements SuspendableWorker {
     }
 
     @Override
-    public void resetHistory(){
-      nextPageToken = null;
-      current = (new ArrayList<HistoryEvent>()).iterator();
-
-      // Get First Page
-      this.getHistory();
-    }
-
-    @Override
     public PollForDecisionTaskResponse getDecisionTask() {
       return task;
     }
@@ -348,10 +338,6 @@ public final class WorkflowWorker implements SuspendableWorker {
       task.setStartedEventId(Long.MAX_VALUE);
       task.setPreviousStartedEventId(Long.MAX_VALUE);
       task.setWorkflowType(task.getWorkflowType());
-    }
-
-    @Override
-    public void resetHistory(){
     }
 
     @Override
