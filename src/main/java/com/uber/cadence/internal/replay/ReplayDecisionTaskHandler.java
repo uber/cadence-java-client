@@ -41,17 +41,20 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private LoadingCache<String, ReplayDecider> cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
+  private StickyExecutionAttributes stickyExecutionAttributes;
 
   public ReplayDecisionTaskHandler(
       String domain,
       ReplayWorkflowFactory asyncWorkflowFactory,
       LoadingCache<String, ReplayDecider> cache,
-      SingleWorkerOptions options) {
+      SingleWorkerOptions options,
+      StickyExecutionAttributes stickyExecutionAttributes) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
+    this.stickyExecutionAttributes = stickyExecutionAttributes;
   }
 
   @Override
@@ -93,8 +96,8 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     }
   }
 
-  private boolean isFullHistory(DecisionTaskWithHistoryIterator decisionTaskIterator) {
-    return decisionTaskIterator.getDecisionTask().history.events.get(0).getEventId() == 0;
+  private boolean isFullHistory(PollForDecisionTaskResponse decisionTask) {
+    return decisionTask.history.events.get(0).getEventId() == 0;
   }
 
   private Result handleDecisionTaskImpl(DecisionTaskWithHistoryIterator decisionTaskIterator)
@@ -102,72 +105,93 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
 
-    String runId = historyHelper.getDecisionTask().getWorkflowExecution().getRunId();
+    String runId = decisionTask.getWorkflowExecution().getRunId();
 
-    if (isFullHistory(decisionTaskIterator)) {
+    if (isFullHistory(decisionTask)) {
       cache.invalidate(runId);
     }
     ReplayDecider decider = cache.get(runId, () -> createDecider(decisionTask));
+
     try {
       if (decisionTask.isSetQuery()) {
-        RespondQueryTaskCompletedRequest queryCompletedRequest =
-            new RespondQueryTaskCompletedRequest();
-        queryCompletedRequest.setTaskToken(decisionTask.getTaskToken());
-        try {
-          byte[] queryResult = decider.query(historyHelper, decisionTask.getQuery());
-          queryCompletedRequest.setQueryResult(queryResult);
-          queryCompletedRequest.setCompletedType(QueryTaskCompletedType.COMPLETED);
-        } catch (Throwable e) {
-          // TODO: Appropriate exception serialization.
-          StringWriter sw = new StringWriter();
-          PrintWriter pw = new PrintWriter(sw);
-          e.printStackTrace(pw);
-          queryCompletedRequest.setErrorMessage(sw.toString());
-          queryCompletedRequest.setCompletedType(QueryTaskCompletedType.FAILED);
-        }
-        return new DecisionTaskHandler.Result(null, null, queryCompletedRequest, null);
+        return processQuery(historyHelper, decider);
       } else {
-        decider.decide(historyHelper);
-        DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
-        List<Decision> decisions = decisionsHelper.getDecisions();
-
-        if (log.isTraceEnabled()) {
-          WorkflowExecution execution = decisionTask.getWorkflowExecution();
-          log.trace(
-              "WorkflowTask startedEventId="
-                  + decisionTask.getStartedEventId()
-                  + ", WorkflowID="
-                  + execution.getWorkflowId()
-                  + ", RunID="
-                  + execution.getRunId()
-                  + " completed with "
-                  + WorkflowExecutionUtils.prettyPrintDecisions(decisions));
-        } else if (log.isDebugEnabled()) {
-          WorkflowExecution execution = decisionTask.getWorkflowExecution();
-          log.debug(
-              "WorkflowTask startedEventId="
-                  + decisionTask.getStartedEventId()
-                  + ", WorkflowID="
-                  + execution.getWorkflowId()
-                  + ", RunID="
-                  + execution.getRunId()
-                  + " completed with "
-                  + decisions.size()
-                  + " new decisions");
-        }
-
-        byte[] context = decisionsHelper.getWorkflowContextDataToReturn();
-        RespondDecisionTaskCompletedRequest completedRequest =
-            new RespondDecisionTaskCompletedRequest();
-        completedRequest.setTaskToken(decisionTask.getTaskToken());
-        completedRequest.setDecisions(decisions);
-        completedRequest.setExecutionContext(context);
-        return new DecisionTaskHandler.Result(completedRequest, null, null, null);
+        return processDecision(historyHelper, decider);
       }
     } catch (IllegalStateException e) {
       cache.invalidate(runId);
       throw e;
     }
+  }
+
+  private Result processDecision(HistoryHelper historyHelper, ReplayDecider decider)
+      throws Throwable {
+    decider.decide(historyHelper);
+    DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
+    List<Decision> decisions = decisionsHelper.getDecisions();
+    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+
+    if (log.isTraceEnabled()) {
+      WorkflowExecution execution = decisionTask.getWorkflowExecution();
+      log.trace(
+          "WorkflowTask startedEventId="
+              + decisionTask.getStartedEventId()
+              + ", WorkflowID="
+              + execution.getWorkflowId()
+              + ", RunID="
+              + execution.getRunId()
+              + " completed with "
+              + WorkflowExecutionUtils.prettyPrintDecisions(decisions));
+    } else if (log.isDebugEnabled()) {
+      WorkflowExecution execution = decisionTask.getWorkflowExecution();
+      log.debug(
+          "WorkflowTask startedEventId="
+              + decisionTask.getStartedEventId()
+              + ", WorkflowID="
+              + execution.getWorkflowId()
+              + ", RunID="
+              + execution.getRunId()
+              + " completed with "
+              + decisions.size()
+              + " new decisions");
+    }
+
+    return createCompletedRequest(decisionTask, decisionsHelper, decisions);
+  }
+
+  private Result processQuery(HistoryHelper historyHelper, ReplayDecider decider) {
+    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+    RespondQueryTaskCompletedRequest queryCompletedRequest = new RespondQueryTaskCompletedRequest();
+    queryCompletedRequest.setTaskToken(decisionTask.getTaskToken());
+    try {
+      byte[] queryResult = decider.query(historyHelper, decisionTask.getQuery());
+      queryCompletedRequest.setQueryResult(queryResult);
+      queryCompletedRequest.setCompletedType(QueryTaskCompletedType.COMPLETED);
+    } catch (Throwable e) {
+      // TODO: Appropriate exception serialization.
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      queryCompletedRequest.setErrorMessage(sw.toString());
+      queryCompletedRequest.setCompletedType(QueryTaskCompletedType.FAILED);
+    }
+    return new Result(null, null, queryCompletedRequest, null);
+  }
+
+  private Result createCompletedRequest(
+      PollForDecisionTaskResponse decisionTask,
+      DecisionsHelper decisionsHelper,
+      List<Decision> decisions) {
+    byte[] context = decisionsHelper.getWorkflowContextDataToReturn();
+    RespondDecisionTaskCompletedRequest completedRequest =
+        new RespondDecisionTaskCompletedRequest();
+    completedRequest.setTaskToken(decisionTask.getTaskToken());
+    completedRequest.setDecisions(decisions);
+    completedRequest.setExecutionContext(context);
+    if (stickyExecutionAttributes != null) {
+      completedRequest.setStickyAttributes(stickyExecutionAttributes);
+    }
+    return new Result(completedRequest, null, null, null);
   }
 
   @Override

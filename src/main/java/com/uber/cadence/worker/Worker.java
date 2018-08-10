@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.DataConverter;
@@ -55,6 +56,7 @@ public final class Worker {
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
   private final AtomicBoolean closed = new AtomicBoolean();
+  private final StickyExecutionAttributes stickyExecutionAttributes;
 
   /**
    * Creates worker that connects to an instance of the Cadence Service.
@@ -64,8 +66,15 @@ public final class Worker {
    * @param taskList task list name worker uses to poll. It uses this name for both decision and
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
+   * @param stickyExecutionAttributes
    */
-  private Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
+  private Worker(
+      IWorkflowService service,
+      String domain,
+      String taskList,
+      WorkerOptions options,
+      StickyExecutionAttributes stickyExecutionAttributes) {
+    this.stickyExecutionAttributes = stickyExecutionAttributes;
     Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
@@ -91,7 +100,8 @@ public final class Worker {
                 taskList,
                 this.options.getInterceptorFactory(),
                 workflowOptions,
-                this.options.getMaxWorkflowThreads());
+                this.options.getMaxWorkflowThreads(),
+                this.stickyExecutionAttributes);
   }
 
   private SingleWorkerOptions toActivityOptions(
@@ -344,7 +354,7 @@ public final class Worker {
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker = new Worker(workflowService, domain, taskList, options);
+        Worker worker = new Worker(workflowService, domain, taskList, options, null);
         workers.add(worker);
         return worker;
       }
