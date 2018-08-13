@@ -17,16 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
@@ -251,7 +242,13 @@ public final class WorkflowWorker implements SuspendableWorker {
 
     private final Duration RetryServiceOperationInitialInterval = Duration.ofMillis(200);
     private final Duration RetryServiceOperationMaxInterval = Duration.ofSeconds(4);
-    private final Duration RetryServiceOperationExpirationInterval = Duration.ofSeconds(60);
+    private final Duration PaginationStart = Duration.ofMillis(System.currentTimeMillis());
+    private Duration DecisionTaskStartToCloseTimeout = Duration.ofSeconds(60);
+
+    private final Duration RetryServiceOperationExpirationInterval() {
+      Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(PaginationStart);
+      return DecisionTaskStartToCloseTimeout.minus(passed);
+    }
 
     private final PollForDecisionTaskResponse task;
     private Iterator<HistoryEvent> current;
@@ -262,6 +259,16 @@ public final class WorkflowWorker implements SuspendableWorker {
       History history = task.getHistory();
       current = history.getEventsIterator();
       nextPageToken = task.getNextPageToken();
+
+      for (int i = history.events.size() - 1; i >= 0; i--) {
+        DecisionTaskScheduledEventAttributes attributes =
+            history.events.get(i).getDecisionTaskScheduledEventAttributes();
+        if (attributes != null) {
+          DecisionTaskStartToCloseTimeout =
+              Duration.ofSeconds(attributes.getStartToCloseTimeoutSeconds());
+          break;
+        }
+      }
     }
 
     @Override
@@ -288,7 +295,7 @@ public final class WorkflowWorker implements SuspendableWorker {
               options.getMetricsScope().timer(MetricsType.WORKFLOW_GET_HISTORY_LATENCY).start();
           RetryOptions retryOptions =
               new RetryOptions.Builder()
-                  .setExpiration(RetryServiceOperationExpirationInterval)
+                  .setExpiration(RetryServiceOperationExpirationInterval())
                   .setInitialInterval(RetryServiceOperationInitialInterval)
                   .setMaximumInterval(RetryServiceOperationMaxInterval)
                   .build();
