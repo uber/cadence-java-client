@@ -35,7 +35,7 @@ public final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTa
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
   public WorkflowPollTask(
-          IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
+      IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
     Preconditions.checkNotNull(service, "service should not be null");
     Preconditions.checkNotNull(domain, "domain should not be null");
     Preconditions.checkNotNull(taskList, "taskList should not be null");

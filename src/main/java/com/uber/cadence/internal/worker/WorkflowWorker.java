@@ -39,13 +39,13 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public final class WorkflowWorker implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
+public final class WorkflowWorker
+    implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
@@ -74,7 +74,8 @@ public final class WorkflowWorker implements SuspendableWorker, Consumer<PollFor
     this.taskList = taskList;
     this.options = options;
     this.handler = handler;
-    pollTaskExecutor = new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
+    pollTaskExecutor =
+        new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
   }
 
   @Override

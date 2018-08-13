@@ -350,14 +350,23 @@ public final class Worker {
       stickyExecutionAttributes.setWorkerTaskList(tl);
 
       WorkerOptions options = new Builder().build();
+      SingleWorkerOptions wfOptions = Worker.toWorkflowOptions(options, domain, taskList);
+      PollerOptions pollerOptions = wfOptions.getPollerOptions();
+      if (pollerOptions.getPollThreadNamePrefix() == null) {
+        pollerOptions = new PollerOptions.Builder(pollerOptions).build();
+      }
       dispatcher = new PollDecisionTaskDispatcher();
       poller =
-              new Poller<>(
-                      "identity",
-                      new WorkflowPollTask(workflowService, domain, taskList, Worker.toWorkflowOptions(options, domain, taskList)),
-                      dispatcher,
-                      options.getWorkflowPollerOptions(),
-                      options.getMetricsScope());
+          new Poller<>(
+              "identity",
+              new WorkflowPollTask(
+                  workflowService,
+                  domain,
+                  taskList,
+                  Worker.toWorkflowOptions(options, domain, taskList)),
+              dispatcher,
+              pollerOptions,
+              options.getMetricsScope());
     }
 
     public Worker newWorker(String taskList) {
@@ -373,7 +382,8 @@ public final class Worker {
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker = new Worker(workflowService, domain, taskList, options, stickyExecutionAttributes);
+        Worker worker =
+            new Worker(workflowService, domain, taskList, options, stickyExecutionAttributes);
         workers.add(worker);
         dispatcher.Subscribe(taskList, worker.workflowWorker);
         return worker;

@@ -55,11 +55,11 @@ public final class Poller<T> implements SuspendableWorker {
       (t, e) -> log.error("Failure in thread " + t.getName(), e);
 
   public Poller(
-          String identity,
-          PollTask<T> pollTask,
-          Consumer<T> consumer,
-          PollerOptions pollerOptions,
-          Scope metricsScope) {
+      String identity,
+      PollTask<T> pollTask,
+      Consumer<T> consumer,
+      PollerOptions pollerOptions,
+      Scope metricsScope) {
     Objects.requireNonNull(identity, "identity cannot be null");
     Objects.requireNonNull(pollTask, "poll service should not be null");
     Objects.requireNonNull(consumer, "consumer should not be null");
