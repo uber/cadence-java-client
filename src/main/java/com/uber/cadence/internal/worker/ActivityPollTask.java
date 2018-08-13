@@ -25,10 +25,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Consumer;
-
 final class ActivityPollTask implements Poller.PollTask<ActivityWorker.MeasurableActivityTask> {
 
   private final IWorkflowService service;
