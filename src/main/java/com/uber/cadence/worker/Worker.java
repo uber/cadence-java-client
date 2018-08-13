@@ -21,14 +21,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.uber.cadence.StickyExecutionAttributes;
-import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.*;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
-import com.uber.cadence.internal.worker.SingleWorkerOptions;
+import com.uber.cadence.internal.worker.*;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.WorkerOptions.Builder;
@@ -104,7 +103,7 @@ public final class Worker {
                 this.stickyExecutionAttributes);
   }
 
-  private SingleWorkerOptions toActivityOptions(
+  private static SingleWorkerOptions toActivityOptions(
       WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
@@ -123,7 +122,7 @@ public final class Worker {
         .build();
   }
 
-  private SingleWorkerOptions toWorkflowOptions(
+  private static SingleWorkerOptions toWorkflowOptions(
       WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
@@ -319,6 +318,9 @@ public final class Worker {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
+    private final Poller<PollForDecisionTaskResponse> poller;
+    private final PollDecisionTaskDispatcher dispatcher;
+    private final StickyExecutionAttributes stickyExecutionAttributes;
     private State state = State.Initial;
 
     private final String statusErrorMessage =
@@ -339,6 +341,23 @@ public final class Worker {
 
       this.workflowService = workflowService;
       this.domain = domain;
+
+      String taskList = "StickyTaskList";
+      stickyExecutionAttributes = new StickyExecutionAttributes();
+      TaskList tl = new TaskList();
+      tl.setName(taskList);
+      tl.setKind(TaskListKind.STICKY);
+      stickyExecutionAttributes.setWorkerTaskList(tl);
+
+      WorkerOptions options = new Builder().build();
+      dispatcher = new PollDecisionTaskDispatcher();
+      poller =
+              new Poller<>(
+                      "identity",
+                      new WorkflowPollTask(workflowService, domain, taskList, Worker.toWorkflowOptions(options, domain, taskList)),
+                      dispatcher,
+                      options.getWorkflowPollerOptions(),
+                      options.getMetricsScope());
     }
 
     public Worker newWorker(String taskList) {
@@ -354,8 +373,9 @@ public final class Worker {
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker = new Worker(workflowService, domain, taskList, options, null);
+        Worker worker = new Worker(workflowService, domain, taskList, options, stickyExecutionAttributes);
         workers.add(worker);
+        dispatcher.Subscribe(taskList, worker.workflowWorker);
         return worker;
       }
     }
@@ -377,13 +397,15 @@ public final class Worker {
         for (Worker worker : workers) {
           worker.start();
         }
+
+        poller.start();
       }
     }
 
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
-
+        poller.shutdown();
         for (Worker worker : workers) {
           worker.shutdown(timeout);
         }

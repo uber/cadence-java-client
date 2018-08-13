@@ -38,12 +38,14 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-public final class WorkflowWorker implements SuspendableWorker {
+public final class WorkflowWorker implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
@@ -51,6 +53,7 @@ public final class WorkflowWorker implements SuspendableWorker {
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
   private Poller poller;
+  private final PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
   private final DecisionTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
@@ -71,6 +74,7 @@ public final class WorkflowWorker implements SuspendableWorker {
     this.taskList = taskList;
     this.options = options;
     this.handler = handler;
+    pollTaskExecutor = new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
   }
 
   @Override
@@ -96,7 +100,7 @@ public final class WorkflowWorker implements SuspendableWorker {
           new Poller<>(
               options.getIdentity(),
               new WorkflowPollTask(service, domain, taskList, options),
-              new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
+              pollTaskExecutor,
               pollerOptions,
               workerOptions.getMetricsScope());
       poller.start();
@@ -171,6 +175,11 @@ public final class WorkflowWorker implements SuspendableWorker {
     if (poller != null) {
       poller.resumePolling();
     }
+  }
+
+  @Override
+  public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
+    pollTaskExecutor.accept(pollForDecisionTaskResponse);
   }
 
   private class TaskHandlerImpl

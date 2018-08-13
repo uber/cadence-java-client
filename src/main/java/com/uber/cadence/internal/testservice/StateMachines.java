@@ -728,6 +728,7 @@ class StateMachines {
                     .getWorkflowExecutionHistory(ctx.getExecutionId(), getRequest)
                     .getHistory()
                     .getEvents();
+            // get it from pervious started event id.
           } catch (EntityNotExistsError entityNotExistsError) {
             throw new InternalServiceError(entityNotExistsError.toString());
           }

@@ -20,6 +20,7 @@ package com.uber.cadence.internal.sync;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
@@ -36,10 +37,11 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** Workflow worker that supports POJO workflow implementations. */
-public class SyncWorkflowWorker {
+public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse> {
 
   private final WorkflowWorker worker;
   private final POJOWorkflowImplementationFactory factory;
@@ -138,5 +140,10 @@ public class SyncWorkflowWorker {
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = worker.queryWorkflowExecution(execution, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
+  }
+
+  @Override
+  public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
+    worker.accept(pollForDecisionTaskResponse);
   }
 }
