@@ -18,22 +18,28 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public final class PollDecisionTaskDispatcher implements Consumer<PollForDecisionTaskResponse> {
 
+  private static final Logger log = LoggerFactory.getLogger(PollDecisionTaskDispatcher.class);
   private final Map<String, Consumer<PollForDecisionTaskResponse>> subscribers = new HashMap<>();
 
   @Override
   public void accept(PollForDecisionTaskResponse t) {
-    // String taskListName = t.get.getWorkflowExecution()..getWorkflowExecutionTaskList().name;
     synchronized (this) {
-      if (subscribers.containsKey(t.getWorkflowExecutionTaskList().name)) {
+      String taskListName = t.getWorkflowExecutionTaskList().name;
+      if (subscribers.containsKey(taskListName)) {
         subscribers.get(t.getWorkflowExecutionTaskList().name).accept(t);
       }
-      // what to do if we don't find the tasklist?
+      else {
+        log.warn(String.format("No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s", taskListName));
+      }
     }
   }
 

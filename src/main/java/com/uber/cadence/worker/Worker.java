@@ -35,11 +35,10 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.util.ImmutableMap;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -318,55 +317,71 @@ public final class Worker {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
-    private final Poller<PollForDecisionTaskResponse> poller;
-    private final PollDecisionTaskDispatcher dispatcher;
-    private final StickyExecutionAttributes stickyExecutionAttributes;
+    private final UUID Id = UUID.randomUUID();
+
+    private final boolean EnableStickyExecution;
+    private Poller<PollForDecisionTaskResponse> stickyPoller = null;
+    private PollDecisionTaskDispatcher dispatcher = null;
+    private StickyExecutionAttributes stickyExecutionAttributes = null;
+
     private State state = State.Initial;
 
     private final String statusErrorMessage =
         "attempted to %s while in %s state. Acceptable States: %s";
 
     public Factory(String domain) {
-      this(new WorkflowServiceTChannel(), domain);
+      this(new WorkflowServiceTChannel(), domain, null);
     }
 
     public Factory(String host, int port, String domain) {
-      this(new WorkflowServiceTChannel(host, port), domain);
+      this(new WorkflowServiceTChannel(host, port), domain, null);
+    }
+
+    public Factory(String domain, FactoryOptions options) {
+      this(new WorkflowServiceTChannel(), domain, options);
+    }
+
+    public Factory(String host, int port, String domain, FactoryOptions options) {
+      this(new WorkflowServiceTChannel(host, port), domain, options);
     }
 
     public Factory(IWorkflowService workflowService, String domain) {
+      this(workflowService, domain, null);
+    }
+
+    public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
       Objects.requireNonNull(workflowService, "workflowService should not be null");
       Preconditions.checkArgument(
-          !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
+              !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
 
       this.workflowService = workflowService;
       this.domain = domain;
 
-      String taskList = "StickyTaskList";
-      stickyExecutionAttributes = new StickyExecutionAttributes();
-      TaskList tl = new TaskList();
-      tl.setName(taskList);
-      tl.setKind(TaskListKind.STICKY);
-      stickyExecutionAttributes.setWorkerTaskList(tl);
+      factoryOptions = factoryOptions == null ? new FactoryOptions.Builder().Build():factoryOptions;
+      EnableStickyExecution = factoryOptions.EnableStickyExecution;
 
-      WorkerOptions options = new Builder().build();
-      SingleWorkerOptions wfOptions = Worker.toWorkflowOptions(options, domain, taskList);
-      PollerOptions pollerOptions = wfOptions.getPollerOptions();
-      if (pollerOptions.getPollThreadNamePrefix() == null) {
-        pollerOptions = new PollerOptions.Builder(pollerOptions).build();
+      if(!EnableStickyExecution){
+        return;
       }
+
+      stickyExecutionAttributes = new StickyExecutionAttributes();
+      stickyExecutionAttributes.setWorkerTaskList(CreateStickyTaskList());
+
+      SingleWorkerOptions options = getDefaultSingleWorkerOptions();
+      PollerOptions pollerOptions = getDefaultPollerOptions(options);
+
       dispatcher = new PollDecisionTaskDispatcher();
-      poller =
-          new Poller<>(
-              "identity",
-              new WorkflowPollTask(
-                  workflowService,
-                  domain,
-                  taskList,
-                  Worker.toWorkflowOptions(options, domain, taskList)),
-              dispatcher,
-              pollerOptions,
-              options.getMetricsScope());
+      stickyPoller =
+              new Poller<>(
+                      Id.toString(),
+                      new WorkflowPollTask(
+                              workflowService,
+                              domain,
+                              stickyExecutionAttributes.getWorkerTaskList().name,
+                              getDefaultSingleWorkerOptions()),
+                      dispatcher,
+                      pollerOptions,
+                      options.getMetricsScope());
     }
 
     public Worker newWorker(String taskList) {
@@ -385,7 +400,11 @@ public final class Worker {
         Worker worker =
             new Worker(workflowService, domain, taskList, options, stickyExecutionAttributes);
         workers.add(worker);
-        dispatcher.Subscribe(taskList, worker.workflowWorker);
+
+        if(EnableStickyExecution){
+          dispatcher.Subscribe(taskList, worker.workflowWorker);
+        }
+
         return worker;
       }
     }
@@ -408,18 +427,45 @@ public final class Worker {
           worker.start();
         }
 
-        poller.start();
+        stickyPoller.start();
       }
     }
 
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
-        poller.shutdown();
+        stickyPoller.shutdown();
         for (Worker worker : workers) {
           worker.shutdown(timeout);
         }
       }
+    }
+
+    private String getHostName(){
+      try{
+      return InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e){
+        return "UnknownHost";
+      }
+    }
+
+    private TaskList CreateStickyTaskList(){
+      TaskList tl = new TaskList();
+      tl.setName(String.format("%s:%s",getHostName(),Id));
+      tl.setKind(TaskListKind.STICKY);
+      return tl;
+    }
+
+    private SingleWorkerOptions getDefaultSingleWorkerOptions(){
+      return Worker.toWorkflowOptions(new Builder().build(), domain, stickyExecutionAttributes.getWorkerTaskList().name);
+    }
+
+    private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options){
+      PollerOptions pollerOptions = options.getPollerOptions();
+      if (pollerOptions.getPollThreadNamePrefix() == null) {
+        pollerOptions = new PollerOptions.Builder(pollerOptions).build();
+      }
+      return pollerOptions;
     }
 
     enum State {
@@ -427,5 +473,29 @@ public final class Worker {
       Started,
       Shutdown
     }
+  }
+
+  public static class FactoryOptions {
+
+    public static class Builder{
+      private boolean EnableStickyExecution;
+
+      public Builder setEnableStickyExecution(boolean enableStickyExecution) {
+        EnableStickyExecution = enableStickyExecution;
+        return this;
+      }
+
+      public FactoryOptions Build(){
+        return new FactoryOptions(EnableStickyExecution);
+      }
+    }
+
+    private final boolean EnableStickyExecution;
+
+    private FactoryOptions(boolean enableStickyExecution){
+      this.EnableStickyExecution = enableStickyExecution;
+    }
+
+
   }
 }

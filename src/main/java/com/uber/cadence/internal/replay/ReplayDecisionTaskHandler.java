@@ -97,7 +97,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   }
 
   private boolean isFullHistory(PollForDecisionTaskResponse decisionTask) {
-    return decisionTask.history.events.get(0).getEventId() == 0;
+    return decisionTask.history.events.get(0).getEventId() == 1;
   }
 
   private Result handleDecisionTaskImpl(DecisionTaskWithHistoryIterator decisionTaskIterator)

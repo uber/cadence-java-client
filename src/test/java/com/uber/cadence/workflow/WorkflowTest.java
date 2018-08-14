@@ -120,7 +120,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 5 : 20));
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : (skipDockerService ? 5 : 2000));
 
   @Rule
   public TestWatcher watchman =
@@ -150,6 +150,7 @@ public class WorkflowTest {
   private String taskList;
 
   private Worker worker;
+  private Worker.Factory workerFactory;
   private TestActivitiesImpl activitiesImpl;
   private WorkflowClient workflowClient;
   private WorkflowClient workflowClientWithOptions;
@@ -209,7 +210,7 @@ public class WorkflowTest {
     if (useExternalService) {
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
-      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      workerFactory = new Worker.Factory(service, DOMAIN);
       worker = workerFactory.newWorker(taskList, workerOptions);
       workflowClient = WorkflowClient.newInstance(DOMAIN);
       WorkflowClientOptions clientOptions =
@@ -261,7 +262,11 @@ public class WorkflowTest {
 
   private void startWorkerFor(Class<?>... workflowTypes) {
     worker.registerWorkflowImplementationTypes(workflowTypes);
-    testEnvironment.start();
+    if (useExternalService) {
+      workerFactory.start();
+    } else {
+      testEnvironment.start();
+    }
   }
 
   void registerDelayedCallback(Duration delay, Runnable r) {
@@ -657,9 +662,8 @@ public class WorkflowTest {
 
   @Test
   public void WorkflowsWithFailedPromisesCanBeCancelled() {
-    worker.registerWorkflowImplementationTypes(
-        TestCancellationForWorkflowsWithFailedPromises.class);
-    testEnvironment.start();
+    startWorkerFor(TestCancellationForWorkflowsWithFailedPromises.class);
+
     WorkflowStub client =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
