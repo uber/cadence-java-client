@@ -20,13 +20,7 @@ package com.uber.cadence.workflow;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
-import ch.qos.logback.core.Context;
-import ch.qos.logback.core.LogbackException;
-import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.read.ListAppender;
-import ch.qos.logback.core.spi.FilterReply;
-import ch.qos.logback.core.status.Status;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
@@ -34,9 +28,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+
 import static junit.framework.TestCase.*;
 
 public class PollDecisionTaskDispatcherTests {

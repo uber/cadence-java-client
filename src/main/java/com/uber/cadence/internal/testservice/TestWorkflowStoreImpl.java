@@ -88,7 +88,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
               "Attempt to add an event after a completion event: "
                   + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
         }
-        event.setEventId(history.size());
+        event.setEventId(history.size() + 1);
         event.setTimestamp(timeInNanos);
         history.add(event);
         completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);

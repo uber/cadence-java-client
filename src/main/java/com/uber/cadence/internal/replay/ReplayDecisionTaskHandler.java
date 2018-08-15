@@ -38,7 +38,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
   private final ReplayWorkflowFactory workflowFactory;
   private final String domain;
-  private LoadingCache<String, ReplayDecider> cache;
+  private ReplayDeciderCache cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
   private StickyExecutionAttributes stickyExecutionAttributes;
@@ -51,7 +51,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       StickyExecutionAttributes stickyExecutionAttributes) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
-    this.cache = cache;
+    this.cache = new ReplayDeciderCache(cache, r -> createDecider(r));
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
     this.stickyExecutionAttributes = stickyExecutionAttributes;
@@ -96,22 +96,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     }
   }
 
-  private boolean isFullHistory(PollForDecisionTaskResponse decisionTask) {
-    return decisionTask.history.events.get(0).getEventId() == 1;
-  }
 
   private Result handleDecisionTaskImpl(DecisionTaskWithHistoryIterator decisionTaskIterator)
       throws Throwable {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
 
-    String runId = decisionTask.getWorkflowExecution().getRunId();
-
-    if (isFullHistory(decisionTask)) {
-      cache.invalidate(runId);
-    }
-    ReplayDecider decider = cache.get(runId, () -> createDecider(decisionTask));
-
+    ReplayDecider decider = stickyExecutionAttributes == null ? createDecider(decisionTask) : cache.getOrCreate(decisionTask);
     try {
       if (decisionTask.isSetQuery()) {
         return processQuery(historyHelper, decider);
@@ -119,7 +110,9 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
         return processDecision(historyHelper, decider);
       }
     } catch (IllegalStateException e) {
-      cache.invalidate(runId);
+      if (stickyExecutionAttributes != null) {
+        cache.invalidate(decisionTask);
+      }
       throw e;
     }
   }
