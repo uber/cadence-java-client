@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.google.common.cache.LoadingCache;
 import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -46,12 +45,12 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   public ReplayDecisionTaskHandler(
       String domain,
       ReplayWorkflowFactory asyncWorkflowFactory,
-      LoadingCache<String, ReplayDecider> cache,
+      ReplayDeciderCache cache,
       SingleWorkerOptions options,
       StickyExecutionAttributes stickyExecutionAttributes) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
-    this.cache = new ReplayDeciderCache(cache, r -> createDecider(r));
+    this.cache = cache;
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
     this.stickyExecutionAttributes = stickyExecutionAttributes;
@@ -102,7 +101,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
 
-    ReplayDecider decider = stickyExecutionAttributes == null ? createDecider(decisionTask) : cache.getOrCreate(decisionTask);
+    ReplayDecider decider = stickyExecutionAttributes == null ? createDecider(decisionTask) : cache.getOrCreate(decisionTask, this::createDecider);
     try {
       if (decisionTask.isSetQuery()) {
         return processQuery(historyHelper, decider);

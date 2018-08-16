@@ -40,7 +40,7 @@ public class ReplayDeciderCacheTests {
     public void whenHistoryIsFullNewReplayDeciderIsReturnedAndCached_InitiallyEmpty() throws Exception{
         //Arrange
         LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache, this::createFakeDecider);
+        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
         PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithInitialHistory();
 
         String runId = decisionTask.getWorkflowExecution().getRunId();
@@ -48,7 +48,7 @@ public class ReplayDeciderCacheTests {
         AssertCacheIsEmpty(cache, runId);
 
         //Act
-        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask);
+        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
 
         //Assert
         assertEquals(decider,cache.getUnchecked(runId));
@@ -58,15 +58,15 @@ public class ReplayDeciderCacheTests {
     public void whenHistoryIsFullNewReplayDeciderIsReturned_InitiallyCached() throws Exception {
         //Arrange
         LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache, this::createFakeDecider);
+        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
         PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithInitialHistory();
 
         String runId = decisionTask.getWorkflowExecution().getRunId();
-        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask);
+        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
         assertEquals(decider,cache.getUnchecked(runId));
 
         //Act
-        ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask);
+        ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
 
         //Assert
         assertEquals(decider2,cache.getUnchecked(runId));
@@ -77,20 +77,20 @@ public class ReplayDeciderCacheTests {
   public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
     // Arrange
     LoadingCache<String, ReplayDecider> cache = buildCache();
-    ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache, this::createFakeDecider);
+    ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
     TestWorkflowService service = new TestWorkflowService();
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory(
             "domain", "taskList", "workflowType", service);
 
     String runId = decisionTask.getWorkflowExecution().getRunId();
-    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask);
+    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
     assertEquals(decider, cache.getUnchecked(runId));
 
     // Act
     decisionTask =
         HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(decisionTask, service);
-    ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask);
+    ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
 
     // Assert
     assertEquals(decider2, cache.getUnchecked(runId));
@@ -101,13 +101,13 @@ public class ReplayDeciderCacheTests {
     public void whenHistoryIsPartialAndCacheIsEmptyThenCacheEvictedExceptionIsThrown() throws Exception {
         //Arrange
         LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache, this::createFakeDecider);
+        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
 
         //Act
         PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithPartialHistory();
 
         try{
-            replayDeciderCache.getOrCreate(decisionTask);
+            replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
         } catch (ReplayDeciderCache.EvictedException ex){
             return;
         }

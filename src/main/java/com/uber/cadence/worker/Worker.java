@@ -21,10 +21,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
 import com.uber.cadence.*;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.MetricsTag;
+import com.uber.cadence.internal.replay.ReplayDecider;
+import com.uber.cadence.internal.replay.ReplayDeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
 import com.uber.cadence.internal.worker.*;
@@ -54,6 +58,7 @@ public final class Worker {
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
   private final AtomicBoolean closed = new AtomicBoolean();
+  private ReplayDeciderCache cache;
   private final StickyExecutionAttributes stickyExecutionAttributes;
 
   /**
@@ -71,7 +76,9 @@ public final class Worker {
       String domain,
       String taskList,
       WorkerOptions options,
+      ReplayDeciderCache cache,
       StickyExecutionAttributes stickyExecutionAttributes) {
+    this.cache = cache;
     this.stickyExecutionAttributes = stickyExecutionAttributes;
     Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
@@ -99,6 +106,7 @@ public final class Worker {
                 this.options.getInterceptorFactory(),
                 workflowOptions,
                 this.options.getMaxWorkflowThreads(),
+                this.cache,
                 this.stickyExecutionAttributes);
   }
 
@@ -319,10 +327,11 @@ public final class Worker {
     private final String domain;
     private final UUID Id = UUID.randomUUID();
 
-    private final boolean EnableStickyExecution;
+    private FactoryOptions factoryOptions =  null;
     private Poller<PollForDecisionTaskResponse> stickyPoller = null;
     private PollDecisionTaskDispatcher dispatcher = null;
     private StickyExecutionAttributes stickyExecutionAttributes = null;
+    private ReplayDeciderCache cache;
 
     private State state = State.Initial;
 
@@ -357,16 +366,26 @@ public final class Worker {
       this.workflowService = workflowService;
       this.domain = domain;
 
-      factoryOptions = factoryOptions == null ? new FactoryOptions.Builder().Build():factoryOptions;
-      EnableStickyExecution = factoryOptions.EnableStickyExecution;
+      this.factoryOptions = factoryOptions == null ? new FactoryOptions.Builder().Build():factoryOptions;
 
-      if(!EnableStickyExecution){
+      if(!this.factoryOptions.EnableStickyExecution){
         return;
       }
+
+      this.cache = new ReplayDeciderCache(
+              CacheBuilder.newBuilder()
+                      .maximumSize(factoryOptions.CacheMaximumSize)
+                      .build(new CacheLoader<String, ReplayDecider>() {
+                        @Override
+                        public ReplayDecider load(String key) {
+                          return null;
+                        }
+                      }));
 
       stickyExecutionAttributes = new StickyExecutionAttributes();
       stickyExecutionAttributes.setWorkerTaskList(CreateStickyTaskList());
 
+      //TODO: expose configuring these through Factory options
       SingleWorkerOptions options = getDefaultSingleWorkerOptions();
       PollerOptions pollerOptions = getDefaultPollerOptions(options);
 
@@ -398,10 +417,10 @@ public final class Worker {
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
         Worker worker =
-            new Worker(workflowService, domain, taskList, options, stickyExecutionAttributes);
+            new Worker(workflowService, domain, taskList, options, cache, stickyExecutionAttributes);
         workers.add(worker);
 
-        if(EnableStickyExecution){
+        if(this.factoryOptions.EnableStickyExecution){
           dispatcher.Subscribe(taskList, worker.workflowWorker);
         }
 
@@ -427,18 +446,26 @@ public final class Worker {
           worker.start();
         }
 
+        if(stickyPoller != null){
         stickyPoller.start();
+        }
       }
     }
 
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
+        if(stickyPoller != null){
         stickyPoller.shutdown();
+        }
         for (Worker worker : workers) {
           worker.shutdown(timeout);
         }
       }
+    }
+
+    ReplayDeciderCache GetCache(){
+      return this.cache;
     }
 
     private String getHostName(){
@@ -479,21 +506,30 @@ public final class Worker {
 
     public static class Builder{
       private boolean EnableStickyExecution;
+      private int CacheMaximumSize = 1000;
 
       public Builder setEnableStickyExecution(boolean enableStickyExecution) {
         EnableStickyExecution = enableStickyExecution;
         return this;
       }
 
-      public FactoryOptions Build(){
-        return new FactoryOptions(EnableStickyExecution);
+      public Builder setCacheMaximumSize(int cacheMaximumSize) {
+        this.CacheMaximumSize = cacheMaximumSize;
+        return this;
       }
+
+      public FactoryOptions Build(){
+        return new FactoryOptions(EnableStickyExecution, CacheMaximumSize);
+      }
+
     }
 
     private final boolean EnableStickyExecution;
+    private int CacheMaximumSize;
 
-    private FactoryOptions(boolean enableStickyExecution){
+    private FactoryOptions(boolean enableStickyExecution, int cacheMaximumSize){
       this.EnableStickyExecution = enableStickyExecution;
+      this.CacheMaximumSize = cacheMaximumSize;
     }
 
 

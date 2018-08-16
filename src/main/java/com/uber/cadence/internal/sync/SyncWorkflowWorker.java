@@ -25,6 +25,7 @@ import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.ReplayDecider;
+import com.uber.cadence.internal.replay.ReplayDeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -47,6 +48,7 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
   private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+  private ReplayDeciderCache cache;
   private final StickyExecutionAttributes stickyExecutionAttributes;
 
   public SyncWorkflowWorker(
@@ -56,7 +58,9 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       SingleWorkerOptions options,
       int workflowThreadPoolSize,
+      ReplayDeciderCache cache,
       StickyExecutionAttributes stickyExecutionAttributes) {
+    this.cache = cache;
     this.stickyExecutionAttributes = stickyExecutionAttributes;
     ThreadPoolExecutor workflowThreadPool =
         new ThreadPoolExecutor(
@@ -69,17 +73,6 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
             workflowThreadPool,
             interceptorFactory,
             options.getMetricsScope());
-
-    LoadingCache<String, ReplayDecider> cache =
-        CacheBuilder.newBuilder()
-            .maximumSize(1000)
-            .build(
-                new CacheLoader<String, ReplayDecider>() {
-                  @Override
-                  public ReplayDecider load(String key) {
-                    return null;
-                  }
-                });
 
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
