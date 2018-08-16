@@ -369,14 +369,14 @@ public final class Worker {
       this.factoryOptions =
           factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
 
-      if (!this.factoryOptions.EnableStickyExecution) {
+      if (!this.factoryOptions.enableStickyExecution) {
         return;
       }
 
       this.cache =
           new ReplayDeciderCache(
               CacheBuilder.newBuilder()
-                  .maximumSize(factoryOptions.CacheMaximumSize)
+                  .maximumSize(factoryOptions.cacheMaximumSize)
                   .build(
                       new CacheLoader<String, ReplayDecider>() {
                         @Override
@@ -424,7 +424,7 @@ public final class Worker {
                 workflowService, domain, taskList, options, cache, stickyExecutionAttributes);
         workers.add(worker);
 
-        if (this.factoryOptions.EnableStickyExecution) {
+        if (this.factoryOptions.enableStickyExecution) {
           dispatcher.Subscribe(taskList, worker.workflowWorker);
         }
 
@@ -510,30 +510,30 @@ public final class Worker {
   public static class FactoryOptions {
 
     public static class Builder {
-      private boolean EnableStickyExecution;
-      private int CacheMaximumSize = 1000;
+      private boolean enableStickyExecution;
+      private int cacheMaximumSize = 1000;
 
       public Builder setEnableStickyExecution(boolean enableStickyExecution) {
-        EnableStickyExecution = enableStickyExecution;
+        this.enableStickyExecution = enableStickyExecution;
         return this;
       }
 
       public Builder setCacheMaximumSize(int cacheMaximumSize) {
-        this.CacheMaximumSize = cacheMaximumSize;
+        this.cacheMaximumSize = cacheMaximumSize;
         return this;
       }
 
       public FactoryOptions Build() {
-        return new FactoryOptions(EnableStickyExecution, CacheMaximumSize);
+        return new FactoryOptions(enableStickyExecution, cacheMaximumSize);
       }
     }
 
-    private final boolean EnableStickyExecution;
-    private int CacheMaximumSize;
+    private final boolean enableStickyExecution;
+    private int cacheMaximumSize;
 
     private FactoryOptions(boolean enableStickyExecution, int cacheMaximumSize) {
-      this.EnableStickyExecution = enableStickyExecution;
-      this.CacheMaximumSize = cacheMaximumSize;
+      this.enableStickyExecution = enableStickyExecution;
+      this.cacheMaximumSize = cacheMaximumSize;
     }
   }
 }
