@@ -18,12 +18,11 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class PollDecisionTaskDispatcher implements Consumer<PollForDecisionTaskResponse> {
 
@@ -36,9 +35,11 @@ public final class PollDecisionTaskDispatcher implements Consumer<PollForDecisio
       String taskListName = t.getWorkflowExecutionTaskList().name;
       if (subscribers.containsKey(taskListName)) {
         subscribers.get(t.getWorkflowExecutionTaskList().name).accept(t);
-      }
-      else {
-        log.warn(String.format("No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s", taskListName));
+      } else {
+        log.warn(
+            String.format(
+                "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
+                taskListName));
       }
     }
   }

@@ -327,7 +327,7 @@ public final class Worker {
     private final String domain;
     private final UUID Id = UUID.randomUUID();
 
-    private FactoryOptions factoryOptions =  null;
+    private FactoryOptions factoryOptions = null;
     private Poller<PollForDecisionTaskResponse> stickyPoller = null;
     private PollDecisionTaskDispatcher dispatcher = null;
     private StickyExecutionAttributes stickyExecutionAttributes = null;
@@ -361,21 +361,24 @@ public final class Worker {
     public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
       Objects.requireNonNull(workflowService, "workflowService should not be null");
       Preconditions.checkArgument(
-              !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
+          !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
 
       this.workflowService = workflowService;
       this.domain = domain;
 
-      this.factoryOptions = factoryOptions == null ? new FactoryOptions.Builder().Build():factoryOptions;
+      this.factoryOptions =
+          factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
 
-      if(!this.factoryOptions.EnableStickyExecution){
+      if (!this.factoryOptions.EnableStickyExecution) {
         return;
       }
 
-      this.cache = new ReplayDeciderCache(
+      this.cache =
+          new ReplayDeciderCache(
               CacheBuilder.newBuilder()
-                      .maximumSize(factoryOptions.CacheMaximumSize)
-                      .build(new CacheLoader<String, ReplayDecider>() {
+                  .maximumSize(factoryOptions.CacheMaximumSize)
+                  .build(
+                      new CacheLoader<String, ReplayDecider>() {
                         @Override
                         public ReplayDecider load(String key) {
                           return null;
@@ -385,22 +388,22 @@ public final class Worker {
       stickyExecutionAttributes = new StickyExecutionAttributes();
       stickyExecutionAttributes.setWorkerTaskList(CreateStickyTaskList());
 
-      //TODO: expose configuring these through Factory options
+      // TODO: expose configuring these through Factory options
       SingleWorkerOptions options = getDefaultSingleWorkerOptions();
       PollerOptions pollerOptions = getDefaultPollerOptions(options);
 
       dispatcher = new PollDecisionTaskDispatcher();
       stickyPoller =
-              new Poller<>(
-                      Id.toString(),
-                      new WorkflowPollTask(
-                              workflowService,
-                              domain,
-                              stickyExecutionAttributes.getWorkerTaskList().name,
-                              getDefaultSingleWorkerOptions()),
-                      dispatcher,
-                      pollerOptions,
-                      options.getMetricsScope());
+          new Poller<>(
+              Id.toString(),
+              new WorkflowPollTask(
+                  workflowService,
+                  domain,
+                  stickyExecutionAttributes.getWorkerTaskList().name,
+                  getDefaultSingleWorkerOptions()),
+              dispatcher,
+              pollerOptions,
+              options.getMetricsScope());
     }
 
     public Worker newWorker(String taskList) {
@@ -417,10 +420,11 @@ public final class Worker {
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
         Worker worker =
-            new Worker(workflowService, domain, taskList, options, cache, stickyExecutionAttributes);
+            new Worker(
+                workflowService, domain, taskList, options, cache, stickyExecutionAttributes);
         workers.add(worker);
 
-        if(this.factoryOptions.EnableStickyExecution){
+        if (this.factoryOptions.EnableStickyExecution) {
           dispatcher.Subscribe(taskList, worker.workflowWorker);
         }
 
@@ -446,8 +450,8 @@ public final class Worker {
           worker.start();
         }
 
-        if(stickyPoller != null){
-        stickyPoller.start();
+        if (stickyPoller != null) {
+          stickyPoller.start();
         }
       }
     }
@@ -455,8 +459,8 @@ public final class Worker {
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
-        if(stickyPoller != null){
-        stickyPoller.shutdown();
+        if (stickyPoller != null) {
+          stickyPoller.shutdown();
         }
         for (Worker worker : workers) {
           worker.shutdown(timeout);
@@ -464,30 +468,31 @@ public final class Worker {
       }
     }
 
-    ReplayDeciderCache GetCache(){
+    ReplayDeciderCache GetCache() {
       return this.cache;
     }
 
-    private String getHostName(){
-      try{
-      return InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e){
+    private String getHostName() {
+      try {
+        return InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
         return "UnknownHost";
       }
     }
 
-    private TaskList CreateStickyTaskList(){
+    private TaskList CreateStickyTaskList() {
       TaskList tl = new TaskList();
-      tl.setName(String.format("%s:%s",getHostName(),Id));
+      tl.setName(String.format("%s:%s", getHostName(), Id));
       tl.setKind(TaskListKind.STICKY);
       return tl;
     }
 
-    private SingleWorkerOptions getDefaultSingleWorkerOptions(){
-      return Worker.toWorkflowOptions(new Builder().build(), domain, stickyExecutionAttributes.getWorkerTaskList().name);
+    private SingleWorkerOptions getDefaultSingleWorkerOptions() {
+      return Worker.toWorkflowOptions(
+          new Builder().build(), domain, stickyExecutionAttributes.getWorkerTaskList().name);
     }
 
-    private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options){
+    private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options) {
       PollerOptions pollerOptions = options.getPollerOptions();
       if (pollerOptions.getPollThreadNamePrefix() == null) {
         pollerOptions = new PollerOptions.Builder(pollerOptions).build();
@@ -504,7 +509,7 @@ public final class Worker {
 
   public static class FactoryOptions {
 
-    public static class Builder{
+    public static class Builder {
       private boolean EnableStickyExecution;
       private int CacheMaximumSize = 1000;
 
@@ -518,20 +523,17 @@ public final class Worker {
         return this;
       }
 
-      public FactoryOptions Build(){
+      public FactoryOptions Build() {
         return new FactoryOptions(EnableStickyExecution, CacheMaximumSize);
       }
-
     }
 
     private final boolean EnableStickyExecution;
     private int CacheMaximumSize;
 
-    private FactoryOptions(boolean enableStickyExecution, int cacheMaximumSize){
+    private FactoryOptions(boolean enableStickyExecution, int cacheMaximumSize) {
       this.EnableStickyExecution = enableStickyExecution;
       this.CacheMaximumSize = cacheMaximumSize;
     }
-
-
   }
 }

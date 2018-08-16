@@ -17,14 +17,10 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.replay.ReplayDecider;
 import com.uber.cadence.internal.replay.ReplayDeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;

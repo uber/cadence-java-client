@@ -186,8 +186,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
-    long curr =workflowClock.currentTimeMillis();
-    if (replayCurrentTimeMilliseconds < curr) {
+    if (replayCurrentTimeMilliseconds < workflowClock.currentTimeMillis()) {
       throw new IllegalArgumentException("workflow clock moved back");
     }
     workflowClock.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);

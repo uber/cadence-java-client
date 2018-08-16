@@ -69,4 +69,3 @@ public final class LambdaUtils {
   /** Prohibits instantiation. */
   private LambdaUtils() {}
 }
-

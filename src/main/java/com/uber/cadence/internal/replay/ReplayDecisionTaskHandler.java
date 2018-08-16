@@ -95,13 +95,15 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     }
   }
 
-
   private Result handleDecisionTaskImpl(DecisionTaskWithHistoryIterator decisionTaskIterator)
       throws Throwable {
     HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
 
-    ReplayDecider decider = stickyExecutionAttributes == null ? createDecider(decisionTask) : cache.getOrCreate(decisionTask, this::createDecider);
+    ReplayDecider decider =
+        stickyExecutionAttributes == null
+            ? createDecider(decisionTask)
+            : cache.getOrCreate(decisionTask, this::createDecider);
     try {
       if (decisionTask.isSetQuery()) {
         return processQuery(historyHelper, decider);

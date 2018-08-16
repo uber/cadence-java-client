@@ -17,6 +17,10 @@
 
 package com.uber.cadence.workflow;
 
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotSame;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -28,50 +32,47 @@ import com.uber.cadence.worker.WorkerOptions;
 import junit.framework.TestCase;
 import org.junit.Test;
 
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 public class ReplayDeciderCacheTests {
 
-    @Test
-    public void whenHistoryIsFullNewReplayDeciderIsReturnedAndCached_InitiallyEmpty() throws Exception{
-        //Arrange
-        LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
-        PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithInitialHistory();
+  @Test
+  public void whenHistoryIsFullNewReplayDeciderIsReturnedAndCached_InitiallyEmpty()
+      throws Exception {
+    // Arrange
+    LoadingCache<String, ReplayDecider> cache = buildCache();
+    ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
+    PollForDecisionTaskResponse decisionTask =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
 
-        String runId = decisionTask.getWorkflowExecution().getRunId();
+    String runId = decisionTask.getWorkflowExecution().getRunId();
 
-        AssertCacheIsEmpty(cache, runId);
+    AssertCacheIsEmpty(cache, runId);
 
-        //Act
-        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
+    // Act
+    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
-        //Assert
-        assertEquals(decider,cache.getUnchecked(runId));
-    }
+    // Assert
+    assertEquals(decider, cache.getUnchecked(runId));
+  }
 
-    @Test
-    public void whenHistoryIsFullNewReplayDeciderIsReturned_InitiallyCached() throws Exception {
-        //Arrange
-        LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
-        PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithInitialHistory();
+  @Test
+  public void whenHistoryIsFullNewReplayDeciderIsReturned_InitiallyCached() throws Exception {
+    // Arrange
+    LoadingCache<String, ReplayDecider> cache = buildCache();
+    ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
+    PollForDecisionTaskResponse decisionTask =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
 
-        String runId = decisionTask.getWorkflowExecution().getRunId();
-        ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
-        assertEquals(decider,cache.getUnchecked(runId));
+    String runId = decisionTask.getWorkflowExecution().getRunId();
+    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
+    assertEquals(decider, cache.getUnchecked(runId));
 
-        //Act
-        ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
+    // Act
+    ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
-        //Assert
-        assertEquals(decider2,cache.getUnchecked(runId));
-        assertNotSame(decider2,decider);
-    }
+    // Assert
+    assertEquals(decider2, cache.getUnchecked(runId));
+    assertNotSame(decider2, decider);
+  }
 
   @Test
   public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
@@ -84,105 +85,105 @@ public class ReplayDeciderCacheTests {
             "domain", "taskList", "workflowType", service);
 
     String runId = decisionTask.getWorkflowExecution().getRunId();
-    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
+    ReplayDecider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
     assertEquals(decider, cache.getUnchecked(runId));
 
     // Act
     decisionTask =
         HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(decisionTask, service);
-    ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
+    ReplayDecider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
     assertEquals(decider2, cache.getUnchecked(runId));
     assertEquals(decider2, decider);
+  }
+
+  @Test
+  public void whenHistoryIsPartialAndCacheIsEmptyThenCacheEvictedExceptionIsThrown()
+      throws Exception {
+    // Arrange
+    LoadingCache<String, ReplayDecider> cache = buildCache();
+    ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
+
+    // Act
+    PollForDecisionTaskResponse decisionTask =
+        HistoryUtils.generateDecisionTaskWithPartialHistory();
+
+    try {
+      replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
+    } catch (ReplayDeciderCache.EvictedException ex) {
+      return;
     }
 
-    @Test
-    public void whenHistoryIsPartialAndCacheIsEmptyThenCacheEvictedExceptionIsThrown() throws Exception {
-        //Arrange
-        LoadingCache<String, ReplayDecider> cache = buildCache();
-        ReplayDeciderCache replayDeciderCache = new ReplayDeciderCache(cache);
+    TestCase.fail(
+        "Expected replayDeciderCache.getOrCreate to throw ReplayDeciderCache.EvictedException but no exception was thrown");
+  }
 
-        //Act
-        PollForDecisionTaskResponse decisionTask = HistoryUtils.generateDecisionTaskWithPartialHistory();
-
-        try{
-            replayDeciderCache.getOrCreate(decisionTask,this::createFakeDecider);
-        } catch (ReplayDeciderCache.EvictedException ex){
-            return;
-        }
-
-        TestCase.fail("Expected replayDeciderCache.getOrCreate to throw ReplayDeciderCache.EvictedException but no exception was thrown");
+  private void AssertCacheIsEmpty(LoadingCache<String, ReplayDecider> cache, String runId) {
+    CacheLoader.InvalidCacheLoadException ex = null;
+    try {
+      cache.getUnchecked(runId);
+    } catch (CacheLoader.InvalidCacheLoadException e) {
+      ex = e;
     }
+    assertNotNull(ex);
+  }
 
-    private void AssertCacheIsEmpty(LoadingCache<String, ReplayDecider> cache, String runId) {
-        CacheLoader.InvalidCacheLoadException ex = null;
-        try{cache.getUnchecked(runId);}
-        catch (CacheLoader.InvalidCacheLoadException e){
-            ex = e;
-        }
-        assertNotNull(ex);
-    }
-
-    private LoadingCache<String, ReplayDecider> buildCache() {
-        return CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .build(
-                        new CacheLoader<String, ReplayDecider>() {
-                            @Override
-                            public ReplayDecider load(String key) {
-                                return null;
-                            }
-                        });
-    }
-
-    private ReplayDecider createFakeDecider(PollForDecisionTaskResponse response) {
-        return new ReplayDecider("domain", new ReplayWorkflow() {
-            @Override
-            public void start(HistoryEvent event, DecisionContext context) throws Exception {
-
-            }
-
-            @Override
-            public void handleSignal(String signalName, byte[] input, long eventId) {
-
-            }
-
-            @Override
-            public boolean eventLoop() throws Throwable {
-                return false;
-            }
-
-            @Override
-            public byte[] getOutput() {
-                return new byte[0];
-            }
-
-            @Override
-            public void cancel(String reason) {
-
-            }
-
-            @Override
-            public void close() {
-
-            }
-
-            @Override
-            public long getNextWakeUpTime() {
-                return 0;
-            }
-
-            @Override
-            public byte[] query(WorkflowQuery query) {
-                return new byte[0];
-            }
-
-            @Override
-            public WorkflowExecutionException mapUnexpectedException(Exception failure) {
+  private LoadingCache<String, ReplayDecider> buildCache() {
+    return CacheBuilder.newBuilder()
+        .maximumSize(1000)
+        .build(
+            new CacheLoader<String, ReplayDecider>() {
+              @Override
+              public ReplayDecider load(String key) {
                 return null;
-            }
-        }, new DecisionsHelper(response), new WorkerOptions.Builder().build().getMetricsScope(), false);
-    }
+              }
+            });
+  }
 
+  private ReplayDecider createFakeDecider(PollForDecisionTaskResponse response) {
+    return new ReplayDecider(
+        "domain",
+        new ReplayWorkflow() {
+          @Override
+          public void start(HistoryEvent event, DecisionContext context) throws Exception {}
+
+          @Override
+          public void handleSignal(String signalName, byte[] input, long eventId) {}
+
+          @Override
+          public boolean eventLoop() throws Throwable {
+            return false;
+          }
+
+          @Override
+          public byte[] getOutput() {
+            return new byte[0];
+          }
+
+          @Override
+          public void cancel(String reason) {}
+
+          @Override
+          public void close() {}
+
+          @Override
+          public long getNextWakeUpTime() {
+            return 0;
+          }
+
+          @Override
+          public byte[] query(WorkflowQuery query) {
+            return new byte[0];
+          }
+
+          @Override
+          public WorkflowExecutionException mapUnexpectedException(Exception failure) {
+            return null;
+          }
+        },
+        new DecisionsHelper(response),
+        new WorkerOptions.Builder().build().getMetricsScope(),
+        false);
+  }
 }

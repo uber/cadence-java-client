@@ -17,27 +17,27 @@
 
 package com.uber.cadence.workflow;
 
+import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
+import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+
 import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
-import com.uber.cadence.serviceclient.IWorkflowService;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.UUID;
-
-import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
-import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
 public class HistoryUtils {
   private HistoryUtils() {}
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithInitialHistory()
       throws Exception {
-    return generateDecisionTaskWithInitialHistory("domain", "taskList", "workflowType", new TestWorkflowService());
+    return generateDecisionTaskWithInitialHistory(
+        "domain", "taskList", "workflowType", new TestWorkflowService());
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithInitialHistory(
-      String domain, String tasklistName, String workflowType, TestWorkflowService service) throws Exception {
+      String domain, String tasklistName, String workflowType, TestWorkflowService service)
+      throws Exception {
     startWorkflowExecution(domain, tasklistName, workflowType, service);
     return pollForDecisionTask(domain, createNormalTaskList(tasklistName), service);
   }
@@ -52,22 +52,28 @@ public class HistoryUtils {
 
     TestWorkflowService service = new TestWorkflowService();
 
-    PollForDecisionTaskResponse response = generateDecisionTaskWithInitialHistory(domain, tasklistName, workflowType, service);
+    PollForDecisionTaskResponse response =
+        generateDecisionTaskWithInitialHistory(domain, tasklistName, workflowType, service);
     return generateDecisionTaskWithPartialHistoryFromExistingTask(response, domain, service);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
-          PollForDecisionTaskResponse response, TestWorkflowService service) throws Exception {
+      PollForDecisionTaskResponse response, TestWorkflowService service) throws Exception {
 
     return generateDecisionTaskWithPartialHistoryFromExistingTask(response, "domain", service);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
-          PollForDecisionTaskResponse response, String domain, TestWorkflowService service) throws Exception {
+      PollForDecisionTaskResponse response, String domain, TestWorkflowService service)
+      throws Exception {
 
-    respondDecisionTaskCompletedWithSticky(response.taskToken, response.getWorkflowExecutionTaskList().name, service);
+    respondDecisionTaskCompletedWithSticky(
+        response.taskToken, response.getWorkflowExecutionTaskList().name, service);
     signalWorkflow(response.workflowExecution, domain, service);
-    return pollForDecisionTask(domain, createStickyTaskList(ToStickyName(response.getWorkflowExecutionTaskList().name)), service);
+    return pollForDecisionTask(
+        domain,
+        createStickyTaskList(ToStickyName(response.getWorkflowExecutionTaskList().name)),
+        service);
   }
 
   private static void startWorkflowExecution(

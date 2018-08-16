@@ -184,7 +184,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
     // Push tasks to the queues out of locks
     DecisionTask decisionTask = ctx.getDecisionTask();
-    //decisionTask.getTask().setHistory()
+    // decisionTask.getTask().setHistory()
     if (decisionTask != null) {
       StickyExecutionAttributes attributes =
           ctx.getWorkflowMutableState().getStickyExecutionAttributes();

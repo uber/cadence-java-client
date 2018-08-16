@@ -17,6 +17,8 @@
 
 package com.uber.cadence.workflow;
 
+import static junit.framework.TestCase.*;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -24,117 +26,118 @@ import ch.qos.logback.core.read.ListAppender;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
-import static junit.framework.TestCase.*;
-
 public class PollDecisionTaskDispatcherTests {
 
-    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-    ch.qos.logback.classic.Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
+  LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+  ch.qos.logback.classic.Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
 
-    @Test
-    public void pollDecisionTasksAreDispatchedBasedOnTaskListName(){
+  @Test
+  public void pollDecisionTasksAreDispatchedBasedOnTaskListName() {
 
-        //Arrange
-        AtomicBoolean handled = new AtomicBoolean(false);
-        Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
+    // Arrange
+    AtomicBoolean handled = new AtomicBoolean(false);
+    Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
 
-        PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-        dispatcher.Subscribe("tasklist1", handler);
+    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
+    dispatcher.Subscribe("tasklist1", handler);
 
+    // Act
+    PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
+    dispatcher.accept(response);
 
-        //Act
-        PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
-        dispatcher.accept(response);
+    // Assert
+    assertTrue(handled.get());
+  }
 
-        //Assert
-        assertTrue(handled.get());
-    }
+  @Test
+  public void pollDecisionTasksAreDispatchedToTheCorrectHandler() {
 
-    @Test
-    public void pollDecisionTasksAreDispatchedToTheCorrectHandler(){
+    // Arrange
+    AtomicBoolean handled = new AtomicBoolean(false);
+    AtomicBoolean handled2 = new AtomicBoolean(false);
 
-        //Arrange
-        AtomicBoolean handled = new AtomicBoolean(false);
-        AtomicBoolean handled2 = new AtomicBoolean(false);
+    Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
+    Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
 
-        Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
-        Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
+    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
+    dispatcher.Subscribe("tasklist1", handler);
+    dispatcher.Subscribe("tasklist2", handler2);
 
-        PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-        dispatcher.Subscribe("tasklist1", handler);
-        dispatcher.Subscribe("tasklist2", handler2);
+    // Act
+    PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
+    dispatcher.accept(response);
 
-        //Act
-        PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
-        dispatcher.accept(response);
+    // Assert
+    assertTrue(handled.get());
+    assertFalse(handled2.get());
+  }
 
-        //Assert
-        assertTrue(handled.get());
-        assertFalse(handled2.get());
-    }
+  @Test
+  public void handlersGetOverwrittenWhenRegisteredForTheSameTaskList() {
 
-    @Test
-    public void handlersGetOverwrittenWhenRegisteredForTheSameTaskList(){
+    // Arrange
+    AtomicBoolean handled = new AtomicBoolean(false);
+    AtomicBoolean handled2 = new AtomicBoolean(false);
 
-        //Arrange
-        AtomicBoolean handled = new AtomicBoolean(false);
-        AtomicBoolean handled2 = new AtomicBoolean(false);
+    Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
+    Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
 
-        Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
-        Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
+    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
+    dispatcher.Subscribe("tasklist1", handler);
+    dispatcher.Subscribe("tasklist1", handler2);
 
-        PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-        dispatcher.Subscribe("tasklist1", handler);
-        dispatcher.Subscribe("tasklist1", handler2);
+    // Act
+    PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
+    dispatcher.accept(response);
 
-        //Act
-        PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
-        dispatcher.accept(response);
+    // Assert
+    assertTrue(handled2.get());
+    assertFalse(handled.get());
+  }
 
-        //Assert
-        assertTrue(handled2.get());
-        assertFalse(handled.get());
-    }
+  @Test
+  public void aWarningIsLoggedWhenNoHandlerIsRegisteredForTheTaskList() {
 
-    @Test
-    public void aWarningIsLoggedWhenNoHandlerIsRegisteredForTheTaskList(){
+    // Arrange
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.setContext(context);
+    appender.start();
+    logger.addAppender(appender);
 
-        //Arrange
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.setContext(context);
-        appender.start();
-        logger.addAppender(appender);
+    AtomicBoolean handled = new AtomicBoolean(false);
+    Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
 
-        AtomicBoolean handled = new AtomicBoolean(false);
-        Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
+    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
+    dispatcher.Subscribe("tasklist1", handler);
 
-        PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-        dispatcher.Subscribe("tasklist1", handler);
+    // Act
+    PollForDecisionTaskResponse response =
+        CreatePollForDecisionTaskResponse("I Don't Exist TaskList");
+    dispatcher.accept(response);
 
-        //Act
-        PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("I Don't Exist TaskList");
-        dispatcher.accept(response);
+    // Assert
+    assertFalse(handled.get());
+    assertEquals(1, appender.list.size());
+    ILoggingEvent event = appender.list.get(0);
+    assertEquals(Level.WARN, event.getLevel());
+    assertEquals(
+        String.format(
+            "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
+            "I Don't Exist TaskList"),
+        event.getFormattedMessage());
+  }
 
-        //Assert
-        assertFalse(handled.get());
-        assertEquals(1,appender.list.size());
-        ILoggingEvent event = appender.list.get(0);
-        assertEquals(Level.WARN, event.getLevel());
-        assertEquals(String.format("No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s", "I Don't Exist TaskList"),event.getFormattedMessage());
-    }
-
-    private PollForDecisionTaskResponse CreatePollForDecisionTaskResponse(String taskListName) {
-        PollForDecisionTaskResponse response = new PollForDecisionTaskResponse();
-        TaskList tl = new TaskList();
-        tl.setName(taskListName);
-        response.setWorkflowExecutionTaskList(tl);
-        return response;
-    }
+  private PollForDecisionTaskResponse CreatePollForDecisionTaskResponse(String taskListName) {
+    PollForDecisionTaskResponse response = new PollForDecisionTaskResponse();
+    TaskList tl = new TaskList();
+    tl.setName(taskListName);
+    response.setWorkflowExecutionTaskList(tl);
+    return response;
+  }
 }

@@ -17,6 +17,6 @@
 
 package com.uber.cadence.internal.common;
 
-public interface ThrowableFunc1<T, R, E extends Throwable>  {
+public interface ThrowableFunc1<T, R, E extends Throwable> {
   R apply(T t) throws E;
 }

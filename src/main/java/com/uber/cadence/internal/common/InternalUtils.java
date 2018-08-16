@@ -66,14 +66,14 @@ public final class InternalUtils {
     return result;
   }
 
-  public static TaskList createStickyTaskList(String taskListName){
+  public static TaskList createStickyTaskList(String taskListName) {
     TaskList tl = new TaskList();
     tl.setName(taskListName);
     tl.setKind(TaskListKind.STICKY);
     return tl;
   }
 
-  public static TaskList createNormalTaskList(String taskListName){
+  public static TaskList createNormalTaskList(String taskListName) {
     TaskList tl = new TaskList();
     tl.setName(taskListName);
     tl.setKind(TaskListKind.NORMAL);
