@@ -68,6 +68,7 @@ import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
@@ -137,6 +138,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private long lastNonFailedDecisionStartEventId;
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
+  public StickyExecutionAttributes stickyExecutionAttributes = null;
 
   /** @param parentChildInitiatedEventId id of the child initiated event in the parent history */
   TestWorkflowMutableStateImpl(
@@ -161,25 +163,45 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void update(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(false, updater, stackTraceElements[2].getMethodName());
+    update(false, updater, stackTraceElements[2].getMethodName(), null);
+  }
+
+  private void update(UpdateProcedure updater, StickyExecutionAttributes attributes)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
+    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+    update(false, updater, stackTraceElements[2].getMethodName(), attributes);
   }
 
   private void completeDecisionUpdate(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(true, updater, stackTraceElements[2].getMethodName());
+    update(true, updater, stackTraceElements[2].getMethodName(), null);
   }
 
-  private void update(boolean completeDecisionUpdate, UpdateProcedure updater, String caller)
+  private void completeDecisionUpdate(UpdateProcedure updater, StickyExecutionAttributes attributes)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
+    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+    update(true, updater, stackTraceElements[2].getMethodName(), attributes);
+  }
+
+  private void update(
+      boolean completeDecisionUpdate,
+      UpdateProcedure updater,
+      String caller,
+      StickyExecutionAttributes attributes)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     String callerInfo = "Decision Update from " + caller;
     lock.lock();
     LockHandle lockHandle = selfAdvancingTimer.lockTimeSkipping(callerInfo);
+
     try {
       checkCompleted();
       boolean concurrentDecision =
           !completeDecisionUpdate
               && (decision != null && decision.getState() == StateMachines.State.STARTED);
+      if (attributes != null) {
+        stickyExecutionAttributes = attributes;
+      }
       RequestContext ctx = new RequestContext(clock, this, nextEventId);
       updater.apply(ctx);
       if (concurrentDecision && workflow.getState() != State.TIMED_OUT) {
@@ -232,6 +254,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
+  public StickyExecutionAttributes getStickyExecutionAttributes() {
+    return stickyExecutionAttributes;
+  }
+
+  @Override
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
@@ -254,7 +281,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     List<Decision> decisions = request.getDecisions();
     completeDecisionUpdate(
         ctx -> {
-          if (ctx.getInitialEventId() != historySize) {
+          if (ctx.getInitialEventId() != historySize + 1) {
             throw new BadRequestError(
                 "Expired decision: expectedHistorySize="
                     + historySize
@@ -275,6 +302,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               ctx.add(deferredCtx);
             }
             this.concurrentToDecision.clear();
+
+            // Reset sticky execution attributes on failure
+            stickyExecutionAttributes = null;
             scheduleDecision(ctx);
             return;
           }
@@ -299,7 +329,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           }
           this.concurrentToDecision.clear();
           ctx.unlockTimer();
-        });
+        },
+        request.getStickyAttributes());
   }
 
   private boolean hasCompleteDecision(List<Decision> decisions) {
@@ -385,7 +416,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   private void processCancelTimer(
-      RequestContext ctx, CancelTimerDecisionAttributes d, long decisionTaskCompletedId)
+          RequestContext ctx, CancelTimerDecisionAttributes d, long decisionTaskCompletedId)
       throws InternalServiceError, BadRequestError {
     String timerId = d.getTimerId();
     StateMachine<TimerData> timer = timers.get(timerId);
@@ -566,6 +597,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     completeDecisionUpdate(
         ctx -> {
           decision.action(Action.FAIL, ctx, request, 0);
+          stickyExecutionAttributes = null;
           scheduleDecision(ctx);
         });
   }

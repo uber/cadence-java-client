@@ -65,7 +65,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-class DecisionsHelper {
+public class DecisionsHelper {
 
   //  private static final Logger log = LoggerFactory.getLogger(DecisionsHelper.class);
 
@@ -105,7 +105,7 @@ class DecisionsHelper {
 
   private byte[] workfowContextFromLastDecisionCompletion;
 
-  DecisionsHelper(PollForDecisionTaskResponse task) {
+  public DecisionsHelper(PollForDecisionTaskResponse task) {
     this.task = task;
   }
 

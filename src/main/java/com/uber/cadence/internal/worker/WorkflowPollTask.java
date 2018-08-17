@@ -26,7 +26,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskResponse> {
+public final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskResponse> {
 
   private final SingleWorkerOptions options;
   private final IWorkflowService service;
@@ -34,7 +34,7 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
   private final String taskList;
   private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
-  WorkflowPollTask(
+  public WorkflowPollTask(
       IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
     Preconditions.checkNotNull(service, "service should not be null");
     Preconditions.checkNotNull(domain, "domain should not be null");

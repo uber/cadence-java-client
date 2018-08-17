@@ -21,7 +21,6 @@ import com.google.common.collect.PeekingIterator;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import java.util.ArrayList;
@@ -244,7 +243,7 @@ class HistoryHelper {
   }
 
   private final DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator;
-  private final DecisionEventsIterator iterator;
+  private DecisionEventsIterator iterator;
 
   HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks) {
     this.decisionTaskWithHistoryIterator = decisionTasks;
@@ -257,10 +256,6 @@ class HistoryHelper {
 
   public PollForDecisionTaskResponse getDecisionTask() {
     return decisionTaskWithHistoryIterator.getDecisionTask();
-  }
-
-  public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
-    return decisionTaskWithHistoryIterator.getStartedEvent();
   }
 
   @Override

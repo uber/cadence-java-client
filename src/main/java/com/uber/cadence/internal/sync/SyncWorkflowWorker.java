@@ -17,8 +17,10 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.replay.ReplayDeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -31,15 +33,18 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** Workflow worker that supports POJO workflow implementations. */
-public class SyncWorkflowWorker {
+public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse> {
 
   private final WorkflowWorker worker;
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
   private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+  private final ReplayDeciderCache cache;
+  private final String stickyTaskListName;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -47,7 +52,12 @@ public class SyncWorkflowWorker {
       String taskList,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       SingleWorkerOptions options,
-      int workflowThreadPoolSize) {
+      int workflowThreadPoolSize,
+      ReplayDeciderCache cache,
+      String stickyTaskListName) {
+    this.cache = cache;
+    this.stickyTaskListName = stickyTaskListName;
+
     ThreadPoolExecutor workflowThreadPool =
         new ThreadPoolExecutor(
             0, workflowThreadPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
@@ -59,7 +69,10 @@ public class SyncWorkflowWorker {
             workflowThreadPool,
             interceptorFactory,
             options.getMetricsScope());
-    DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, options);
+
+    DecisionTaskHandler taskHandler =
+        new ReplayDecisionTaskHandler(
+            domain, factory, this.cache, options, this.stickyTaskListName);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }
@@ -116,5 +129,10 @@ public class SyncWorkflowWorker {
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = worker.queryWorkflowExecution(execution, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
+  }
+
+  @Override
+  public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
+    worker.accept(pollForDecisionTaskResponse);
   }
 }

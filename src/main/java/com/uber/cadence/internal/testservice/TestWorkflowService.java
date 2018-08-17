@@ -266,6 +266,7 @@ public final class TestWorkflowService implements IWorkflowService {
     TestWorkflowMutableState mutableState = getMutableState(executionId);
     try {
       mutableState.startDecisionTask(task, pollRequest);
+      task.setWorkflowExecutionTaskList(mutableState.getStartRequest().taskList);
       return task;
     } catch (EntityNotExistsError e) {
       if (log.isDebugEnabled()) {
@@ -273,6 +274,7 @@ public final class TestWorkflowService implements IWorkflowService {
       }
       // skip the task
     }
+    task.setWorkflowExecutionTaskList(mutableState.getStartRequest().taskList);
     return task;
   }
 
