@@ -58,8 +58,8 @@ public final class Worker {
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
   private final AtomicBoolean closed = new AtomicBoolean();
-  private ReplayDeciderCache cache;
-  private final StickyExecutionAttributes stickyExecutionAttributes;
+  private final ReplayDeciderCache cache;
+  private final String stickyTaskListName;
 
   /**
    * Creates worker that connects to an instance of the Cadence Service.
@@ -69,7 +69,7 @@ public final class Worker {
    * @param taskList task list name worker uses to poll. It uses this name for both decision and
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
-   * @param stickyExecutionAttributes
+   * @param stickyTaskListName
    */
   private Worker(
       IWorkflowService service,
@@ -77,9 +77,9 @@ public final class Worker {
       String taskList,
       WorkerOptions options,
       ReplayDeciderCache cache,
-      StickyExecutionAttributes stickyExecutionAttributes) {
+      String stickyTaskListName) {
     this.cache = cache;
-    this.stickyExecutionAttributes = stickyExecutionAttributes;
+    this.stickyTaskListName = stickyTaskListName;
     Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
@@ -107,7 +107,7 @@ public final class Worker {
                 workflowOptions,
                 this.options.getMaxWorkflowThreads(),
                 this.cache,
-                this.stickyExecutionAttributes);
+                this.stickyTaskListName);
   }
 
   private static SingleWorkerOptions toActivityOptions(
@@ -321,7 +321,6 @@ public final class Worker {
   }
 
   public static final class Factory {
-
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
@@ -330,7 +329,6 @@ public final class Worker {
     private FactoryOptions factoryOptions = null;
     private Poller<PollForDecisionTaskResponse> stickyPoller = null;
     private PollDecisionTaskDispatcher dispatcher = null;
-    private StickyExecutionAttributes stickyExecutionAttributes = null;
     private ReplayDeciderCache cache;
 
     private State state = State.Initial;
@@ -377,6 +375,7 @@ public final class Worker {
           new ReplayDeciderCache(
               CacheBuilder.newBuilder()
                   .maximumSize(factoryOptions.cacheMaximumSize)
+                  .removalListener(removal -> ((ReplayDecider) removal.getValue()).close())
                   .build(
                       new CacheLoader<String, ReplayDecider>() {
                         @Override
@@ -384,9 +383,6 @@ public final class Worker {
                           return null;
                         }
                       }));
-
-      stickyExecutionAttributes = new StickyExecutionAttributes();
-      stickyExecutionAttributes.setWorkerTaskList(CreateStickyTaskList());
 
       // TODO: expose configuring these through Factory options
       SingleWorkerOptions options = getDefaultSingleWorkerOptions();
@@ -399,7 +395,7 @@ public final class Worker {
               new WorkflowPollTask(
                   workflowService,
                   domain,
-                  stickyExecutionAttributes.getWorkerTaskList().name,
+                  getStickyTaskListName(),
                   getDefaultSingleWorkerOptions()),
               dispatcher,
               pollerOptions,
@@ -420,8 +416,7 @@ public final class Worker {
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
         Worker worker =
-            new Worker(
-                workflowService, domain, taskList, options, cache, stickyExecutionAttributes);
+            new Worker(workflowService, domain, taskList, options, cache, getStickyTaskListName());
         workers.add(worker);
 
         if (this.factoryOptions.enableStickyExecution) {
@@ -468,7 +463,8 @@ public final class Worker {
       }
     }
 
-    ReplayDeciderCache GetCache() {
+    @VisibleForTesting
+    ReplayDeciderCache getCache() {
       return this.cache;
     }
 
@@ -480,16 +476,14 @@ public final class Worker {
       }
     }
 
-    private TaskList CreateStickyTaskList() {
-      TaskList tl = new TaskList();
-      tl.setName(String.format("%s:%s", getHostName(), Id));
-      tl.setKind(TaskListKind.STICKY);
-      return tl;
+    private String getStickyTaskListName() {
+      return this.factoryOptions.enableStickyExecution
+          ? String.format("%s:%s", getHostName(), Id)
+          : null;
     }
 
     private SingleWorkerOptions getDefaultSingleWorkerOptions() {
-      return Worker.toWorkflowOptions(
-          new Builder().build(), domain, stickyExecutionAttributes.getWorkerTaskList().name);
+      return Worker.toWorkflowOptions(new Builder().build(), domain, getStickyTaskListName());
     }
 
     private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options) {

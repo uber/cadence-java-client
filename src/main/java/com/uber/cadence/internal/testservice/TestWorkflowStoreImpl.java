@@ -62,7 +62,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     private void checkNextEventId(long nextEventId) {
-      if (nextEventId != history.size()) {
+      if (nextEventId != history.size() + 1L && (nextEventId != 0 && history.size() != 0)) {
         throw new IllegalStateException(
             "NextEventId=" + nextEventId + ", historySize=" + history.size() + " for " + id);
       }
@@ -75,7 +75,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
               "Attempt to add an event after a completion event: "
                   + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
         }
-        event.setEventId(history.size() + 1);
+        event.setEventId(history.size() + 1L);
         event.setTimestamp(timeInNanos);
         history.add(event);
         completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);
@@ -84,7 +84,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     long getNextEventIdLocked() {
-      return history.size();
+      return history.size() + 1L;
     }
 
     List<HistoryEvent> getEventsLocked() {

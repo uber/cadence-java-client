@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.ReplayDeciderCache;
@@ -44,8 +43,8 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
   private final AtomicInteger workflowThreadCounter = new AtomicInteger();
-  private ReplayDeciderCache cache;
-  private final StickyExecutionAttributes stickyExecutionAttributes;
+  private final ReplayDeciderCache cache;
+  private final String stickyTaskListName;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -55,9 +54,10 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
       SingleWorkerOptions options,
       int workflowThreadPoolSize,
       ReplayDeciderCache cache,
-      StickyExecutionAttributes stickyExecutionAttributes) {
+      String stickyTaskListName) {
     this.cache = cache;
-    this.stickyExecutionAttributes = stickyExecutionAttributes;
+    this.stickyTaskListName = stickyTaskListName;
+
     ThreadPoolExecutor workflowThreadPool =
         new ThreadPoolExecutor(
             0, workflowThreadPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
@@ -72,7 +72,7 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
 
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
-            domain, factory, cache, options, this.stickyExecutionAttributes);
+            domain, factory, this.cache, options, this.stickyTaskListName);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }

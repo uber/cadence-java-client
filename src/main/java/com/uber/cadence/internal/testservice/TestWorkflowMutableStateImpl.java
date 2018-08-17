@@ -228,7 +228,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     List<Decision> decisions = request.getDecisions();
     completeDecisionUpdate(
         ctx -> {
-          if (ctx.getInitialEventId() != historySize) {
+          if (ctx.getInitialEventId() != historySize + 1) {
             throw new BadRequestError(
                 "Expired decision: expectedHistorySize="
                     + historySize
@@ -249,6 +249,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               ctx.add(deferredCtx);
             }
             this.concurrentToDecision.clear();
+
+            // Reset sticky execution attributes on failure
+            stickyExecutionAttributes = null;
             scheduleDecision(ctx);
             return;
           }
@@ -541,6 +544,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     completeDecisionUpdate(
         ctx -> {
           decision.action(Action.FAIL, ctx, request, 0);
+          stickyExecutionAttributes = null;
           scheduleDecision(ctx);
         });
   }

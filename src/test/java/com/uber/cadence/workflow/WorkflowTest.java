@@ -261,11 +261,23 @@ public class WorkflowTest {
   }
 
   private void startWorkerFor(Class<?>... workflowTypes) {
+    startWorkerFor(false, workflowTypes);
+  }
+
+  private void startWorkerFor(boolean enableStickyExecution, Class<?>... workflowTypes) {
     worker.registerWorkflowImplementationTypes(workflowTypes);
     if (useExternalService) {
       workerFactory.start();
     } else {
       testEnvironment.start();
+    }
+  }
+
+  private Worker.Factory getWorkerFactory() {
+    if (useExternalService) {
+      return workerFactory;
+    } else {
+      return testEnvironment.getWorkerFactory();
     }
   }
 
@@ -1871,7 +1883,6 @@ public class WorkflowTest {
           // Test getTrace through replay by a local worker.
           Worker queryWorker;
           if (useExternalService) {
-            Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
             queryWorker = workerFactory.newWorker(taskList);
           } else {
             queryWorker = testEnvironment.newWorker(taskList);

@@ -15,9 +15,8 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.workflow;
+package com.uber.cadence.internal.replay;
 
-import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotSame;
 
@@ -25,7 +24,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.uber.cadence.*;
-import com.uber.cadence.internal.replay.*;
+import com.uber.cadence.HistoryUtils;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.worker.WorkerOptions;
@@ -126,7 +125,7 @@ public class ReplayDeciderCacheTests {
     } catch (CacheLoader.InvalidCacheLoadException e) {
       ex = e;
     }
-    assertNotNull(ex);
+    TestCase.assertNotNull(ex);
   }
 
   private LoadingCache<String, ReplayDecider> buildCache() {

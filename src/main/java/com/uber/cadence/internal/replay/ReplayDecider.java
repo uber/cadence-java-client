@@ -359,7 +359,8 @@ public class ReplayDecider {
     try {
       DecisionEventsIterator iterator = historyHelper.getIterator();
       if ((decisionsHelper.getNextDecisionEventId()
-              != historyHelper.getPreviousStartedEventId() + 1)
+              != historyHelper.getPreviousStartedEventId()
+                  + 2) // getNextDecisionEventId() skips over completed.
           && (decisionsHelper.getNextDecisionEventId() != 0
               && historyHelper.getPreviousStartedEventId() != 0)) {
         throw new IllegalStateException(
@@ -400,8 +401,14 @@ public class ReplayDecider {
       if (query != null) {
         query.apply();
       }
-      workflow.close();
+      if (completed) {
+        close();
+      }
     }
+  }
+
+  public void close() {
+    workflow.close();
   }
 
   DecisionsHelper getDecisionsHelper() {

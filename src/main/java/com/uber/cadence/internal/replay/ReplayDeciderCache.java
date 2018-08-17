@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.internal.replay;
 
 import com.google.common.cache.CacheLoader;
@@ -7,7 +24,6 @@ import com.uber.cadence.internal.common.ThrowableFunc1;
 import java.util.Objects;
 
 public final class ReplayDeciderCache {
-
   private LoadingCache<String, ReplayDecider> cache;
 
   public ReplayDeciderCache(LoadingCache<String, ReplayDecider> cache) {
@@ -47,8 +63,20 @@ public final class ReplayDeciderCache {
     }
   }
 
+  public long size() {
+    synchronized (this) {
+      return cache.size();
+    }
+  }
+
   private boolean isFullHistory(PollForDecisionTaskResponse decisionTask) {
     return decisionTask.history.events.get(0).getEventId() == 1;
+  }
+
+  public void invalidateAll() {
+    synchronized (this) {
+      cache.invalidateAll();
+    }
   }
 
   public static class EvictedException extends Exception {

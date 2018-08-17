@@ -15,12 +15,11 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.workflow;
+package com.uber.cadence;
 
 import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
-import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -38,6 +37,7 @@ public class HistoryUtils {
   public static PollForDecisionTaskResponse generateDecisionTaskWithInitialHistory(
       String domain, String tasklistName, String workflowType, TestWorkflowService service)
       throws Exception {
+    service.lockTimeSkipping("test");
     startWorkflowExecution(domain, tasklistName, workflowType, service);
     return pollForDecisionTask(domain, createNormalTaskList(tasklistName), service);
   }
@@ -51,6 +51,7 @@ public class HistoryUtils {
       String domain, String tasklistName, String workflowType) throws Exception {
 
     TestWorkflowService service = new TestWorkflowService();
+    service.lockTimeSkipping("HistoryUtils");
 
     PollForDecisionTaskResponse response =
         generateDecisionTaskWithInitialHistory(domain, tasklistName, workflowType, service);
@@ -66,7 +67,7 @@ public class HistoryUtils {
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
       PollForDecisionTaskResponse response, String domain, TestWorkflowService service)
       throws Exception {
-
+    service.lockTimeSkipping("HistoryUtils");
     respondDecisionTaskCompletedWithSticky(
         response.taskToken, response.getWorkflowExecutionTaskList().name, service);
     signalWorkflow(response.workflowExecution, domain, service);
@@ -83,8 +84,8 @@ public class HistoryUtils {
     request.domain = domain;
     request.workflowId = UUID.randomUUID().toString();
     request.taskList = createNormalTaskList(tasklistName);
-    request.setExecutionStartToCloseTimeoutSeconds(1000);
-    request.setTaskStartToCloseTimeoutSeconds(1000);
+    request.setExecutionStartToCloseTimeoutSeconds(10000);
+    request.setTaskStartToCloseTimeoutSeconds(10000);
     WorkflowType type = new WorkflowType();
     type.name = workflowType;
     request.workflowType = type;
@@ -96,6 +97,7 @@ public class HistoryUtils {
     RespondDecisionTaskCompletedRequest request = new RespondDecisionTaskCompletedRequest();
     StickyExecutionAttributes attributes = new StickyExecutionAttributes();
     attributes.setWorkerTaskList(createStickyTaskList(ToStickyName(tasklistName)));
+    attributes.setScheduleToStartTimeoutSeconds(10000);
     request.setStickyAttributes(attributes);
     request.setTaskToken(taskToken);
     request.setDecisions(new ArrayList<>());
@@ -111,7 +113,7 @@ public class HistoryUtils {
       throws Exception {
     SignalWorkflowExecutionRequest signalRequest = new SignalWorkflowExecutionRequest();
     signalRequest.setDomain(domain);
-    signalRequest.setSignalName("my signal");
+    signalRequest.setSignalName("my-signal");
     signalRequest.setWorkflowExecution(workflowExecution);
     service.SignalWorkflowExecution(signalRequest);
   }

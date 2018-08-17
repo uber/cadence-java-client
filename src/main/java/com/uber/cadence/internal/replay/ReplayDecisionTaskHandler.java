@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.replay;
 
+import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+
 import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -37,23 +39,23 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
   private final ReplayWorkflowFactory workflowFactory;
   private final String domain;
-  private ReplayDeciderCache cache;
+  private final ReplayDeciderCache cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
-  private StickyExecutionAttributes stickyExecutionAttributes;
+  private String stickyTaskListName;
 
   public ReplayDecisionTaskHandler(
       String domain,
       ReplayWorkflowFactory asyncWorkflowFactory,
       ReplayDeciderCache cache,
       SingleWorkerOptions options,
-      StickyExecutionAttributes stickyExecutionAttributes) {
+      String stickyTaskListName) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
-    this.stickyExecutionAttributes = stickyExecutionAttributes;
+    this.stickyTaskListName = stickyTaskListName;
   }
 
   @Override
@@ -101,17 +103,18 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
 
     ReplayDecider decider =
-        stickyExecutionAttributes == null
+        stickyTaskListName == null
             ? createDecider(decisionTask)
             : cache.getOrCreate(decisionTask, this::createDecider);
     try {
       if (decisionTask.isSetQuery()) {
         return processQuery(historyHelper, decider);
       } else {
+        log.info("processing decision");
         return processDecision(historyHelper, decider);
       }
     } catch (IllegalStateException e) {
-      if (stickyExecutionAttributes != null) {
+      if (stickyTaskListName != null) {
         cache.invalidate(decisionTask);
       }
       throw e;
@@ -182,8 +185,18 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     completedRequest.setTaskToken(decisionTask.getTaskToken());
     completedRequest.setDecisions(decisions);
     completedRequest.setExecutionContext(context);
-    if (stickyExecutionAttributes != null) {
-      completedRequest.setStickyAttributes(stickyExecutionAttributes);
+    if (stickyTaskListName != null) {
+      StickyExecutionAttributes attributes = new StickyExecutionAttributes();
+      attributes.setWorkerTaskList(createStickyTaskList(stickyTaskListName));
+      attributes.setScheduleToStartTimeoutSeconds(
+          decisionsHelper
+              .getTask()
+              .history
+              .getEvents()
+              .get(0)
+              .workflowExecutionStartedEventAttributes
+              .taskStartToCloseTimeoutSeconds);
+      completedRequest.setStickyAttributes(attributes);
     }
     return new Result(completedRequest, null, null, null);
   }
