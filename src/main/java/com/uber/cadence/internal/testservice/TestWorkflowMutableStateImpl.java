@@ -18,59 +18,7 @@
 package com.uber.cadence.internal.testservice;
 
 import com.google.common.base.Throwables;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.CancelTimerDecisionAttributes;
-import com.uber.cadence.CancelTimerFailedEventAttributes;
-import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
-import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.Decision;
-import com.uber.cadence.DecisionTaskFailedCause;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.EventType;
-import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.MarkerRecordedEventAttributes;
-import com.uber.cadence.PollForActivityTaskRequest;
-import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.PollForDecisionTaskRequest;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryFailedError;
-import com.uber.cadence.QueryTaskCompletedType;
-import com.uber.cadence.QueryWorkflowRequest;
-import com.uber.cadence.QueryWorkflowResponse;
-import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
-import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
-import com.uber.cadence.RecordMarkerDecisionAttributes;
-import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
-import com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes;
-import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
-import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
-import com.uber.cadence.RespondActivityTaskCanceledRequest;
-import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
-import com.uber.cadence.RespondActivityTaskCompletedRequest;
-import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
-import com.uber.cadence.RespondActivityTaskFailedRequest;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
-import com.uber.cadence.SignalWorkflowExecutionRequest;
-import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.StartTimerDecisionAttributes;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.TimeoutType;
-import com.uber.cadence.WorkflowExecutionCloseStatus;
-import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
@@ -137,6 +85,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private long lastNonFailedDecisionStartEventId;
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
+  public StickyExecutionAttributes stickyExecutionAttributes = null;
 
   /** @param parentChildInitiatedEventId id of the child initiated event in the parent history */
   TestWorkflowMutableStateImpl(
@@ -161,16 +110,26 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void update(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(false, updater, stackTraceElements[2].getMethodName());
+    update(true, updater, stackTraceElements[2].getMethodName(), null);
   }
 
   private void completeDecisionUpdate(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(true, updater, stackTraceElements[2].getMethodName());
+    update(true, updater, stackTraceElements[2].getMethodName(), null);
   }
 
-  private void update(boolean completeDecisionUpdate, UpdateProcedure updater, String caller)
+  private void completeDecisionUpdate(UpdateProcedure updater, StickyExecutionAttributes attributes)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
+    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+    update(true, updater, stackTraceElements[2].getMethodName(), attributes);
+  }
+
+  private void update(
+      boolean completeDecisionUpdate,
+      UpdateProcedure updater,
+      String caller,
+      StickyExecutionAttributes attributes)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     String callerInfo = "Decision Update from " + caller;
     lock.lock();
@@ -180,6 +139,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       boolean concurrentDecision =
           !completeDecisionUpdate
               && (decision != null && decision.getState() == StateMachines.State.STARTED);
+      if (attributes != null) {
+        stickyExecutionAttributes = attributes;
+      }
       RequestContext ctx = new RequestContext(clock, this, nextEventId);
       updater.apply(ctx);
       if (concurrentDecision && workflow.getState() != State.TIMED_OUT) {
@@ -254,7 +216,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     List<Decision> decisions = request.getDecisions();
     completeDecisionUpdate(
         ctx -> {
-          if (ctx.getInitialEventId() != historySize) {
+          if (ctx.getInitialEventId() != historySize + 1) {
             throw new BadRequestError(
                 "Expired decision: expectedHistorySize="
                     + historySize
@@ -275,6 +237,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               ctx.add(deferredCtx);
             }
             this.concurrentToDecision.clear();
+            stickyExecutionAttributes = null;
             scheduleDecision(ctx);
             return;
           }
@@ -299,7 +262,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           }
           this.concurrentToDecision.clear();
           ctx.unlockTimer();
-        });
+        },
+        request.getStickyAttributes());
   }
 
   private boolean hasCompleteDecision(List<Decision> decisions) {
@@ -566,6 +530,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     completeDecisionUpdate(
         ctx -> {
           decision.action(Action.FAIL, ctx, request, 0);
+          stickyExecutionAttributes = null;
           scheduleDecision(ctx);
         });
   }
@@ -580,6 +545,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               return;
             }
             decision.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
+            stickyExecutionAttributes = null;
             scheduleDecision(ctx);
           });
     } catch (EntityNotExistsError e) {
@@ -1204,6 +1170,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       QueryFailedError error = new QueryFailedError().setMessage(completeRequest.getErrorMessage());
       result.completeExceptionally(error);
     }
+  }
+
+  @Override
+  public StickyExecutionAttributes getStickyExecutionAttributes() {
+    return null;
   }
 
   private void addExecutionSignaledEvent(

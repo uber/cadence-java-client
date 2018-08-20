@@ -17,20 +17,7 @@
 
 package com.uber.cadence.internal.testservice;
 
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.HistoryEventFilterType;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.PollForActivityTaskRequest;
-import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.PollForDecisionTaskRequest;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionInfo;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.RequestContext.Timer;
 import java.time.Duration;
@@ -75,7 +62,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     private void checkNextEventId(long nextEventId) {
-      if (nextEventId != history.size()) {
+      if (nextEventId != getNextEventIdLocked() && (nextEventId != 0 && history.size() != 0)) {
         throw new IllegalStateException(
             "NextEventId=" + nextEventId + ", historySize=" + history.size() + " for " + id);
       }
@@ -97,7 +84,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     long getNextEventIdLocked() {
-      return history.size();
+      return history.size() + 1L;
     }
 
     List<HistoryEvent> getEventsLocked() {
@@ -198,8 +185,16 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     // Push tasks to the queues out of locks
     DecisionTask decisionTask = ctx.getDecisionTask();
     if (decisionTask != null) {
-      BlockingQueue<PollForDecisionTaskResponse> decisionsQueue =
-          getDecisionTaskListQueue(decisionTask.getTaskListId());
+      StickyExecutionAttributes attributes =
+          ctx.getWorkflowMutableState().getStickyExecutionAttributes();
+      TaskListId id =
+          new TaskListId(
+              decisionTask.getTaskListId().getDomain(),
+              attributes == null
+                  ? decisionTask.getTaskListId().getTaskListName()
+                  : attributes.getWorkerTaskList().getName());
+
+      BlockingQueue<PollForDecisionTaskResponse> decisionsQueue = getDecisionTaskListQueue(id);
       decisionsQueue.add(decisionTask.getTask());
     }
 
