@@ -728,6 +728,9 @@ class StateMachines {
                     .getWorkflowExecutionHistory(ctx.getExecutionId(), getRequest)
                     .getHistory()
                     .getEvents();
+            if (ctx.getWorkflowMutableState().getStickyExecutionAttributes() != null) {
+              events = events.subList((int) data.previousStartedEventId, events.size());
+            }
           } catch (EntityNotExistsError entityNotExistsError) {
             throw new InternalServiceError(entityNotExistsError.toString());
           }
