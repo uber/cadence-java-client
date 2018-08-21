@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * Implements decider that relies on replay of a worklfow code. An instance of this class is created
  * per decision.
  */
-class ReplayDecider {
+public class ReplayDecider {
 
   private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
@@ -69,7 +69,7 @@ class ReplayDecider {
 
   private long wfStartTime = -1;
 
-  ReplayDecider(
+  public ReplayDecider(
       String domain,
       ReplayWorkflow workflow,
       DecisionsHelper decisionsHelper,
@@ -358,8 +358,21 @@ class ReplayDecider {
   private void decideImpl(HistoryHelper historyHelper, Functions.Proc query) throws Throwable {
     try {
       DecisionEventsIterator iterator = historyHelper.getIterator();
+      if ((decisionsHelper.getNextDecisionEventId()
+              != historyHelper.getPreviousStartedEventId()
+                  + 2) // getNextDecisionEventId() skips over completed.
+          && (decisionsHelper.getNextDecisionEventId() != 0
+              && historyHelper.getPreviousStartedEventId() != 0)) {
+        throw new IllegalStateException(
+            String.format(
+                "ReplayDecider expects next event id at %d. History's previous started event id is %d",
+                decisionsHelper.getNextDecisionEventId(),
+                historyHelper.getPreviousStartedEventId()));
+      }
+
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
+
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
@@ -388,8 +401,14 @@ class ReplayDecider {
       if (query != null) {
         query.apply();
       }
-      workflow.close();
+      if (completed) {
+        close();
+      }
     }
+  }
+
+  public void close() {
+    workflow.close();
   }
 
   DecisionsHelper getDecisionsHelper() {

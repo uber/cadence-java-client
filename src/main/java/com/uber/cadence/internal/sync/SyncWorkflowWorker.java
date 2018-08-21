@@ -59,7 +59,10 @@ public class SyncWorkflowWorker {
             workflowThreadPool,
             interceptorFactory,
             options.getMetricsScope());
-    DecisionTaskHandler taskHandler = new ReplayDecisionTaskHandler(domain, factory, options);
+    // TODO: cache and stickTaskList name passed in to ReplayDecisionTaskHandler will be passed via
+    // factoryOptions in future PR
+    DecisionTaskHandler taskHandler =
+        new ReplayDecisionTaskHandler(domain, factory, null, options, null);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }
