@@ -243,9 +243,9 @@ public final class WorkflowWorker implements SuspendableWorker {
     private final Duration retryServiceOperationInitialInterval = Duration.ofMillis(200);
     private final Duration retryServiceOperationMaxInterval = Duration.ofSeconds(4);
     private final Duration paginationStart = Duration.ofMillis(System.currentTimeMillis());
-    private Duration decisionTaskStartToCloseTimeout = null;
+    private Duration decisionTaskStartToCloseTimeout;
 
-    private final Duration RetryServiceOperationExpirationInterval() {
+    private final Duration retryServiceOperationExpirationInterval() {
       Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(paginationStart);
       return decisionTaskStartToCloseTimeout.minus(passed);
     }
@@ -299,7 +299,7 @@ public final class WorkflowWorker implements SuspendableWorker {
               options.getMetricsScope().timer(MetricsType.WORKFLOW_GET_HISTORY_LATENCY).start();
           RetryOptions retryOptions =
               new RetryOptions.Builder()
-                  .setExpiration(RetryServiceOperationExpirationInterval())
+                  .setExpiration(retryServiceOperationExpirationInterval())
                   .setInitialInterval(retryServiceOperationInitialInterval)
                   .setMaximumInterval(retryServiceOperationMaxInterval)
                   .build();
