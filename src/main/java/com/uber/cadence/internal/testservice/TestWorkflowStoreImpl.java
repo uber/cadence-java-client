@@ -17,7 +17,21 @@
 
 package com.uber.cadence.internal.testservice;
 
-import com.uber.cadence.*;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.EventType;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.HistoryEventFilterType;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.PollForActivityTaskRequest;
+import com.uber.cadence.PollForActivityTaskResponse;
+import com.uber.cadence.PollForDecisionTaskRequest;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.StickyExecutionAttributes;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.RequestContext.Timer;
 import java.time.Duration;
@@ -62,7 +76,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
 
     private void checkNextEventId(long nextEventId) {
-      if (nextEventId != getNextEventIdLocked() && (nextEventId != 0 && history.size() != 0)) {
+      if (nextEventId != history.size() + 1L && (nextEventId != 0 && history.size() != 0)) {
         throw new IllegalStateException(
             "NextEventId=" + nextEventId + ", historySize=" + history.size() + " for " + id);
       }
@@ -75,7 +89,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
               "Attempt to add an event after a completion event: "
                   + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
         }
-        event.setEventId(getNextEventIdLocked());
+        event.setEventId(history.size() + 1L);
         event.setTimestamp(timeInNanos);
         history.add(event);
         completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);
@@ -184,6 +198,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
     // Push tasks to the queues out of locks
     DecisionTask decisionTask = ctx.getDecisionTask();
+
     if (decisionTask != null) {
       StickyExecutionAttributes attributes =
           ctx.getWorkflowMutableState().getStickyExecutionAttributes();

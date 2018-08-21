@@ -138,7 +138,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private long lastNonFailedDecisionStartEventId;
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
-  public StickyExecutionAttributes stickyExecutionAttributes;
+  public StickyExecutionAttributes stickyExecutionAttributes = null;
 
   /** @param parentChildInitiatedEventId id of the child initiated event in the parent history */
   TestWorkflowMutableStateImpl(
@@ -163,7 +163,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void update(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(true, updater, stackTraceElements[2].getMethodName(), null);
+    update(false, updater, stackTraceElements[2].getMethodName(), null);
+  }
+
+  private void update(UpdateProcedure updater, StickyExecutionAttributes attributes)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
+    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+    update(false, updater, stackTraceElements[2].getMethodName(), attributes);
   }
 
   private void completeDecisionUpdate(UpdateProcedure updater)
@@ -187,6 +193,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     String callerInfo = "Decision Update from " + caller;
     lock.lock();
     LockHandle lockHandle = selfAdvancingTimer.lockTimeSkipping(callerInfo);
+
     try {
       checkCompleted();
       boolean concurrentDecision =
@@ -247,6 +254,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
+  public StickyExecutionAttributes getStickyExecutionAttributes() {
+    return stickyExecutionAttributes;
+  }
+
+  @Override
   public void startDecisionTask(
       PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
@@ -290,6 +302,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               ctx.add(deferredCtx);
             }
             this.concurrentToDecision.clear();
+
+            // Reset sticky execution attributes on failure
             stickyExecutionAttributes = null;
             scheduleDecision(ctx);
             return;
@@ -598,7 +612,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               return;
             }
             decision.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
-            stickyExecutionAttributes = null;
             scheduleDecision(ctx);
           });
     } catch (EntityNotExistsError e) {
@@ -1223,11 +1236,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       QueryFailedError error = new QueryFailedError().setMessage(completeRequest.getErrorMessage());
       result.completeExceptionally(error);
     }
-  }
-
-  @Override
-  public StickyExecutionAttributes getStickyExecutionAttributes() {
-    return null;
   }
 
   private void addExecutionSignaledEvent(
