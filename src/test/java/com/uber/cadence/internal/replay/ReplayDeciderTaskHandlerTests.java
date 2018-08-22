@@ -37,7 +37,7 @@ import org.junit.Test;
 public class ReplayDeciderTaskHandlerTests {
 
   @Test
-  public void IfStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
+  public void ifStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
     // Arrange
     LoadingCache<String, ReplayDecider> lruCache =
         CacheBuilder.newBuilder()
@@ -71,7 +71,7 @@ public class ReplayDeciderTaskHandlerTests {
   }
 
   @Test
-  public void IfStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
+  public void ifStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
     // Arrange
     LoadingCache<String, ReplayDecider> lruCache =
         CacheBuilder.newBuilder()
@@ -116,7 +116,7 @@ public class ReplayDeciderTaskHandlerTests {
   }
 
   @Test
-  public void IfCacheIsEvictedAndPartialHistoryIsReceivedThenTaskFailedIsReturned()
+  public void ifCacheIsEvictedAndPartialHistoryIsReceivedThenTaskFailedIsReturned()
       throws Throwable {
     // Arrange
     LoadingCache<String, ReplayDecider> lruCache =
