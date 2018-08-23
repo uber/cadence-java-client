@@ -138,7 +138,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private long lastNonFailedDecisionStartEventId;
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
-  public StickyExecutionAttributes stickyExecutionAttributes = null;
+  public StickyExecutionAttributes stickyExecutionAttributes;
 
   /** @param parentChildInitiatedEventId id of the child initiated event in the parent history */
   TestWorkflowMutableStateImpl(
@@ -163,32 +163,20 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private void update(UpdateProcedure updater)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(false, updater, stackTraceElements[2].getMethodName(), null);
-  }
-
-  private void update(UpdateProcedure updater, StickyExecutionAttributes attributes)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError {
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(false, updater, stackTraceElements[2].getMethodName(), attributes);
-  }
-
-  private void completeDecisionUpdate(UpdateProcedure updater)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError {
-    StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(true, updater, stackTraceElements[2].getMethodName(), null);
+    update(false, updater, stackTraceElements[2].getMethodName());
   }
 
   private void completeDecisionUpdate(UpdateProcedure updater, StickyExecutionAttributes attributes)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-    update(true, updater, stackTraceElements[2].getMethodName(), attributes);
+    stickyExecutionAttributes = attributes;
+    update(true, updater, stackTraceElements[2].getMethodName());
   }
 
   private void update(
       boolean completeDecisionUpdate,
       UpdateProcedure updater,
-      String caller,
-      StickyExecutionAttributes attributes)
+      String caller)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     String callerInfo = "Decision Update from " + caller;
     lock.lock();
@@ -199,9 +187,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       boolean concurrentDecision =
           !completeDecisionUpdate
               && (decision != null && decision.getState() == StateMachines.State.STARTED);
-      if (attributes != null) {
-        stickyExecutionAttributes = attributes;
-      }
+
       RequestContext ctx = new RequestContext(clock, this, nextEventId);
       updater.apply(ctx);
       if (concurrentDecision && workflow.getState() != State.TIMED_OUT) {
@@ -268,7 +254,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             long scheduledEventId = decision.getData().scheduledEventId;
             decision.action(StateMachines.Action.START, ctx, pollRequest, 0);
             ctx.addTimer(
-                startRequest.getTaskStartToCloseTimeoutSeconds(),
+                stickyExecutionAttributes != null
+                    ? stickyExecutionAttributes.getScheduleToStartTimeoutSeconds()
+                    : startRequest.getTaskStartToCloseTimeoutSeconds(),
                 () -> timeoutDecisionTask(scheduledEventId),
                 "DecisionTask StartToCloseTimeout");
           });
@@ -597,9 +585,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     completeDecisionUpdate(
         ctx -> {
           decision.action(Action.FAIL, ctx, request, 0);
-          stickyExecutionAttributes = null;
           scheduleDecision(ctx);
-        });
+        }, null); // reset sticky attributes to null
   }
 
   // TODO: insert a single decision timeout into the history
@@ -613,7 +600,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             }
             decision.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
             scheduleDecision(ctx);
-          });
+          }, null); // reset sticky attributes to null
     } catch (EntityNotExistsError e) {
       // Expected as timers are not removed
     } catch (Exception e) {
