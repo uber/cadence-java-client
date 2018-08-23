@@ -47,7 +47,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
   private final ReplayWorkflowFactory workflowFactory;
   private final String domain;
-  private final ReplayDeciderCache cache;
+  private final DeciderCache cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
   private String stickyTaskListName;
@@ -55,7 +55,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   public ReplayDecisionTaskHandler(
       String domain,
       ReplayWorkflowFactory asyncWorkflowFactory,
-      ReplayDeciderCache cache,
+      DeciderCache cache,
       SingleWorkerOptions options,
       String stickyTaskListName) {
     this.domain = domain;
@@ -107,19 +107,18 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 
   private Result handleDecisionTaskImpl(DecisionTaskWithHistoryIterator decisionTaskIterator)
       throws Throwable {
-    HistoryHelper historyHelper = new HistoryHelper(decisionTaskIterator);
-    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+    PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
 
-    ReplayDecider decider =
+    Decider decider =
         stickyTaskListName == null
             ? createDecider(decisionTask)
             : cache.getOrCreate(decisionTask, this::createDecider);
     try {
       if (decisionTask.isSetQuery()) {
-        return processQuery(historyHelper, decider);
+        return processQuery(decisionTaskIterator, (ReplayDecider) decider);
       } else {
         log.info("processing decision");
-        return processDecision(historyHelper, decider);
+        return processDecision(decisionTaskIterator, (ReplayDecider) decider);
       }
     } catch (IllegalStateException e) {
       if (stickyTaskListName != null) {
@@ -133,12 +132,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     }
   }
 
-  private Result processDecision(HistoryHelper historyHelper, ReplayDecider decider)
+  private Result processDecision(
+      DecisionTaskWithHistoryIterator decisionTaskIterator, ReplayDecider decider)
       throws Throwable {
-    decider.decide(historyHelper);
+    decider.decide(decisionTaskIterator);
     DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
     List<Decision> decisions = decisionsHelper.getDecisions();
-    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+    PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
 
     if (log.isTraceEnabled()) {
       WorkflowExecution execution = decisionTask.getWorkflowExecution();
@@ -168,12 +168,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     return createCompletedRequest(decisionTask, decisionsHelper, decisions);
   }
 
-  private Result processQuery(HistoryHelper historyHelper, ReplayDecider decider) {
-    PollForDecisionTaskResponse decisionTask = historyHelper.getDecisionTask();
+  private Result processQuery(
+      DecisionTaskWithHistoryIterator decisionTaskIterator, ReplayDecider decider) {
+    PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
     RespondQueryTaskCompletedRequest queryCompletedRequest = new RespondQueryTaskCompletedRequest();
     queryCompletedRequest.setTaskToken(decisionTask.getTaskToken());
     try {
-      byte[] queryResult = decider.query(historyHelper, decisionTask.getQuery());
+      byte[] queryResult = decider.query(decisionTaskIterator, decisionTask.getQuery());
       queryCompletedRequest.setQueryResult(queryResult);
       queryCompletedRequest.setCompletedType(QueryTaskCompletedType.COMPLETED);
     } catch (Throwable e) {
@@ -218,7 +219,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     return workflowFactory.isAnyTypeSupported();
   }
 
-  private ReplayDecider createDecider(PollForDecisionTaskResponse decisionTask) throws Exception {
+  private Decider createDecider(PollForDecisionTaskResponse decisionTask) throws Exception {
     WorkflowType workflowType = decisionTask.getWorkflowType();
     DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask);
     ReplayWorkflow workflow = workflowFactory.getWorkflow(workflowType);

@@ -15,11 +15,12 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence;
+package com.uber.cadence.testUtils;
 
 import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
+import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

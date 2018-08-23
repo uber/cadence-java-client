@@ -17,36 +17,68 @@
 
 package com.uber.cadence.internal.worker;
 
+import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class PollDecisionTaskDispatcher implements Consumer<PollForDecisionTaskResponse> {
+final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDecisionTaskResponse> {
 
   private static final Logger log = LoggerFactory.getLogger(PollDecisionTaskDispatcher.class);
   private final Map<String, Consumer<PollForDecisionTaskResponse>> subscribers = new HashMap<>();
+  private IWorkflowService service;
+  private Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
+      (t, e) -> log.error("uncaught exception", e);
+
+  public PollDecisionTaskDispatcher(IWorkflowService service) {
+    this.service = Objects.requireNonNull(service);
+  }
+
+  public PollDecisionTaskDispatcher(
+      IWorkflowService service, Thread.UncaughtExceptionHandler exceptionHandler) {
+    this.service = Objects.requireNonNull(service);
+    if (exceptionHandler != null) {
+      this.uncaughtExceptionHandler = exceptionHandler;
+    }
+  }
 
   @Override
   public void accept(PollForDecisionTaskResponse t) {
     synchronized (this) {
-      String taskListName = t.getWorkflowExecutionTaskList().name;
+      String taskListName = t.getWorkflowExecutionTaskList().getName();
       if (subscribers.containsKey(taskListName)) {
-        subscribers.get(t.getWorkflowExecutionTaskList().name).accept(t);
+        subscribers.get(taskListName).accept(t);
       } else {
-        log.warn(
+        RespondDecisionTaskFailedRequest request = new RespondDecisionTaskFailedRequest();
+        request.setTaskToken(t.taskToken);
+        request.setCause(DecisionTaskFailedCause.RESET_STICKY_TASKLIST);
+        String message =
             String.format(
                 "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
-                taskListName));
+                taskListName);
+        request.setDetails(message.getBytes());
+        log.warn(message);
+
+        try {
+          service.RespondDecisionTaskFailed(request);
+
+        } catch (Exception e) {
+          uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
+        }
       }
     }
   }
 
-  public void Subscribe(String tasklist, Consumer<PollForDecisionTaskResponse> consumer) {
+  @Override
+  public void subscribe(String taskList, Consumer<PollForDecisionTaskResponse> consumer) {
     synchronized (this) {
-      subscribers.put(tasklist, consumer);
+      subscribers.put(taskList, consumer);
     }
   }
 }

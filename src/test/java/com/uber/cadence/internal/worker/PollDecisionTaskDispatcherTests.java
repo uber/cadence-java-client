@@ -18,6 +18,8 @@
 package com.uber.cadence.internal.worker;
 
 import static junit.framework.TestCase.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.*;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -25,6 +27,8 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.TaskList;
+import com.uber.cadence.internal.testservice.TestWorkflowService;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.junit.Test;
@@ -43,8 +47,9 @@ public class PollDecisionTaskDispatcherTests {
     AtomicBoolean handled = new AtomicBoolean(false);
     Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
 
-    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-    dispatcher.Subscribe("tasklist1", handler);
+    PollDecisionTaskDispatcher dispatcher =
+        new PollDecisionTaskDispatcher(new TestWorkflowService());
+    dispatcher.subscribe("tasklist1", handler);
 
     // Act
     PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
@@ -64,9 +69,10 @@ public class PollDecisionTaskDispatcherTests {
     Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
     Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
 
-    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-    dispatcher.Subscribe("tasklist1", handler);
-    dispatcher.Subscribe("tasklist2", handler2);
+    PollDecisionTaskDispatcher dispatcher =
+        new PollDecisionTaskDispatcher(new TestWorkflowService());
+    dispatcher.subscribe("tasklist1", handler);
+    dispatcher.subscribe("tasklist2", handler2);
 
     // Act
     PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
@@ -87,9 +93,10 @@ public class PollDecisionTaskDispatcherTests {
     Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
     Consumer<PollForDecisionTaskResponse> handler2 = r -> handled2.set(true);
 
-    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-    dispatcher.Subscribe("tasklist1", handler);
-    dispatcher.Subscribe("tasklist1", handler2);
+    PollDecisionTaskDispatcher dispatcher =
+        new PollDecisionTaskDispatcher(new TestWorkflowService());
+    dispatcher.subscribe("tasklist1", handler);
+    dispatcher.subscribe("tasklist1", handler2);
 
     // Act
     PollForDecisionTaskResponse response = CreatePollForDecisionTaskResponse("tasklist1");
@@ -101,7 +108,8 @@ public class PollDecisionTaskDispatcherTests {
   }
 
   @Test
-  public void aWarningIsLoggedWhenNoHandlerIsRegisteredForTheTaskList() {
+  public void aWarningIsLoggedAndDecisionTaskIsFailedWhenNoHandlerIsRegisteredForTheTaskList()
+      throws Exception {
 
     // Arrange
     ListAppender<ILoggingEvent> appender = new ListAppender<>();
@@ -112,8 +120,10 @@ public class PollDecisionTaskDispatcherTests {
     AtomicBoolean handled = new AtomicBoolean(false);
     Consumer<PollForDecisionTaskResponse> handler = r -> handled.set(true);
 
-    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher();
-    dispatcher.Subscribe("tasklist1", handler);
+    IWorkflowService mockService = mock(IWorkflowService.class);
+
+    PollDecisionTaskDispatcher dispatcher = new PollDecisionTaskDispatcher(mockService);
+    dispatcher.subscribe("tasklist1", handler);
 
     // Act
     PollForDecisionTaskResponse response =
@@ -121,6 +131,7 @@ public class PollDecisionTaskDispatcherTests {
     dispatcher.accept(response);
 
     // Assert
+    verify(mockService, times(1)).RespondDecisionTaskFailed(any());
     assertFalse(handled.get());
     assertEquals(1, appender.list.size());
     ILoggingEvent event = appender.list.get(0);

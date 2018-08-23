@@ -23,15 +23,13 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static org.mockito.Mockito.*;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.uber.cadence.HistoryUtils;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
+import com.uber.cadence.testUtils.HistoryUtils;
 import org.junit.Test;
 
 public class ReplayDeciderTaskHandlerTests {
@@ -39,17 +37,8 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
     // Arrange
-    LoadingCache<String, ReplayDecider> lruCache =
-        CacheBuilder.newBuilder()
-            .maximumSize(10)
-            .build(
-                new CacheLoader<String, ReplayDecider>() {
-                  @Override
-                  public ReplayDecider load(String key) {
-                    return null;
-                  }
-                });
-    ReplayDeciderCache cache = new ReplayDeciderCache(lruCache);
+    DeciderCache cache = new DeciderCache(10);
+    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -73,18 +62,8 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
     // Arrange
-    LoadingCache<String, ReplayDecider> lruCache =
-        CacheBuilder.newBuilder()
-            .maximumSize(10)
-            .build(
-                new CacheLoader<String, ReplayDecider>() {
-                  @Override
-                  public ReplayDecider load(String key) {
-                    return null;
-                  }
-                });
-    ReplayDeciderCache cache = new ReplayDeciderCache(lruCache);
-
+    DeciderCache cache = new DeciderCache(10);
+    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -119,17 +98,8 @@ public class ReplayDeciderTaskHandlerTests {
   public void ifCacheIsEvictedAndPartialHistoryIsReceivedThenTaskFailedIsReturned()
       throws Throwable {
     // Arrange
-    LoadingCache<String, ReplayDecider> lruCache =
-        CacheBuilder.newBuilder()
-            .maximumSize(10)
-            .build(
-                new CacheLoader<String, ReplayDecider>() {
-                  @Override
-                  public ReplayDecider load(String key) {
-                    return null;
-                  }
-                });
-    ReplayDeciderCache cache = new ReplayDeciderCache(lruCache);
+    DeciderCache cache = new DeciderCache(10);
+    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     StickyExecutionAttributes attributes = new StickyExecutionAttributes();
     attributes.setWorkerTaskList(createStickyTaskList("sticky"));
     DecisionTaskHandler taskHandler =

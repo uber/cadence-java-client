@@ -28,6 +28,7 @@ import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEventsIterator;
+import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
@@ -43,7 +44,7 @@ import org.slf4j.LoggerFactory;
  * Implements decider that relies on replay of a worklfow code. An instance of this class is created
  * per decision.
  */
-public class ReplayDecider {
+class ReplayDecider implements Decider {
 
   private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
@@ -90,10 +91,6 @@ public class ReplayDecider {
         new DecisionContextImpl(
             decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay);
     context.setMetricsScope(metricsScope);
-  }
-
-  public boolean isCancelRequested() {
-    return cancelRequested;
   }
 
   private void handleWorkflowExecutionStarted(HistoryEvent event) throws Exception {
@@ -351,12 +348,17 @@ public class ReplayDecider {
     decisionsHelper.handleDecisionCompletion(event.getDecisionTaskCompletedEventAttributes());
   }
 
-  void decide(HistoryHelper historyHelper) throws Throwable {
-    decideImpl(historyHelper, null);
+  @Override
+  public void decide(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator)
+      throws Throwable {
+    decideImpl(decisionTaskWithHistoryIterator, null);
   }
 
-  private void decideImpl(HistoryHelper historyHelper, Functions.Proc query) throws Throwable {
+  private void decideImpl(
+      DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator, Functions.Proc query)
+      throws Throwable {
     try {
+      HistoryHelper historyHelper = new HistoryHelper(decisionTaskWithHistoryIterator);
       DecisionEventsIterator iterator = historyHelper.getIterator();
       if ((decisionsHelper.getNextDecisionEventId()
               != historyHelper.getPreviousStartedEventId()
@@ -415,9 +417,11 @@ public class ReplayDecider {
     return decisionsHelper;
   }
 
-  public byte[] query(HistoryHelper historyHelper, WorkflowQuery query) throws Throwable {
+  @Override
+  public byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
+      throws Throwable {
     AtomicReference<byte[]> result = new AtomicReference<>();
-    decideImpl(historyHelper, () -> result.set(workflow.query(query)));
+    decideImpl(decisionTaskIterator, () -> result.set(workflow.query(query)));
     return result.get();
   }
 }
