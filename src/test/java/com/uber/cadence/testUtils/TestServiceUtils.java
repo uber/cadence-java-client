@@ -28,8 +28,7 @@ import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskLis
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
 public class TestServiceUtils{
-    private TestServiceUtils() {
-    }
+    private TestServiceUtils() {}
 
     public static void startWorkflowExecution(
             String domain, String tasklistName, String workflowType, TestWorkflowService service)
