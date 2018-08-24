@@ -19,10 +19,8 @@ package com.uber.cadence.internal.replay;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotSame;
+import static junit.framework.TestCase.fail;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
@@ -40,38 +38,36 @@ public class ReplayDeciderCacheTests {
       throws Exception {
     // Arrange
     DeciderCache replayDeciderCache = new DeciderCache(10);
-    LoadingCache<String, Decider> cache = replayDeciderCache.getInternalCache();
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     String runId = decisionTask.getWorkflowExecution().getRunId();
 
-    assertCacheIsEmpty(cache, runId);
+    assertCacheIsEmpty(replayDeciderCache, runId);
 
     // Act
     Decider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
-    assertEquals(decider, cache.getUnchecked(runId));
+    assertEquals(decider, replayDeciderCache.getUnchecked(runId));
   }
 
   @Test
   public void whenHistoryIsFullNewReplayDeciderIsReturned_InitiallyCached() throws Exception {
     // Arrange
     DeciderCache replayDeciderCache = new DeciderCache(10);
-    LoadingCache<String, Decider> cache = replayDeciderCache.getInternalCache();
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     String runId = decisionTask.getWorkflowExecution().getRunId();
     Decider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
-    assertEquals(decider, cache.getUnchecked(runId));
+    assertEquals(decider, replayDeciderCache.getUnchecked(runId));
 
     // Act
     Decider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
-    assertEquals(decider2, cache.getUnchecked(runId));
+    assertEquals(decider2, replayDeciderCache.getUnchecked(runId));
     assertNotSame(decider2, decider);
   }
 
@@ -79,7 +75,6 @@ public class ReplayDeciderCacheTests {
   public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
     // Arrange
     DeciderCache replayDeciderCache = new DeciderCache(10);
-    LoadingCache<String, Decider> cache = replayDeciderCache.getInternalCache();
     TestWorkflowService service = new TestWorkflowService();
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory(
@@ -87,7 +82,7 @@ public class ReplayDeciderCacheTests {
 
     String runId = decisionTask.getWorkflowExecution().getRunId();
     Decider decider = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
-    assertEquals(decider, cache.getUnchecked(runId));
+    assertEquals(decider, replayDeciderCache.getUnchecked(runId));
 
     // Act
     decisionTask =
@@ -95,7 +90,7 @@ public class ReplayDeciderCacheTests {
     Decider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
-    assertEquals(decider2, cache.getUnchecked(runId));
+    assertEquals(decider2, replayDeciderCache.getUnchecked(runId));
     assertEquals(decider2, decider);
   }
 
@@ -115,30 +110,44 @@ public class ReplayDeciderCacheTests {
       return;
     }
 
-    TestCase.fail(
+    fail(
         "Expected replayDeciderCache.getOrCreate to throw ReplayDeciderCache.EvictedException but no exception was thrown");
   }
 
-  private void assertCacheIsEmpty(LoadingCache<String, Decider> cache, String runId) {
-    CacheLoader.InvalidCacheLoadException ex = null;
+  @Test
+  public void evictNextWillInvalidateTheNextEntryInLineToBeEvicted() throws Exception {
+    // Arrange
+    DeciderCache replayDeciderCache = new DeciderCache(10);
+    PollForDecisionTaskResponse decisionTask1 =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
+    PollForDecisionTaskResponse decisionTask2 =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
+    PollForDecisionTaskResponse decisionTask3 =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
+
+    // Act
+    Decider decider1 = replayDeciderCache.getOrCreate(decisionTask1, this::createFakeDecider);
+    Decider decider2 = replayDeciderCache.getOrCreate(decisionTask2, this::createFakeDecider);
+    Decider decider3 = replayDeciderCache.getOrCreate(decisionTask3, this::createFakeDecider);
+
+    assertEquals(3, replayDeciderCache.size());
+
+    replayDeciderCache.evictNext();
+
+    // Assert
+    assertEquals(2, replayDeciderCache.size());
+    String runId1 = decisionTask1.workflowExecution.getRunId();
+    assertCacheIsEmpty(replayDeciderCache, runId1);
+  }
+
+  private void assertCacheIsEmpty(DeciderCache cache, String runId) throws Exception {
+    DeciderCache.EvictedException ex = null;
     try {
       cache.getUnchecked(runId);
-    } catch (CacheLoader.InvalidCacheLoadException e) {
+    } catch (DeciderCache.EvictedException e) {
       ex = e;
     }
     TestCase.assertNotNull(ex);
-  }
-
-  private LoadingCache<String, ReplayDecider> buildCache() {
-    return CacheBuilder.newBuilder()
-        .maximumSize(1000)
-        .build(
-            new CacheLoader<String, ReplayDecider>() {
-              @Override
-              public ReplayDecider load(String key) {
-                return null;
-              }
-            });
   }
 
   private ReplayDecider createFakeDecider(PollForDecisionTaskResponse response) {

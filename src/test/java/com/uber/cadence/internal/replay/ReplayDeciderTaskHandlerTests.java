@@ -23,7 +23,6 @@ import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertNull;
 import static org.mockito.Mockito.*;
 
-import com.google.common.cache.LoadingCache;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
@@ -38,7 +37,6 @@ public class ReplayDeciderTaskHandlerTests {
   public void ifStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
     // Arrange
     DeciderCache cache = new DeciderCache(10);
-    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -54,7 +52,7 @@ public class ReplayDeciderTaskHandlerTests {
     DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
 
     // Assert
-    assertEquals(0, lruCache.size());
+    assertEquals(0, cache.size());
     assertNotNull(result.getTaskCompleted());
     assertNull(result.getTaskCompleted().getStickyAttributes());
   }
@@ -63,7 +61,6 @@ public class ReplayDeciderTaskHandlerTests {
   public void ifStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
     // Arrange
     DeciderCache cache = new DeciderCache(10);
-    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -80,7 +77,7 @@ public class ReplayDeciderTaskHandlerTests {
     DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
 
     // Assert
-    assertEquals(1, lruCache.size());
+    assertEquals(1, cache.size());
     assertNotNull(result.getTaskCompleted());
     StickyExecutionAttributes attributes = result.getTaskCompleted().getStickyAttributes();
     assertEquals("sticky", attributes.getWorkerTaskList().name);
@@ -99,7 +96,6 @@ public class ReplayDeciderTaskHandlerTests {
       throws Throwable {
     // Arrange
     DeciderCache cache = new DeciderCache(10);
-    LoadingCache<String, Decider> lruCache = cache.getInternalCache();
     StickyExecutionAttributes attributes = new StickyExecutionAttributes();
     attributes.setWorkerTaskList(createStickyTaskList("sticky"));
     DecisionTaskHandler taskHandler =
@@ -118,7 +114,7 @@ public class ReplayDeciderTaskHandlerTests {
     DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
 
     // Assert
-    assertEquals(0, lruCache.size());
+    assertEquals(0, cache.size());
     assertNull(result.getTaskCompleted());
     assertNotNull(result.getTaskFailed());
   }

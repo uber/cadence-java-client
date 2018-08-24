@@ -409,6 +409,7 @@ class ReplayDecider implements Decider {
     }
   }
 
+  @Override
   public void close() {
     workflow.close();
   }

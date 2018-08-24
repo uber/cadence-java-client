@@ -21,6 +21,7 @@ import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -62,7 +63,7 @@ final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDeci
             String.format(
                 "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
                 taskListName);
-        request.setDetails(message.getBytes());
+        request.setDetails(message.getBytes(Charset.defaultCharset()));
         log.warn(message);
 
         try {

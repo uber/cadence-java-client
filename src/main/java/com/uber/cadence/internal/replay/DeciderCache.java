@@ -21,21 +21,28 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.cache.Weigher;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.internal.common.ThrowableFunc1;
+import java.util.UUID;
 
 public final class DeciderCache {
-  private LoadingCache<String, Decider> cache;
+  private final String evictionEntryId = UUID.randomUUID().toString();
+  private final int maxCacheSize;
+  private LoadingCache<String, WeightedCacheEntry<Decider>> cache;
 
   public DeciderCache(int maxCacheSize) {
     Preconditions.checkArgument(maxCacheSize > 0, "Max cache size must be greater than 0");
+    this.maxCacheSize = maxCacheSize;
     this.cache =
         CacheBuilder.newBuilder()
-            .maximumSize(maxCacheSize)
+            .maximumWeight(maxCacheSize)
+            .weigher(
+                (Weigher<String, WeightedCacheEntry<Decider>>) (key, value) -> value.getWeight())
             .build(
-                new CacheLoader<String, Decider>() {
+                new CacheLoader<String, WeightedCacheEntry<Decider>>() {
                   @Override
-                  public ReplayDecider load(String key) {
+                  public WeightedCacheEntry<Decider> load(String key) {
                     return null;
                   }
                 });
@@ -48,13 +55,30 @@ public final class DeciderCache {
     String runId = decisionTask.getWorkflowExecution().getRunId();
     if (isFullHistory(decisionTask)) {
       cache.invalidate(runId);
-      return cache.get(runId, () -> createReplayDecider.apply(decisionTask));
+      return cache.get(
+              runId, () -> new WeightedCacheEntry<>(createReplayDecider.apply(decisionTask), 1))
+          .entry;
     }
     try {
-      return cache.getUnchecked(runId);
+      return cache.getUnchecked(runId).entry;
     } catch (CacheLoader.InvalidCacheLoadException e) {
       throw new EvictedException(decisionTask);
     }
+  }
+
+  public Decider getUnchecked(String runId) throws Exception {
+    try {
+      return cache.getUnchecked(runId).entry;
+    } catch (CacheLoader.InvalidCacheLoadException e) {
+      throw new EvictedException(runId);
+    }
+  }
+
+  public void evictNext() {
+    int remainingSpace = (int) (maxCacheSize - cache.size());
+    // Force eviction to happen
+    cache.put(evictionEntryId, new WeightedCacheEntry<>(null, remainingSpace + 1));
+    cache.invalidate(evictionEntryId);
   }
 
   public void invalidate(PollForDecisionTaskResponse decisionTask) {
@@ -80,6 +104,25 @@ public final class DeciderCache {
     cache.invalidateAll();
   }
 
+  // Used for eviction
+  private static class WeightedCacheEntry<T> {
+    private T entry;
+    private int weight;
+
+    private WeightedCacheEntry(T entry, int weight) {
+      this.entry = entry;
+      this.weight = weight;
+    }
+
+    public T getEntry() {
+      return entry;
+    }
+
+    public int getWeight() {
+      return weight;
+    }
+  }
+
   public static class EvictedException extends Exception {
 
     public EvictedException(PollForDecisionTaskResponse task) {
@@ -88,10 +131,9 @@ public final class DeciderCache {
               "cache was evicted for the decisionTask. WorkflowId: %s - RunId: %s",
               task.getWorkflowExecution().workflowId, task.getWorkflowExecution().runId));
     }
-  }
 
-  // For testing purposes
-  LoadingCache<String, Decider> getInternalCache() {
-    return cache;
+    public EvictedException(String runId) {
+      super(String.format("cache was evicted for the decisionTask. RunId: %s", runId));
+    }
   }
 }
