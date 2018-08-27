@@ -173,10 +173,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     update(true, updater, stackTraceElements[2].getMethodName());
   }
 
-  private void update(
-      boolean completeDecisionUpdate,
-      UpdateProcedure updater,
-      String caller)
+  private void update(boolean completeDecisionUpdate, UpdateProcedure updater, String caller)
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     String callerInfo = "Decision Update from " + caller;
     lock.lock();
@@ -586,7 +583,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           decision.action(Action.FAIL, ctx, request, 0);
           scheduleDecision(ctx);
-        }, null); // reset sticky attributes to null
+        },
+        null); // reset sticky attributes to null
   }
 
   // TODO: insert a single decision timeout into the history
@@ -600,7 +598,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             }
             decision.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
             scheduleDecision(ctx);
-          }, null); // reset sticky attributes to null
+          },
+          null); // reset sticky attributes to null
     } catch (EntityNotExistsError e) {
       // Expected as timers are not removed
     } catch (Exception e) {

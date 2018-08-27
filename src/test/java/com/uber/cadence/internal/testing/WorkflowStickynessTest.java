@@ -17,41 +17,47 @@
 
 package com.uber.cadence.internal.testing;
 
+import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
+import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.testUtils.TestServiceUtils;
-import org.junit.Test;
-
 import java.time.Duration;
 import java.util.List;
-
-import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
-import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
 
 public class WorkflowStickynessTest {
+
+  private final String DOMAIN = "domain";
+  private final String TASK_LIST = "taskList";
+  private final String HOST_TASKLIST = "stickyTaskList";
+  private final String WORKFLOW_TYPE = "wfType";
+  private final String CALLER = "WorkflowStickynessTest";
 
   @Test
   public void taskCompletionWithStickyExecutionAttributesWillScheduleDecisionsOnStickyTaskList()
       throws Exception {
 
     TestWorkflowService service = new TestWorkflowService();
-    service.lockTimeSkipping("HistoryUtils");
+    service.lockTimeSkipping(CALLER);
 
-    TestServiceUtils.startWorkflowExecution("domain", "tasklist", "wfType", service);
+    TestServiceUtils.startWorkflowExecution(DOMAIN, TASK_LIST, WORKFLOW_TYPE, service);
     PollForDecisionTaskResponse response =
-        TestServiceUtils.pollForDecisionTask("domain", createNormalTaskList("tasklist"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createNormalTaskList(TASK_LIST), service);
 
     TestServiceUtils.respondDecisionTaskCompletedWithSticky(
-        response.taskToken, "tasklist-sticky", service);
-    TestServiceUtils.signalWorkflow(response.workflowExecution, "domain", service);
+        response.taskToken, HOST_TASKLIST, service);
+    TestServiceUtils.signalWorkflow(response.workflowExecution, DOMAIN, service);
     response =
-        TestServiceUtils.pollForDecisionTask(
-            "domain", createStickyTaskList("tasklist-sticky"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createStickyTaskList(HOST_TASKLIST), service);
 
     assertEquals(4, response.history.getEventsSize());
+    assertEquals(TASK_LIST, response.getWorkflowExecutionTaskList().getName());
     List<HistoryEvent> events = response.history.getEvents();
     assertEquals(EventType.DecisionTaskCompleted, events.get(0).eventType);
     assertEquals(EventType.WorkflowExecutionSignaled, events.get(1).eventType);
@@ -63,22 +69,25 @@ public class WorkflowStickynessTest {
   public void taskFailureWillRescheduleTheTaskOnTheGlobalList() throws Exception {
 
     TestWorkflowService service = new TestWorkflowService();
-    service.lockTimeSkipping("HistoryUtils");
+    service.lockTimeSkipping(CALLER);
 
-    TestServiceUtils.startWorkflowExecution("domain", "tasklist", "wfType", service);
+    TestServiceUtils.startWorkflowExecution(DOMAIN, TASK_LIST, WORKFLOW_TYPE, service);
     PollForDecisionTaskResponse response =
-        TestServiceUtils.pollForDecisionTask("domain", createNormalTaskList("tasklist"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createNormalTaskList(TASK_LIST), service);
 
     TestServiceUtils.respondDecisionTaskCompletedWithSticky(
-        response.taskToken, "tasklist-sticky", service);
-    TestServiceUtils.signalWorkflow(response.workflowExecution, "domain", service);
+        response.taskToken, HOST_TASKLIST, service);
+    TestServiceUtils.signalWorkflow(response.workflowExecution, DOMAIN, service);
     response =
-        TestServiceUtils.pollForDecisionTask(
-            "domain", createStickyTaskList("tasklist-sticky"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createStickyTaskList(HOST_TASKLIST), service);
     TestServiceUtils.respondDecisionTaskFailedWithSticky(response.taskToken, service);
     response =
-        TestServiceUtils.pollForDecisionTask("domain", createStickyTaskList("tasklist"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createNormalTaskList(TASK_LIST), service);
 
+    // Assert Full history
+    // Make sure first is workflow execution started
+    assertNotNull(response.history.events.get(0).getWorkflowExecutionStartedEventAttributes());
+    // 10 is the expected number of events for the full history.
     assertEquals(10, response.history.getEventsSize());
   }
 
@@ -86,22 +95,25 @@ public class WorkflowStickynessTest {
   public void taskTimeoutWillRescheduleTheTaskOnTheGlobalList() throws Exception {
 
     TestWorkflowService service = new TestWorkflowService();
-    service.lockTimeSkipping("HistoryUtils");
-    TestServiceUtils.startWorkflowExecution("domain", "tasklist", "wfType", 10, 2, service);
+    service.lockTimeSkipping(CALLER);
+    TestServiceUtils.startWorkflowExecution(DOMAIN, TASK_LIST, WORKFLOW_TYPE, 10, 2, service);
     PollForDecisionTaskResponse response =
-        TestServiceUtils.pollForDecisionTask("domain", createNormalTaskList("tasklist"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createNormalTaskList(TASK_LIST), service);
 
     TestServiceUtils.respondDecisionTaskCompletedWithSticky(
-        response.taskToken, "tasklist-sticky", 1, service);
-    TestServiceUtils.signalWorkflow(response.workflowExecution, "domain", service);
-    TestServiceUtils.pollForDecisionTask(
-        "domain", createStickyTaskList("tasklist-sticky"), service);
-    service.unlockTimeSkipping("HistoryUtils");
+        response.taskToken, HOST_TASKLIST, 1, service);
+    TestServiceUtils.signalWorkflow(response.workflowExecution, DOMAIN, service);
+    TestServiceUtils.pollForDecisionTask(DOMAIN, createStickyTaskList(HOST_TASKLIST), service);
+    service.unlockTimeSkipping(CALLER);
     service.sleep(Duration.ofMillis(1100));
 
     response =
-        TestServiceUtils.pollForDecisionTask("domain", createStickyTaskList("tasklist"), service);
+        TestServiceUtils.pollForDecisionTask(DOMAIN, createNormalTaskList(TASK_LIST), service);
 
+    // Assert Full history
+    // Make sure first is workflow execution started
+    assertNotNull(response.history.events.get(0).getWorkflowExecutionStartedEventAttributes());
+    // 10 is the expected number of events for the full history.
     assertEquals(10, response.history.getEventsSize());
   }
 }
