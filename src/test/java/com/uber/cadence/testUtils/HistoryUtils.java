@@ -23,9 +23,6 @@ import static com.uber.cadence.testUtils.TestServiceUtils.*;
 
 import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.UUID;
 
 public class HistoryUtils {
   private HistoryUtils() {}
@@ -64,19 +61,19 @@ public class HistoryUtils {
 
     PollForDecisionTaskResponse response =
         generateDecisionTaskWithInitialHistory(domain, tasklistName, workflowType, service);
-    return generateDecisionTaskWithPartialHistoryFromExistingTask(response, domain, HOST_TASK_LIST,service);
+    return generateDecisionTaskWithPartialHistoryFromExistingTask(
+        response, domain, HOST_TASK_LIST, service);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
-      PollForDecisionTaskResponse response, String domain, String stickyTaskListName, TestWorkflowService service)
+      PollForDecisionTaskResponse response,
+      String domain,
+      String stickyTaskListName,
+      TestWorkflowService service)
       throws Exception {
 
-    respondDecisionTaskCompletedWithSticky(
-        response.taskToken, stickyTaskListName, service);
+    respondDecisionTaskCompletedWithSticky(response.taskToken, stickyTaskListName, service);
     signalWorkflow(response.workflowExecution, domain, service);
-    return pollForDecisionTask(
-        domain,
-        createStickyTaskList(stickyTaskListName),
-        service);
+    return pollForDecisionTask(domain, createStickyTaskList(stickyTaskListName), service);
   }
 }
