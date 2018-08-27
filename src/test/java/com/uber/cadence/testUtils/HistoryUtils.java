@@ -19,6 +19,7 @@ package com.uber.cadence.testUtils;
 
 import static com.uber.cadence.internal.common.InternalUtils.createNormalTaskList;
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+import static com.uber.cadence.testUtils.TestServiceUtils.*;
 
 import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
@@ -29,101 +30,53 @@ import java.util.UUID;
 public class HistoryUtils {
   private HistoryUtils() {}
 
+  private static final String DOMAIN = "domain";
+  private static final String TASK_LIST = "taskList";
+  private static final String HOST_TASK_LIST = "stickyTaskList";
+  private static final String WORKFLOW_TYPE = "workflowType";
+  private static final String CALLER = "caller";
+
   public static PollForDecisionTaskResponse generateDecisionTaskWithInitialHistory()
       throws Exception {
+    TestWorkflowService service = new TestWorkflowService();
+    service.lockTimeSkipping(CALLER);
     return generateDecisionTaskWithInitialHistory(
-        "domain", "taskList", "workflowType", new TestWorkflowService());
+        DOMAIN, TASK_LIST, WORKFLOW_TYPE, new TestWorkflowService());
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithInitialHistory(
       String domain, String tasklistName, String workflowType, TestWorkflowService service)
       throws Exception {
-    service.lockTimeSkipping("test");
     startWorkflowExecution(domain, tasklistName, workflowType, service);
     return pollForDecisionTask(domain, createNormalTaskList(tasklistName), service);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistory()
       throws Exception {
-    return generateDecisionTaskWithPartialHistory("domain", "taskList", "workflowType");
+    return generateDecisionTaskWithPartialHistory(DOMAIN, TASK_LIST, WORKFLOW_TYPE);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistory(
       String domain, String tasklistName, String workflowType) throws Exception {
 
     TestWorkflowService service = new TestWorkflowService();
-    service.lockTimeSkipping("HistoryUtils");
+    service.lockTimeSkipping(CALLER);
 
     PollForDecisionTaskResponse response =
         generateDecisionTaskWithInitialHistory(domain, tasklistName, workflowType, service);
-    return generateDecisionTaskWithPartialHistoryFromExistingTask(response, domain, service);
+    return generateDecisionTaskWithPartialHistoryFromExistingTask(response, domain, HOST_TASK_LIST,service);
   }
 
   public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
-      PollForDecisionTaskResponse response, TestWorkflowService service) throws Exception {
-
-    return generateDecisionTaskWithPartialHistoryFromExistingTask(response, "domain", service);
-  }
-
-  public static PollForDecisionTaskResponse generateDecisionTaskWithPartialHistoryFromExistingTask(
-      PollForDecisionTaskResponse response, String domain, TestWorkflowService service)
+      PollForDecisionTaskResponse response, String domain, String stickyTaskListName, TestWorkflowService service)
       throws Exception {
-    service.lockTimeSkipping("HistoryUtils");
+
     respondDecisionTaskCompletedWithSticky(
-        response.taskToken, response.getWorkflowExecutionTaskList().name, service);
+        response.taskToken, stickyTaskListName, service);
     signalWorkflow(response.workflowExecution, domain, service);
     return pollForDecisionTask(
         domain,
-        createStickyTaskList(ToStickyName(response.getWorkflowExecutionTaskList().name)),
+        createStickyTaskList(stickyTaskListName),
         service);
-  }
-
-  private static void startWorkflowExecution(
-      String domain, String tasklistName, String workflowType, TestWorkflowService service)
-      throws Exception {
-    StartWorkflowExecutionRequest request = new StartWorkflowExecutionRequest();
-    request.domain = domain;
-    request.workflowId = UUID.randomUUID().toString();
-    request.taskList = createNormalTaskList(tasklistName);
-    request.setExecutionStartToCloseTimeoutSeconds(10000);
-    request.setTaskStartToCloseTimeoutSeconds(10000);
-    WorkflowType type = new WorkflowType();
-    type.name = workflowType;
-    request.workflowType = type;
-    service.StartWorkflowExecution(request);
-  }
-
-  private static void respondDecisionTaskCompletedWithSticky(
-      ByteBuffer taskToken, String tasklistName, TestWorkflowService service) throws Exception {
-    RespondDecisionTaskCompletedRequest request = new RespondDecisionTaskCompletedRequest();
-    StickyExecutionAttributes attributes = new StickyExecutionAttributes();
-    attributes.setWorkerTaskList(createStickyTaskList(ToStickyName(tasklistName)));
-    attributes.setScheduleToStartTimeoutSeconds(10000);
-    request.setStickyAttributes(attributes);
-    request.setTaskToken(taskToken);
-    request.setDecisions(new ArrayList<>());
-    service.RespondDecisionTaskCompleted(request);
-  }
-
-  private static String ToStickyName(String tasklistName) {
-    return tasklistName + "Sticky";
-  }
-
-  private static void signalWorkflow(
-      WorkflowExecution workflowExecution, String domain, TestWorkflowService service)
-      throws Exception {
-    SignalWorkflowExecutionRequest signalRequest = new SignalWorkflowExecutionRequest();
-    signalRequest.setDomain(domain);
-    signalRequest.setSignalName("my-signal");
-    signalRequest.setWorkflowExecution(workflowExecution);
-    service.SignalWorkflowExecution(signalRequest);
-  }
-
-  private static PollForDecisionTaskResponse pollForDecisionTask(
-      String domain, TaskList tasklist, TestWorkflowService service) throws Exception {
-    PollForDecisionTaskRequest request = new PollForDecisionTaskRequest();
-    request.setDomain(domain);
-    request.setTaskList(tasklist);
-    return service.PollForDecisionTask(request);
   }
 }

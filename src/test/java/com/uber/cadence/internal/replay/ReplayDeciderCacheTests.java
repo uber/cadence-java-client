@@ -86,7 +86,8 @@ public class ReplayDeciderCacheTests {
 
     // Act
     decisionTask =
-        HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(decisionTask, service);
+        HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(
+            decisionTask, "domain", "stickyTaskList", service);
     Decider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
