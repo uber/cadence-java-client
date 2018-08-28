@@ -39,6 +39,12 @@ public final class DeciderCache {
             .maximumWeight(maxCacheSize)
             .weigher(
                 (Weigher<String, WeightedCacheEntry<Decider>>) (key, value) -> value.getWeight())
+                .removalListener(e -> {
+                  Decider entry = e.getValue().entry;
+                  if(entry != null){
+                    entry.close();
+                  }
+                })
             .build(
                 new CacheLoader<String, WeightedCacheEntry<Decider>>() {
                   @Override
@@ -59,11 +65,7 @@ public final class DeciderCache {
               runId, () -> new WeightedCacheEntry<>(createReplayDecider.apply(decisionTask), 1))
           .entry;
     }
-    try {
-      return cache.getUnchecked(runId).entry;
-    } catch (CacheLoader.InvalidCacheLoadException e) {
-      throw new EvictedException(decisionTask);
-    }
+    return getUnchecked(runId);
   }
 
   public Decider getUnchecked(String runId) throws Exception {
@@ -124,13 +126,6 @@ public final class DeciderCache {
   }
 
   public static class EvictedException extends Exception {
-
-    public EvictedException(PollForDecisionTaskResponse task) {
-      super(
-          String.format(
-              "cache was evicted for the decisionTask. WorkflowId: %s - RunId: %s",
-              task.getWorkflowExecution().workflowId, task.getWorkflowExecution().runId));
-    }
 
     public EvictedException(String runId) {
       super(String.format("cache was evicted for the decisionTask. RunId: %s", runId));
