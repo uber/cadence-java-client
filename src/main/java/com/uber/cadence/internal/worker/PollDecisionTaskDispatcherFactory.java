@@ -31,6 +31,11 @@ public final class PollDecisionTaskDispatcherFactory implements DispatcherFactor
     uncaughtExceptionHandler = handler;
   }
 
+  public PollDecisionTaskDispatcherFactory(
+          IWorkflowService service) {
+    this.service = Objects.requireNonNull(service);
+  }
+
   public PollDecisionTaskDispatcherFactory() {}
 
   @Override

@@ -17,8 +17,10 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -31,38 +33,46 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** Workflow worker that supports POJO workflow implementations. */
-public class SyncWorkflowWorker {
+public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse> {
 
   private final WorkflowWorker worker;
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
   private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+  private final DeciderCache cache;
+  private final String stickyTaskListName;
 
   public SyncWorkflowWorker(
-      IWorkflowService service,
-      String domain,
-      String taskList,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      SingleWorkerOptions options,
-      int workflowThreadPoolSize) {
+          IWorkflowService service,
+          String domain,
+          String taskList,
+          Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+          SingleWorkerOptions options,
+          int workflowThreadPoolSize,
+          DeciderCache cache,
+          String stickyTaskListName) {
+    this.cache = cache;
+    this.stickyTaskListName = stickyTaskListName;
+
     ThreadPoolExecutor workflowThreadPool =
-        new ThreadPoolExecutor(
-            0, workflowThreadPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
+            new ThreadPoolExecutor(
+                    0, workflowThreadPoolSize, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
     workflowThreadPool.setThreadFactory(
-        r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
+            r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
     factory =
-        new POJOWorkflowImplementationFactory(
-            options.getDataConverter(),
-            workflowThreadPool,
-            interceptorFactory,
-            options.getMetricsScope());
-    // TODO: cache and stickTaskList name passed in to ReplayDecisionTaskHandler will be passed via
-    // factoryOptions in future PR
+            new POJOWorkflowImplementationFactory(
+                    options.getDataConverter(),
+                    workflowThreadPool,
+                    interceptorFactory,
+                    options.getMetricsScope());
+
     DecisionTaskHandler taskHandler =
-        new ReplayDecisionTaskHandler(domain, factory, null, options, null);
+            new ReplayDecisionTaskHandler(
+                    domain, factory, this.cache, options, this.stickyTaskListName);
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
   }
@@ -92,7 +102,7 @@ public class SyncWorkflowWorker {
   }
 
   public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit)
-      throws InterruptedException {
+          throws InterruptedException {
     return worker.shutdownAndAwaitTermination(timeout, unit);
   }
 
@@ -109,15 +119,20 @@ public class SyncWorkflowWorker {
   }
 
   public <R> R queryWorkflowExecution(
-      WorkflowExecution execution,
-      String queryType,
-      Class<R> resultClass,
-      Type resultType,
-      Object[] args)
-      throws Exception {
+          WorkflowExecution execution,
+          String queryType,
+          Class<R> resultClass,
+          Type resultType,
+          Object[] args)
+          throws Exception {
     DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = worker.queryWorkflowExecution(execution, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
+  }
+
+  @Override
+  public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
+    worker.accept(pollForDecisionTaskResponse);
   }
 }
