@@ -26,10 +26,8 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
-import com.uber.cadence.workflow.CompletablePromise;
-import com.uber.cadence.workflow.SignalMethod;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.cadence.workflow.*;
+
 import java.time.Duration;
 import org.junit.Rule;
 import org.junit.Test;
@@ -169,7 +167,95 @@ public class StickyWorkerTest {
         wrapper.close();
     }
 
+    @Test
+    public void WorkflowsCanBeQueried() throws Exception {
+        // Arrange
+        String taskListName = "queryStickyTest";
+        TestEnvironmentWrapper wrapper =
+                new TestEnvironmentWrapper(
+                        new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
+        Worker.Factory factory = wrapper.getWorkerFactory();
+        Worker worker = factory.newWorker(taskListName);
+        worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+        factory.start();
+
+        WorkflowOptions workflowOptions =
+                new WorkflowOptions.Builder()
+                        .setTaskList(taskListName)
+                        .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+                        .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+                        .build();
+        GreetingWorkflow workflow =
+                wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+
+        // Act
+        WorkflowClient.start(workflow::getGreeting);
+
+        Thread.sleep(200); // Wait for workflow to start
+
+        DeciderCache cache = factory.getCache();
+        assertNotNull(cache);
+        assertEquals(1, cache.size());
+
+        // Assert
+        assertEquals(workflow.getProgress(), GreetingWorkflow.Status.WAITING_FOR_NAME);
+
+        workflow.waitForName("World");
+        String greeting = workflow.getGreeting();
+
+        assertEquals("Hello World!", greeting);
+        assertEquals(workflow.getProgress(), GreetingWorkflow.Status.GREETING_GENERATED);
+        wrapper.close();
+    }
+
+    @Test
+    public void WorkflowsCanBeQueriedAfterEviction() throws Exception {
+        // Arrange
+        String taskListName = "queryEvictionStickyTest";
+        TestEnvironmentWrapper wrapper =
+                new TestEnvironmentWrapper(
+                        new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
+        Worker.Factory factory = wrapper.getWorkerFactory();
+        Worker worker = factory.newWorker(taskListName);
+        worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+        factory.start();
+
+        WorkflowOptions workflowOptions =
+                new WorkflowOptions.Builder()
+                        .setTaskList(taskListName)
+                        .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+                        .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+                        .build();
+        GreetingWorkflow workflow =
+                wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+
+        // Act
+        WorkflowClient.start(workflow::getGreeting);
+
+        Thread.sleep(200); // Wait for workflow to start
+
+        DeciderCache cache = factory.getCache();
+        assertNotNull(cache);
+        assertEquals(1, cache.size());
+        cache.invalidateAll();
+        assertEquals(0, cache.size());
+
+        // Assert
+        assertEquals(workflow.getProgress(), GreetingWorkflow.Status.WAITING_FOR_NAME);
+
+        workflow.waitForName("World");
+        String greeting = workflow.getGreeting();
+
+        assertEquals("Hello World!", greeting);
+        assertEquals(workflow.getProgress(), GreetingWorkflow.Status.GREETING_GENERATED);
+        wrapper.close();
+    }
+
     public interface GreetingWorkflow {
+        /** @return greeting string */
+        @QueryMethod
+        Status getProgress();
+
         /** @return greeting string */
         @WorkflowMethod
         String getGreeting();
@@ -177,16 +263,29 @@ public class StickyWorkerTest {
         /** Receives name through an external signal. */
         @SignalMethod
         void waitForName(String name);
+
+        enum Status {
+            WAITING_FOR_NAME,
+            GREETING_GENERATED
+        }
     }
 
     /** GreetingWorkflow implementation that returns a greeting. */
     public static class GreetingWorkflowImpl implements GreetingWorkflow {
 
         private final CompletablePromise<String> name = Workflow.newPromise();
+        private Status status = Status.WAITING_FOR_NAME;
+
+        @Override
+        public Status getProgress() {
+            return status;
+        }
 
         @Override
         public String getGreeting() {
-            return "Hello " + name.get() + "!";
+            String greeting = "Hello " + name.get() + "!";
+            status = Status.GREETING_GENERATED;
+            return greeting;
         }
 
         @Override
