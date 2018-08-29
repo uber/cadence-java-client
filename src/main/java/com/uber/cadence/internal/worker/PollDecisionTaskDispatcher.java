@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory;
 final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDecisionTaskResponse> {
 
   private static final Logger log = LoggerFactory.getLogger(PollDecisionTaskDispatcher.class);
-  private final Map<String, Consumer<PollForDecisionTaskResponse>> subscribers = new HashMap<>();
+  private final Map<String, Consumer<PollForDecisionTaskResponse>> subscribers =
+      new ConcurrentHashMap<>();
   private IWorkflowService service;
   private Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
       (t, e) -> log.error("uncaught exception", e);
@@ -51,35 +53,31 @@ final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDeci
 
   @Override
   public void accept(PollForDecisionTaskResponse t) {
-    synchronized (this) {
-      String taskListName = t.getWorkflowExecutionTaskList().getName();
-      if (subscribers.containsKey(taskListName)) {
-        subscribers.get(taskListName).accept(t);
-      } else {
-        RespondDecisionTaskFailedRequest request = new RespondDecisionTaskFailedRequest();
-        request.setTaskToken(t.taskToken);
-        request.setCause(DecisionTaskFailedCause.RESET_STICKY_TASKLIST);
-        String message =
-            String.format(
-                "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
-                taskListName);
-        request.setDetails(message.getBytes(Charset.defaultCharset()));
-        log.warn(message);
+    String taskListName = t.getWorkflowExecutionTaskList().getName();
+    if (subscribers.containsKey(taskListName)) {
+      subscribers.get(taskListName).accept(t);
+    } else {
+      RespondDecisionTaskFailedRequest request = new RespondDecisionTaskFailedRequest();
+      request.setTaskToken(t.taskToken);
+      request.setCause(DecisionTaskFailedCause.RESET_STICKY_TASKLIST);
+      String message =
+          String.format(
+              "No handler is subscribed for the PollForDecisionTaskResponse.WorkflowExecutionTaskList %s",
+              taskListName);
+      request.setDetails(message.getBytes(Charset.defaultCharset()));
+      log.warn(message);
 
-        try {
-          service.RespondDecisionTaskFailed(request);
+      try {
+        service.RespondDecisionTaskFailed(request);
 
-        } catch (Exception e) {
-          uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
-        }
+      } catch (Exception e) {
+        uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
       }
     }
   }
 
   @Override
   public void subscribe(String taskList, Consumer<PollForDecisionTaskResponse> consumer) {
-    synchronized (this) {
-      subscribers.put(taskList, consumer);
-    }
+    subscribers.put(taskList, consumer);
   }
 }
