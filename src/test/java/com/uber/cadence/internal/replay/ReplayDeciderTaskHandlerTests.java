@@ -84,13 +84,7 @@ public class ReplayDeciderTaskHandlerTests {
     assertNotNull(result.getTaskCompleted());
     StickyExecutionAttributes attributes = result.getTaskCompleted().getStickyAttributes();
     assertEquals("sticky", attributes.getWorkerTaskList().name);
-    assertEquals(
-        decisionTask
-            .history
-            .events
-            .get(0)
-            .getWorkflowExecutionStartedEventAttributes()
-            .taskStartToCloseTimeoutSeconds,
+    assertEquals(5,
         attributes.getScheduleToStartTimeoutSeconds());
   }
 
