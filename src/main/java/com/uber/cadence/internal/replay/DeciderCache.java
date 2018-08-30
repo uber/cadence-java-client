@@ -39,9 +39,10 @@ public final class DeciderCache {
             .maximumWeight(maxCacheSize)
             .weigher(
                 (Weigher<String, WeightedCacheEntry<Decider>>) (key, value) -> value.getWeight())
-                .removalListener(e -> {
+            .removalListener(
+                e -> {
                   Decider entry = e.getValue().entry;
-                  if(entry != null){
+                  if (entry != null) {
                     entry.close();
                   }
                 })

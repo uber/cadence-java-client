@@ -19,10 +19,9 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
 
 public class WorkflowPollTaskFactory implements PollTaskFactory<PollForDecisionTaskResponse> {
 

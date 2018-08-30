@@ -21,8 +21,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
@@ -43,8 +41,11 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Hosts activity and workflow implementations. Uses long poll to receive activity and decision
@@ -60,6 +61,7 @@ public final class Worker {
   private final AtomicBoolean closed = new AtomicBoolean();
   private final DeciderCache cache;
   private final String stickyTaskListName;
+  private ThreadPoolExecutor threadPoolExecutor;
 
   /**
    * Creates worker that connects to an instance of the Cadence Service.
@@ -72,80 +74,83 @@ public final class Worker {
    * @param stickyTaskListName
    */
   private Worker(
-          IWorkflowService service,
-          String domain,
-          String taskList,
-          WorkerOptions options,
-          DeciderCache cache,
-          String stickyTaskListName) {
-    this.cache = cache;
-    this.stickyTaskListName = stickyTaskListName;
+      IWorkflowService service,
+      String domain,
+      String taskList,
+      WorkerOptions options,
+      DeciderCache cache,
+      String stickyTaskListName,
+      ThreadPoolExecutor threadPoolExecutor) {
+
     Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
-            !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
+        !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
     Preconditions.checkArgument(
-            !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
+        !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
+    this.cache = cache;
+    this.stickyTaskListName = stickyTaskListName;
+    this.threadPoolExecutor = Objects.requireNonNull(threadPoolExecutor);
 
     this.taskList = taskList;
     this.options = MoreObjects.firstNonNull(options, new Builder().build());
 
     SingleWorkerOptions activityOptions = toActivityOptions(this.options, domain, taskList);
     activityWorker =
-            this.options.isDisableActivityWorker()
-                    ? null
-                    : new SyncActivityWorker(service, domain, taskList, activityOptions);
+        this.options.isDisableActivityWorker()
+            ? null
+            : new SyncActivityWorker(service, domain, taskList, activityOptions);
 
     SingleWorkerOptions workflowOptions = toWorkflowOptions(this.options, domain, taskList);
     workflowWorker =
-            this.options.isDisableWorkflowWorker()
-                    ? null
-                    : new SyncWorkflowWorker(
-                    service,
-                    domain,
-                    taskList,
-                    this.options.getInterceptorFactory(),
-                    workflowOptions,
-                    this.options.getMaxWorkflowThreads(),
-                    this.cache,
-                    this.stickyTaskListName);
+        this.options.isDisableWorkflowWorker()
+            ? null
+            : new SyncWorkflowWorker(
+                service,
+                domain,
+                taskList,
+                this.options.getInterceptorFactory(),
+                workflowOptions,
+                this.cache,
+                this.stickyTaskListName,
+                this.threadPoolExecutor);
   }
 
   private static SingleWorkerOptions toActivityOptions(
-          WorkerOptions options, String domain, String taskList) {
+      WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
-            new ImmutableMap.Builder<String, String>(2)
-                    .put(MetricsTag.DOMAIN, domain)
-                    .put(MetricsTag.TASK_LIST, taskList)
-                    .build();
-    return new SingleWorkerOptions.Builder()
-            .setDataConverter(options.getDataConverter())
-            .setIdentity(options.getIdentity())
-            .setPollerOptions(options.getActivityPollerOptions())
-            .setReportCompletionRetryOptions(options.getReportActivityCompletionRetryOptions())
-            .setReportFailureRetryOptions(options.getReportActivityFailureRetryOptions())
-            .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
-            .setMetricsScope(options.getMetricsScope().tagged(tags))
-            .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, domain)
+            .put(MetricsTag.TASK_LIST, taskList)
             .build();
+    return new SingleWorkerOptions.Builder()
+        .setDataConverter(options.getDataConverter())
+        .setIdentity(options.getIdentity())
+        .setPollerOptions(options.getActivityPollerOptions())
+        .setReportCompletionRetryOptions(options.getReportActivityCompletionRetryOptions())
+        .setReportFailureRetryOptions(options.getReportActivityFailureRetryOptions())
+        .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
+        .setMetricsScope(options.getMetricsScope().tagged(tags))
+        .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .build();
   }
 
   private static SingleWorkerOptions toWorkflowOptions(
-          WorkerOptions options, String domain, String taskList) {
+      WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
-            new ImmutableMap.Builder<String, String>(2)
-                    .put(MetricsTag.DOMAIN, domain)
-                    .put(MetricsTag.TASK_LIST, taskList)
-                    .build();
-    return new SingleWorkerOptions.Builder()
-            .setDataConverter(options.getDataConverter())
-            .setIdentity(options.getIdentity())
-            .setPollerOptions(options.getWorkflowPollerOptions())
-            .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
-            .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
-            .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorklfowExecutionSize())
-            .setMetricsScope(options.getMetricsScope().tagged(tags))
-            .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, domain)
+            .put(MetricsTag.TASK_LIST, taskList)
             .build();
+    return new SingleWorkerOptions.Builder()
+        .setDataConverter(options.getDataConverter())
+        .setIdentity(options.getIdentity())
+        .setPollerOptions(options.getWorkflowPollerOptions())
+        .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
+        .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
+        .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorklfowExecutionSize())
+        .setMetricsScope(options.getMetricsScope().tagged(tags))
+        .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .build();
   }
 
   /**
@@ -161,11 +166,11 @@ public final class Worker {
    */
   public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
     Preconditions.checkState(
-            workflowWorker != null,
-            "registerWorkflowImplementationTypes is not allowed when disableWorkflowWorker is set in worker options");
+        workflowWorker != null,
+        "registerWorkflowImplementationTypes is not allowed when disableWorkflowWorker is set in worker options");
     Preconditions.checkState(
-            !started.get(),
-            "registerWorkflowImplementationTypes is not allowed after worker has started");
+        !started.get(),
+        "registerWorkflowImplementationTypes is not allowed after worker has started");
 
     workflowWorker.setWorkflowImplementationTypes(workflowImplementationClasses);
   }
@@ -208,11 +213,11 @@ public final class Worker {
    */
   public void registerActivitiesImplementations(Object... activityImplementations) {
     Preconditions.checkState(
-            activityWorker != null,
-            "registerActivitiesImplementations is not allowed when disableWorkflowWorker is set in worker options");
+        activityWorker != null,
+        "registerActivitiesImplementations is not allowed when disableWorkflowWorker is set in worker options");
     Preconditions.checkState(
-            !started.get(),
-            "registerActivitiesImplementations is not allowed after worker has started");
+        !started.get(),
+        "registerActivitiesImplementations is not allowed after worker has started");
 
     activityWorker.setActivitiesImplementation(activityImplementations);
   }
@@ -279,8 +284,8 @@ public final class Worker {
    * @throws Exception if replay failed for any reason
    */
   public <R> R queryWorkflowExecution(
-          WorkflowExecution execution, String queryType, Class<R> returnType, Object... args)
-          throws Exception {
+      WorkflowExecution execution, String queryType, Class<R> returnType, Object... args)
+      throws Exception {
     return queryWorkflowExecution(execution, queryType, returnType, returnType, args);
   }
 
@@ -303,17 +308,17 @@ public final class Worker {
    * @throws Exception if replay failed for any reason
    */
   public <R> R queryWorkflowExecution(
-          WorkflowExecution execution,
-          String queryType,
-          Class<R> resultClass,
-          Type resultType,
-          Object... args)
-          throws Exception {
+      WorkflowExecution execution,
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      Object... args)
+      throws Exception {
     if (workflowWorker == null) {
       throw new IllegalStateException("disableWorkflowWorker is set in worker options");
     }
     return workflowWorker.queryWorkflowExecution(
-            execution, queryType, resultClass, resultType, args);
+        execution, queryType, resultClass, resultType, args);
   }
 
   public String getTaskList() {
@@ -325,6 +330,8 @@ public final class Worker {
     private final IWorkflowService workflowService;
     private final String domain;
     private final UUID Id = UUID.randomUUID();
+    private final ThreadPoolExecutor workflowThreadPool;
+    private final AtomicInteger workflowThreadCounter = new AtomicInteger();
 
     private FactoryOptions factoryOptions;
     private Poller<PollForDecisionTaskResponse> stickyPoller;
@@ -334,7 +341,7 @@ public final class Worker {
     private State state = State.Initial;
 
     private final String statusErrorMessage =
-            "attempted to %s while in %s state. Acceptable States: %s";
+        "attempted to %s while in %s state. Acceptable States: %s";
 
     public Factory(String domain) {
       this(new WorkflowServiceTChannel(), domain, null);
@@ -357,22 +364,31 @@ public final class Worker {
     }
 
     public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
-      Objects.requireNonNull(workflowService, "workflowService should not be null");
       Preconditions.checkArgument(
-              !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
+          !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
 
-      this.workflowService = workflowService;
       this.domain = domain;
+      this.workflowService =
+          Objects.requireNonNull(workflowService, "workflowService should not be null");
 
       this.factoryOptions =
-              factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
+          factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
+
+      workflowThreadPool =
+          new ThreadPoolExecutor(
+              0,
+              this.factoryOptions.maxWorkflowThreadCount,
+              1,
+              TimeUnit.SECONDS,
+              new SynchronousQueue<>());
+      workflowThreadPool.setThreadFactory(
+          r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
 
       if (!this.factoryOptions.enableStickyExecution) {
         return;
       }
 
-      this.cache =
-              new DeciderCache(factoryOptions.cacheMaximumSize);
+      this.cache = new DeciderCache(factoryOptions.cacheMaximumSize);
 
       // TODO: expose configuring these through Factory options
       SingleWorkerOptions options = getDefaultSingleWorkerOptions();
@@ -380,16 +396,17 @@ public final class Worker {
 
       dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
       stickyPoller =
-              new Poller<>(
-                      Id.toString(),
-                      new WorkflowPollTaskFactory(
-                              workflowService,
-                              domain,
-                              getStickyTaskListName(),
-                              getDefaultSingleWorkerOptions()).create(),
-                      dispatcher,
-                      pollerOptions,
-                      options.getMetricsScope());
+          new Poller<>(
+              Id.toString(),
+              new WorkflowPollTaskFactory(
+                      workflowService,
+                      domain,
+                      getStickyTaskListName(),
+                      getDefaultSingleWorkerOptions())
+                  .create(),
+              dispatcher,
+              pollerOptions,
+              options.getMetricsScope());
     }
 
     public Worker newWorker(String taskList) {
@@ -398,15 +415,22 @@ public final class Worker {
 
     public Worker newWorker(String taskList, WorkerOptions options) {
       Preconditions.checkArgument(
-              !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
+          !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
 
       synchronized (this) {
         Preconditions.checkState(
-                state == State.Initial,
-                String.format(
-                        statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
+            state == State.Initial,
+            String.format(
+                statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
         Worker worker =
-                new Worker(workflowService, domain, taskList, options, cache, getStickyTaskListName());
+            new Worker(
+                workflowService,
+                domain,
+                taskList,
+                options,
+                cache,
+                getStickyTaskListName(),
+                workflowThreadPool);
         workers.add(worker);
 
         if (this.factoryOptions.enableStickyExecution) {
@@ -420,12 +444,12 @@ public final class Worker {
     public void start() {
       synchronized (this) {
         Preconditions.checkState(
-                state == State.Initial || state == State.Started,
-                String.format(
-                        statusErrorMessage,
-                        "start WorkerFactory",
-                        state.name(),
-                        String.format("%s, %s", State.Initial.name(), State.Initial.name())));
+            state == State.Initial || state == State.Started,
+            String.format(
+                statusErrorMessage,
+                "start WorkerFactory",
+                state.name(),
+                String.format("%s, %s", State.Initial.name(), State.Initial.name())));
         if (state == State.Started) {
           return;
         }
@@ -468,8 +492,8 @@ public final class Worker {
 
     private String getStickyTaskListName() {
       return this.factoryOptions.enableStickyExecution
-              ? String.format("%s:%s", getHostName(), Id)
-              : null;
+          ? String.format("%s:%s", getHostName(), Id)
+          : null;
     }
 
     private SingleWorkerOptions getDefaultSingleWorkerOptions() {
@@ -495,7 +519,8 @@ public final class Worker {
 
     public static class Builder {
       private boolean enableStickyExecution;
-      private int cacheMaximumSize = 1000;
+      private int cacheMaximumSize = 600;
+      private int maxWorkflowThreadCount = 600;
 
       public Builder setEnableStickyExecution(boolean enableStickyExecution) {
         this.enableStickyExecution = enableStickyExecution;
@@ -507,17 +532,25 @@ public final class Worker {
         return this;
       }
 
+      public Builder setmaxWorkflowThreadCount(int maxWorkflowThreadCount) {
+        this.maxWorkflowThreadCount = maxWorkflowThreadCount;
+        return this;
+      }
+
       public FactoryOptions Build() {
-        return new FactoryOptions(enableStickyExecution, cacheMaximumSize);
+        return new FactoryOptions(enableStickyExecution, cacheMaximumSize, maxWorkflowThreadCount);
       }
     }
 
     private final boolean enableStickyExecution;
     private int cacheMaximumSize;
+    private int maxWorkflowThreadCount;
 
-    private FactoryOptions(boolean enableStickyExecution, int cacheMaximumSize) {
+    private FactoryOptions(
+        boolean enableStickyExecution, int cacheMaximumSize, int maxWorkflowThreadCount) {
       this.enableStickyExecution = enableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
+      this.maxWorkflowThreadCount = maxWorkflowThreadCount;
     }
   }
 }

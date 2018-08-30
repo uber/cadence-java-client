@@ -62,7 +62,7 @@ public final class TestEnvironmentOptions {
      * instance every time it is called.
      */
     public Builder setInterceptorFactory(
-            Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
+        Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
       this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
       return this;
     }
@@ -93,12 +93,12 @@ public final class TestEnvironmentOptions {
       }
 
       return new TestEnvironmentOptions(
-              dataConverter,
-              domain,
-              interceptorFactory,
-              metricsScope,
-              factoryOptions,
-              enableLoggingInReplay);
+          dataConverter,
+          domain,
+          interceptorFactory,
+          metricsScope,
+          factoryOptions,
+          enableLoggingInReplay);
     }
   }
 
@@ -110,12 +110,12 @@ public final class TestEnvironmentOptions {
   private final Worker.FactoryOptions workerFactoryOptions;
 
   private TestEnvironmentOptions(
-          DataConverter dataConverter,
-          String domain,
-          Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-          Scope metricsScope,
-          Worker.FactoryOptions options,
-          boolean enableLoggingInReplay) {
+      DataConverter dataConverter,
+      String domain,
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      Scope metricsScope,
+      Worker.FactoryOptions options,
+      boolean enableLoggingInReplay) {
     this.dataConverter = dataConverter;
     this.domain = domain;
     this.interceptorFactory = interceptorFactory;
@@ -151,11 +151,11 @@ public final class TestEnvironmentOptions {
   @Override
   public String toString() {
     return "TestEnvironmentOptions{"
-            + "dataConverter="
-            + dataConverter
-            + ", domain='"
-            + domain
-            + '\''
-            + '}';
+        + "dataConverter="
+        + dataConverter
+        + ", domain='"
+        + domain
+        + '\''
+        + '}';
   }
 }
