@@ -70,7 +70,7 @@ class ReplayDecider implements Decider {
 
   private long wfStartTime = -1;
 
-  public ReplayDecider(
+  ReplayDecider(
       String domain,
       ReplayWorkflow workflow,
       DecisionsHelper decisionsHelper,

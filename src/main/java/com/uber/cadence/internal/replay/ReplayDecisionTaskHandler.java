@@ -19,15 +19,7 @@ package com.uber.cadence.internal.replay;
 
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
-import com.uber.cadence.Decision;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryTaskCompletedType;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.StickyExecutionAttributes;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
@@ -37,6 +29,7 @@ import com.uber.m3.tally.Scope;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,20 +43,23 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private final DeciderCache cache;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
+  private final Duration stickyTaskListScheduleToStartTimeout;
   private String stickyTaskListName;
 
   public ReplayDecisionTaskHandler(
-      String domain,
-      ReplayWorkflowFactory asyncWorkflowFactory,
-      DeciderCache cache,
-      SingleWorkerOptions options,
-      String stickyTaskListName) {
+          String domain,
+          ReplayWorkflowFactory asyncWorkflowFactory,
+          DeciderCache cache,
+          SingleWorkerOptions options,
+          String stickyTaskListName,
+          Duration stickyTaskListScheduleToStartTimeout) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
     this.metricsScope = options.getMetricsScope();
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
     this.stickyTaskListName = stickyTaskListName;
+    this.stickyTaskListScheduleToStartTimeout = stickyTaskListScheduleToStartTimeout;
   }
 
   @Override
@@ -117,10 +113,9 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       if (decisionTask.isSetQuery()) {
         return processQuery(decisionTaskIterator, (ReplayDecider) decider);
       } else {
-        log.info("processing decision");
         return processDecision(decisionTaskIterator, (ReplayDecider) decider);
       }
-    } catch (IllegalStateException e) {
+    } catch (Exception e) {
       if (stickyTaskListName != null) {
         cache.invalidate(decisionTask);
       }
@@ -198,17 +193,11 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     completedRequest.setTaskToken(decisionTask.getTaskToken());
     completedRequest.setDecisions(decisions);
     completedRequest.setExecutionContext(context);
+
     if (stickyTaskListName != null) {
       StickyExecutionAttributes attributes = new StickyExecutionAttributes();
       attributes.setWorkerTaskList(createStickyTaskList(stickyTaskListName));
-      attributes.setScheduleToStartTimeoutSeconds(
-          decisionsHelper
-              .getTask()
-              .history
-              .getEvents()
-              .get(0)
-              .workflowExecutionStartedEventAttributes
-              .taskStartToCloseTimeoutSeconds);
+      attributes.setScheduleToStartTimeoutSeconds((int)stickyTaskListScheduleToStartTimeout.getSeconds());
       completedRequest.setStickyAttributes(attributes);
     }
     return new Result(completedRequest, null, null, null);
