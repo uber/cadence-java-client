@@ -85,10 +85,8 @@ public final class DeciderCache {
   }
 
   public void invalidate(PollForDecisionTaskResponse decisionTask) {
-    synchronized (this) {
-      String runId = decisionTask.getWorkflowExecution().getRunId();
-      invalidate(runId);
-    }
+    String runId = decisionTask.getWorkflowExecution().getRunId();
+    invalidate(runId);
   }
 
   public void invalidate(String runId) {

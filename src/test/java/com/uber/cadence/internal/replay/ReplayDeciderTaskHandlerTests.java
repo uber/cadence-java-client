@@ -29,6 +29,7 @@ import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.testUtils.HistoryUtils;
+import java.time.Duration;
 import org.junit.Test;
 
 public class ReplayDeciderTaskHandlerTests {
@@ -43,7 +44,8 @@ public class ReplayDeciderTaskHandlerTests {
             setUpMockWorkflowFactory(),
             cache,
             new SingleWorkerOptions.Builder().build(),
-            null);
+            null,
+            Duration.ofSeconds(5));
 
     DecisionTaskWithHistoryIterator mockIterator =
         setUpMockIterator(HistoryUtils.generateDecisionTaskWithInitialHistory());
@@ -67,7 +69,8 @@ public class ReplayDeciderTaskHandlerTests {
             setUpMockWorkflowFactory(),
             cache,
             new SingleWorkerOptions.Builder().build(),
-            "sticky");
+            "sticky",
+            Duration.ofSeconds(5));
 
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory();
@@ -81,13 +84,7 @@ public class ReplayDeciderTaskHandlerTests {
     assertNotNull(result.getTaskCompleted());
     StickyExecutionAttributes attributes = result.getTaskCompleted().getStickyAttributes();
     assertEquals("sticky", attributes.getWorkerTaskList().name);
-    assertEquals(
-        decisionTask
-            .history
-            .events
-            .get(0)
-            .getWorkflowExecutionStartedEventAttributes()
-            .taskStartToCloseTimeoutSeconds,
+    assertEquals(5,
         attributes.getScheduleToStartTimeoutSeconds());
   }
 
@@ -104,8 +101,8 @@ public class ReplayDeciderTaskHandlerTests {
             setUpMockWorkflowFactory(),
             cache,
             new SingleWorkerOptions.Builder().build(),
-            "sticky");
-    PollForDecisionTaskResponse response = HistoryUtils.generateDecisionTaskWithPartialHistory();
+            "sticky",
+            Duration.ofSeconds(5));
 
     DecisionTaskWithHistoryIterator mockIterator =
         setUpMockIterator(HistoryUtils.generateDecisionTaskWithPartialHistory());

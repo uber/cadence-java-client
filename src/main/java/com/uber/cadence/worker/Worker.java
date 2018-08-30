@@ -80,6 +80,7 @@ public final class Worker {
       WorkerOptions options,
       DeciderCache cache,
       String stickyTaskListName,
+      Duration stickyDecisionScheduleToStartTimeout,
       ThreadPoolExecutor threadPoolExecutor) {
 
     Objects.requireNonNull(service, "service should not be null");
@@ -112,6 +113,7 @@ public final class Worker {
                 workflowOptions,
                 this.cache,
                 this.stickyTaskListName,
+                stickyDecisionScheduleToStartTimeout,
                 this.threadPoolExecutor);
   }
 
@@ -430,6 +432,7 @@ public final class Worker {
                 options,
                 cache,
                 getStickyTaskListName(),
+                Duration.ofSeconds(factoryOptions.stickyDecisionScheduleToStartTimeoutInSeconds),
                 workflowThreadPool);
         workers.add(worker);
 
@@ -516,9 +519,9 @@ public final class Worker {
   }
 
   public static class FactoryOptions {
-
     public static class Builder {
       private boolean enableStickyExecution;
+      private int stickyDecisionScheduleToStartTimeoutInSeconds = 5;
       private int cacheMaximumSize = 600;
       private int maxWorkflowThreadCount = 600;
 
@@ -537,20 +540,27 @@ public final class Worker {
         return this;
       }
 
+      public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(int stickyDecisionScheduleToStartTimeoutInSeconds) {
+        this.stickyDecisionScheduleToStartTimeoutInSeconds = stickyDecisionScheduleToStartTimeoutInSeconds;
+        return this;
+      }
+
       public FactoryOptions Build() {
-        return new FactoryOptions(enableStickyExecution, cacheMaximumSize, maxWorkflowThreadCount);
+        return new FactoryOptions(enableStickyExecution, cacheMaximumSize, maxWorkflowThreadCount, stickyDecisionScheduleToStartTimeoutInSeconds);
       }
     }
 
     private final boolean enableStickyExecution;
     private int cacheMaximumSize;
     private int maxWorkflowThreadCount;
+    private final int stickyDecisionScheduleToStartTimeoutInSeconds;
 
     private FactoryOptions(
-        boolean enableStickyExecution, int cacheMaximumSize, int maxWorkflowThreadCount) {
+        boolean enableStickyExecution, int cacheMaximumSize, int maxWorkflowThreadCount, int stickyDecisionScheduleToStartTimeoutInSeconds) {
       this.enableStickyExecution = enableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;
+      this.stickyDecisionScheduleToStartTimeoutInSeconds = stickyDecisionScheduleToStartTimeoutInSeconds;
     }
   }
 }
