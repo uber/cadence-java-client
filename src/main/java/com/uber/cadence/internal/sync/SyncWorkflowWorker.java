@@ -29,12 +29,8 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
-<<<<<<< HEAD
 import java.util.Objects;
-=======
 import java.time.Duration;
-import java.util.concurrent.SynchronousQueue;
->>>>>>> dispatcher-and-decider-cache
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -46,8 +42,6 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
   private final WorkflowWorker worker;
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
-  private final DeciderCache cache;
-  private final String stickyTaskListName;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -60,8 +54,6 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
       Duration stickyDecisionScheduleToStartTimeout,
       ThreadPoolExecutor workflowThreadPool) {
     Objects.requireNonNull(workflowThreadPool);
-    this.cache = cache;
-    this.stickyTaskListName = stickyTaskListName;
 
     factory =
         new POJOWorkflowImplementationFactory(
@@ -71,7 +63,7 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
             options.getMetricsScope());
 
     DecisionTaskHandler taskHandler =
-        new ReplayDecisionTaskHandler(domain, factory, null, options, stickyTaskListName, stickyDecisionScheduleToStartTimeout);
+        new ReplayDecisionTaskHandler(domain, factory, cache, options, stickyTaskListName, stickyDecisionScheduleToStartTimeout);
 
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
