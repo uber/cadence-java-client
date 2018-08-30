@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.internal.logging.LoggerTag;
+import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.workflow.Promise;
 import java.io.PrintWriter;
@@ -148,6 +149,7 @@ class WorkflowThreadImpl implements WorkflowThread {
   private final boolean root;
   private final ExecutorService threadPool;
   private final WorkflowThreadContext context;
+  private DeciderCache cache;
   private final DeterministicRunnerImpl runner;
   private final RunnableWrapper task;
   private Thread thread;
@@ -163,18 +165,20 @@ class WorkflowThreadImpl implements WorkflowThread {
   private long blockedUntil;
 
   WorkflowThreadImpl(
-      boolean root,
-      ExecutorService threadPool,
-      DeterministicRunnerImpl runner,
-      String name,
-      boolean detached,
-      CancellationScopeImpl parentCancellationScope,
-      Runnable runnable) {
+          boolean root,
+          ExecutorService threadPool,
+          DeterministicRunnerImpl runner,
+          String name,
+          boolean detached,
+          CancellationScopeImpl parentCancellationScope,
+          Runnable runnable,
+          DeciderCache cache) {
     this.root = root;
     this.threadPool = threadPool;
     this.runner = runner;
     this.context = new WorkflowThreadContext(runner.getLock());
-    // TODO: Use thread pool instead of creating new threads.
+    this.cache = cache;
+
     if (name == null) {
       name = "workflow-" + super.hashCode();
     }
@@ -220,18 +224,28 @@ class WorkflowThreadImpl implements WorkflowThread {
 
   @Override
   public void start() {
-    if (context.getStatus() != Status.CREATED) {
-      throw new IllegalThreadStateException("already started");
-    }
-    context.setStatus(Status.RUNNING);
     try {
-      taskFuture = threadPool.submit(task);
+      attemptStart();
+    } catch (RejectedExecutionException e) {
+      cache.evictNext();
+    }
+
+    try {
+      attemptStart();
     } catch (RejectedExecutionException e) {
       throw new Error(
           "Not enough threads to execute workflows. "
               + "If this message appears consistently either WorkerOptions.maxConcurrentWorklfowExecutionSize "
               + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
     }
+  }
+
+  private void attemptStart() throws RejectedExecutionException {
+    if (context.getStatus() != Status.CREATED) {
+      throw new IllegalThreadStateException("already started");
+    }
+    context.setStatus(Status.RUNNING);
+    taskFuture = threadPool.submit(task);
   }
 
   public WorkflowThreadContext getContext() {
