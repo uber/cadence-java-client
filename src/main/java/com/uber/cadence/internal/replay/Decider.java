@@ -22,6 +22,7 @@ import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 
 public interface Decider {
 
+  // TODO: refactor in future CR. Merge methods and decide should return a list of decisions.
   void decide(DecisionTaskWithHistoryIterator iterator) throws Throwable;
 
   byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
