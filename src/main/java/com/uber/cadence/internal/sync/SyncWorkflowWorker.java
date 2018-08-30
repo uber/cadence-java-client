@@ -29,12 +29,8 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
-<<<<<<< HEAD
 import java.util.Objects;
-=======
 import java.time.Duration;
-import java.util.concurrent.SynchronousQueue;
->>>>>>> dispatcher-and-decider-cache
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
