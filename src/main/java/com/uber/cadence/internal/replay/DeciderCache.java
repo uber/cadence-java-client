@@ -39,9 +39,10 @@ public final class DeciderCache {
             .maximumWeight(maxCacheSize)
             .weigher(
                 (Weigher<String, WeightedCacheEntry<Decider>>) (key, value) -> value.getWeight())
-                .removalListener(e -> {
+            .removalListener(
+                e -> {
                   Decider entry = e.getValue().entry;
-                  if(entry != null){
+                  if (entry != null) {
                     entry.close();
                   }
                 })
@@ -84,8 +85,8 @@ public final class DeciderCache {
   }
 
   public void invalidate(PollForDecisionTaskResponse decisionTask) {
-      String runId = decisionTask.getWorkflowExecution().getRunId();
-      invalidate(runId);
+    String runId = decisionTask.getWorkflowExecution().getRunId();
+    invalidate(runId);
   }
 
   public void invalidate(String runId) {

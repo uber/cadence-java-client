@@ -47,12 +47,12 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private String stickyTaskListName;
 
   public ReplayDecisionTaskHandler(
-          String domain,
-          ReplayWorkflowFactory asyncWorkflowFactory,
-          DeciderCache cache,
-          SingleWorkerOptions options,
-          String stickyTaskListName,
-          Duration stickyTaskListScheduleToStartTimeout) {
+      String domain,
+      ReplayWorkflowFactory asyncWorkflowFactory,
+      DeciderCache cache,
+      SingleWorkerOptions options,
+      String stickyTaskListName,
+      Duration stickyTaskListScheduleToStartTimeout) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
@@ -197,7 +197,8 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     if (stickyTaskListName != null) {
       StickyExecutionAttributes attributes = new StickyExecutionAttributes();
       attributes.setWorkerTaskList(createStickyTaskList(stickyTaskListName));
-      attributes.setScheduleToStartTimeoutSeconds((int)stickyTaskListScheduleToStartTimeout.getSeconds());
+      attributes.setScheduleToStartTimeoutSeconds(
+          (int) stickyTaskListScheduleToStartTimeout.getSeconds());
       completedRequest.setStickyAttributes(attributes);
     }
     return new Result(completedRequest, null, null, null);

@@ -60,7 +60,8 @@ public class SyncWorkflowWorker {
             workflowThreadPool,
             interceptorFactory,
             options.getMetricsScope());
-    // TODO: cache, scheduleToStartTimeout and stickTaskList name passed in to ReplayDecisionTaskHandler will be passed via
+    // TODO: cache, scheduleToStartTimeout and stickTaskList name passed in to
+    // ReplayDecisionTaskHandler will be passed via
     // factoryOptions in future PR
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(domain, factory, null, options, null, Duration.ofSeconds(5));
