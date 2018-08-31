@@ -661,10 +661,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void WorkflowsWithFailedPromisesCanBeCancelled() {
-    worker.registerWorkflowImplementationTypes(
-        TestCancellationForWorkflowsWithFailedPromises.class);
-    testEnvironment.start();
+  public void workflowsWithFailedPromisesCanBeCancelled() {
+    startWorkerFor(TestCancellationForWorkflowsWithFailedPromises.class);
     WorkflowStub client =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
@@ -1219,6 +1217,7 @@ public class WorkflowTest {
 
     @Override
     public void signal(String value) {
+      Workflow.sleep(Duration.ofSeconds(1));
       signal.complete(value);
     }
   }

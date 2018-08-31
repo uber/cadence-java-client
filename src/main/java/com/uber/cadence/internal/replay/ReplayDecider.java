@@ -418,6 +418,7 @@ class ReplayDecider implements Decider {
     decideImpl(
         decisionTaskIterator,
         () -> result.set(workflow.query(decisionTaskIterator.getDecisionTask().getQuery())));
+
     return result.get();
   }
 }

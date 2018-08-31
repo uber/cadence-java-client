@@ -130,6 +130,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private Result processDecision(
       DecisionTaskWithHistoryIterator decisionTaskIterator, Decider decider) throws Throwable {
     List<Decision> decisions = decider.decide(decisionTaskIterator);
+
     PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
 
     if (log.isTraceEnabled()) {
