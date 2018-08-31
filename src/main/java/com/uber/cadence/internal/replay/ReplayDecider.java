@@ -414,11 +414,7 @@ class ReplayDecider implements Decider {
   public byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
       throws Throwable {
     AtomicReference<byte[]> result = new AtomicReference<>();
-
-    decideImpl(
-        decisionTaskIterator,
-        () -> result.set(workflow.query(decisionTaskIterator.getDecisionTask().getQuery())));
-
+    decideImpl(decisionTaskIterator, () -> result.set(workflow.query(query)));
     return result.get();
   }
 }
