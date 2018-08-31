@@ -17,13 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.EventType;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
@@ -33,6 +27,7 @@ import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -138,7 +133,7 @@ class ReplayDecider implements Decider {
         context.handleChildWorkflowExecutionTimedOut(event);
         break;
       case DecisionTaskCompleted:
-        handleDecisionTaskCompleted(event);
+        // NOOP
         break;
       case DecisionTaskScheduled:
         // NOOP
@@ -344,14 +339,11 @@ class ReplayDecider implements Decider {
         signalAttributes.getSignalName(), signalAttributes.getInput(), event.getEventId());
   }
 
-  private void handleDecisionTaskCompleted(HistoryEvent event) {
-    decisionsHelper.handleDecisionCompletion(event.getDecisionTaskCompletedEventAttributes());
-  }
-
   @Override
-  public void decide(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator)
+  public List<Decision> decide(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator)
       throws Throwable {
     decideImpl(decisionTaskWithHistoryIterator, null);
+    return getDecisionsHelper().getDecisions();
   }
 
   private void decideImpl(
@@ -422,7 +414,10 @@ class ReplayDecider implements Decider {
   public byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
       throws Throwable {
     AtomicReference<byte[]> result = new AtomicReference<>();
-    decideImpl(decisionTaskIterator, () -> result.set(workflow.query(query)));
+
+    decideImpl(
+        decisionTaskIterator,
+        () -> result.set(workflow.query(decisionTaskIterator.getDecisionTask().getQuery())));
     return result.get();
   }
 }

@@ -111,7 +111,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
             : cache.getOrCreate(decisionTask, this::createDecider);
     try {
       if (decisionTask.isSetQuery()) {
-        return processQuery(decisionTaskIterator, (ReplayDecider) decider);
+        return processQuery(decisionTaskIterator, decider);
       } else {
         return processDecision(decisionTaskIterator, (ReplayDecider) decider);
       }
@@ -130,9 +130,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private Result processDecision(
       DecisionTaskWithHistoryIterator decisionTaskIterator, ReplayDecider decider)
       throws Throwable {
-    decider.decide(decisionTaskIterator);
-    DecisionsHelper decisionsHelper = decider.getDecisionsHelper();
-    List<Decision> decisions = decisionsHelper.getDecisions();
+    List<Decision> decisions = decider.decide(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
 
     if (log.isTraceEnabled()) {
@@ -160,11 +158,11 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
               + " new decisions");
     }
 
-    return createCompletedRequest(decisionTask, decisionsHelper, decisions);
+    return createCompletedRequest(decisionTask, decisions);
   }
 
   private Result processQuery(
-      DecisionTaskWithHistoryIterator decisionTaskIterator, ReplayDecider decider) {
+      DecisionTaskWithHistoryIterator decisionTaskIterator, Decider decider) {
     PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
     RespondQueryTaskCompletedRequest queryCompletedRequest = new RespondQueryTaskCompletedRequest();
     queryCompletedRequest.setTaskToken(decisionTask.getTaskToken());
@@ -184,15 +182,11 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   }
 
   private Result createCompletedRequest(
-      PollForDecisionTaskResponse decisionTask,
-      DecisionsHelper decisionsHelper,
-      List<Decision> decisions) {
-    byte[] context = decisionsHelper.getWorkflowContextDataToReturn();
+      PollForDecisionTaskResponse decisionTask, List<Decision> decisions) {
     RespondDecisionTaskCompletedRequest completedRequest =
         new RespondDecisionTaskCompletedRequest();
     completedRequest.setTaskToken(decisionTask.getTaskToken());
     completedRequest.setDecisions(decisions);
-    completedRequest.setExecutionContext(context);
 
     if (stickyTaskListName != null) {
       StickyExecutionAttributes attributes = new StickyExecutionAttributes();
