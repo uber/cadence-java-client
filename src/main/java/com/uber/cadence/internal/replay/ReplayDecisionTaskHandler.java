@@ -113,7 +113,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       if (decisionTask.isSetQuery()) {
         return processQuery(decisionTaskIterator, decider);
       } else {
-        return processDecision(decisionTaskIterator, (ReplayDecider) decider);
+        return processDecision(decisionTaskIterator, decider);
       }
     } catch (Exception e) {
       if (stickyTaskListName != null) {
@@ -128,7 +128,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   }
 
   private Result processDecision(
-      DecisionTaskWithHistoryIterator decisionTaskIterator, ReplayDecider decider)
+      DecisionTaskWithHistoryIterator decisionTaskIterator, Decider decider)
       throws Throwable {
     List<Decision> decisions = decider.decide(decisionTaskIterator);
     PollForDecisionTaskResponse decisionTask = decisionTaskIterator.getDecisionTask();
