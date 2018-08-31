@@ -540,13 +540,19 @@ public final class Worker {
         return this;
       }
 
-      public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(int stickyDecisionScheduleToStartTimeoutInSeconds) {
-        this.stickyDecisionScheduleToStartTimeoutInSeconds = stickyDecisionScheduleToStartTimeoutInSeconds;
+      public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(
+          int stickyDecisionScheduleToStartTimeoutInSeconds) {
+        this.stickyDecisionScheduleToStartTimeoutInSeconds =
+            stickyDecisionScheduleToStartTimeoutInSeconds;
         return this;
       }
 
       public FactoryOptions Build() {
-        return new FactoryOptions(enableStickyExecution, cacheMaximumSize, maxWorkflowThreadCount, stickyDecisionScheduleToStartTimeoutInSeconds);
+        return new FactoryOptions(
+            enableStickyExecution,
+            cacheMaximumSize,
+            maxWorkflowThreadCount,
+            stickyDecisionScheduleToStartTimeoutInSeconds);
       }
     }
 
@@ -556,11 +562,15 @@ public final class Worker {
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
 
     private FactoryOptions(
-        boolean enableStickyExecution, int cacheMaximumSize, int maxWorkflowThreadCount, int stickyDecisionScheduleToStartTimeoutInSeconds) {
+        boolean enableStickyExecution,
+        int cacheMaximumSize,
+        int maxWorkflowThreadCount,
+        int stickyDecisionScheduleToStartTimeoutInSeconds) {
       this.enableStickyExecution = enableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;
-      this.stickyDecisionScheduleToStartTimeoutInSeconds = stickyDecisionScheduleToStartTimeoutInSeconds;
+      this.stickyDecisionScheduleToStartTimeoutInSeconds =
+          stickyDecisionScheduleToStartTimeoutInSeconds;
     }
   }
 }
