@@ -58,7 +58,7 @@ public class StickyWorkerTest {
   @Rule public TestName testName = new TestName();
 
   @Test
-  public void WhenStickyIsEnabledThenTheWorkflowIsCached() {
+  public void whenStickyIsEnabledThenTheWorkflowIsCached() {
     // Arrange
     String taskListName = "cachedStickyTest";
     TestEnvironmentWrapper wrapper =
@@ -94,7 +94,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void WhenStickyIsNotEnabledThenTheWorkflowIsNotCached() {
+  public void whenStickyIsNotEnabledThenTheWorkflowIsNotCached() {
     // Arrange
     String taskListName = "notCachedStickyTest";
     TestEnvironmentWrapper wrapper =
@@ -127,7 +127,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void WhenCacheIsEvictedTheWorkerCanRecover() throws Exception {
+  public void whenCacheIsEvictedTheWorkerCanRecover() throws Exception {
     // Arrange
     String taskListName = "evictedStickyTest";
     TestEnvironmentWrapper wrapper =
@@ -167,7 +167,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void WorkflowsCanBeQueried() throws Exception {
+  public void workflowsCanBeQueried() throws Exception {
     // Arrange
     String taskListName = "queryStickyTest";
     TestEnvironmentWrapper wrapper =
@@ -208,7 +208,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void WorkflowsCanBeQueriedAfterEviction() throws Exception {
+  public void workflowsCanBeQueriedAfterEviction() throws Exception {
     // Arrange
     String taskListName = "queryEvictionStickyTest";
     TestEnvironmentWrapper wrapper =
