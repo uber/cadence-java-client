@@ -260,14 +260,14 @@ public final class WorkflowWorker
 
   private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {
 
-    private final Duration RetryServiceOperationInitialInterval = Duration.ofMillis(200);
-    private final Duration RetryServiceOperationMaxInterval = Duration.ofSeconds(4);
-    private final Duration PaginationStart = Duration.ofMillis(System.currentTimeMillis());
-    private Duration DecisionTaskStartToCloseTimeout = Duration.ofSeconds(60);
+    private final Duration retryServiceOperationInitialInterval = Duration.ofMillis(200);
+    private final Duration retryServiceOperationMaxInterval = Duration.ofSeconds(4);
+    private final Duration paginationStart = Duration.ofMillis(System.currentTimeMillis());
+    private Duration decisionTaskStartToCloseTimeout = Duration.ofSeconds(60);
 
-    private final Duration RetryServiceOperationExpirationInterval() {
-      Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(PaginationStart);
-      return DecisionTaskStartToCloseTimeout.minus(passed);
+    private final Duration retryServiceOperationExpirationInterval() {
+      Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(paginationStart);
+      return decisionTaskStartToCloseTimeout.minus(passed);
     }
 
     private final PollForDecisionTaskResponse task;
@@ -284,10 +284,16 @@ public final class WorkflowWorker
         DecisionTaskScheduledEventAttributes attributes =
             history.events.get(i).getDecisionTaskScheduledEventAttributes();
         if (attributes != null) {
-          DecisionTaskStartToCloseTimeout =
+          decisionTaskStartToCloseTimeout =
               Duration.ofSeconds(attributes.getStartToCloseTimeoutSeconds());
           break;
         }
+      }
+      if (decisionTaskStartToCloseTimeout == null) {
+        throw new IllegalArgumentException(
+            String.format(
+                "PollForDecisionTaskResponse is missing DecisionTaskScheduled event. RunId: %s, WorkflowId: %s",
+                task.getWorkflowExecution().runId, task.getWorkflowExecution().workflowId));
       }
     }
 
@@ -315,9 +321,9 @@ public final class WorkflowWorker
               options.getMetricsScope().timer(MetricsType.WORKFLOW_GET_HISTORY_LATENCY).start();
           RetryOptions retryOptions =
               new RetryOptions.Builder()
-                  .setExpiration(RetryServiceOperationExpirationInterval())
-                  .setInitialInterval(RetryServiceOperationInitialInterval)
-                  .setMaximumInterval(RetryServiceOperationMaxInterval)
+                  .setExpiration(retryServiceOperationExpirationInterval())
+                  .setInitialInterval(retryServiceOperationInitialInterval)
+                  .setMaximumInterval(retryServiceOperationMaxInterval)
                   .build();
 
           GetWorkflowExecutionHistoryRequest request = new GetWorkflowExecutionHistoryRequest();
