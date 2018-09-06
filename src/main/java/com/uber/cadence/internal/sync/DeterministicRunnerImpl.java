@@ -132,11 +132,19 @@ class DeterministicRunnerImpl implements DeterministicRunner {
   }
 
   DeterministicRunnerImpl(
-          ExecutorService threadPool,
-          SyncDecisionContext decisionContext,
-          Supplier<Long> clock,
-          Runnable root,
-          DeciderCache cache) {
+      ExecutorService threadPool,
+      SyncDecisionContext decisionContext,
+      Supplier<Long> clock,
+      Runnable root) {
+    this(threadPool, decisionContext, clock, root, null);
+  }
+
+  DeterministicRunnerImpl(
+      ExecutorService threadPool,
+      SyncDecisionContext decisionContext,
+      Supplier<Long> clock,
+      Runnable root,
+      DeciderCache cache) {
     this.threadPool = threadPool;
     this.decisionContext =
         decisionContext != null ? decisionContext : newDummySyncDecisionContext();
@@ -153,7 +161,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             false,
             runnerCancellationScope,
             root,
-                cache);
+            cache);
     threads.addLast(rootWorkflowThread);
     rootWorkflowThread.start();
   }
@@ -183,7 +191,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         for (NamedRunnable nr : toExecuteInWorkflowThread) {
           WorkflowThread thread =
               new WorkflowThreadImpl(
-                  false, threadPool, this, nr.name, false, runnerCancellationScope, nr.runnable);
+                  false,
+                  threadPool,
+                  this,
+                  nr.name,
+                  false,
+                  runnerCancellationScope,
+                  nr.runnable,
+                  cache);
           // It is important to prepend threads as there are callbacks
           // like signals that have to run before any other threads.
           // Otherwise signal might be never processed if it was received
@@ -363,7 +378,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     checkClosed();
     WorkflowThread result =
         new WorkflowThreadImpl(
-            false, threadPool, this, name, detached, CancellationScopeImpl.current(), runnable);
+            false,
+            threadPool,
+            this,
+            name,
+            detached,
+            CancellationScopeImpl.current(),
+            runnable,
+            cache);
     threadsToAdd.add(result); // This is synchronized collection.
     return result;
   }

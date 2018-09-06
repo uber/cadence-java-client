@@ -165,14 +165,14 @@ class WorkflowThreadImpl implements WorkflowThread {
   private long blockedUntil;
 
   WorkflowThreadImpl(
-          boolean root,
-          ExecutorService threadPool,
-          DeterministicRunnerImpl runner,
-          String name,
-          boolean detached,
-          CancellationScopeImpl parentCancellationScope,
-          Runnable runnable,
-          DeciderCache cache) {
+      boolean root,
+      ExecutorService threadPool,
+      DeterministicRunnerImpl runner,
+      String name,
+      boolean detached,
+      CancellationScopeImpl parentCancellationScope,
+      Runnable runnable,
+      DeciderCache cache) {
     this.root = root;
     this.threadPool = threadPool;
     this.runner = runner;
@@ -224,19 +224,22 @@ class WorkflowThreadImpl implements WorkflowThread {
 
   @Override
   public void start() {
-    try {
-      attemptStart();
-    } catch (RejectedExecutionException e) {
-      cache.evictNext();
-    }
-
-    try {
-      attemptStart();
-    } catch (RejectedExecutionException e) {
-      throw new Error(
-          "Not enough threads to execute workflows. "
-              + "If this message appears consistently either WorkerOptions.maxConcurrentWorklfowExecutionSize "
-              + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
+    int attempts = 2;
+    for (int i = 0; i < attempts; i++) {
+      try {
+        attemptStart();
+        break;
+      } catch (RejectedExecutionException e) {
+        if (i == attempts - 1 || cache == null) {
+          throw new Error(
+              "Not enough threads to execute workflows. "
+                  + "If this message appears consistently either WorkerOptions.maxConcurrentWorklfowExecutionSize "
+                  + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
+        }
+        // Reset state
+        context.setStatus(Status.CREATED);
+        cache.evictNext();
+      }
     }
   }
 

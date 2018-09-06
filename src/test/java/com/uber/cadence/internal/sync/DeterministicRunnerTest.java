@@ -23,7 +23,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.internal.replay.Decider;
+import com.uber.cadence.internal.replay.DeciderCache;
+import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
+import com.uber.cadence.testUtils.HistoryUtils;
 import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.CompletablePromise;
@@ -34,12 +40,14 @@ import com.uber.cadence.workflow.WorkflowTest;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -614,5 +622,149 @@ public class DeterministicRunnerTest {
       expected.add("child " + i + " done");
     }
     trace.setExpected(expected.toArray(new String[0]));
+  }
+
+  @Test
+  public void workflowThreadsWillEvictCacheWhenMaxThreadCountIsHit() throws Throwable {
+    // Arrange
+    ThreadPoolExecutor threadPool =
+        new ThreadPoolExecutor(1, 3, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
+    AtomicReference<String> status = new AtomicReference<>();
+
+    DeciderCache cache = new DeciderCache(3);
+    boolean unblock = false;
+    DeterministicRunnerImpl d =
+        new DeterministicRunnerImpl(
+            threadPool,
+            null,
+            () -> 0L, // clock override
+            () -> {
+              Promise<Void> thread =
+                  Async.procedure(
+                      () -> {
+                        status.set("started");
+                        WorkflowThread.await("doing something", () -> false);
+                        status.set("done");
+                      });
+              thread.get();
+            },
+            cache);
+    Decider decider = new DetermisiticRunnerContainerDecider(d);
+    PollForDecisionTaskResponse response = HistoryUtils.generateDecisionTaskWithInitialHistory();
+
+    cache.getOrCreate(response, t -> decider);
+    d.runUntilAllBlocked();
+    assertEquals(2, threadPool.getActiveCount());
+
+    DeterministicRunnerImpl d2 =
+        new DeterministicRunnerImpl(
+            threadPool,
+            null,
+            () -> 0L, // clock override
+            () -> {
+              Promise<Void> thread =
+                  Async.procedure(
+                      () -> {
+                        status.set("started");
+                        WorkflowThread.await("doing something else", () -> false);
+                        status.set("done");
+                      });
+              thread.get();
+            },
+            cache);
+
+    // Root thread added for d2 therefore we expect a total of 3 threads used
+    assertEquals(3, threadPool.getActiveCount());
+    assertEquals(1, cache.size());
+
+    // Act: This should kick out threads consumed by 'd'
+    d2.runUntilAllBlocked();
+
+    // Assert: Cache is evicted and only threads consumed by d2 remain.
+    assertEquals(2, threadPool.getActiveCount());
+    assertEquals(0, cache.size()); // cache was evicted
+  }
+
+  @Test
+  public void workflowThreadsWillNotEvictCacheWhenMaxThreadCountIsHit() throws Throwable {
+    // Arrange
+    ThreadPoolExecutor threadPool =
+        new ThreadPoolExecutor(1, 5, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
+    AtomicReference<String> status = new AtomicReference<>();
+
+    DeciderCache cache = new DeciderCache(3);
+    boolean unblock = false;
+    DeterministicRunnerImpl d =
+        new DeterministicRunnerImpl(
+            threadPool,
+            null,
+            () -> 0L, // clock override
+            () -> {
+              Promise<Void> thread =
+                  Async.procedure(
+                      () -> {
+                        status.set("started");
+                        WorkflowThread.await("doing something", () -> false);
+                        status.set("done");
+                      });
+              thread.get();
+            },
+            cache);
+    Decider decider = new DetermisiticRunnerContainerDecider(d);
+    PollForDecisionTaskResponse response = HistoryUtils.generateDecisionTaskWithInitialHistory();
+
+    cache.getOrCreate(response, t -> decider);
+    d.runUntilAllBlocked();
+    assertEquals(2, threadPool.getActiveCount());
+
+    DeterministicRunnerImpl d2 =
+        new DeterministicRunnerImpl(
+            threadPool,
+            null,
+            () -> 0L, // clock override
+            () -> {
+              Promise<Void> thread =
+                  Async.procedure(
+                      () -> {
+                        status.set("started");
+                        WorkflowThread.await("doing something else", () -> false);
+                        status.set("done");
+                      });
+              thread.get();
+            },
+            cache);
+
+    // Root thread added for d2 therefore we expect a total of 3 threads used
+    assertEquals(3, threadPool.getActiveCount());
+    assertEquals(1, cache.size());
+
+    // Act: This should not kick out threads consumed by 'd' since there's enough capacity
+    d2.runUntilAllBlocked();
+
+    // Assert: Cache is not evicted and all threads remain.
+    assertEquals(4, threadPool.getActiveCount());
+    assertEquals(1, cache.size()); // cache was evicted
+  }
+
+  private static class DetermisiticRunnerContainerDecider implements Decider {
+    DeterministicRunner runner;
+
+    DetermisiticRunnerContainerDecider(DeterministicRunner runner) {
+      this.runner = Objects.requireNonNull(runner);
+    }
+
+    @Override
+    public void decide(DecisionTaskWithHistoryIterator iterator) throws Throwable {}
+
+    @Override
+    public byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
+        throws Throwable {
+      return new byte[0];
+    }
+
+    @Override
+    public void close() {
+      runner.close();
+    }
   }
 }
