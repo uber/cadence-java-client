@@ -553,60 +553,6 @@ public class WorkflowExecutionUtils {
     return instanceMetadata;
   }
 
-  /** Returns workflow instance history in a human readable format. */
-  public static String prettyPrintHistory(
-      IWorkflowService service, String domain, WorkflowExecution workflowExecution) {
-    return prettyPrintHistory(service, domain, workflowExecution, true);
-  }
-
-  /**
-   * Returns workflow instance history in a human readable format.
-   *
-   * @param showWorkflowTasks when set to false workflow task events (decider events) are not
-   *     included
-   */
-  public static String prettyPrintHistory(
-      IWorkflowService service,
-      String domain,
-      WorkflowExecution workflowExecution,
-      boolean showWorkflowTasks) {
-    Iterator<HistoryEvent> events = getHistory(service, domain, workflowExecution);
-    return prettyPrintHistory(events, showWorkflowTasks);
-  }
-
-  public static Iterator<HistoryEvent> getHistory(
-      IWorkflowService service, String domain, WorkflowExecution workflowExecution) {
-    return new Iterator<HistoryEvent>() {
-      byte[] nextPageToken;
-      Iterator<HistoryEvent> current;
-
-      {
-        getNextPage();
-      }
-
-      @Override
-      public boolean hasNext() {
-        return current.hasNext() || nextPageToken != null;
-      }
-
-      @Override
-      public HistoryEvent next() {
-        if (current.hasNext()) {
-          return current.next();
-        }
-        getNextPage();
-        return current.next();
-      }
-
-      private void getNextPage() {
-        GetWorkflowExecutionHistoryResponse history =
-            getHistoryPage(nextPageToken, service, domain, workflowExecution);
-        current = history.getHistory().getEvents().iterator();
-        nextPageToken = history.getNextPageToken();
-      }
-    };
-  }
-
   public static GetWorkflowExecutionHistoryResponse getHistoryPage(
       byte[] nextPageToken,
       IWorkflowService service,

@@ -29,7 +29,12 @@ import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
-import com.uber.cadence.internal.worker.*;
+import com.uber.cadence.internal.worker.Dispatcher;
+import com.uber.cadence.internal.worker.PollDecisionTaskDispatcherFactory;
+import com.uber.cadence.internal.worker.Poller;
+import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.internal.worker.SingleWorkerOptions;
+import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.WorkerOptions.Builder;
@@ -40,7 +45,11 @@ import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -331,11 +340,14 @@ public final class Worker {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
-    private final UUID Id = UUID.randomUUID();
+    private final UUID id =
+        UUID
+            .randomUUID(); // Guarantee uniqueness for stickyTaskListName when multiple factories
+                           // are created.
     private final ThreadPoolExecutor workflowThreadPool;
     private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+    private final FactoryOptions factoryOptions;
 
-    private FactoryOptions factoryOptions;
     private Poller<PollForDecisionTaskResponse> stickyPoller;
     private Dispatcher<String, PollForDecisionTaskResponse> dispatcher;
     private DeciderCache cache;
@@ -399,13 +411,13 @@ public final class Worker {
       dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
       stickyPoller =
           new Poller<>(
-              Id.toString(),
+              id.toString(),
               new WorkflowPollTaskFactory(
                       workflowService,
                       domain,
                       getStickyTaskListName(),
                       getDefaultSingleWorkerOptions())
-                  .create(),
+                  .get(),
               dispatcher,
               pollerOptions,
               options.getMetricsScope());
@@ -495,7 +507,7 @@ public final class Worker {
 
     private String getStickyTaskListName() {
       return this.factoryOptions.enableStickyExecution
-          ? String.format("%s:%s", getHostName(), Id)
+          ? String.format("%s:%s", getHostName(), id)
           : null;
     }
 
