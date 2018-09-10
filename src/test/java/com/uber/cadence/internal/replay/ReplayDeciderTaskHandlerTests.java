@@ -27,7 +27,6 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
-import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.testUtils.HistoryUtils;
 import java.time.Duration;
