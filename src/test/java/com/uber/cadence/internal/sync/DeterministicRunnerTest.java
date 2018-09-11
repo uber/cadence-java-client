@@ -28,7 +28,6 @@ import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.replay.Decider;
 import com.uber.cadence.internal.replay.DeciderCache;
-import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.testUtils.HistoryUtils;
 import com.uber.cadence.workflow.Async;
 import com.uber.cadence.workflow.CancellationScope;
@@ -754,10 +753,10 @@ public class DeterministicRunnerTest {
     }
 
     @Override
-    public void decide(DecisionTaskWithHistoryIterator iterator) throws Throwable {}
+    public void decide(PollForDecisionTaskResponse decisionTask) throws Throwable {}
 
     @Override
-    public byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
+    public byte[] query(PollForDecisionTaskResponse decisionTask, WorkflowQuery query)
         throws Throwable {
       return new byte[0];
     }

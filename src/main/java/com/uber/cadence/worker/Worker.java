@@ -340,11 +340,12 @@ public final class Worker {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
-    private final UUID Id = UUID.randomUUID();
+    private final UUID id =
+        UUID.randomUUID(); // Guarantee uniqueness for stickyTaskListName when multiple factories
     private final ThreadPoolExecutor workflowThreadPool;
     private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+    private final FactoryOptions factoryOptions;
 
-    private FactoryOptions factoryOptions;
     private Poller<PollForDecisionTaskResponse> stickyPoller;
     private Dispatcher<String, PollForDecisionTaskResponse> dispatcher;
     private DeciderCache cache;
@@ -408,13 +409,13 @@ public final class Worker {
       dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
       stickyPoller =
           new Poller<>(
-              Id.toString(),
+              id.toString(),
               new WorkflowPollTaskFactory(
                       workflowService,
                       domain,
                       getStickyTaskListName(),
                       getDefaultSingleWorkerOptions())
-                  .create(),
+                  .get(),
               dispatcher,
               pollerOptions,
               options.getMetricsScope());
@@ -504,7 +505,7 @@ public final class Worker {
 
     private String getStickyTaskListName() {
       return this.factoryOptions.enableStickyExecution
-          ? String.format("%s:%s", getHostName(), Id)
+          ? String.format("%s:%s", getHostName(), id)
           : null;
     }
 
@@ -566,8 +567,8 @@ public final class Worker {
     }
 
     private final boolean enableStickyExecution;
-    private int cacheMaximumSize;
-    private int maxWorkflowThreadCount;
+    private final int cacheMaximumSize;
+    private final int maxWorkflowThreadCount;
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
 
     private FactoryOptions(
@@ -575,6 +576,14 @@ public final class Worker {
         int cacheMaximumSize,
         int maxWorkflowThreadCount,
         int stickyDecisionScheduleToStartTimeoutInSeconds) {
+      Preconditions.checkArgument(
+          cacheMaximumSize > 0, "cacheMaximumSize should be greater than 0");
+      Preconditions.checkArgument(
+          maxWorkflowThreadCount > 0, "maxWorkflowThreadCount should be greater than 0");
+      Preconditions.checkArgument(
+          stickyDecisionScheduleToStartTimeoutInSeconds > 0,
+          "stickyDecisionScheduleToStartTimeoutInSeconds should be greater than 0");
+
       this.enableStickyExecution = enableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;

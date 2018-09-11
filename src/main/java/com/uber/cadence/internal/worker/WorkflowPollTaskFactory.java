@@ -20,16 +20,15 @@ package com.uber.cadence.internal.worker;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.Objects;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Supplier;
 
-public class WorkflowPollTaskFactory implements PollTaskFactory<PollForDecisionTaskResponse> {
+public class WorkflowPollTaskFactory
+    implements Supplier<Poller.PollTask<PollForDecisionTaskResponse>> {
 
   private final SingleWorkerOptions options;
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
-  private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
   public WorkflowPollTaskFactory(
       IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
@@ -40,7 +39,7 @@ public class WorkflowPollTaskFactory implements PollTaskFactory<PollForDecisionT
   }
 
   @Override
-  public Poller.PollTask<PollForDecisionTaskResponse> create() {
+  public Poller.PollTask<PollForDecisionTaskResponse> get() {
     return new WorkflowPollTask(service, domain, taskList, options);
   }
 }

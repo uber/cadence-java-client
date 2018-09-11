@@ -70,7 +70,8 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
             cache,
             options,
             stickyTaskListName,
-            stickyDecisionScheduleToStartTimeout);
+            stickyDecisionScheduleToStartTimeout,
+            service);
 
     worker = new WorkflowWorker(service, domain, taskList, options, taskHandler);
     this.options = options;
