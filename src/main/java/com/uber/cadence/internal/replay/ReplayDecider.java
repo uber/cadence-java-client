@@ -442,7 +442,7 @@ class ReplayDecider implements Decider {
     return result.get();
   }
 
-  class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {
+  private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {
 
     private final Duration retryServiceOperationInitialInterval = Duration.ofMillis(200);
     private final Duration retryServiceOperationMaxInterval = Duration.ofSeconds(4);

@@ -569,8 +569,8 @@ public final class Worker {
     }
 
     private final boolean enableStickyExecution;
-    private int cacheMaximumSize;
-    private int maxWorkflowThreadCount;
+    private final int cacheMaximumSize;
+    private final int maxWorkflowThreadCount;
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
 
     private FactoryOptions(
@@ -578,6 +578,10 @@ public final class Worker {
         int cacheMaximumSize,
         int maxWorkflowThreadCount,
         int stickyDecisionScheduleToStartTimeoutInSeconds) {
+      Preconditions.checkArgument(cacheMaximumSize > 0, "cacheMaximumSize should be greater than 0");
+      Preconditions.checkArgument(maxWorkflowThreadCount > 0, "maxWorkflowThreadCount should be greater than 0");
+      Preconditions.checkArgument(stickyDecisionScheduleToStartTimeoutInSeconds > 0, "stickyDecisionScheduleToStartTimeoutInSeconds should be greater than 0");
+
       this.enableStickyExecution = enableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;
