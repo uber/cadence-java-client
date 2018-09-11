@@ -84,12 +84,12 @@ public class WorkflowExecutionUtils {
   private static final String INDENTATION = "  ";
 
   private static RetryOptions retryParameters =
-          new RetryOptions.Builder()
-                  .setBackoffCoefficient(2)
-                  .setInitialInterval(Duration.ofMillis(500))
-                  .setMaximumInterval(Duration.ofSeconds(30))
-                  .setDoNotRetry(BadRequestError.class, EntityNotExistsError.class)
-                  .build();
+      new RetryOptions.Builder()
+          .setBackoffCoefficient(2)
+          .setInitialInterval(Duration.ofMillis(500))
+          .setMaximumInterval(Duration.ofSeconds(30))
+          .setDoNotRetry(BadRequestError.class, EntityNotExistsError.class)
+          .build();
 
   /**
    * Returns result of a workflow instance execution or throws an exception if workflow did not
@@ -105,34 +105,34 @@ public class WorkflowExecutionUtils {
    *     terminate command.
    */
   public static byte[] getWorkflowExecutionResult(
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution,
-          Optional<String> workflowType,
-          long timeout,
-          TimeUnit unit)
-          throws TimeoutException, CancellationException, WorkflowExecutionFailedException,
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution,
+      Optional<String> workflowType,
+      long timeout,
+      TimeUnit unit)
+      throws TimeoutException, CancellationException, WorkflowExecutionFailedException,
           WorkflowTerminatedException, WorkflowTimedOutException, EntityNotExistsError {
     // getIntanceCloseEvent waits for workflow completion including new runs.
     HistoryEvent closeEvent =
-            getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
+        getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
     return getResultFromCloseEvent(workflowExecution, workflowType, closeEvent);
   }
 
   public static CompletableFuture<byte[]> getWorkflowExecutionResultAsync(
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution,
-          Optional<String> workflowType,
-          long timeout,
-          TimeUnit unit) {
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution,
+      Optional<String> workflowType,
+      long timeout,
+      TimeUnit unit) {
     return getInstanceCloseEventAsync(service, domain, workflowExecution, timeout, unit)
-            .thenApply(
-                    (closeEvent) -> getResultFromCloseEvent(workflowExecution, workflowType, closeEvent));
+        .thenApply(
+            (closeEvent) -> getResultFromCloseEvent(workflowExecution, workflowType, closeEvent));
   }
 
   private static byte[] getResultFromCloseEvent(
-          WorkflowExecution workflowExecution, Optional<String> workflowType, HistoryEvent closeEvent) {
+      WorkflowExecution workflowExecution, Optional<String> workflowType, HistoryEvent closeEvent) {
     if (closeEvent == null) {
       throw new IllegalStateException("Workflow is still running");
     }
@@ -145,37 +145,37 @@ public class WorkflowExecutionUtils {
         throw new CancellationException(message);
       case WorkflowExecutionFailed:
         WorkflowExecutionFailedEventAttributes failed =
-                closeEvent.getWorkflowExecutionFailedEventAttributes();
+            closeEvent.getWorkflowExecutionFailedEventAttributes();
         throw new WorkflowExecutionFailedException(
-                failed.getReason(), failed.getDetails(), failed.getDecisionTaskCompletedEventId());
+            failed.getReason(), failed.getDetails(), failed.getDecisionTaskCompletedEventId());
       case WorkflowExecutionTerminated:
         WorkflowExecutionTerminatedEventAttributes terminated =
-                closeEvent.getWorkflowExecutionTerminatedEventAttributes();
+            closeEvent.getWorkflowExecutionTerminatedEventAttributes();
         throw new WorkflowTerminatedException(
-                workflowExecution,
-                workflowType,
-                terminated.getReason(),
-                terminated.getIdentity(),
-                terminated.getDetails());
+            workflowExecution,
+            workflowType,
+            terminated.getReason(),
+            terminated.getIdentity(),
+            terminated.getDetails());
       case WorkflowExecutionTimedOut:
         WorkflowExecutionTimedOutEventAttributes timedOut =
-                closeEvent.getWorkflowExecutionTimedOutEventAttributes();
+            closeEvent.getWorkflowExecutionTimedOutEventAttributes();
         throw new WorkflowTimedOutException(
-                workflowExecution, workflowType, timedOut.getTimeoutType());
+            workflowExecution, workflowType, timedOut.getTimeoutType());
       default:
         throw new RuntimeException(
-                "Workflow end state is not completed: " + prettyPrintHistoryEvent(closeEvent));
+            "Workflow end state is not completed: " + prettyPrintHistoryEvent(closeEvent));
     }
   }
 
   /** Returns an instance closing event, potentially waiting for workflow to complete. */
   public static HistoryEvent getInstanceCloseEvent(
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution,
-          long timeout,
-          TimeUnit unit)
-          throws TimeoutException, EntityNotExistsError {
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution,
+      long timeout,
+      TimeUnit unit)
+      throws TimeoutException, EntityNotExistsError {
     byte[] pageToken = null;
     GetWorkflowExecutionHistoryResponse response;
     // TODO: Interrupt service long poll call on timeout and on interrupt
@@ -189,7 +189,7 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       try {
         response =
-                Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
       } catch (EntityNotExistsError e) {
         throw e;
       } catch (TException e) {
@@ -197,14 +197,14 @@ public class WorkflowExecutionUtils {
       }
       if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
         throw new TimeoutException(
-                "WorkflowId="
-                        + workflowExecution.getWorkflowId()
-                        + ", runId="
-                        + workflowExecution.getRunId()
-                        + ", timeout="
-                        + timeout
-                        + ", unit="
-                        + unit);
+            "WorkflowId="
+                + workflowExecution.getWorkflowId()
+                + ", runId="
+                + workflowExecution.getRunId()
+                + ", timeout="
+                + timeout
+                + ", unit="
+                + unit);
       }
       pageToken = response.getNextPageToken();
       History history = response.getHistory();
@@ -217,12 +217,12 @@ public class WorkflowExecutionUtils {
         if (event.getEventType() == EventType.WorkflowExecutionContinuedAsNew) {
           pageToken = null;
           workflowExecution =
-                  new WorkflowExecution()
-                          .setWorkflowId(workflowExecution.getWorkflowId())
-                          .setRunId(
-                                  event
-                                          .getWorkflowExecutionContinuedAsNewEventAttributes()
-                                          .getNewExecutionRunId());
+              new WorkflowExecution()
+                  .setWorkflowId(workflowExecution.getWorkflowId())
+                  .setRunId(
+                      event
+                          .getWorkflowExecutionContinuedAsNewEventAttributes()
+                          .getNewExecutionRunId());
           continue;
         }
         break;
@@ -233,21 +233,21 @@ public class WorkflowExecutionUtils {
 
   /** Returns an instance closing event, potentially waiting for workflow to complete. */
   private static CompletableFuture<HistoryEvent> getInstanceCloseEventAsync(
-          IWorkflowService service,
-          String domain,
-          final WorkflowExecution workflowExecution,
-          long timeout,
-          TimeUnit unit) {
+      IWorkflowService service,
+      String domain,
+      final WorkflowExecution workflowExecution,
+      long timeout,
+      TimeUnit unit) {
     return getInstanceCloseEventAsync(service, domain, workflowExecution, null, timeout, unit);
   }
 
   private static CompletableFuture<HistoryEvent> getInstanceCloseEventAsync(
-          IWorkflowService service,
-          String domain,
-          final WorkflowExecution workflowExecution,
-          byte[] pageToken,
-          long timeout,
-          TimeUnit unit) {
+      IWorkflowService service,
+      String domain,
+      final WorkflowExecution workflowExecution,
+      byte[] pageToken,
+      long timeout,
+      TimeUnit unit) {
     // TODO: Interrupt service long poll call on timeout and on interrupt
     long start = System.currentTimeMillis();
     CompletableFuture<HistoryEvent> result = new CompletableFuture<>();
@@ -257,78 +257,78 @@ public class WorkflowExecutionUtils {
     request.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
     request.setNextPageToken(pageToken);
     CompletableFuture<GetWorkflowExecutionHistoryResponse> response =
-            getWorkflowExecutionHistoryAsync(service, request);
+        getWorkflowExecutionHistoryAsync(service, request);
     return response.thenComposeAsync(
-            (r) -> {
-              if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
-                throw CheckedExceptionWrapper.wrap(
-                        new TimeoutException(
-                                "WorkflowId="
-                                        + workflowExecution.getWorkflowId()
-                                        + ", runId="
-                                        + workflowExecution.getRunId()
-                                        + ", timeout="
-                                        + timeout
-                                        + ", unit="
-                                        + unit));
-              }
-              History history = r.getHistory();
-              if (history == null || history.getEvents().size() == 0) {
-                // Empty poll returned
-                return getInstanceCloseEventAsync(
-                        service, domain, workflowExecution, pageToken, timeout, unit);
-              }
-              HistoryEvent event = history.getEvents().get(0);
-              if (!isWorkflowExecutionCompletedEvent(event)) {
-                throw new RuntimeException("Last history event is not completion event: " + event);
-              }
-              // Workflow called continueAsNew. Start polling the new generation with new runId.
-              if (event.getEventType() == EventType.WorkflowExecutionContinuedAsNew) {
-                WorkflowExecution nextWorkflowExecution =
-                        new WorkflowExecution()
-                                .setWorkflowId(workflowExecution.getWorkflowId())
-                                .setRunId(
-                                        event
-                                                .getWorkflowExecutionContinuedAsNewEventAttributes()
-                                                .getNewExecutionRunId());
-                return getInstanceCloseEventAsync(
-                        service, domain, nextWorkflowExecution, r.getNextPageToken(), timeout, unit);
-              }
-              return CompletableFuture.completedFuture(event);
-            });
+        (r) -> {
+          if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
+            throw CheckedExceptionWrapper.wrap(
+                new TimeoutException(
+                    "WorkflowId="
+                        + workflowExecution.getWorkflowId()
+                        + ", runId="
+                        + workflowExecution.getRunId()
+                        + ", timeout="
+                        + timeout
+                        + ", unit="
+                        + unit));
+          }
+          History history = r.getHistory();
+          if (history == null || history.getEvents().size() == 0) {
+            // Empty poll returned
+            return getInstanceCloseEventAsync(
+                service, domain, workflowExecution, pageToken, timeout, unit);
+          }
+          HistoryEvent event = history.getEvents().get(0);
+          if (!isWorkflowExecutionCompletedEvent(event)) {
+            throw new RuntimeException("Last history event is not completion event: " + event);
+          }
+          // Workflow called continueAsNew. Start polling the new generation with new runId.
+          if (event.getEventType() == EventType.WorkflowExecutionContinuedAsNew) {
+            WorkflowExecution nextWorkflowExecution =
+                new WorkflowExecution()
+                    .setWorkflowId(workflowExecution.getWorkflowId())
+                    .setRunId(
+                        event
+                            .getWorkflowExecutionContinuedAsNewEventAttributes()
+                            .getNewExecutionRunId());
+            return getInstanceCloseEventAsync(
+                service, domain, nextWorkflowExecution, r.getNextPageToken(), timeout, unit);
+          }
+          return CompletableFuture.completedFuture(event);
+        });
   }
 
   private static CompletableFuture<GetWorkflowExecutionHistoryResponse>
-  getWorkflowExecutionHistoryAsync(
+      getWorkflowExecutionHistoryAsync(
           IWorkflowService service, GetWorkflowExecutionHistoryRequest r) {
     return Retryer.retryWithResultAsync(
-            retryParameters,
-            () -> {
-              CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
-              try {
-                service.GetWorkflowExecutionHistory(
-                        r,
-                        new AsyncMethodCallback<GetWorkflowExecutionHistoryResponse>() {
-                          @Override
-                          public void onComplete(GetWorkflowExecutionHistoryResponse response) {
-                            result.complete(response);
-                          }
+        retryParameters,
+        () -> {
+          CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
+          try {
+            service.GetWorkflowExecutionHistory(
+                r,
+                new AsyncMethodCallback<GetWorkflowExecutionHistoryResponse>() {
+                  @Override
+                  public void onComplete(GetWorkflowExecutionHistoryResponse response) {
+                    result.complete(response);
+                  }
 
-                          @Override
-                          public void onError(Exception exception) {
-                            result.completeExceptionally(exception);
-                          }
-                        });
-              } catch (TException e) {
-                result.completeExceptionally(e);
-              }
-              return result;
-            });
+                  @Override
+                  public void onError(Exception exception) {
+                    result.completeExceptionally(exception);
+                  }
+                });
+          } catch (TException e) {
+            result.completeExceptionally(e);
+          }
+          return result;
+        });
   }
 
   public static boolean isWorkflowExecutionCompletedEvent(HistoryEvent event) {
     return ((event != null)
-            && (event.getEventType() == EventType.WorkflowExecutionCompleted
+        && (event.getEventType() == EventType.WorkflowExecutionCompleted
             || event.getEventType() == EventType.WorkflowExecutionCanceled
             || event.getEventType() == EventType.WorkflowExecutionFailed
             || event.getEventType() == EventType.WorkflowExecutionTimedOut
@@ -338,7 +338,7 @@ public class WorkflowExecutionUtils {
 
   public static boolean isWorkflowExecutionCompleteDecision(Decision decision) {
     return ((decision != null)
-            && (decision.getDecisionType() == DecisionType.CompleteWorkflowExecution
+        && (decision.getDecisionType() == DecisionType.CompleteWorkflowExecution
             || decision.getDecisionType() == DecisionType.CancelWorkflowExecution
             || decision.getDecisionType() == DecisionType.FailWorkflowExecution
             || decision.getDecisionType() == DecisionType.ContinueAsNewWorkflowExecution));
@@ -346,7 +346,7 @@ public class WorkflowExecutionUtils {
 
   public static boolean isActivityTaskClosedEvent(HistoryEvent event) {
     return ((event != null)
-            && (event.getEventType() == EventType.ActivityTaskCompleted
+        && (event.getEventType() == EventType.ActivityTaskCompleted
             || event.getEventType() == EventType.ActivityTaskCanceled
             || event.getEventType() == EventType.ActivityTaskFailed
             || event.getEventType() == EventType.ActivityTaskTimedOut));
@@ -354,7 +354,7 @@ public class WorkflowExecutionUtils {
 
   public static boolean isExternalWorkflowClosedEvent(HistoryEvent event) {
     return ((event != null)
-            && (event.getEventType() == EventType.ChildWorkflowExecutionCompleted
+        && (event.getEventType() == EventType.ChildWorkflowExecutionCompleted
             || event.getEventType() == EventType.ChildWorkflowExecutionCanceled
             || event.getEventType() == EventType.ChildWorkflowExecutionFailed
             || event.getEventType() == EventType.ChildWorkflowExecutionTerminated
@@ -362,7 +362,7 @@ public class WorkflowExecutionUtils {
   }
 
   public static WorkflowExecution getWorkflowIdFromExternalWorkflowCompletedEvent(
-          HistoryEvent event) {
+      HistoryEvent event) {
     if (event != null) {
       if (event.getEventType() == EventType.ChildWorkflowExecutionCompleted) {
         return event.getChildWorkflowExecutionCompletedEventAttributes().getWorkflowExecution();
@@ -396,10 +396,10 @@ public class WorkflowExecutionUtils {
     if (historyEvent != null) {
       if (historyEvent.getEventType() == EventType.StartChildWorkflowExecutionFailed) {
         failureCause =
-                historyEvent
-                        .getStartChildWorkflowExecutionFailedEventAttributes()
-                        .getCause()
-                        .toString();
+            historyEvent
+                .getStartChildWorkflowExecutionFailedEventAttributes()
+                .getCause()
+                .toString();
         //            } else if (historyEvent.getEventType() ==
         // EventType.SignalExternalWorkflowExecutionFailed) {
         //                failureCause =
@@ -421,11 +421,11 @@ public class WorkflowExecutionUtils {
    * @return instance close status
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletion(
-          IWorkflowService service, String domain, WorkflowExecution workflowExecution)
-          throws EntityNotExistsError {
+      IWorkflowService service, String domain, WorkflowExecution workflowExecution)
+      throws EntityNotExistsError {
     try {
       return waitForWorkflowInstanceCompletion(
-              service, domain, workflowExecution, 0, TimeUnit.MILLISECONDS);
+          service, domain, workflowExecution, 0, TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
       throw new Error("should never happen", e);
     }
@@ -441,14 +441,14 @@ public class WorkflowExecutionUtils {
    * @return instance close status
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletion(
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution,
-          long timeout,
-          TimeUnit unit)
-          throws TimeoutException, EntityNotExistsError {
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution,
+      long timeout,
+      TimeUnit unit)
+      throws TimeoutException, EntityNotExistsError {
     HistoryEvent closeEvent =
-            getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
+        getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
     return getCloseStatus(closeEvent);
   }
 
@@ -480,25 +480,25 @@ public class WorkflowExecutionUtils {
    *     TimeUnit)
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletionAcrossGenerations(
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution,
-          long timeout,
-          TimeUnit unit)
-          throws TimeoutException, EntityNotExistsError {
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution,
+      long timeout,
+      TimeUnit unit)
+      throws TimeoutException, EntityNotExistsError {
 
     WorkflowExecution lastExecutionToRun = workflowExecution;
     long millisecondsAtFirstWait = System.currentTimeMillis();
     WorkflowExecutionCloseStatus lastExecutionToRunCloseStatus =
-            waitForWorkflowInstanceCompletion(service, domain, lastExecutionToRun, timeout, unit);
+        waitForWorkflowInstanceCompletion(service, domain, lastExecutionToRun, timeout, unit);
 
     // keep waiting if the instance continued as new
     while (lastExecutionToRunCloseStatus == WorkflowExecutionCloseStatus.CONTINUED_AS_NEW) {
       // get the new execution's information
       HistoryEvent closeEvent =
-              getInstanceCloseEvent(service, domain, lastExecutionToRun, timeout, unit);
+          getInstanceCloseEvent(service, domain, lastExecutionToRun, timeout, unit);
       WorkflowExecutionContinuedAsNewEventAttributes continuedAsNewAttributes =
-              closeEvent.getWorkflowExecutionContinuedAsNewEventAttributes();
+          closeEvent.getWorkflowExecutionContinuedAsNewEventAttributes();
 
       WorkflowExecution newGenerationExecution = new WorkflowExecution();
       newGenerationExecution.setRunId(continuedAsNewAttributes.getNewExecutionRunId());
@@ -508,15 +508,15 @@ public class WorkflowExecutionUtils {
       long currentTime = System.currentTimeMillis();
       long millisecondsSinceFirstWait = currentTime - millisecondsAtFirstWait;
       long timeoutInSecondsForNextWait =
-              unit.toMillis(timeout) - (millisecondsSinceFirstWait / 1000L);
+          unit.toMillis(timeout) - (millisecondsSinceFirstWait / 1000L);
 
       lastExecutionToRunCloseStatus =
-              waitForWorkflowInstanceCompletion(
-                      service,
-                      domain,
-                      newGenerationExecution,
-                      timeoutInSecondsForNextWait,
-                      TimeUnit.MILLISECONDS);
+          waitForWorkflowInstanceCompletion(
+              service,
+              domain,
+              newGenerationExecution,
+              timeoutInSecondsForNextWait,
+              TimeUnit.MILLISECONDS);
       lastExecutionToRun = newGenerationExecution;
     }
 
@@ -528,18 +528,18 @@ public class WorkflowExecutionUtils {
    * long, TimeUnit)} , but with no timeout.*
    */
   public static WorkflowExecutionCloseStatus waitForWorkflowInstanceCompletionAcrossGenerations(
-          IWorkflowService service, String domain, WorkflowExecution workflowExecution)
-          throws InterruptedException, EntityNotExistsError {
+      IWorkflowService service, String domain, WorkflowExecution workflowExecution)
+      throws InterruptedException, EntityNotExistsError {
     try {
       return waitForWorkflowInstanceCompletionAcrossGenerations(
-              service, domain, workflowExecution, 0L, TimeUnit.MILLISECONDS);
+          service, domain, workflowExecution, 0L, TimeUnit.MILLISECONDS);
     } catch (TimeoutException e) {
       throw new Error("should never happen", e);
     }
   }
 
   public static WorkflowExecutionInfo describeWorkflowInstance(
-          IWorkflowService service, String domain, WorkflowExecution workflowExecution) {
+      IWorkflowService service, String domain, WorkflowExecution workflowExecution) {
     DescribeWorkflowExecutionRequest describeRequest = new DescribeWorkflowExecutionRequest();
     describeRequest.setDomain(domain);
     describeRequest.setExecution(workflowExecution);
@@ -554,10 +554,10 @@ public class WorkflowExecutionUtils {
   }
 
   public static GetWorkflowExecutionHistoryResponse getHistoryPage(
-          byte[] nextPageToken,
-          IWorkflowService service,
-          String domain,
-          WorkflowExecution workflowExecution) {
+      byte[] nextPageToken,
+      IWorkflowService service,
+      String domain,
+      WorkflowExecution workflowExecution) {
 
     GetWorkflowExecutionHistoryRequest getHistoryRequest = new GetWorkflowExecutionHistoryRequest();
     getHistoryRequest.setDomain(domain);
@@ -588,7 +588,7 @@ public class WorkflowExecutionUtils {
   }
 
   public static String prettyPrintHistory(
-          Iterator<HistoryEvent> events, boolean showWorkflowTasks) {
+      Iterator<HistoryEvent> events, boolean showWorkflowTasks) {
     StringBuilder result = new StringBuilder();
     result.append("{");
     boolean first = true;
@@ -652,8 +652,8 @@ public class WorkflowExecutionUtils {
     }
     result.append(" ");
     result.append(
-            prettyPrintObject(
-                    getEventAttributes(event), "getFieldValue", true, INDENTATION, false, false));
+        prettyPrintObject(
+            getEventAttributes(event), "getFieldValue", true, INDENTATION, false, false));
     return result.toString();
   }
 
@@ -680,12 +680,12 @@ public class WorkflowExecutionUtils {
    * decisions.
    */
   private static String prettyPrintObject(
-          Object object,
-          String methodToSkip,
-          boolean skipNullsAndEmptyCollections,
-          String indentation,
-          boolean skipLevel,
-          boolean printTypeName) {
+      Object object,
+      String methodToSkip,
+      boolean skipNullsAndEmptyCollections,
+      String indentation,
+      boolean skipLevel,
+      boolean printTypeName) {
     StringBuilder result = new StringBuilder();
     if (object == null) {
       return "null";
@@ -735,9 +735,9 @@ public class WorkflowExecutionUtils {
     for (Method method : eventMethods) {
       String name = method.getName();
       if (!name.startsWith("get")
-              || name.equals("getDecisionType")
-              || method.getParameterCount() != 0
-              || !Modifier.isPublic(method.getModifiers())) {
+          || name.equals("getDecisionType")
+          || method.getParameterCount() != 0
+          || !Modifier.isPublic(method.getModifiers())) {
         continue;
       }
       if (name.equals(methodToSkip) || name.equals("getClass")) {
@@ -790,22 +790,22 @@ public class WorkflowExecutionUtils {
           continue;
         }
         result.append(
-                prettyPrintObject(
-                        value,
-                        methodToSkip,
-                        skipNullsAndEmptyCollections,
-                        indentation + INDENTATION,
-                        false,
-                        false));
+            prettyPrintObject(
+                value,
+                methodToSkip,
+                skipNullsAndEmptyCollections,
+                indentation + INDENTATION,
+                false,
+                false));
       } else {
         result.append(
-                prettyPrintObject(
-                        value,
-                        methodToSkip,
-                        skipNullsAndEmptyCollections,
-                        indentation,
-                        false,
-                        printTypeName));
+            prettyPrintObject(
+                value,
+                methodToSkip,
+                skipNullsAndEmptyCollections,
+                indentation,
+                false,
+                printTypeName));
       }
     }
     if (!skipLevel) {
@@ -861,21 +861,21 @@ public class WorkflowExecutionUtils {
   public static boolean isDecisionEvent(HistoryEvent event) {
     EventType eventType = event.getEventType();
     boolean result =
-            ((event != null)
-                    && (eventType == EventType.ActivityTaskScheduled
-                    || eventType == EventType.StartChildWorkflowExecutionInitiated
-                    || eventType == EventType.TimerStarted
-                    || eventType == EventType.WorkflowExecutionCompleted
-                    || eventType == EventType.WorkflowExecutionFailed
-                    || eventType == EventType.WorkflowExecutionCanceled
-                    || eventType == EventType.WorkflowExecutionContinuedAsNew
-                    || eventType == EventType.ActivityTaskCancelRequested
-                    || eventType == EventType.RequestCancelActivityTaskFailed
-                    || eventType == EventType.TimerCanceled
-                    || eventType == EventType.CancelTimerFailed
-                    || eventType == EventType.RequestCancelExternalWorkflowExecutionInitiated
-                    || eventType == EventType.MarkerRecorded
-                    || eventType == EventType.SignalExternalWorkflowExecutionInitiated));
+        ((event != null)
+            && (eventType == EventType.ActivityTaskScheduled
+                || eventType == EventType.StartChildWorkflowExecutionInitiated
+                || eventType == EventType.TimerStarted
+                || eventType == EventType.WorkflowExecutionCompleted
+                || eventType == EventType.WorkflowExecutionFailed
+                || eventType == EventType.WorkflowExecutionCanceled
+                || eventType == EventType.WorkflowExecutionContinuedAsNew
+                || eventType == EventType.ActivityTaskCancelRequested
+                || eventType == EventType.RequestCancelActivityTaskFailed
+                || eventType == EventType.TimerCanceled
+                || eventType == EventType.CancelTimerFailed
+                || eventType == EventType.RequestCancelExternalWorkflowExecutionInitiated
+                || eventType == EventType.MarkerRecorded
+                || eventType == EventType.SignalExternalWorkflowExecutionInitiated));
     return result;
   }
 
