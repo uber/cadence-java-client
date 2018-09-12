@@ -224,31 +224,26 @@ class WorkflowThreadImpl implements WorkflowThread {
 
   @Override
   public void start() {
-    int attempts = 2;
-    for (int i = 0; i < attempts; i++) {
-      try {
-        attemptStart();
-        break;
-      } catch (RejectedExecutionException e) {
-        if (i == attempts - 1 || cache == null) {
-          throw new Error(
-              "Not enough threads to execute workflows. "
-                  + "If this message appears consistently either WorkerOptions.maxConcurrentWorklfowExecutionSize "
-                  + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
-        }
-        // Reset state
-        context.setStatus(Status.CREATED);
-        cache.evictNext();
-      }
-    }
-  }
-
-  private void attemptStart() throws RejectedExecutionException {
     if (context.getStatus() != Status.CREATED) {
       throw new IllegalThreadStateException("already started");
     }
     context.setStatus(Status.RUNNING);
-    taskFuture = threadPool.submit(task);
+
+    try {
+      taskFuture = threadPool.submit(task);
+      return;
+    } catch (RejectedExecutionException e) {
+      cache.evictNext();
+    }
+
+    try {
+      taskFuture = threadPool.submit(task);
+    } catch (RejectedExecutionException e) {
+      throw new Error(
+          "Not enough threads to execute workflows. "
+              + "If this message appears consistently either WorkerOptions.maxConcurrentWorklfowExecutionSize "
+              + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
+    }
   }
 
   public WorkflowThreadContext getContext() {

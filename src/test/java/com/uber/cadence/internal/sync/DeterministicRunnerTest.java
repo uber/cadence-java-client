@@ -17,11 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
@@ -29,23 +25,12 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.replay.Decider;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.testUtils.HistoryUtils;
-import com.uber.cadence.workflow.Async;
-import com.uber.cadence.workflow.CancellationScope;
-import com.uber.cadence.workflow.CompletablePromise;
-import com.uber.cadence.workflow.Functions;
-import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowTest;
+import com.uber.cadence.workflow.*;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
@@ -742,7 +727,7 @@ public class DeterministicRunnerTest {
 
     // Assert: Cache is not evicted and all threads remain.
     assertEquals(4, threadPool.getActiveCount());
-    assertEquals(1, cache.size()); // cache was evicted
+    assertEquals(1, cache.size());
   }
 
   private static class DetermisiticRunnerContainerDecider implements Decider {
