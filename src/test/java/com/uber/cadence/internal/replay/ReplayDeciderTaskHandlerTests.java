@@ -17,10 +17,6 @@
 
 package com.uber.cadence.internal.replay;
 
-import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
-import static junit.framework.TestCase.*;
-import static org.mockito.Mockito.*;
-
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.internal.metrics.NoopScope;
@@ -28,8 +24,17 @@ import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.testUtils.HistoryUtils;
-import java.time.Duration;
 import org.junit.Test;
+
+import java.time.Duration;
+
+import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ReplayDeciderTaskHandlerTests {
 
