@@ -17,13 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
@@ -94,7 +88,8 @@ public final class WorkflowWorker
       poller =
           new Poller<>(
               options.getIdentity(),
-              new WorkflowPollTask(service, domain, taskList, options),
+              new WorkflowPollTask(
+                  service, domain, taskList, options.getMetricsScope(), options.getIdentity()),
               pollTaskExecutor,
               pollerOptions,
               workerOptions.getMetricsScope());

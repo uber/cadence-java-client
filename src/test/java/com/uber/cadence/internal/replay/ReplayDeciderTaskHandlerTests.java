@@ -18,13 +18,12 @@
 package com.uber.cadence.internal.replay;
 
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertNull;
+import static junit.framework.TestCase.*;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
+import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -37,7 +36,7 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -61,7 +60,7 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -90,7 +89,7 @@ public class ReplayDeciderTaskHandlerTests {
   public void ifCacheIsEvictedAndPartialHistoryIsReceivedThenTaskFailedIsReturned()
       throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     StickyExecutionAttributes attributes = new StickyExecutionAttributes();
     attributes.setWorkerTaskList(createStickyTaskList("sticky"));
     DecisionTaskHandler taskHandler =
