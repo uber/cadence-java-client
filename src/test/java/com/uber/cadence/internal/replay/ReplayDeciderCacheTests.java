@@ -90,7 +90,7 @@ public class ReplayDeciderCacheTests {
             .build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
-        new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(10)).tagged(tags);
+        new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(300)).tagged(tags);
 
     DeciderCache replayDeciderCache = new DeciderCache(10, scope);
     TestWorkflowService service = new TestWorkflowService();
@@ -109,12 +109,11 @@ public class ReplayDeciderCacheTests {
     Decider decider2 = replayDeciderCache.getOrCreate(decisionTask, this::createFakeDecider);
 
     // Assert
-    assertEquals(decider2, replayDeciderCache.getUnchecked(runId));
-    assertEquals(decider2, decider);
-
     // Wait for reporter
     Thread.sleep(600);
-    verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 1);
+    verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 2);
+    assertEquals(decider2, replayDeciderCache.getUnchecked(runId));
+    assertEquals(decider2, decider);
   }
 
   @Test
