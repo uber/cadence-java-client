@@ -589,8 +589,8 @@ public final class Worker {
     private final int cacheMaximumSize;
     private final int maxWorkflowThreadCount;
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
-    private PollerOptions stickyWorkflowPollerOptions;
-    private Scope metricsScope;
+    private final PollerOptions stickyWorkflowPollerOptions;
+    private final Scope metricsScope;
 
     private FactoryOptions(
         boolean enableStickyExecution,
@@ -612,8 +612,6 @@ public final class Worker {
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;
       this.stickyDecisionScheduleToStartTimeoutInSeconds =
           stickyDecisionScheduleToStartTimeoutInSeconds;
-      this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
-      this.metricsScope = metricsScope;
 
       if (stickyWorkflowPollerOptions == null) {
         this.stickyWorkflowPollerOptions =
@@ -622,10 +620,14 @@ public final class Worker {
                 .setPollBackoffMaximumInterval(Duration.ofSeconds(20))
                 .setPollThreadCount(1)
                 .build();
+      } else {
+        this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
       }
 
       if (metricsScope == null) {
         this.metricsScope = NoopScope.getInstance();
+      } else {
+        this.metricsScope = metricsScope;
       }
     }
   }

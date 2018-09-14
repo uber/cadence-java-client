@@ -92,7 +92,7 @@ public final class DeciderCache {
     // Force eviction to happen
     cache.put(evictionEntryId, new WeightedCacheEntry<>(null, remainingSpace + 1));
     cache.invalidate(evictionEntryId);
-    metricsScope.counter(MetricsType.STICKY_CACHE_FORCED_EVICTION).inc(1);
+    metricsScope.counter(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION).inc(1);
   }
 
   public void invalidate(PollForDecisionTaskResponse decisionTask) {

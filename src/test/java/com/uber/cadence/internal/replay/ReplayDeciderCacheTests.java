@@ -17,6 +17,13 @@
 
 package com.uber.cadence.internal.replay;
 
+import static junit.framework.TestCase.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
@@ -32,13 +39,9 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
+import java.util.Map;
 import junit.framework.TestCase;
 import org.junit.Test;
-
-import java.util.Map;
-
-import static junit.framework.TestCase.*;
-import static org.mockito.Mockito.*;
 
 public class ReplayDeciderCacheTests {
 
@@ -184,7 +187,8 @@ public class ReplayDeciderCacheTests {
 
     // Wait for reporter
     Thread.sleep(600);
-    verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_FORCED_EVICTION, tags, 1);
+    verify(reporter, times(1))
+        .reportCounter(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION, tags, 1);
   }
 
   private void assertCacheIsEmpty(DeciderCache cache, String runId) throws Exception {
