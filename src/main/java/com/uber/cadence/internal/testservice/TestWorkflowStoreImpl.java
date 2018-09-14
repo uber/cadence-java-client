@@ -316,9 +316,15 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       throws EntityNotExistsError {
     lock.lock();
     try {
-      HistoryStore history = getHistoryStore(executionId);
-      List<HistoryEvent> events = new ArrayList<>(history.getEventsLocked());
-      task.setHistory(new History().setEvents(events));
+      HistoryStore historyStore = getHistoryStore(executionId);
+      List<HistoryEvent> events = new ArrayList<>(historyStore.getEventsLocked());
+      History history = new History();
+      if (taskList.getTaskListName().equals(task.getWorkflowExecutionTaskList().getName())) {
+        history.setEvents(events);
+      } else {
+        history.setEvents(new ArrayList<>());
+      }
+      task.setHistory(history);
     } finally {
       lock.unlock();
     }

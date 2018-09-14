@@ -21,27 +21,42 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.MetricsTag;
+import com.uber.cadence.internal.metrics.NoopScope;
+import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
+import com.uber.cadence.internal.worker.Dispatcher;
+import com.uber.cadence.internal.worker.PollDecisionTaskDispatcherFactory;
+import com.uber.cadence.internal.worker.Poller;
+import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
+import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.worker.WorkerOptions.Builder;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Hosts activity and workflow implementations. Uses long poll to receive activity and decision
@@ -55,6 +70,9 @@ public final class Worker {
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
   private final AtomicBoolean closed = new AtomicBoolean();
+  private final DeciderCache cache;
+  private final String stickyTaskListName;
+  private ThreadPoolExecutor threadPoolExecutor;
 
   /**
    * Creates worker that connects to an instance of the Cadence Service.
@@ -64,13 +82,26 @@ public final class Worker {
    * @param taskList task list name worker uses to poll. It uses this name for both decision and
    *     activity task list polls.
    * @param options Options (like {@link DataConverter} override) for configuring worker.
+   * @param stickyTaskListName
    */
-  private Worker(IWorkflowService service, String domain, String taskList, WorkerOptions options) {
+  private Worker(
+      IWorkflowService service,
+      String domain,
+      String taskList,
+      WorkerOptions options,
+      DeciderCache cache,
+      String stickyTaskListName,
+      Duration stickyDecisionScheduleToStartTimeout,
+      ThreadPoolExecutor threadPoolExecutor) {
+
     Objects.requireNonNull(service, "service should not be null");
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
+    this.cache = cache;
+    this.stickyTaskListName = stickyTaskListName;
+    this.threadPoolExecutor = Objects.requireNonNull(threadPoolExecutor);
 
     this.taskList = taskList;
     this.options = MoreObjects.firstNonNull(options, new Builder().build());
@@ -91,10 +122,13 @@ public final class Worker {
                 taskList,
                 this.options.getInterceptorFactory(),
                 workflowOptions,
-                this.options.getMaxWorkflowThreads());
+                this.cache,
+                this.stickyTaskListName,
+                stickyDecisionScheduleToStartTimeout,
+                this.threadPoolExecutor);
   }
 
-  private SingleWorkerOptions toActivityOptions(
+  private static SingleWorkerOptions toActivityOptions(
       WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
@@ -113,7 +147,7 @@ public final class Worker {
         .build();
   }
 
-  private SingleWorkerOptions toWorkflowOptions(
+  private static SingleWorkerOptions toWorkflowOptions(
       WorkerOptions options, String domain, String taskList) {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
@@ -305,30 +339,91 @@ public final class Worker {
   }
 
   public static final class Factory {
-
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
+    private final UUID id =
+        UUID.randomUUID(); // Guarantee uniqueness for stickyTaskListName when multiple factories
+    private final ThreadPoolExecutor workflowThreadPool;
+    private final AtomicInteger workflowThreadCounter = new AtomicInteger();
+    private final FactoryOptions factoryOptions;
+
+    private Poller<PollForDecisionTaskResponse> stickyPoller;
+    private Dispatcher<String, PollForDecisionTaskResponse> dispatcher;
+    private DeciderCache cache;
+
     private State state = State.Initial;
 
     private final String statusErrorMessage =
         "attempted to %s while in %s state. Acceptable States: %s";
 
     public Factory(String domain) {
-      this(new WorkflowServiceTChannel(), domain);
+      this(new WorkflowServiceTChannel(), domain, null);
     }
 
     public Factory(String host, int port, String domain) {
-      this(new WorkflowServiceTChannel(host, port), domain);
+      this(new WorkflowServiceTChannel(host, port), domain, null);
+    }
+
+    public Factory(String domain, FactoryOptions options) {
+      this(new WorkflowServiceTChannel(), domain, options);
+    }
+
+    public Factory(String host, int port, String domain, FactoryOptions options) {
+      this(new WorkflowServiceTChannel(host, port), domain, options);
     }
 
     public Factory(IWorkflowService workflowService, String domain) {
-      Objects.requireNonNull(workflowService, "workflowService should not be null");
+      this(workflowService, domain, null);
+    }
+
+    public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
       Preconditions.checkArgument(
           !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
 
-      this.workflowService = workflowService;
       this.domain = domain;
+      this.workflowService =
+          Objects.requireNonNull(workflowService, "workflowService should not be null");
+
+      this.factoryOptions =
+          factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
+
+      workflowThreadPool =
+          new ThreadPoolExecutor(
+              0,
+              this.factoryOptions.maxWorkflowThreadCount,
+              1,
+              TimeUnit.SECONDS,
+              new SynchronousQueue<>());
+      workflowThreadPool.setThreadFactory(
+          r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
+
+      if (!this.factoryOptions.enableStickyExecution) {
+        return;
+      }
+
+      factoryOptions.metricsScope.tagged(
+          new ImmutableMap.Builder<String, String>(2)
+              .put(MetricsTag.DOMAIN, domain)
+              .put(MetricsTag.TASK_LIST, getStickyTaskListName())
+              .build());
+
+      this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, factoryOptions.metricsScope);
+
+      dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
+      stickyPoller =
+          new Poller<>(
+              id.toString(),
+              new WorkflowPollTaskFactory(
+                      workflowService,
+                      domain,
+                      getStickyTaskListName(),
+                      factoryOptions.metricsScope,
+                      id.toString())
+                  .get(),
+              dispatcher,
+              factoryOptions.stickyWorkflowPollerOptions,
+              factoryOptions.metricsScope);
     }
 
     public Worker newWorker(String taskList) {
@@ -344,8 +439,22 @@ public final class Worker {
             state == State.Initial,
             String.format(
                 statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker = new Worker(workflowService, domain, taskList, options);
+        Worker worker =
+            new Worker(
+                workflowService,
+                domain,
+                taskList,
+                options,
+                cache,
+                getStickyTaskListName(),
+                Duration.ofSeconds(factoryOptions.stickyDecisionScheduleToStartTimeoutInSeconds),
+                workflowThreadPool);
         workers.add(worker);
+
+        if (this.factoryOptions.enableStickyExecution) {
+          dispatcher.subscribe(taskList, worker.workflowWorker);
+        }
+
         return worker;
       }
     }
@@ -367,23 +476,159 @@ public final class Worker {
         for (Worker worker : workers) {
           worker.start();
         }
+
+        if (stickyPoller != null) {
+          stickyPoller.start();
+        }
       }
     }
 
     public void shutdown(Duration timeout) {
       synchronized (this) {
         state = State.Shutdown;
-
+        if (stickyPoller != null) {
+          stickyPoller.shutdown();
+        }
         for (Worker worker : workers) {
           worker.shutdown(timeout);
         }
       }
     }
 
+    @VisibleForTesting
+    DeciderCache getCache() {
+      return this.cache;
+    }
+
+    private String getHostName() {
+      try {
+        return InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        return "UnknownHost";
+      }
+    }
+
+    private String getStickyTaskListName() {
+      return this.factoryOptions.enableStickyExecution
+          ? String.format("%s:%s", getHostName(), id)
+          : null;
+    }
+
+    private SingleWorkerOptions getDefaultSingleWorkerOptions() {
+      return Worker.toWorkflowOptions(new Builder().build(), domain, getStickyTaskListName());
+    }
+
+    private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options) {
+      PollerOptions pollerOptions = options.getPollerOptions();
+      if (pollerOptions.getPollThreadNamePrefix() == null) {
+        pollerOptions = new PollerOptions.Builder(pollerOptions).build();
+      }
+      return pollerOptions;
+    }
+
     enum State {
       Initial,
       Started,
       Shutdown
+    }
+  }
+
+  public static class FactoryOptions {
+    public static class Builder {
+      private boolean enableStickyExecution;
+      private int stickyDecisionScheduleToStartTimeoutInSeconds = 5;
+      private int cacheMaximumSize = 600;
+      private int maxWorkflowThreadCount = 600;
+      private PollerOptions stickyWorkflowPollerOptions;
+      private Scope metricScope;
+
+      public Builder setEnableStickyExecution(boolean enableStickyExecution) {
+        this.enableStickyExecution = enableStickyExecution;
+        return this;
+      }
+
+      public Builder setCacheMaximumSize(int cacheMaximumSize) {
+        this.cacheMaximumSize = cacheMaximumSize;
+        return this;
+      }
+
+      public Builder setmaxWorkflowThreadCount(int maxWorkflowThreadCount) {
+        this.maxWorkflowThreadCount = maxWorkflowThreadCount;
+        return this;
+      }
+
+      public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(
+          int stickyDecisionScheduleToStartTimeoutInSeconds) {
+        this.stickyDecisionScheduleToStartTimeoutInSeconds =
+            stickyDecisionScheduleToStartTimeoutInSeconds;
+        return this;
+      }
+
+      public Builder setStickyWorkflowPollerOptions(PollerOptions stickyWorkflowPollerOptions) {
+        this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
+        return this;
+      }
+
+      public Builder setMetricScope(Scope metricScope) {
+        this.metricScope = metricScope;
+        return this;
+      }
+
+      public FactoryOptions Build() {
+        return new FactoryOptions(
+            enableStickyExecution,
+            cacheMaximumSize,
+            maxWorkflowThreadCount,
+            stickyDecisionScheduleToStartTimeoutInSeconds,
+            stickyWorkflowPollerOptions,
+            metricScope);
+      }
+    }
+
+    private final boolean enableStickyExecution;
+    private final int cacheMaximumSize;
+    private final int maxWorkflowThreadCount;
+    private final int stickyDecisionScheduleToStartTimeoutInSeconds;
+    private final PollerOptions stickyWorkflowPollerOptions;
+    private final Scope metricsScope;
+
+    private FactoryOptions(
+        boolean enableStickyExecution,
+        int cacheMaximumSize,
+        int maxWorkflowThreadCount,
+        int stickyDecisionScheduleToStartTimeoutInSeconds,
+        PollerOptions stickyWorkflowPollerOptions,
+        Scope metricsScope) {
+      Preconditions.checkArgument(
+          cacheMaximumSize > 0, "cacheMaximumSize should be greater than 0");
+      Preconditions.checkArgument(
+          maxWorkflowThreadCount > 0, "maxWorkflowThreadCount should be greater than 0");
+      Preconditions.checkArgument(
+          stickyDecisionScheduleToStartTimeoutInSeconds > 0,
+          "stickyDecisionScheduleToStartTimeoutInSeconds should be greater than 0");
+
+      this.enableStickyExecution = enableStickyExecution;
+      this.cacheMaximumSize = cacheMaximumSize;
+      this.maxWorkflowThreadCount = maxWorkflowThreadCount;
+      this.stickyDecisionScheduleToStartTimeoutInSeconds =
+          stickyDecisionScheduleToStartTimeoutInSeconds;
+
+      if (stickyWorkflowPollerOptions == null) {
+        this.stickyWorkflowPollerOptions =
+            new PollerOptions.Builder()
+                .setPollBackoffInitialInterval(Duration.ofMillis(200))
+                .setPollBackoffMaximumInterval(Duration.ofSeconds(20))
+                .setPollThreadCount(1)
+                .build();
+      } else {
+        this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
+      }
+
+      if (metricsScope == null) {
+        this.metricsScope = NoopScope.getInstance();
+      } else {
+        this.metricsScope = metricsScope;
+      }
     }
   }
 }

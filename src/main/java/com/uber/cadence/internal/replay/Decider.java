@@ -18,16 +18,15 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.Decision;
+import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import java.util.List;
 
 public interface Decider {
 
-  List<Decision> decide(DecisionTaskWithHistoryIterator iterator) throws Throwable;
+  List<Decision> decide(PollForDecisionTaskResponse decisionTask) throws Throwable;
 
-  byte[] query(DecisionTaskWithHistoryIterator decisionTaskIterator, WorkflowQuery query)
-      throws Throwable;
+  byte[] query(PollForDecisionTaskResponse decisionTask, WorkflowQuery query) throws Throwable;
 
   void close();
 }

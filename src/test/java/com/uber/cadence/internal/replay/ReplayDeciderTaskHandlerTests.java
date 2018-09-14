@@ -20,13 +20,16 @@ package com.uber.cadence.internal.replay;
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertNotNull;
-import static junit.framework.TestCase.assertNull;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
+import com.uber.cadence.internal.metrics.NoopScope;
+import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
-import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.testUtils.HistoryUtils;
 import java.time.Duration;
@@ -37,7 +40,7 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreNotSetThenWorkflowsAreNotCached() throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -45,13 +48,12 @@ public class ReplayDeciderTaskHandlerTests {
             cache,
             new SingleWorkerOptions.Builder().build(),
             null,
-            Duration.ofSeconds(5));
-
-    DecisionTaskWithHistoryIterator mockIterator =
-        setUpMockIterator(HistoryUtils.generateDecisionTaskWithInitialHistory());
+            Duration.ofSeconds(5),
+            new TestWorkflowService());
 
     // Act
-    DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
+    DecisionTaskHandler.Result result =
+        taskHandler.handleDecisionTask(HistoryUtils.generateDecisionTaskWithInitialHistory());
 
     // Assert
     assertEquals(0, cache.size());
@@ -62,7 +64,7 @@ public class ReplayDeciderTaskHandlerTests {
   @Test
   public void ifStickyExecutionAttributesAreSetThenWorkflowsAreCached() throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             "domain",
@@ -70,14 +72,14 @@ public class ReplayDeciderTaskHandlerTests {
             cache,
             new SingleWorkerOptions.Builder().build(),
             "sticky",
-            Duration.ofSeconds(5));
+            Duration.ofSeconds(5),
+            new TestWorkflowService());
 
     PollForDecisionTaskResponse decisionTask =
         HistoryUtils.generateDecisionTaskWithInitialHistory();
-    DecisionTaskWithHistoryIterator mockIterator = setUpMockIterator(decisionTask);
 
     // Act
-    DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
+    DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(decisionTask);
 
     // Assert
     assertEquals(1, cache.size());
@@ -91,7 +93,7 @@ public class ReplayDeciderTaskHandlerTests {
   public void ifCacheIsEvictedAndPartialHistoryIsReceivedThenTaskFailedIsReturned()
       throws Throwable {
     // Arrange
-    DeciderCache cache = new DeciderCache(10);
+    DeciderCache cache = new DeciderCache(10, NoopScope.getInstance());
     StickyExecutionAttributes attributes = new StickyExecutionAttributes();
     attributes.setWorkerTaskList(createStickyTaskList("sticky"));
     DecisionTaskHandler taskHandler =
@@ -101,26 +103,17 @@ public class ReplayDeciderTaskHandlerTests {
             cache,
             new SingleWorkerOptions.Builder().build(),
             "sticky",
-            Duration.ofSeconds(5));
-
-    DecisionTaskWithHistoryIterator mockIterator =
-        setUpMockIterator(HistoryUtils.generateDecisionTaskWithPartialHistory());
+            Duration.ofSeconds(5),
+            new TestWorkflowService());
 
     // Act
-    DecisionTaskHandler.Result result = taskHandler.handleDecisionTask(mockIterator);
+    DecisionTaskHandler.Result result =
+        taskHandler.handleDecisionTask(HistoryUtils.generateDecisionTaskWithPartialHistory());
 
     // Assert
     assertEquals(0, cache.size());
     assertNull(result.getTaskCompleted());
     assertNotNull(result.getTaskFailed());
-  }
-
-  private DecisionTaskWithHistoryIterator setUpMockIterator(
-      PollForDecisionTaskResponse decisionTask) {
-    DecisionTaskWithHistoryIterator mockIterator = mock(DecisionTaskWithHistoryIterator.class);
-    when(mockIterator.getDecisionTask()).thenReturn(decisionTask);
-    when(mockIterator.getHistory()).thenReturn(decisionTask.history.getEventsIterator());
-    return mockIterator;
   }
 
   private ReplayWorkflowFactory setUpMockWorkflowFactory() throws Throwable {
