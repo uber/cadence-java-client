@@ -17,16 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.common.Retryer;
@@ -381,7 +372,8 @@ class ReplayDecider implements Decider {
               != historyHelper.getPreviousStartedEventId()
                   + 2) // getNextDecisionEventId() skips over completed.
           && (decisionsHelper.getNextDecisionEventId() != 0
-              && historyHelper.getPreviousStartedEventId() != 0)) {
+              && historyHelper.getPreviousStartedEventId() != 0)
+          && (decisionTask.getHistory().getEventsSize() > 0)) {
         throw new IllegalStateException(
             String.format(
                 "ReplayDecider expects next event id at %d. History's previous started event id is %d",
