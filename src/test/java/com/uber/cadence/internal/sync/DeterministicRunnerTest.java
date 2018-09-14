@@ -17,7 +17,12 @@
 
 package com.uber.cadence.internal.sync;
 
-import static org.junit.Assert.*;
+
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.fail;
+import static junit.framework.TestCase.assertNotNull;
+import static org.junit.Assert.assertFalse;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
@@ -30,7 +35,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
