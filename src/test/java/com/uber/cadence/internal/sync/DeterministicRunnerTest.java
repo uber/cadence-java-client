@@ -17,11 +17,10 @@
 
 package com.uber.cadence.internal.sync;
 
-
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
-import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertFalse;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
