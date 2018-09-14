@@ -159,7 +159,6 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   }
 
   private Result processQuery(PollForDecisionTaskResponse decisionTask) {
-
     RespondQueryTaskCompletedRequest queryCompletedRequest = new RespondQueryTaskCompletedRequest();
     queryCompletedRequest.setTaskToken(decisionTask.getTaskToken());
     try {
