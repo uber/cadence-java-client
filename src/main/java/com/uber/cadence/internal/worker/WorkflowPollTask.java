@@ -17,7 +17,11 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.*;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.PollForDecisionTaskRequest;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.ServiceBusyError;
+import com.uber.cadence.TaskList;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
