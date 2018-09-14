@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.replay;
 
+import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+
 import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -24,17 +26,14 @@ import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
-
-import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
 

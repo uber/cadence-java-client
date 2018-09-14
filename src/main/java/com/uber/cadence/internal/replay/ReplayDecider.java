@@ -17,7 +17,16 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.*;
+import com.uber.cadence.EventType;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.common.Retryer;
@@ -30,6 +39,10 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.Objects;
@@ -37,9 +50,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implements decider that relies on replay of a worklfow code. An instance of this class is created
