@@ -402,11 +402,12 @@ public final class Worker {
         return;
       }
 
-      Scope metricsScope = factoryOptions.metricsScope.tagged(
-          new ImmutableMap.Builder<String, String>(2)
-              .put(MetricsTag.DOMAIN, domain)
-              .put(MetricsTag.TASK_LIST, getStickyTaskListName())
-              .build());
+      Scope metricsScope =
+          factoryOptions.metricsScope.tagged(
+              new ImmutableMap.Builder<String, String>(2)
+                  .put(MetricsTag.DOMAIN, domain)
+                  .put(MetricsTag.TASK_LIST, getHostName())
+                  .build());
 
       this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, metricsScope);
 
@@ -415,11 +416,7 @@ public final class Worker {
           new Poller<>(
               id.toString(),
               new WorkflowPollTaskFactory(
-                      workflowService,
-                      domain,
-                      getStickyTaskListName(),
-                      metricsScope,
-                      id.toString())
+                      workflowService, domain, getStickyTaskListName(), metricsScope, id.toString())
                   .get(),
               dispatcher,
               factoryOptions.stickyWorkflowPollerOptions,
