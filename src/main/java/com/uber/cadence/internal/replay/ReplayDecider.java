@@ -105,6 +105,7 @@ class ReplayDecider implements Decider {
           "First event in the history is not WorkflowExecutionStarted");
     }
 
+    wfStartTime = TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     context =
         new DecisionContextImpl(
             decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay);
