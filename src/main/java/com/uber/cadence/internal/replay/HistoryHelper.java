@@ -219,7 +219,11 @@ class HistoryHelper {
             nextDecisionEventId = peeked.getEventId() + 1; // +1 for next
             break;
           } else {
-            throw new Error("Unexpected event after DecisionTaskStarted: " + peeked);
+            throw new Error(
+                "Unexpected event after DecisionTaskStarted: "
+                    + peeked
+                    + " DecisionTaskStarted Event: "
+                    + event);
           }
         }
         newEvents.add(event);
