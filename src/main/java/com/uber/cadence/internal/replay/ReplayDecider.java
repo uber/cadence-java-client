@@ -83,6 +83,8 @@ class ReplayDecider implements Decider {
 
   private long wfStartTime = -1;
 
+  private long nextDecisionEventIdAfterDecisionTaskCompleted = 0;
+
   private final WorkflowExecutionStartedEventAttributes startedEvent;
 
   ReplayDecider(
@@ -377,22 +379,22 @@ class ReplayDecider implements Decider {
               decisionTask, Duration.ofSeconds(startedEvent.getTaskStartToCloseTimeoutSeconds()));
       HistoryHelper historyHelper = new HistoryHelper(decisionTaskWithHistoryIterator);
       DecisionEventsIterator iterator = historyHelper.getIterator();
-      if ((decisionsHelper.getNextDecisionEventId()
+      if ((nextDecisionEventIdAfterDecisionTaskCompleted
               != historyHelper.getPreviousStartedEventId()
                   + 2) // getNextDecisionEventId() skips over completed.
-          && (decisionsHelper.getNextDecisionEventId() != 0
+          && (nextDecisionEventIdAfterDecisionTaskCompleted != 0
               && historyHelper.getPreviousStartedEventId() != 0)
           && (decisionTask.getHistory().getEventsSize() > 0)) {
         throw new IllegalStateException(
             String.format(
                 "ReplayDecider expects next event id at %d. History's previous started event id is %d",
-                decisionsHelper.getNextDecisionEventId(),
+                nextDecisionEventIdAfterDecisionTaskCompleted,
                 historyHelper.getPreviousStartedEventId()));
       }
 
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
-
+        nextDecisionEventIdAfterDecisionTaskCompleted = decision.getNextDecisionEventId();
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
