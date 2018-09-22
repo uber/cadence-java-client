@@ -28,12 +28,15 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
 import java.util.Objects;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DeciderCache {
   private final String evictionEntryId = UUID.randomUUID().toString();
   private final int maxCacheSize;
   private final Scope metricsScope;
   private LoadingCache<String, WeightedCacheEntry<Decider>> cache;
+  private static final Logger log = LoggerFactory.getLogger(DeciderCache.class);
 
   public DeciderCache(int maxCacheSize, Scope scope) {
     Preconditions.checkArgument(maxCacheSize > 0, "Max cache size must be greater than 0");
@@ -78,10 +81,12 @@ public final class DeciderCache {
   public Decider getUnchecked(String runId) throws Exception {
     try {
       Decider cachedDecider = cache.getUnchecked(runId).entry;
+      log.info("cache hit");
       metricsScope.counter(MetricsType.STICKY_CACHE_HIT).inc(1);
       return cachedDecider;
     } catch (CacheLoader.InvalidCacheLoadException e) {
       metricsScope.counter(MetricsType.STICKY_CACHE_MISS).inc(1);
+      log.info("cache miss");
       throw new EvictedException(runId);
     }
   }

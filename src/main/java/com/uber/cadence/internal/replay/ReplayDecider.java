@@ -277,19 +277,23 @@ class ReplayDecider implements Decider {
     if (failure != null) {
       decisionsHelper.failWorkflowExecution(failure);
       metricsScope.counter(MetricsType.WORKFLOW_FAILED_COUNTER).inc(1);
+      log.info("workflow failed");
     } else if (cancelRequested) {
       decisionsHelper.cancelWorkflowExecution();
       metricsScope.counter(MetricsType.WORKFLOW_CANCELLED_COUNTER).inc(1);
+      log.info("workflow canceled");
     } else {
       ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion =
           context.getContinueAsNewOnCompletion();
       if (continueAsNewOnCompletion != null) {
         decisionsHelper.continueAsNewWorkflowExecution(continueAsNewOnCompletion);
         metricsScope.counter(MetricsType.WORKFLOW_CONTINUE_AS_NEW_COUNTER).inc(1);
+        log.info("workflow continue as new");
       } else {
         byte[] workflowOutput = workflow.getOutput();
         decisionsHelper.completeWorkflowExecution(workflowOutput);
         metricsScope.counter(MetricsType.WORKFLOW_COMPLETED_COUNTER).inc(1);
+        log.info("workflow completed");
       }
     }
 
@@ -298,6 +302,7 @@ class ReplayDecider implements Decider {
           TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
       com.uber.m3.util.Duration d = com.uber.m3.util.Duration.ofNanos(nanoTime - wfStartTime);
       metricsScope.timer(MetricsType.WORKFLOW_E2E_LATENCY).record(d);
+      log.info("workflow e2e " + Duration.ofNanos(nanoTime).toString());
     }
   }
 

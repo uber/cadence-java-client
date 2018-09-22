@@ -404,10 +404,7 @@ public final class Worker {
 
       Scope metricsScope =
           factoryOptions.metricsScope.tagged(
-              new ImmutableMap.Builder<String, String>(2)
-                  .put(MetricsTag.DOMAIN, domain)
-                  .put(MetricsTag.TASK_LIST, getHostName())
-                  .build());
+              new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, domain).build());
 
       this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, metricsScope);
 
