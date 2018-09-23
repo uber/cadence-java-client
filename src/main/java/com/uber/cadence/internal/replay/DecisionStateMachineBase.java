@@ -71,7 +71,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         break;
       default:
     }
-    log.info("State changed " + state);
   }
 
   @Override
@@ -97,7 +96,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
     return result;
   }
 
@@ -115,7 +113,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override
@@ -131,7 +128,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override
@@ -154,7 +150,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override
@@ -168,7 +163,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override
@@ -182,7 +176,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override
@@ -196,7 +189,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
-    log.info("State changed " + state);
   }
 
   @Override

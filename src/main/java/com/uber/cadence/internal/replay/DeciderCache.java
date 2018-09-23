@@ -86,12 +86,10 @@ public final class DeciderCache {
   public Decider getUnchecked(String runId) throws Exception {
     try {
       Decider cachedDecider = cache.getUnchecked(runId).entry;
-      log.info("cache hit");
       metricsScope.counter(MetricsType.STICKY_CACHE_HIT).inc(1);
       return cachedDecider;
     } catch (CacheLoader.InvalidCacheLoadException e) {
       metricsScope.counter(MetricsType.STICKY_CACHE_MISS).inc(1);
-      log.info("cache miss");
       throw new EvictedException(runId);
     }
   }
