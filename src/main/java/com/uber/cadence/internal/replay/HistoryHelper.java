@@ -205,9 +205,9 @@ class HistoryHelper {
         log.info(event.toString());
         if (eventType == EventType.DecisionTaskCompleted) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
-          //events.next(); // consume DecisionTaskCompleted
+          // events.next(); // consume DecisionTaskCompleted
           nextDecisionEventId = event.getEventId() + 1; // +1 for next
-          //newEvents.add(event);
+          // newEvents.add(event);
           break;
         }
 

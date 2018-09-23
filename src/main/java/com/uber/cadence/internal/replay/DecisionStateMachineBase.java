@@ -18,11 +18,10 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.HistoryEvent;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class DecisionStateMachineBase implements DecisionStateMachine {
 
@@ -44,7 +43,6 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
     this.id = id;
     this.state = state;
     stateHistory.add(state.toString());
-
   }
 
   @Override

@@ -416,9 +416,10 @@ class ReplayDecider implements Decider {
         }
         log.info(" ---- Replay Decider starting event loop");
 
-        if(processedEvents>0){
-        eventLoop();
-        mayBeCompleteWorkflow();}
+        if (processedEvents > 0) {
+          eventLoop();
+          mayBeCompleteWorkflow();
+        }
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
