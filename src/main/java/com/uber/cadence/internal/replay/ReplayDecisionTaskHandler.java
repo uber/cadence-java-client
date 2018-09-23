@@ -193,7 +193,8 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       attributes.setWorkerTaskList(createStickyTaskList(stickyTaskListName));
       attributes.setScheduleToStartTimeoutSeconds(
           (int) stickyTaskListScheduleToStartTimeout.getSeconds());
-      log.info("setting sticky attributes timeout: " + attributes.getScheduleToStartTimeoutSeconds());
+      log.info(
+          "setting sticky attributes timeout: " + attributes.getScheduleToStartTimeoutSeconds());
       completedRequest.setStickyAttributes(attributes);
     }
     return new Result(completedRequest, null, null, null);

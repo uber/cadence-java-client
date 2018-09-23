@@ -201,7 +201,13 @@ class HistoryHelper {
       while (events.hasNext()) {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
-        // hasNext is for queries that do not have DecisionTaskStarted at the end of the history.
+
+        if (eventType == EventType.DecisionTaskCompleted) {
+          replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
+          events.next(); // consume DecisionTaskCompleted
+          nextDecisionEventId = event.getEventId() + 1; // +1 for next
+          break;
+        }
         if (eventType == EventType.DecisionTaskStarted || !events.hasNext()) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
           if (!events.hasNext()) {

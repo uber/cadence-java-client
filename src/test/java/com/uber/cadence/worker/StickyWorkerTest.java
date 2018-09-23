@@ -22,6 +22,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 
+import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -34,12 +36,14 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
-import java.util.Map;
+import java.util.*;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class StickyWorkerTest {
@@ -113,6 +117,41 @@ public class StickyWorkerTest {
     //    Thread.sleep(600);
     //    verify(reporter, times(1)).reportCounter(MetricsType.WORKFLOW_COMPLETED_COUNTER, tags, 1);
     // Finish Workflow
+    wrapper.close();
+  }
+
+  @Test
+  public void ActivitiesShouldWork() throws Exception {
+    // Arrange
+    String taskListName = "cachedStickyTestActivities2";
+
+    TestEnvironmentWrapper wrapper =
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder().setEnableStickyExecution(false).Build());
+    Worker.Factory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(WorkflowImpl.class);
+    worker.registerActivitiesImplementations(new ActivitiesImpl());
+    factory.start();
+
+    WorkflowOptions workflowOptions =
+        new WorkflowOptions.Builder()
+            .setTaskList(taskListName)
+            .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+            .build();
+    StressWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(StressWorkflow.class, workflowOptions);
+
+    // Act
+    WorkflowParams w = new WorkflowParams();
+    w.CadenceSleep = 1000000;
+    w.ChainSequence = 10;
+    w.ConcurrentCount = 1;
+    w.PayloadSizeBytes = 10;
+    w.TaskListName = taskListName;
+    workflow.execute(w);
+
     wrapper.close();
   }
 
@@ -344,5 +383,65 @@ public class StickyWorkerTest {
       factory.shutdown(Duration.ofSeconds(1));
       testEnv.close();
     }
+  }
+
+  public static class WorkflowParams {
+
+    public int ChainSequence;
+    public int ConcurrentCount;
+    public String TaskListName;
+    public int PayloadSizeBytes;
+    public long CadenceSleep; // nano
+  }
+
+  public interface StressWorkflow {
+
+    @WorkflowMethod()
+    public void execute(WorkflowParams params);
+  }
+
+  public static class WorkflowImpl implements StressWorkflow {
+
+    @Override
+    public void execute(WorkflowParams params) {
+      SleepActivity activity =
+          Workflow.newActivityStub(
+              SleepActivity.class,
+              new ActivityOptions.Builder()
+                  .setTaskList(params.TaskListName)
+                  .setScheduleToStartTimeout(Duration.ofMinutes(1))
+                  .setStartToCloseTimeout(Duration.ofMinutes(1))
+                  .setHeartbeatTimeout(Duration.ofSeconds(20))
+                  .build());
+
+      for (int i = 0; i < params.ChainSequence; i++) {
+        List<Promise<Void>> promises = new ArrayList<>();
+        for (int j = 0; j < params.ConcurrentCount; j++) {
+          byte[] bytes = new byte[params.PayloadSizeBytes];
+          new Random().nextBytes(bytes);
+          Promise<Void> promise = Async.procedure(activity::sleep, i, j, bytes);
+          promises.add(promise);
+        }
+
+        for (Promise<Void> promise : promises) {
+          promise.get();
+        }
+
+        Workflow.sleep(Duration.ofNanos(params.CadenceSleep));
+      }
+    }
+  }
+
+  public interface SleepActivity {
+
+    @ActivityMethod()
+    void sleep(int chain, int concurrency, byte[] bytes);
+  }
+
+  public static class ActivitiesImpl implements SleepActivity {
+    private static final Logger log = LoggerFactory.getLogger("sleep-activity");
+
+    @Override
+    public void sleep(int chain, int concurrency, byte[] bytes) {}
   }
 }
