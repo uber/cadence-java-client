@@ -18,10 +18,15 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.HistoryEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 
 abstract class DecisionStateMachineBase implements DecisionStateMachine {
+
+  private static final Logger log = LoggerFactory.getLogger(DecisionStateMachineBase.class);
 
   protected DecisionState state = DecisionState.CREATED;
 
@@ -39,6 +44,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
     this.id = id;
     this.state = state;
     stateHistory.add(state.toString());
+
   }
 
   @Override
@@ -67,6 +73,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         break;
       default:
     }
+    log.info("State changed " + state);
   }
 
   @Override
@@ -92,6 +99,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
     return result;
   }
 
@@ -109,6 +117,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override
@@ -124,6 +133,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override
@@ -146,6 +156,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override
@@ -159,6 +170,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override
@@ -172,6 +184,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override
@@ -185,6 +198,7 @@ abstract class DecisionStateMachineBase implements DecisionStateMachine {
         failStateTransition();
     }
     stateHistory.add(state.toString());
+    log.info("State changed " + state);
   }
 
   @Override

@@ -123,11 +123,11 @@ public class StickyWorkerTest {
   @Test
   public void ActivitiesShouldWork() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTestActivities2";
+    String taskListName = "cachedStickyTestActivities2" + UUID.randomUUID();
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setEnableStickyExecution(false).Build());
+            new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(WorkflowImpl.class);

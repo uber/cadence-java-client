@@ -201,13 +201,16 @@ class HistoryHelper {
       while (events.hasNext()) {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
-
+        log.info("Creating Decision");
+        log.info(event.toString());
         if (eventType == EventType.DecisionTaskCompleted) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
-          events.next(); // consume DecisionTaskCompleted
+          //events.next(); // consume DecisionTaskCompleted
           nextDecisionEventId = event.getEventId() + 1; // +1 for next
+          //newEvents.add(event);
           break;
         }
+
         if (eventType == EventType.DecisionTaskStarted || !events.hasNext()) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
           if (!events.hasNext()) {
@@ -222,7 +225,7 @@ class HistoryHelper {
             continue;
           } else if (peekedType == EventType.DecisionTaskCompleted) {
             events.next(); // consume DecisionTaskCompleted
-            nextDecisionEventId = peeked.getEventId() + 1; // +1 for next
+            nextDecisionEventId = peeked.getEventId() + 1; // +1 for next and skip over completed
             break;
           } else {
             throw new Error(
@@ -235,6 +238,7 @@ class HistoryHelper {
         newEvents.add(event);
       }
       while (events.hasNext()) {
+        log.info(events.peek().toString());
         if (!WorkflowExecutionUtils.isDecisionEvent(events.peek())) {
           break;
         }

@@ -399,27 +399,35 @@ class ReplayDecider implements Decider {
 
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
+        log.info(" ---- Replay Decider processing decision");
         nextDecisionEventIdAfterDecisionTaskCompleted = decision.getNextDecisionEventId();
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
         // Markers must be cached first as their data is needed when processing events.
+        int processedEvents = 0;
         for (HistoryEvent event : decision.getMarkers()) {
           processEvent(event);
         }
         for (HistoryEvent event : decision.getEvents()) {
+          processedEvents++;
           processEvent(event);
         }
+        log.info(" ---- Replay Decider starting event loop");
+
+        if(processedEvents>0){
         eventLoop();
-        mayBeCompleteWorkflow();
+        mayBeCompleteWorkflow();}
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
+        log.info(" ---- Replay Decider done event loop");
         // Updates state machines with results of the previous decisions
         for (HistoryEvent event : decision.getDecisionEvents()) {
           processEvent(event);
         }
+        log.info(" ---- Replay Decider done with decisions");
       }
     } catch (Error e) {
       metricsScope.counter(MetricsType.DECISION_TASK_ERROR_COUNTER).inc(1);
