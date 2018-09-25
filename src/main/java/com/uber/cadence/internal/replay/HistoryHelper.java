@@ -201,8 +201,6 @@ class HistoryHelper {
       while (events.hasNext()) {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
-        log.info("Creating Decision");
-        log.info(event.toString());
         if (eventType == EventType.DecisionTaskCompleted) {
           replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
           // events.next(); // consume DecisionTaskCompleted

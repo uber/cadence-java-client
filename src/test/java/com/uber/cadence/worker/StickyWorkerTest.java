@@ -21,12 +21,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
+import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -72,24 +75,13 @@ public class StickyWorkerTest {
   public void whenStickyIsEnabledThenTheWorkflowIsCached() throws Exception {
     // Arrange
     String taskListName = "cachedStickyTest";
-    Map<String, String> tags =
-        new ImmutableMap.Builder<String, String>(2)
-            .put(MetricsTag.DOMAIN, "domain")
-            .put(MetricsTag.TASK_LIST, taskListName)
-            .build();
-    StatsReporter reporter = mock(StatsReporter.class);
-    Scope scope =
-        new RootScopeBuilder()
-            .reporter(reporter)
-            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-            .tagged(tags);
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker =
-        factory.newWorker(taskListName, new WorkerOptions.Builder().setMetricsScope(scope).build());
+        factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
     factory.start();
 
@@ -113,23 +105,32 @@ public class StickyWorkerTest {
     assertNotNull(cache);
     assertEquals(1, cache.size());
 
-    // Wait for reporter
-    //    Thread.sleep(600);
-    //    verify(reporter, times(1)).reportCounter(MetricsType.WORKFLOW_COMPLETED_COUNTER, tags, 1);
-    // Finish Workflow
     wrapper.close();
   }
 
   @Test
-  public void ActivitiesShouldWork() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCached_Activities() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTestActivities2" + UUID.randomUUID();
+    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+
+    Map<String, String> tags =
+            new ImmutableMap.Builder<String, String>(2)
+                    .put(MetricsTag.DOMAIN, "domain")
+                    .put(MetricsTag.TASK_LIST, taskListName)
+                    .build();
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+            new RootScopeBuilder()
+                    .reporter(reporter)
+                    .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
+                    .tagged(tags);
+
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().setMetricsScope(scope).build());
     worker.registerWorkflowImplementationTypes(WorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
@@ -145,12 +146,18 @@ public class StickyWorkerTest {
 
     // Act
     WorkflowParams w = new WorkflowParams();
-    w.CadenceSleep = 1000000;
-    w.ChainSequence = 10;
+    w.CadenceSleep = Duration.ofMillis(100);
+    w.ChainSequence = 4;
     w.ConcurrentCount = 1;
     w.PayloadSizeBytes = 10;
     w.TaskListName = taskListName;
     workflow.execute(w);
+
+    // Wait for reporter
+    Thread.sleep(600);
+    // Verify the workflow succeeded without having to recover from a failure
+    verify(reporter, times(0)).reportCounter(MetricsType.STICKY_CACHE_MISS, tags, 0);
+    // Finish Workflow
 
     wrapper.close();
   }
@@ -312,6 +319,45 @@ public class StickyWorkerTest {
     wrapper.close();
   }
 
+  // Todo: refactor TestEnvironment to toggle between real and test service.
+  private class TestEnvironmentWrapper {
+
+    private TestWorkflowEnvironment testEnv;
+    private Worker.Factory factory;
+
+    public TestEnvironmentWrapper(Worker.FactoryOptions options) {
+      if (options == null) {
+        options = new Worker.FactoryOptions.Builder().Build();
+      }
+      factory = new Worker.Factory(DOMAIN, options);
+      TestEnvironmentOptions testOptions =
+          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).setFactoryOptions(options).build();
+      testEnv = TestWorkflowEnvironment.newInstance(testOptions);
+    }
+
+    private Worker.Factory getWorkerFactory() {
+      return useExternalService ? factory : testEnv.getWorkerFactory();
+    }
+
+    private WorkflowClient getWorkflowClient() {
+      return useExternalService ? WorkflowClient.newInstance(DOMAIN) : testEnv.newWorkflowClient();
+    }
+
+    private void close() {
+      factory.shutdown(Duration.ofSeconds(1));
+      testEnv.close();
+    }
+  }
+
+  public static class WorkflowParams {
+
+    public int ChainSequence;
+    public int ConcurrentCount;
+    public String TaskListName;
+    public int PayloadSizeBytes;
+    public Duration CadenceSleep; // nano
+  }
+
   public interface GreetingWorkflow {
     /** @return greeting string */
     @QueryMethod
@@ -355,49 +401,10 @@ public class StickyWorkerTest {
     }
   }
 
-  // Todo: refactor TestEnvironment to toggle between real and test service.
-  private class TestEnvironmentWrapper {
-
-    private TestWorkflowEnvironment testEnv;
-    private Worker.Factory factory;
-
-    public TestEnvironmentWrapper(Worker.FactoryOptions options) {
-      if (options == null) {
-        options = new Worker.FactoryOptions.Builder().Build();
-      }
-      factory = new Worker.Factory(DOMAIN, options);
-      TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).setFactoryOptions(options).build();
-      testEnv = TestWorkflowEnvironment.newInstance(testOptions);
-    }
-
-    private Worker.Factory getWorkerFactory() {
-      return useExternalService ? factory : testEnv.getWorkerFactory();
-    }
-
-    private WorkflowClient getWorkflowClient() {
-      return useExternalService ? WorkflowClient.newInstance(DOMAIN) : testEnv.newWorkflowClient();
-    }
-
-    private void close() {
-      factory.shutdown(Duration.ofSeconds(1));
-      testEnv.close();
-    }
-  }
-
-  public static class WorkflowParams {
-
-    public int ChainSequence;
-    public int ConcurrentCount;
-    public String TaskListName;
-    public int PayloadSizeBytes;
-    public long CadenceSleep; // nano
-  }
-
   public interface StressWorkflow {
 
     @WorkflowMethod()
-    public void execute(WorkflowParams params);
+    void execute(WorkflowParams params);
   }
 
   public static class WorkflowImpl implements StressWorkflow {
@@ -427,7 +434,7 @@ public class StickyWorkerTest {
           promise.get();
         }
 
-        Workflow.sleep(Duration.ofNanos(params.CadenceSleep));
+        Workflow.sleep(params.CadenceSleep);
       }
     }
   }

@@ -277,23 +277,23 @@ class ReplayDecider implements Decider {
     if (failure != null) {
       decisionsHelper.failWorkflowExecution(failure);
       metricsScope.counter(MetricsType.WORKFLOW_FAILED_COUNTER).inc(1);
-//      log.info("workflow failed");
+      //      log.info("workflow failed");
     } else if (cancelRequested) {
       decisionsHelper.cancelWorkflowExecution();
       metricsScope.counter(MetricsType.WORKFLOW_CANCELLED_COUNTER).inc(1);
-//      log.info("workflow canceled");
+      //      log.info("workflow canceled");
     } else {
       ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion =
           context.getContinueAsNewOnCompletion();
       if (continueAsNewOnCompletion != null) {
         decisionsHelper.continueAsNewWorkflowExecution(continueAsNewOnCompletion);
         metricsScope.counter(MetricsType.WORKFLOW_CONTINUE_AS_NEW_COUNTER).inc(1);
-//        log.info("workflow continue as new");
+        //        log.info("workflow continue as new");
       } else {
         byte[] workflowOutput = workflow.getOutput();
         decisionsHelper.completeWorkflowExecution(workflowOutput);
         metricsScope.counter(MetricsType.WORKFLOW_COMPLETED_COUNTER).inc(1);
-//        log.info("workflow completed");
+        //        log.info("workflow completed");
       }
     }
 
@@ -399,7 +399,6 @@ class ReplayDecider implements Decider {
 
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
-        log.info(" ---- Replay Decider processing decision");
         nextDecisionEventIdAfterDecisionTaskCompleted = decision.getNextDecisionEventId();
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
@@ -414,21 +413,18 @@ class ReplayDecider implements Decider {
           processedEvents++;
           processEvent(event);
         }
-        log.info(" ---- Replay Decider starting event loop");
 
-        if (processedEvents > 0) {
+        //if (processedEvents > 0) {
           eventLoop();
           mayBeCompleteWorkflow();
-        }
+        //}
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
-        log.info(" ---- Replay Decider done event loop");
         // Updates state machines with results of the previous decisions
         for (HistoryEvent event : decision.getDecisionEvents()) {
           processEvent(event);
         }
-        log.info(" ---- Replay Decider done with decisions");
       }
     } catch (Error e) {
       metricsScope.counter(MetricsType.DECISION_TASK_ERROR_COUNTER).inc(1);
