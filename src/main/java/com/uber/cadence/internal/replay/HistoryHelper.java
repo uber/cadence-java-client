@@ -56,9 +56,9 @@ class HistoryHelper {
         boolean replay,
         long replayCurrentTimeMilliseconds,
         long nextDecisionEventId) {
-      if (replayCurrentTimeMilliseconds <= 0) {
-        throw new Error("replayCurrentTimeMilliseconds is not set");
-      }
+//      if (replayCurrentTimeMilliseconds <= 0) {
+  //      throw new Error("replayCurrentTimeMilliseconds is not set");
+    //  }
       if (nextDecisionEventId <= 0) {
         throw new Error("nextDecisionEventId is not set");
       }
@@ -181,9 +181,11 @@ class HistoryHelper {
   static class DecisionEventsIterator implements Iterator<DecisionEvents> {
 
     private EventsIterator events;
+    private long replayCurrentTimeMilliseconds;
 
-    DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator) {
+    DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator, long replayCurrentTimeMilliseconds) {
       this.events = new EventsIterator(decisionTaskWithHistoryIterator.getHistory());
+      this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
     }
 
     @Override
@@ -196,16 +198,13 @@ class HistoryHelper {
       List<HistoryEvent> decisionEvents = new ArrayList<>();
       List<HistoryEvent> newEvents = new ArrayList<>();
       boolean replay = true;
-      long replayCurrentTimeMilliseconds = -1;
       long nextDecisionEventId = -1;
       while (events.hasNext()) {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
-        if (eventType == EventType.DecisionTaskCompleted) {
-          replayCurrentTimeMilliseconds = TimeUnit.NANOSECONDS.toMillis(event.getTimestamp());
-          // events.next(); // consume DecisionTaskCompleted
-          nextDecisionEventId = event.getEventId() + 1; // +1 for next
-          // newEvents.add(event);
+
+        if (eventType == EventType.DecisionTaskCompleted) { // Sticky workers receive an event history that starts with DecisionTaskCompleted
+          nextDecisionEventId = event.getEventId() + 1;
           break;
         }
 
@@ -257,9 +256,9 @@ class HistoryHelper {
   private final DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator;
   private final DecisionEventsIterator iterator;
 
-  HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks) {
+  HistoryHelper(DecisionTaskWithHistoryIterator decisionTasks, long replayCurrentTimeMilliseconds) {
     this.decisionTaskWithHistoryIterator = decisionTasks;
-    this.iterator = new DecisionEventsIterator(decisionTasks);
+    this.iterator = new DecisionEventsIterator(decisionTasks, replayCurrentTimeMilliseconds);
   }
 
   public DecisionEventsIterator getIterator() {

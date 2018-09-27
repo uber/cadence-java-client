@@ -20,9 +20,9 @@ package com.uber.cadence.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Mockito.*;
 
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
@@ -40,6 +40,8 @@ import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.*;
+
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -47,6 +49,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 @RunWith(Parameterized.class)
 public class StickyWorkerTest {
@@ -72,17 +75,28 @@ public class StickyWorkerTest {
   @Rule public TestName testName = new TestName();
 
   @Test
-  public void whenStickyIsEnabledThenTheWorkflowIsCached() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCached_Signals() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTest";
+    String taskListName = "cachedStickyTest" + UUID.randomUUID();
+
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+        new RootScopeBuilder()
+            .reporter(reporter)
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
+            .tagged(tags);
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
+            new Worker.FactoryOptions.Builder()
+                .setEnableStickyExecution(true)
+                .setMetricScope(scope)
+                .Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker =
-        factory.newWorker(taskListName, new WorkerOptions.Builder().build());
-    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
@@ -91,11 +105,12 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    GreetingWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+    GreetingSignalWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingSignalWorkflow.class, workflowOptions);
 
     // Act
     WorkflowClient.start(workflow::getGreeting);
+    Thread.sleep(300);
     workflow.waitForName("World");
     String greeting = workflow.getGreeting();
     assertEquals("Hello World!", greeting);
@@ -105,6 +120,13 @@ public class StickyWorkerTest {
     assertNotNull(cache);
     assertEquals(1, cache.size());
 
+    // Verify the workflow succeeded without having to recover from a failure
+    Thread.sleep(600);
+    verify(reporter, atLeastOnce())
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+
+    // Finish Workflow
     wrapper.close();
   }
 
@@ -114,24 +136,23 @@ public class StickyWorkerTest {
     String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
 
     Map<String, String> tags =
-            new ImmutableMap.Builder<String, String>(2)
-                    .put(MetricsTag.DOMAIN, "domain")
-                    .put(MetricsTag.TASK_LIST, taskListName)
-                    .build();
+        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
-            new RootScopeBuilder()
-                    .reporter(reporter)
-                    .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-                    .tagged(tags);
-
+        new RootScopeBuilder()
+            .reporter(reporter)
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
+            .tagged(tags);
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
+            new Worker.FactoryOptions.Builder()
+                .setEnableStickyExecution(true)
+                .setMetricScope(scope)
+                .Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().setMetricsScope(scope).build());
-    worker.registerWorkflowImplementationTypes(WorkflowImpl.class);
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
 
@@ -141,13 +162,13 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    StressWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(StressWorkflow.class, workflowOptions);
+    ActivitiesWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(ActivitiesWorkflow.class, workflowOptions);
 
     // Act
     WorkflowParams w = new WorkflowParams();
-    w.CadenceSleep = Duration.ofMillis(100);
-    w.ChainSequence = 4;
+    w.CadenceSleep = Duration.ofSeconds(1);
+    w.ChainSequence = 2;
     w.ConcurrentCount = 1;
     w.PayloadSizeBytes = 10;
     w.TaskListName = taskListName;
@@ -155,10 +176,118 @@ public class StickyWorkerTest {
 
     // Wait for reporter
     Thread.sleep(600);
-    // Verify the workflow succeeded without having to recover from a failure
-    verify(reporter, times(0)).reportCounter(MetricsType.STICKY_CACHE_MISS, tags, 0);
-    // Finish Workflow
 
+    // Verify the workflow succeeded without having to recover from a failure
+    verify(reporter, atLeastOnce())
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+
+    // Finish Workflow
+    wrapper.close();
+  }
+
+  @Test
+  public void whenStickyIsEnabledThenTheWorkflowIsCached_ChildWorkflows() throws Exception {
+    // Arrange
+    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+        new RootScopeBuilder()
+            .reporter(reporter)
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
+            .tagged(tags);
+
+    TestEnvironmentWrapper wrapper =
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder()
+                .setEnableStickyExecution(true)
+                .setMetricScope(scope)
+                .Build());
+    Worker.Factory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(
+        GreetingParentWorkflowImpl.class, GreetingChildImpl.class);
+    factory.start();
+
+    WorkflowOptions workflowOptions =
+        new WorkflowOptions.Builder()
+            .setTaskList(taskListName)
+            .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+            .build();
+    GreetingParentWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingParentWorkflow.class, workflowOptions);
+
+    // Act
+    Assert.assertEquals("Hello World!", workflow.getGreeting("World"));
+
+    // Wait for reporter
+    Thread.sleep(600);
+
+    // Verify the workflow succeeded without having to recover from a failure
+    verify(reporter, atLeastOnce())
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+    // Finish Workflow
+    wrapper.close();
+  }
+
+  @Test
+  public void whenStickyIsEnabledThenTheWorkflowIsCached_MutableSideEffect() throws Exception {
+    // Arrange
+    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+
+    Map<String, String> tags =
+            new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+            new RootScopeBuilder()
+                    .reporter(reporter)
+                    .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
+                    .tagged(tags);
+
+    TestEnvironmentWrapper wrapper =
+            new TestEnvironmentWrapper(
+                    new Worker.FactoryOptions.Builder()
+                            .setEnableStickyExecution(true)
+                            .setMetricScope(scope)
+                            .Build());
+    Worker.Factory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(
+            TestMutableSideEffectWorkflowImpl.class);
+    factory.start();
+
+    WorkflowOptions workflowOptions =
+            new WorkflowOptions.Builder()
+                    .setTaskList(taskListName)
+                    .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+                    .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+                    .build();
+    TestMutableSideEffectWorkflow workflow =
+            wrapper.getWorkflowClient().newWorkflowStub(TestMutableSideEffectWorkflow.class, workflowOptions);
+
+    // Act
+    ArrayDeque<Long> values = new ArrayDeque<>();
+    values.add(1234L);
+    values.add(1234L);
+    values.add(123L); // expected to be ignored as it is smaller than 1234.
+    values.add(3456L);
+    mutableSideEffectValue.put(taskListName, values);
+    String result = workflow.execute(taskListName);
+    assertEquals("1234, 1234, 1234, 3456", result);
+
+    // Wait for reporter
+    Thread.sleep(600);
+
+    // Verify the workflow succeeded without having to recover from a failure
+    verify(reporter, atLeastOnce())
+            .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+    // Finish Workflow
     wrapper.close();
   }
 
@@ -171,7 +300,7 @@ public class StickyWorkerTest {
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(false).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
-    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
@@ -180,8 +309,8 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    GreetingWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+    GreetingSignalWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingSignalWorkflow.class, workflowOptions);
 
     // Act
     WorkflowClient.start(workflow::getGreeting);
@@ -204,7 +333,7 @@ public class StickyWorkerTest {
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
-    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
@@ -213,8 +342,8 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    GreetingWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+    GreetingSignalWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingSignalWorkflow.class, workflowOptions);
 
     // Act
     WorkflowClient.start(workflow::getGreeting);
@@ -244,7 +373,7 @@ public class StickyWorkerTest {
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
-    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
@@ -253,8 +382,8 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    GreetingWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+    GreetingSignalWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingSignalWorkflow.class, workflowOptions);
 
     // Act
     WorkflowClient.start(workflow::getGreeting);
@@ -266,13 +395,13 @@ public class StickyWorkerTest {
     assertEquals(1, cache.size());
 
     // Assert
-    assertEquals(workflow.getProgress(), GreetingWorkflow.Status.WAITING_FOR_NAME);
+    assertEquals(workflow.getProgress(), GreetingSignalWorkflow.Status.WAITING_FOR_NAME);
 
     workflow.waitForName("World");
     String greeting = workflow.getGreeting();
 
     assertEquals("Hello World!", greeting);
-    assertEquals(workflow.getProgress(), GreetingWorkflow.Status.GREETING_GENERATED);
+    assertEquals(workflow.getProgress(), GreetingSignalWorkflow.Status.GREETING_GENERATED);
     wrapper.close();
   }
 
@@ -285,7 +414,7 @@ public class StickyWorkerTest {
             new Worker.FactoryOptions.Builder().setEnableStickyExecution(true).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
-    worker.registerWorkflowImplementationTypes(GreetingWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
@@ -294,8 +423,8 @@ public class StickyWorkerTest {
             .setExecutionStartToCloseTimeout(Duration.ofDays(30))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
             .build();
-    GreetingWorkflow workflow =
-        wrapper.getWorkflowClient().newWorkflowStub(GreetingWorkflow.class, workflowOptions);
+    GreetingSignalWorkflow workflow =
+        wrapper.getWorkflowClient().newWorkflowStub(GreetingSignalWorkflow.class, workflowOptions);
 
     // Act
     WorkflowClient.start(workflow::getGreeting);
@@ -309,13 +438,13 @@ public class StickyWorkerTest {
     assertEquals(0, cache.size());
 
     // Assert
-    assertEquals(workflow.getProgress(), GreetingWorkflow.Status.WAITING_FOR_NAME);
+    assertEquals(workflow.getProgress(), GreetingSignalWorkflow.Status.WAITING_FOR_NAME);
 
     workflow.waitForName("World");
     String greeting = workflow.getGreeting();
 
     assertEquals("Hello World!", greeting);
-    assertEquals(workflow.getProgress(), GreetingWorkflow.Status.GREETING_GENERATED);
+    assertEquals(workflow.getProgress(), GreetingSignalWorkflow.Status.GREETING_GENERATED);
     wrapper.close();
   }
 
@@ -358,7 +487,7 @@ public class StickyWorkerTest {
     public Duration CadenceSleep; // nano
   }
 
-  public interface GreetingWorkflow {
+  public interface GreetingSignalWorkflow {
     /** @return greeting string */
     @QueryMethod
     Status getProgress();
@@ -377,8 +506,8 @@ public class StickyWorkerTest {
     }
   }
 
-  /** GreetingWorkflow implementation that returns a greeting. */
-  public static class GreetingWorkflowImpl implements GreetingWorkflow {
+  /** GreetingSignalWorkflow implementation that returns a greeting. */
+  public static class GreetingSignalWorkflowImpl implements GreetingSignalWorkflow {
 
     private final CompletablePromise<String> name = Workflow.newPromise();
     private Status status = Status.WAITING_FOR_NAME;
@@ -401,13 +530,44 @@ public class StickyWorkerTest {
     }
   }
 
-  public interface StressWorkflow {
+  public interface GreetingParentWorkflow {
+    @WorkflowMethod(executionStartToCloseTimeoutSeconds = 10)
+    String getGreeting(String name);
+  }
+
+  public interface GreetingChild {
+    @WorkflowMethod
+    String composeGreeting(String greeting, String name);
+  }
+
+  public static class GreetingParentWorkflowImpl implements GreetingParentWorkflow {
+
+    @Override
+    public String getGreeting(String name) {
+      // Workflows are stateful. So a new stub must be created for each new child.
+      GreetingChild child = Workflow.newChildWorkflowStub(GreetingChild.class);
+
+      // This is a blocking call that returns only after the child has completed.
+      Promise<String> greeting = Async.function(child::composeGreeting, "Hello", name);
+      // Do something else here.
+      return greeting.get(); // blocks waiting for the child to complete.
+    }
+  }
+
+  public static class GreetingChildImpl implements GreetingChild {
+    @Override
+    public String composeGreeting(String greeting, String name) {
+      return greeting + " " + name + "!";
+    }
+  }
+
+  public interface ActivitiesWorkflow {
 
     @WorkflowMethod()
     void execute(WorkflowParams params);
   }
 
-  public static class WorkflowImpl implements StressWorkflow {
+  public static class ActivitiesWorkflowImpl implements ActivitiesWorkflow {
 
     @Override
     public void execute(WorkflowParams params) {
@@ -449,6 +609,42 @@ public class StickyWorkerTest {
     private static final Logger log = LoggerFactory.getLogger("sleep-activity");
 
     @Override
-    public void sleep(int chain, int concurrency, byte[] bytes) {}
+    public void sleep(int chain, int concurrency, byte[] bytes) {
+      log.info("sleep called");
+    }
+  }
+
+  public interface TestMutableSideEffectWorkflow {
+
+    @WorkflowMethod
+    String execute(String taskList);
+  }
+
+  private static final Map<String, Queue<Long>> mutableSideEffectValue =
+      Collections.synchronizedMap(new HashMap<>());
+
+  public static class TestMutableSideEffectWorkflowImpl implements TestMutableSideEffectWorkflow {
+
+    @Override
+    public String execute(String taskList) {
+      StringBuilder result = new StringBuilder();
+      for (int i = 0; i < 4; i++) {
+        long value =
+            Workflow.mutableSideEffect(
+                "id1",
+                Long.class,
+                (o, n) -> n > o,
+                () -> mutableSideEffectValue.get(taskList).poll());
+        if (result.length() > 0) {
+          result.append(", ");
+        }
+        result.append(value);
+        // Sleep is here to ensure that mutableSideEffect works when replaying a history.
+        if (i >= 3) {
+          Workflow.sleep(Duration.ofSeconds(1));
+        }
+      }
+      return result.toString();
+    }
   }
 }

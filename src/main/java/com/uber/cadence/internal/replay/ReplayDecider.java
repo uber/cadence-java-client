@@ -382,7 +382,8 @@ class ReplayDecider implements Decider {
       DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator =
           new DecisionTaskWithHistoryIteratorImpl(
               decisionTask, Duration.ofSeconds(startedEvent.getTaskStartToCloseTimeoutSeconds()));
-      HistoryHelper historyHelper = new HistoryHelper(decisionTaskWithHistoryIterator);
+      HistoryHelper historyHelper =
+          new HistoryHelper(decisionTaskWithHistoryIterator, context.getReplayCurrentTimeMilliseconds());
       DecisionEventsIterator iterator = historyHelper.getIterator();
       if ((nextDecisionEventIdAfterDecisionTaskCompleted
               != historyHelper.getPreviousStartedEventId()
@@ -401,23 +402,22 @@ class ReplayDecider implements Decider {
         DecisionEvents decision = iterator.next();
         nextDecisionEventIdAfterDecisionTaskCompleted = decision.getNextDecisionEventId();
         context.setReplaying(decision.isReplay());
+
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
         // Markers must be cached first as their data is needed when processing events.
-        int processedEvents = 0;
         for (HistoryEvent event : decision.getMarkers()) {
           processEvent(event);
         }
         for (HistoryEvent event : decision.getEvents()) {
-          processedEvents++;
           processEvent(event);
         }
 
-        //if (processedEvents > 0) {
-          eventLoop();
-          mayBeCompleteWorkflow();
-        //}
+        // if (processedEvents > 0) {
+        eventLoop();
+        mayBeCompleteWorkflow();
+        // }
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
