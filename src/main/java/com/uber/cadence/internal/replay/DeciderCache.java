@@ -70,11 +70,6 @@ public final class DeciderCache {
     String runId = decisionTask.getWorkflowExecution().getRunId();
     metricsScope.gauge(MetricsType.STICKY_CACHE_SIZE).update(size());
     if (isFullHistory(decisionTask)) {
-      log.info(
-          "full history "
-              + decisionTask.getWorkflowExecution().getWorkflowId()
-              + " size: "
-              + decisionTask.getHistory().getEventsSize());
       cache.invalidate(runId);
       return cache.get(
               runId, () -> new WeightedCacheEntry<>(createReplayDecider.apply(decisionTask), 1))

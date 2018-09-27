@@ -83,8 +83,6 @@ class ReplayDecider implements Decider {
 
   private long wfStartTime = -1;
 
-  private long nextDecisionEventIdAfterDecisionTaskCompleted = 0;
-
   private final WorkflowExecutionStartedEventAttributes startedEvent;
 
   ReplayDecider(
@@ -107,7 +105,6 @@ class ReplayDecider implements Decider {
           "First event in the history is not WorkflowExecutionStarted");
     }
 
-    wfStartTime = TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     context =
         new DecisionContextImpl(
             decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay);
@@ -277,23 +274,19 @@ class ReplayDecider implements Decider {
     if (failure != null) {
       decisionsHelper.failWorkflowExecution(failure);
       metricsScope.counter(MetricsType.WORKFLOW_FAILED_COUNTER).inc(1);
-      //      log.info("workflow failed");
     } else if (cancelRequested) {
       decisionsHelper.cancelWorkflowExecution();
       metricsScope.counter(MetricsType.WORKFLOW_CANCELLED_COUNTER).inc(1);
-      //      log.info("workflow canceled");
     } else {
       ContinueAsNewWorkflowExecutionParameters continueAsNewOnCompletion =
           context.getContinueAsNewOnCompletion();
       if (continueAsNewOnCompletion != null) {
         decisionsHelper.continueAsNewWorkflowExecution(continueAsNewOnCompletion);
         metricsScope.counter(MetricsType.WORKFLOW_CONTINUE_AS_NEW_COUNTER).inc(1);
-        //        log.info("workflow continue as new");
       } else {
         byte[] workflowOutput = workflow.getOutput();
         decisionsHelper.completeWorkflowExecution(workflowOutput);
         metricsScope.counter(MetricsType.WORKFLOW_COMPLETED_COUNTER).inc(1);
-        //        log.info("workflow completed");
       }
     }
 
@@ -302,7 +295,6 @@ class ReplayDecider implements Decider {
           TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
       com.uber.m3.util.Duration d = com.uber.m3.util.Duration.ofNanos(nanoTime - wfStartTime);
       metricsScope.timer(MetricsType.WORKFLOW_E2E_LATENCY).record(d);
-      log.info("workflow e2e " + Duration.ofNanos(nanoTime).toString());
     }
   }
 
@@ -383,24 +375,24 @@ class ReplayDecider implements Decider {
           new DecisionTaskWithHistoryIteratorImpl(
               decisionTask, Duration.ofSeconds(startedEvent.getTaskStartToCloseTimeoutSeconds()));
       HistoryHelper historyHelper =
-          new HistoryHelper(decisionTaskWithHistoryIterator, context.getReplayCurrentTimeMilliseconds());
+          new HistoryHelper(
+              decisionTaskWithHistoryIterator, context.getReplayCurrentTimeMilliseconds());
       DecisionEventsIterator iterator = historyHelper.getIterator();
-      if ((nextDecisionEventIdAfterDecisionTaskCompleted
+      if ((decisionsHelper.getNextDecisionEventId()
               != historyHelper.getPreviousStartedEventId()
                   + 2) // getNextDecisionEventId() skips over completed.
-          && (nextDecisionEventIdAfterDecisionTaskCompleted != 0
+          && (decisionsHelper.getNextDecisionEventId() != 0
               && historyHelper.getPreviousStartedEventId() != 0)
           && (decisionTask.getHistory().getEventsSize() > 0)) {
         throw new IllegalStateException(
             String.format(
                 "ReplayDecider expects next event id at %d. History's previous started event id is %d",
-                nextDecisionEventIdAfterDecisionTaskCompleted,
+                decisionsHelper.getNextDecisionEventId(),
                 historyHelper.getPreviousStartedEventId()));
       }
 
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
-        nextDecisionEventIdAfterDecisionTaskCompleted = decision.getNextDecisionEventId();
         context.setReplaying(decision.isReplay());
 
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
@@ -414,10 +406,9 @@ class ReplayDecider implements Decider {
           processEvent(event);
         }
 
-        // if (processedEvents > 0) {
         eventLoop();
         mayBeCompleteWorkflow();
-        // }
+
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
@@ -425,6 +416,9 @@ class ReplayDecider implements Decider {
         for (HistoryEvent event : decision.getDecisionEvents()) {
           processEvent(event);
         }
+
+        // Reset state to before running the event loop
+        decisionsHelper.handleDecisionTaskStartedEvent(decision);
       }
     } catch (Error e) {
       metricsScope.counter(MetricsType.DECISION_TASK_ERROR_COUNTER).inc(1);

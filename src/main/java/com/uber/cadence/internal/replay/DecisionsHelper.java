@@ -546,7 +546,6 @@ class DecisionsHelper {
     DecisionStateMachine next = null;
 
     DecisionStateMachine decisionStateMachine = getNextDecision(iterator);
-
     while (decisionStateMachine != null) {
       next = getNextDecision(iterator);
       if (++count == MAXIMUM_DECISIONS_PER_COMPLETION

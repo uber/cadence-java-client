@@ -77,16 +77,13 @@ public class StickyWorkerTest {
   @Test
   public void whenStickyIsEnabledThenTheWorkflowIsCached_Signals() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTest" + UUID.randomUUID();
+    String taskListName = "cachedStickyTest_Signal";
 
-    Map<String, String> tags =
-        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
         new RootScopeBuilder()
             .reporter(reporter)
-            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-            .tagged(tags);
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
@@ -121,6 +118,11 @@ public class StickyWorkerTest {
     assertEquals(1, cache.size());
 
     // Verify the workflow succeeded without having to recover from a failure
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, DOMAIN)
+            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .build();
     Thread.sleep(600);
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
@@ -133,16 +135,13 @@ public class StickyWorkerTest {
   @Test
   public void whenStickyIsEnabledThenTheWorkflowIsCached_Activities() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+    String taskListName = "cachedStickyTest_Activities";
 
-    Map<String, String> tags =
-        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
         new RootScopeBuilder()
             .reporter(reporter)
-            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-            .tagged(tags);
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
@@ -178,6 +177,11 @@ public class StickyWorkerTest {
     Thread.sleep(600);
 
     // Verify the workflow succeeded without having to recover from a failure
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, DOMAIN)
+            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
     verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
@@ -189,16 +193,13 @@ public class StickyWorkerTest {
   @Test
   public void whenStickyIsEnabledThenTheWorkflowIsCached_ChildWorkflows() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+    String taskListName = "cachedStickyTest_ChildWorkflows";
 
-    Map<String, String> tags =
-        new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
         new RootScopeBuilder()
             .reporter(reporter)
-            .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-            .tagged(tags);
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
@@ -228,6 +229,11 @@ public class StickyWorkerTest {
     Thread.sleep(600);
 
     // Verify the workflow succeeded without having to recover from a failure
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, DOMAIN)
+            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
     verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
@@ -238,37 +244,35 @@ public class StickyWorkerTest {
   @Test
   public void whenStickyIsEnabledThenTheWorkflowIsCached_MutableSideEffect() throws Exception {
     // Arrange
-    String taskListName = "cachedStickyTest_Activities" + UUID.randomUUID();
+    String taskListName = "cachedStickyTest_MutableSideEffect";
 
-    Map<String, String> tags =
-            new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, DOMAIN).build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
-            new RootScopeBuilder()
-                    .reporter(reporter)
-                    .reportEvery(com.uber.m3.util.Duration.ofMillis(300))
-                    .tagged(tags);
+        new RootScopeBuilder()
+            .reporter(reporter)
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
     TestEnvironmentWrapper wrapper =
-            new TestEnvironmentWrapper(
-                    new Worker.FactoryOptions.Builder()
-                            .setEnableStickyExecution(true)
-                            .setMetricScope(scope)
-                            .Build());
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder()
+                .setEnableStickyExecution(true)
+                .setMetricScope(scope)
+                .Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
-    worker.registerWorkflowImplementationTypes(
-            TestMutableSideEffectWorkflowImpl.class);
+    worker.registerWorkflowImplementationTypes(TestMutableSideEffectWorkflowImpl.class);
     factory.start();
 
     WorkflowOptions workflowOptions =
-            new WorkflowOptions.Builder()
-                    .setTaskList(taskListName)
-                    .setExecutionStartToCloseTimeout(Duration.ofDays(30))
-                    .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
-                    .build();
+        new WorkflowOptions.Builder()
+            .setTaskList(taskListName)
+            .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+            .build();
     TestMutableSideEffectWorkflow workflow =
-            wrapper.getWorkflowClient().newWorkflowStub(TestMutableSideEffectWorkflow.class, workflowOptions);
+        wrapper
+            .getWorkflowClient()
+            .newWorkflowStub(TestMutableSideEffectWorkflow.class, workflowOptions);
 
     // Act
     ArrayDeque<Long> values = new ArrayDeque<>();
@@ -284,8 +288,13 @@ public class StickyWorkerTest {
     Thread.sleep(600);
 
     // Verify the workflow succeeded without having to recover from a failure
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, DOMAIN)
+            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .build();
     verify(reporter, atLeastOnce())
-            .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
     verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
     // Finish Workflow
     wrapper.close();

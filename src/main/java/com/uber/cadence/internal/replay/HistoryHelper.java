@@ -56,9 +56,9 @@ class HistoryHelper {
         boolean replay,
         long replayCurrentTimeMilliseconds,
         long nextDecisionEventId) {
-//      if (replayCurrentTimeMilliseconds <= 0) {
-  //      throw new Error("replayCurrentTimeMilliseconds is not set");
-    //  }
+      if (replayCurrentTimeMilliseconds <= 0) {
+        throw new Error("replayCurrentTimeMilliseconds is not set");
+      }
       if (nextDecisionEventId <= 0) {
         throw new Error("nextDecisionEventId is not set");
       }
@@ -235,7 +235,6 @@ class HistoryHelper {
         newEvents.add(event);
       }
       while (events.hasNext()) {
-        log.info(events.peek().toString());
         if (!WorkflowExecutionUtils.isDecisionEvent(events.peek())) {
           break;
         }

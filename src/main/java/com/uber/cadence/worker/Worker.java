@@ -404,7 +404,10 @@ public final class Worker {
 
       Scope metricsScope =
           factoryOptions.metricsScope.tagged(
-              new ImmutableMap.Builder<String, String>(2).put(MetricsTag.DOMAIN, domain).build());
+              new ImmutableMap.Builder<String, String>(2)
+                  .put(MetricsTag.DOMAIN, domain)
+                  .put(MetricsTag.TASK_LIST, getStickyTaskListName())
+                  .build());
 
       this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, metricsScope);
 
@@ -502,22 +505,11 @@ public final class Worker {
       }
     }
 
-    private String getStickyTaskListName() {
+    @VisibleForTesting
+    String getStickyTaskListName() {
       return this.factoryOptions.enableStickyExecution
           ? String.format("%s:%s", getHostName(), id)
           : null;
-    }
-
-    private SingleWorkerOptions getDefaultSingleWorkerOptions() {
-      return Worker.toWorkflowOptions(new Builder().build(), domain, getStickyTaskListName());
-    }
-
-    private PollerOptions getDefaultPollerOptions(SingleWorkerOptions options) {
-      PollerOptions pollerOptions = options.getPollerOptions();
-      if (pollerOptions.getPollThreadNamePrefix() == null) {
-        pollerOptions = new PollerOptions.Builder(pollerOptions).build();
-      }
-      return pollerOptions;
     }
 
     enum State {
