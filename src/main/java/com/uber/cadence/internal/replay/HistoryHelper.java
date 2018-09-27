@@ -205,10 +205,8 @@ class HistoryHelper {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
 
-        if (eventType
-            == EventType
-                .DecisionTaskCompleted) { // Sticky workers receive an event history that starts
-                                          // with DecisionTaskCompleted
+        // Sticky workers receive an event history that starts with DecisionTaskCompleted
+        if (eventType == EventType.DecisionTaskCompleted) {
           nextDecisionEventId = event.getEventId() + 1;
           break;
         }
