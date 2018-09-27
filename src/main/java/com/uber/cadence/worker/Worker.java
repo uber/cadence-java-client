@@ -406,7 +406,7 @@ public final class Worker {
           factoryOptions.metricsScope.tagged(
               new ImmutableMap.Builder<String, String>(2)
                   .put(MetricsTag.DOMAIN, domain)
-                  .put(MetricsTag.TASK_LIST, getStickyTaskListName())
+                  .put(MetricsTag.TASK_LIST, getHostName())
                   .build());
 
       this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, metricsScope);
@@ -497,7 +497,8 @@ public final class Worker {
       return this.cache;
     }
 
-    private String getHostName() {
+    @VisibleForTesting
+    String getHostName() {
       try {
         return InetAddress.getLocalHost().getHostName();
       } catch (UnknownHostException e) {
@@ -505,8 +506,7 @@ public final class Worker {
       }
     }
 
-    @VisibleForTesting
-    String getStickyTaskListName() {
+    private String getStickyTaskListName() {
       return this.factoryOptions.enableStickyExecution
           ? String.format("%s:%s", getHostName(), id)
           : null;

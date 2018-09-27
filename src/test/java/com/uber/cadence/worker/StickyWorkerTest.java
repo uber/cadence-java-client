@@ -89,7 +89,7 @@ public class StickyWorkerTest {
   @Rule public TestName testName = new TestName();
 
   @Test
-  public void whenStickyIsEnabledThenTheWorkflowIsCached_Signals() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCachedSignals() throws Exception {
     // Arrange
     String taskListName = "cachedStickyTest_Signal";
 
@@ -135,7 +135,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, factory.getHostName())
             .build();
     Thread.sleep(600);
     verify(reporter, atLeastOnce())
@@ -147,7 +147,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void whenStickyIsEnabledThenTheWorkflowIsCached_Activities() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCachedActivities() throws Exception {
     // Arrange
     String taskListName = "cachedStickyTest_Activities";
 
@@ -194,7 +194,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, factory.getHostName())
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
@@ -205,7 +205,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void whenStickyIsEnabledThenTheWorkflowIsCached_ChildWorkflows() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCachedChildWorkflows() throws Exception {
     // Arrange
     String taskListName = "cachedStickyTest_ChildWorkflows";
 
@@ -246,7 +246,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, factory.getHostName())
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
@@ -256,7 +256,7 @@ public class StickyWorkerTest {
   }
 
   @Test
-  public void whenStickyIsEnabledThenTheWorkflowIsCached_MutableSideEffect() throws Exception {
+  public void whenStickyIsEnabledThenTheWorkflowIsCachedMutableSideEffect() throws Exception {
     // Arrange
     String taskListName = "cachedStickyTest_MutableSideEffect";
 
@@ -305,7 +305,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, factory.getHostName())
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
