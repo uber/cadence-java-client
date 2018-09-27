@@ -393,8 +393,8 @@ class ReplayDecider implements Decider {
 
       while (iterator.hasNext()) {
         DecisionEvents decision = iterator.next();
-        context.setReplaying(decision.isReplay());
 
+        context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
 
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
@@ -405,10 +405,8 @@ class ReplayDecider implements Decider {
         for (HistoryEvent event : decision.getEvents()) {
           processEvent(event);
         }
-
         eventLoop();
         mayBeCompleteWorkflow();
-
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
         }
@@ -416,7 +414,6 @@ class ReplayDecider implements Decider {
         for (HistoryEvent event : decision.getDecisionEvents()) {
           processEvent(event);
         }
-
         // Reset state to before running the event loop
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
       }

@@ -183,7 +183,9 @@ class HistoryHelper {
     private EventsIterator events;
     private long replayCurrentTimeMilliseconds;
 
-    DecisionEventsIterator(DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator, long replayCurrentTimeMilliseconds) {
+    DecisionEventsIterator(
+        DecisionTaskWithHistoryIterator decisionTaskWithHistoryIterator,
+        long replayCurrentTimeMilliseconds) {
       this.events = new EventsIterator(decisionTaskWithHistoryIterator.getHistory());
       this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
     }
@@ -203,7 +205,10 @@ class HistoryHelper {
         HistoryEvent event = events.next();
         EventType eventType = event.getEventType();
 
-        if (eventType == EventType.DecisionTaskCompleted) { // Sticky workers receive an event history that starts with DecisionTaskCompleted
+        if (eventType
+            == EventType
+                .DecisionTaskCompleted) { // Sticky workers receive an event history that starts
+                                          // with DecisionTaskCompleted
           nextDecisionEventId = event.getEventId() + 1;
           break;
         }
