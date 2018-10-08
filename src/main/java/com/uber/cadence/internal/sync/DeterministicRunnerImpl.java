@@ -287,6 +287,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
   @Override
   public void close() {
+    List<Future<?>> threadFutures = new ArrayList<>();
     lock.lock();
     if (closed) {
       return;
@@ -299,7 +300,10 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
     try {
       for (WorkflowThread c : threads) {
-        c.stop();
+        Future<?> future = c.stopNow();
+        if (future != null) {
+          threadFutures.add(future);
+        }
       }
       threads.clear();
 
@@ -325,6 +329,18 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     } finally {
       closed = true;
       lock.unlock();
+    }
+
+    // Context is destroyed in c.StopNow(). Wait on all tasks outside the lock since
+    // these tasks use the same lock to execute.
+    for (Future<?> future : threadFutures) {
+      try {
+        future.get();
+      } catch (InterruptedException e) {
+        throw new Error("Unexpected interrupt", e);
+      } catch (ExecutionException e) {
+        throw new Error("Unexpected failure stopping coroutine", e);
+      }
     }
   }
 
