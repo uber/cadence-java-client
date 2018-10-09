@@ -122,6 +122,7 @@ public final class DeciderCache {
     try {
       String runId = decisionTask.getWorkflowExecution().getRunId();
       cache.invalidate(runId);
+      metricsScope.counter(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION).inc(1);
     } finally {
       evictionLock.unlock();
     }
