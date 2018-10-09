@@ -206,7 +206,7 @@ class HistoryHelper {
         EventType eventType = event.getEventType();
 
         // Sticky workers receive an event history that starts with DecisionTaskCompleted
-        if (eventType == EventType.DecisionTaskCompleted) {
+        if (eventType == EventType.DecisionTaskCompleted && nextDecisionEventId == -1) {
           nextDecisionEventId = event.getEventId() + 1;
           break;
         }
