@@ -163,7 +163,7 @@ public class ReplayDeciderCacheTests {
         new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(10)).tagged(tags);
 
     // Arrange
-    DeciderCache replayDeciderCache = new DeciderCache(10, scope);
+    DeciderCache replayDeciderCache = new DeciderCache(50, scope);
     PollForDecisionTaskResponse decisionTask1 =
         HistoryUtils.generateDecisionTaskWithInitialHistory();
     PollForDecisionTaskResponse decisionTask2 =
