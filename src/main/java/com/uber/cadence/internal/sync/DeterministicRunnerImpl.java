@@ -300,10 +300,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
     try {
       for (WorkflowThread c : threads) {
-        Future<?> future = c.stopNow();
-        if (future != null) {
-          threadFutures.add(future);
-        }
+        threadFutures.add(c.stopNow());
       }
       threads.clear();
 

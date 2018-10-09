@@ -27,15 +27,14 @@ import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+
+import static javafx.scene.input.KeyCode.T;
 
 class WorkflowThreadImpl implements WorkflowThread {
 
@@ -343,7 +342,16 @@ class WorkflowThreadImpl implements WorkflowThread {
       throw new RuntimeException(
           "Couldn't destroy the thread. " + "The blocked thread stack trace: " + getStackTrace());
     }
+    if(taskFuture == null){
+     return getCompletedFuture();
+    }
     return taskFuture;
+  }
+
+  private Future<?> getCompletedFuture(){
+    CompletableFuture<String> f = new CompletableFuture<>();
+    f.complete("done");
+    return f;
   }
 
   @Override
