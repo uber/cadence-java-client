@@ -22,9 +22,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -189,7 +187,7 @@ public class ReplayDeciderCacheTests {
 
     // Wait for reporter
     Thread.sleep(600);
-    verify(reporter, times(anyInt()))
+    verify(reporter, atLeastOnce())
         .reportCounter(
                 eq(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION), eq(tags), anyInt());
   }
