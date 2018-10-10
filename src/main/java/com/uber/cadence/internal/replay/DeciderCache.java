@@ -108,19 +108,23 @@ public final class DeciderCache {
       // ConcurrenyLevel limits cache modification but reads and cache loading computations still
       // have concurrently.
       cache.put(evictionEntryId, new WeightedCacheEntry<>(null, remainingSpace + 1));
-      cache.invalidate(evictionEntryId);
-      metricsScope.counter(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION).inc(1);
+      invalidate(evictionEntryId);
+      metricsScope.counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION).inc(1);
     } finally {
       evictionLock.unlock();
     }
   }
 
   public void invalidate(PollForDecisionTaskResponse decisionTask) throws InterruptedException {
+    String runId = decisionTask.getWorkflowExecution().getRunId();
+    invalidate(runId);
+  }
+
+  private void invalidate(String runId) throws InterruptedException {
     if (!evictionLock.tryLock(rand.nextInt(4), TimeUnit.SECONDS)) {
       return;
     }
     try {
-      String runId = decisionTask.getWorkflowExecution().getRunId();
       cache.invalidate(runId);
       metricsScope.counter(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION).inc(1);
     } finally {
