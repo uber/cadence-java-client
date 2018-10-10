@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.sync;
 
+import static javafx.scene.input.KeyCode.T;
+
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
@@ -33,8 +35,6 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-
-import static javafx.scene.input.KeyCode.T;
 
 class WorkflowThreadImpl implements WorkflowThread {
 
@@ -348,13 +348,13 @@ class WorkflowThreadImpl implements WorkflowThread {
       throw new RuntimeException(
           "Couldn't destroy the thread. " + "The blocked thread stack trace: " + getStackTrace());
     }
-    if(taskFuture == null){
-     return getCompletedFuture();
+    if (taskFuture == null) {
+      return getCompletedFuture();
     }
     return taskFuture;
   }
 
-  private Future<?> getCompletedFuture(){
+  private Future<?> getCompletedFuture() {
     CompletableFuture<String> f = new CompletableFuture<>();
     f.complete("done");
     return f;

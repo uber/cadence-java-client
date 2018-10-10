@@ -18,6 +18,7 @@
 package com.uber.cadence.worker;
 
 import static org.junit.Assert.assertNotNull;
+
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
@@ -31,7 +32,6 @@ import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
 import java.util.*;
-
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,7 +73,8 @@ public class WorkerStressTests {
     String taskListName = "veryLongWorkflow";
 
     TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(new Worker.FactoryOptions.Builder().setmaxWorkflowThreadCount(200).Build());
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder().setmaxWorkflowThreadCount(200).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
