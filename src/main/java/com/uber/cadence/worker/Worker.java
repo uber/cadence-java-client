@@ -338,9 +338,7 @@ public final class Worker {
     return taskList;
   }
 
-  /**
-   * Maintains worker creation and lifecycle.
-   */
+  /** Maintains worker creation and lifecycle. */
   public static final class Factory {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
@@ -362,6 +360,7 @@ public final class Worker {
 
     /**
      * Creates a factory. Workers will be connected to a local deployment of cadence-server
+     *
      * @param domain Domain used by workers to poll for workflows.
      */
     public Factory(String domain) {
@@ -369,7 +368,9 @@ public final class Worker {
     }
 
     /**
-     * Creates a factory. Workers will be connected to the cadence-server at the specific host and port.
+     * Creates a factory. Workers will be connected to the cadence-server at the specific host and
+     * port.
+     *
      * @param host host used by the underlying workflowServiceClient to connect to.
      * @param port port used by the underlying workflowServiceClient to connect to.
      * @param domain Domain used by workers to poll for workflows.
@@ -380,6 +381,7 @@ public final class Worker {
 
     /**
      * Creates a factory connected to a local deployment of cadence-server.
+     *
      * @param domain Domain used by workers to poll for workflows.
      * @param factoryOptions Options used to configure factory settings
      */
@@ -388,7 +390,9 @@ public final class Worker {
     }
 
     /**
-     * Creates a factory. Workers will be connected to the cadence-server at the specific host and port.
+     * Creates a factory. Workers will be connected to the cadence-server at the specific host and
+     * port.
+     *
      * @param host host used by the underlying workflowServiceClient to connect to.
      * @param port port used by the underlying workflowServiceClient to connect to.
      * @param domain Domain used by workers to poll for workflows.
@@ -399,7 +403,9 @@ public final class Worker {
     }
 
     /**
-     * Creates a factory. Workers will be connect to the cadence-server using the workflowService client passed in.
+     * Creates a factory. Workers will be connect to the cadence-server using the workflowService
+     * client passed in.
+     *
      * @param workflowService client to the Cadence Service endpoint.
      * @param domain Domain used by workers to poll for workflows.
      */
@@ -408,7 +414,9 @@ public final class Worker {
     }
 
     /**
-     * Creates a factory. Workers will be connect to the cadence-server using the workflowService client passed in.
+     * Creates a factory. Workers will be connect to the cadence-server using the workflowService
+     * client passed in.
+     *
      * @param workflowService client to the Cadence Service endpoint.
      * @param domain Domain used by workers to poll for workflows.
      * @param factoryOptions Options used to configure factory settings
@@ -461,10 +469,12 @@ public final class Worker {
 
     /**
      * Creates worker that connects to an instance of the Cadence Service. It uses the domain *
-     * configured at the Factory level. New workers cannot be created after the start() has been called
+     * configured at the Factory level. New workers cannot be created after the start() has been
+     * called
+     *
      * @param taskList task list name worker uses to poll. It uses this name for both decision and *
      *     activity task list polls.
-     * @return
+     * @return Worker
      */
     public Worker newWorker(String taskList) {
       return newWorker(taskList, null);
@@ -472,11 +482,13 @@ public final class Worker {
 
     /**
      * Creates worker that connects to an instance of the Cadence Service. It uses the domain *
-     * configured at the Factory level. New workers cannot be created after the start() has been called
+     * configured at the Factory level. New workers cannot be created after the start() has been
+     * called
+     *
      * @param taskList task list name worker uses to poll. It uses this name for both decision and *
      *     activity task list polls.
      * @param options Options (like {@link DataConverter} override) for configuring worker.
-     * @return
+     * @return Worker
      */
     public Worker newWorker(String taskList, WorkerOptions options) {
       Preconditions.checkArgument(
@@ -507,9 +519,7 @@ public final class Worker {
       }
     }
 
-    /**
-     * Starts all the workers created by this factory.
-     */
+    /** Starts all the workers created by this factory. */
     public void start() {
       synchronized (this) {
         Preconditions.checkState(
@@ -536,6 +546,7 @@ public final class Worker {
 
     /**
      * Shuts down Poller used for sticky workflows and all workers created by this factory.
+     *
      * @param timeout
      */
     public void shutdown(Duration timeout) {
@@ -587,10 +598,9 @@ public final class Worker {
       private Scope metricScope;
 
       /**
-       * When set to true it will create an affinity between the worker and the workflow run it's processing.
-       * Workers will cache workflows and will handle all decisions for that workflow instance until it's complete or
-       * evicted from the cache.
-       * @return
+       * When set to true it will create an affinity between the worker and the workflow run it's
+       * processing. Workers will cache workflows and will handle all decisions for that workflow
+       * instance until it's complete or evicted from the cache.
        */
       public Builder setEnableStickyExecution(boolean enableStickyExecution) {
         this.enableStickyExecution = enableStickyExecution;
@@ -598,9 +608,8 @@ public final class Worker {
       }
 
       /**
-       * When Sticky execution is enabled this will set the maximum allowed number of workflows cached. This cache is
-       * shared by all workers created by the Factory.
-       * @return
+       * When Sticky execution is enabled this will set the maximum allowed number of workflows
+       * cached. This cache is shared by all workers created by the Factory.
        */
       public Builder setCacheMaximumSize(int cacheMaximumSize) {
         this.cacheMaximumSize = cacheMaximumSize;
@@ -608,8 +617,8 @@ public final class Worker {
       }
 
       /**
-       * Maximum number of threads available for workflow execution across all workers created by the Factory.
-       * @return
+       * Maximum number of threads available for workflow execution across all workers created by
+       * the Factory.
        */
       public Builder setmaxWorkflowThreadCount(int maxWorkflowThreadCount) {
         this.maxWorkflowThreadCount = maxWorkflowThreadCount;
@@ -617,9 +626,8 @@ public final class Worker {
       }
 
       /**
-       * Timeout for sticky workflow decision to be picked up by the host assigned to it. Once it times out then it can
-       * be picked up by any worker.
-       * @return
+       * Timeout for sticky workflow decision to be picked up by the host assigned to it. Once it
+       * times out then it can be picked up by any worker.
        */
       public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(
           int stickyDecisionScheduleToStartTimeoutInSeconds) {
@@ -629,9 +637,8 @@ public final class Worker {
       }
 
       /**
-       * PollerOptions for poller responsible for polling for decisions for workflows cached by all workers created
-       * by this factory.
-       * @return
+       * PollerOptions for poller responsible for polling for decisions for workflows cached by all
+       * workers created by this factory.
        */
       public Builder setStickyWorkflowPollerOptions(PollerOptions stickyWorkflowPollerOptions) {
         this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
