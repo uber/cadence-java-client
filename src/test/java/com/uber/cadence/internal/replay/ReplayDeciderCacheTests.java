@@ -189,7 +189,7 @@ public class ReplayDeciderCacheTests {
 
     // Wait for reporter
     Thread.sleep(600);
-    verify(reporter, times(1))
+    verify(reporter, times(anyInt()))
         .reportCounter(
                 eq(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION), eq(tags), anyInt());
   }
