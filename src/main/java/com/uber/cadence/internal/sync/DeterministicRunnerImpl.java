@@ -290,12 +290,14 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     List<Future<?>> threadFutures = new ArrayList<>();
     lock.lock();
     if (closed) {
+      lock.unlock();
       return;
     }
     // Do not close while runUntilAllBlocked executes.
     // closeRequested tells it to call close() at the end.
     closeRequested = true;
     if (inRunUntilAllBlocked) {
+      lock.unlock();
       return;
     }
     try {

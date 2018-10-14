@@ -26,9 +26,10 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.internal.common.ThrowableFunc1;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
-import java.util.Objects;
-import java.util.Random;
-import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -41,7 +42,9 @@ public final class DeciderCache {
   private Lock evictionLock = new ReentrantLock();
   Random rand = new Random();
 
-  public DeciderCache(int maxCacheSize, Scope scope) {
+    private static final Logger log = LoggerFactory.getLogger(DeciderCache.class);
+
+    public DeciderCache(int maxCacheSize, Scope scope) {
     Preconditions.checkArgument(maxCacheSize > 0, "Max cache size must be greater than 0");
     this.maxCacheSize = maxCacheSize;
     this.metricsScope = Objects.requireNonNull(scope);
@@ -93,22 +96,34 @@ public final class DeciderCache {
     }
   }
 
-  public void evictNext() throws InterruptedException {
+  public void evictAny(String runId) throws InterruptedException {
     // Timeout is to guard against workflows trying to evict each other.
     if (!evictionLock.tryLock(rand.nextInt(4), TimeUnit.SECONDS)) {
       return;
     }
     try {
       metricsScope.gauge(MetricsType.STICKY_CACHE_SIZE).update(size());
-      int remainingSpace = (int) (maxCacheSize - cache.size());
-      // Force eviction to happen. This assumes a concurrency level of 1 which implies a single
-      // underlying segment and lock. If higher concurrency levels are assumed this may not work
-      // since
-      // the weight could be greater than the segment size and put will simply noop.
-      // ConcurrenyLevel limits cache modification but reads and cache loading computations still
-      // have concurrently.
-      cache.put(evictionEntryId, new WeightedCacheEntry<>(null, remainingSpace + 1));
-      invalidate(evictionEntryId);
+      Set<String> set = cache.asMap().keySet();
+      if (set.isEmpty()) {
+        return;
+      }
+      Iterator<String> iter = cache.asMap().keySet().iterator();
+      String key = null;
+      while (iter.hasNext()) {
+        key = iter.next();
+        if (key != runId) {
+          break;
+        }
+      }
+
+      if (key == runId) {
+        log.warn(String.format("%s attempted to self evict. Ignoring eviction", runId));
+        return;
+      }
+      if (key != null) {
+        cache.invalidate(key);
+      }
+      metricsScope.gauge(MetricsType.STICKY_CACHE_SIZE).update(size());
       metricsScope.counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION).inc(1);
     } finally {
       evictionLock.unlock();

@@ -17,8 +17,6 @@
 
 package com.uber.cadence.internal.sync;
 
-import static javafx.scene.input.KeyCode.T;
-
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
@@ -238,7 +236,7 @@ class WorkflowThreadImpl implements WorkflowThread {
           .inc(1);
       try {
         if (cache != null) {
-          cache.evictNext();
+          cache.evictAny(this.runner.getDecisionContext().getContext().getRunId());
         }
       } catch (InterruptedException e1) {
         log.warn("Unable to evict cache", e1);
