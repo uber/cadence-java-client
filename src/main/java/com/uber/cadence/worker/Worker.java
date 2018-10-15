@@ -481,7 +481,7 @@ public final class Worker {
     }
 
     /**
-     * Creates worker that connects to an instance of the Cadence Service. It uses the domain 
+     * Creates worker that connects to an instance of the Cadence Service. It uses the domain
      * configured at the Factory level. New workers cannot be created after the start() has been
      * called
      *
