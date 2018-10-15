@@ -468,11 +468,11 @@ public final class Worker {
     }
 
     /**
-     * Creates worker that connects to an instance of the Cadence Service. It uses the domain *
+     * Creates worker that connects to an instance of the Cadence Service. It uses the domain
      * configured at the Factory level. New workers cannot be created after the start() has been
      * called
      *
-     * @param taskList task list name worker uses to poll. It uses this name for both decision and *
+     * @param taskList task list name worker uses to poll. It uses this name for both decision and
      *     activity task list polls.
      * @return Worker
      */
@@ -481,11 +481,11 @@ public final class Worker {
     }
 
     /**
-     * Creates worker that connects to an instance of the Cadence Service. It uses the domain *
+     * Creates worker that connects to an instance of the Cadence Service. It uses the domain 
      * configured at the Factory level. New workers cannot be created after the start() has been
      * called
      *
-     * @param taskList task list name worker uses to poll. It uses this name for both decision and *
+     * @param taskList task list name worker uses to poll. It uses this name for both decision and
      *     activity task list polls.
      * @param options Options (like {@link DataConverter} override) for configuring worker.
      * @return Worker
@@ -609,7 +609,7 @@ public final class Worker {
 
       /**
        * When Sticky execution is enabled this will set the maximum allowed number of workflows
-       * cached. This cache is shared by all workers created by the Factory.
+       * cached. This cache is shared by all workers created by the Factory. Default value is 600
        */
       public Builder setCacheMaximumSize(int cacheMaximumSize) {
         this.cacheMaximumSize = cacheMaximumSize;
@@ -620,14 +620,14 @@ public final class Worker {
        * Maximum number of threads available for workflow execution across all workers created by
        * the Factory.
        */
-      public Builder setmaxWorkflowThreadCount(int maxWorkflowThreadCount) {
+      public Builder setMaxWorkflowThreadCount(int maxWorkflowThreadCount) {
         this.maxWorkflowThreadCount = maxWorkflowThreadCount;
         return this;
       }
 
       /**
        * Timeout for sticky workflow decision to be picked up by the host assigned to it. Once it
-       * times out then it can be picked up by any worker.
+       * times out then it can be picked up by any worker. Default value is 5 seconds.
        */
       public Builder setStickyDecisionScheduleToStartTimeoutInSeconds(
           int stickyDecisionScheduleToStartTimeoutInSeconds) {

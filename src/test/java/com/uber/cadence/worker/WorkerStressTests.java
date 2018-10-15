@@ -77,7 +77,7 @@ public class WorkerStressTests {
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setmaxWorkflowThreadCount(200).Build());
+            new Worker.FactoryOptions.Builder().setMaxWorkflowThreadCount(200).Build());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
