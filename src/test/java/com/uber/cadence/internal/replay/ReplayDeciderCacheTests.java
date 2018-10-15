@@ -189,23 +189,23 @@ public class ReplayDeciderCacheTests {
         .reportCounter(eq(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION), eq(tags), anyInt());
   }
 
-    @Test
-    public void evictAnyWillNotInvalidateItself() throws Exception {
-        // Arrange
-        DeciderCache replayDeciderCache = new DeciderCache(50, NoopScope.getInstance());
-        PollForDecisionTaskResponse decisionTask1 =
-                HistoryUtils.generateDecisionTaskWithInitialHistory();
+  @Test
+  public void evictAnyWillNotInvalidateItself() throws Exception {
+    // Arrange
+    DeciderCache replayDeciderCache = new DeciderCache(50, NoopScope.getInstance());
+    PollForDecisionTaskResponse decisionTask1 =
+        HistoryUtils.generateDecisionTaskWithInitialHistory();
 
-        // Act
-        Decider decider1 = replayDeciderCache.getOrCreate(decisionTask1, this::createFakeDecider);
+    // Act
+    Decider decider1 = replayDeciderCache.getOrCreate(decisionTask1, this::createFakeDecider);
 
-        assertEquals(1, replayDeciderCache.size());
+    assertEquals(1, replayDeciderCache.size());
 
-        replayDeciderCache.evictAny(decisionTask1.workflowExecution.runId);
+    replayDeciderCache.evictAny(decisionTask1.workflowExecution.runId);
 
-        // Assert
-        assertEquals(1, replayDeciderCache.size());
-    }
+    // Assert
+    assertEquals(1, replayDeciderCache.size());
+  }
 
   private void assertCacheIsEmpty(DeciderCache cache, String runId) throws Exception {
     DeciderCache.EvictedException ex = null;

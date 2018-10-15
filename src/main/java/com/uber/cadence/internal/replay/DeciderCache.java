@@ -21,50 +21,43 @@ import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.cache.Weigher;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.internal.common.ThrowableFunc1;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DeciderCache {
-  private final String evictionEntryId = UUID.randomUUID().toString();
-  private final int maxCacheSize;
   private final Scope metricsScope;
-  private LoadingCache<String, WeightedCacheEntry<Decider>> cache;
+  private LoadingCache<String, Decider> cache;
   private Lock evictionLock = new ReentrantLock();
   Random rand = new Random();
 
-    private static final Logger log = LoggerFactory.getLogger(DeciderCache.class);
+  private static final Logger log = LoggerFactory.getLogger(DeciderCache.class);
 
-    public DeciderCache(int maxCacheSize, Scope scope) {
+  public DeciderCache(int maxCacheSize, Scope scope) {
     Preconditions.checkArgument(maxCacheSize > 0, "Max cache size must be greater than 0");
-    this.maxCacheSize = maxCacheSize;
     this.metricsScope = Objects.requireNonNull(scope);
     this.cache =
         CacheBuilder.newBuilder()
-            .maximumWeight(maxCacheSize)
+            .maximumSize(maxCacheSize)
             .concurrencyLevel(1)
-            .weigher(
-                (Weigher<String, WeightedCacheEntry<Decider>>) (key, value) -> value.getWeight())
             .removalListener(
                 e -> {
-                  Decider entry = e.getValue().entry;
+                  Decider entry = (Decider) e.getValue();
                   if (entry != null) {
                     entry.close();
                   }
                 })
             .build(
-                new CacheLoader<String, WeightedCacheEntry<Decider>>() {
+                new CacheLoader<String, Decider>() {
                   @Override
-                  public WeightedCacheEntry<Decider> load(String key) {
+                  public Decider load(String key) {
                     return null;
                   }
                 });
@@ -78,16 +71,14 @@ public final class DeciderCache {
     metricsScope.gauge(MetricsType.STICKY_CACHE_SIZE).update(size());
     if (isFullHistory(decisionTask)) {
       invalidate(decisionTask);
-      return cache.get(
-              runId, () -> new WeightedCacheEntry<>(createReplayDecider.apply(decisionTask), 1))
-          .entry;
+      return cache.get(runId, () -> createReplayDecider.apply(decisionTask));
     }
     return getUnchecked(runId);
   }
 
   public Decider getUnchecked(String runId) throws Exception {
     try {
-      Decider cachedDecider = cache.getUnchecked(runId).entry;
+      Decider cachedDecider = cache.getUnchecked(runId);
       metricsScope.counter(MetricsType.STICKY_CACHE_HIT).inc(1);
       return cachedDecider;
     } catch (CacheLoader.InvalidCacheLoadException e) {
@@ -108,21 +99,19 @@ public final class DeciderCache {
         return;
       }
       Iterator<String> iter = cache.asMap().keySet().iterator();
-      String key = null;
+      String key = "";
       while (iter.hasNext()) {
         key = iter.next();
-        if (key != runId) {
+        if (!key.equals(runId)) {
           break;
         }
       }
 
-      if (key == runId) {
+      if (key.equals(runId)) {
         log.warn(String.format("%s attempted to self evict. Ignoring eviction", runId));
         return;
       }
-      if (key != null) {
-        cache.invalidate(key);
-      }
+      cache.invalidate(key);
       metricsScope.gauge(MetricsType.STICKY_CACHE_SIZE).update(size());
       metricsScope.counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION).inc(1);
     } finally {
@@ -159,25 +148,6 @@ public final class DeciderCache {
 
   public void invalidateAll() {
     cache.invalidateAll();
-  }
-
-  // Used for eviction
-  private static class WeightedCacheEntry<T> {
-    private T entry;
-    private int weight;
-
-    private WeightedCacheEntry(T entry, int weight) {
-      this.entry = entry;
-      this.weight = weight;
-    }
-
-    public T getEntry() {
-      return entry;
-    }
-
-    public int getWeight() {
-      return weight;
-    }
   }
 
   public static class EvictedException extends Exception {

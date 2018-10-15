@@ -226,6 +226,11 @@ class WorkflowThreadImpl implements WorkflowThread {
     }
     context.setStatus(Status.RUNNING);
 
+    getDecisionContext()
+        .getMetricsScope()
+        .gauge(MetricsType.STICKY_CACHE_SIZE)
+        .update(((ThreadPoolExecutor) threadPool).getActiveCount());
+
     try {
       taskFuture = threadPool.submit(task);
       return;

@@ -106,6 +106,60 @@ public class WorkerStressTests {
     wrapper.close();
   }
 
+  @Test
+  public void selfEvictionDoesNotCauseDeadlock() throws InterruptedException {
+
+    // Arrange
+    String taskListName = "veryLongWorkflow" + UUID.randomUUID();
+
+    TestEnvironmentWrapper wrapper =
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder()
+                .setEnableStickyExecution(true)
+                .setmaxWorkflowThreadCount(2)
+                .Build());
+    Worker.Factory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
+    worker.registerActivitiesImplementations(new ActivitiesImpl());
+    factory.start();
+
+    WorkflowOptions workflowOptions =
+        new WorkflowOptions.Builder()
+            .setTaskList(taskListName)
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(250))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(30))
+            .build();
+    WorkflowStub workflow =
+        wrapper
+            .getWorkflowClient()
+            .newUntypedWorkflowStub("ActivitiesWorkflow::execute", workflowOptions);
+
+    // Act
+    WorkflowParams w = new WorkflowParams();
+    w.CadenceSleep = Duration.ofSeconds(0);
+    w.ChainSequence = 1;
+    w.ConcurrentCount = 15;
+    w.PayloadSizeBytes = 100;
+    w.TaskListName = taskListName;
+
+    // This will attempt to self evict given that there are only two threads available
+    workflow.start(w);
+
+    // Wait enough time to trigger self eviction
+    Thread.sleep(Duration.ofSeconds(1).toMillis());
+
+    // Start a second workflow and kick the previous one out
+    WorkflowStub workflow2 =
+        wrapper
+            .getWorkflowClient()
+            .newUntypedWorkflowStub("ActivitiesWorkflow::execute", workflowOptions);
+    w.ConcurrentCount = 1;
+    workflow2.start(w);
+    assertNotNull("I'm done.", workflow2.getResult(String.class));
+    wrapper.close();
+  }
+
   // Todo: refactor TestEnvironment to toggle between real and test service.
   private class TestEnvironmentWrapper {
 

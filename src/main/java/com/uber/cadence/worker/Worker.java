@@ -104,7 +104,7 @@ public final class Worker {
     this.threadPoolExecutor = Objects.requireNonNull(threadPoolExecutor);
 
     this.taskList = taskList;
-    this.options = MoreObjects.firstNonNull(options, new Builder().build());
+    this.options = MoreObjects.firstNonNull(options, new WorkerOptions.Builder().build());
 
     SingleWorkerOptions activityOptions = toActivityOptions(this.options, domain, taskList);
     activityWorker =
