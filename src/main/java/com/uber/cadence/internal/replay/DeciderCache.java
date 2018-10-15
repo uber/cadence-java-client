@@ -49,7 +49,6 @@ public final class DeciderCache {
     this.cache =
         CacheBuilder.newBuilder()
             .maximumSize(maxCacheSize)
-            .concurrencyLevel(1)
             .removalListener(
                 e -> {
                   Decider entry = (Decider) e.getValue();
