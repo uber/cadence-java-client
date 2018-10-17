@@ -118,7 +118,7 @@ public class WorkerStressTests {
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
             new Worker.FactoryOptions.Builder()
-                .setEnableStickyExecution(true)
+                .setDisableStickyExecution(false)
                 .setMaxWorkflowThreadCount(2)
                 .Build());
     Worker.Factory factory = wrapper.getWorkerFactory();

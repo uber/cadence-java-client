@@ -38,7 +38,6 @@ import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
-import com.uber.cadence.worker.WorkerOptions.Builder;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
@@ -442,7 +441,7 @@ public final class Worker {
       workflowThreadPool.setThreadFactory(
           r -> new Thread(r, "workflow-thread-" + workflowThreadCounter.incrementAndGet()));
 
-      if (!this.factoryOptions.enableStickyExecution) {
+      if (this.factoryOptions.disableStickyExecution) {
         return;
       }
 
@@ -511,7 +510,7 @@ public final class Worker {
                 workflowThreadPool);
         workers.add(worker);
 
-        if (this.factoryOptions.enableStickyExecution) {
+        if (this.factoryOptions.disableStickyExecution) {
           dispatcher.subscribe(taskList, worker.workflowWorker);
         }
 
@@ -546,7 +545,8 @@ public final class Worker {
 
     /**
      * Shuts down Poller used for sticky workflows and all workers created by this factory.
-     *
+     * Shutdown will be called on each worker created by this factory with the given timeout.
+     * If the timeout is exceed the method will thrown an InterruptedException.
      * @param timeout
      */
     public void shutdown(Duration timeout) {
@@ -576,7 +576,7 @@ public final class Worker {
     }
 
     private String getStickyTaskListName() {
-      return this.factoryOptions.enableStickyExecution
+      return this.factoryOptions.disableStickyExecution
           ? String.format("%s:%s", getHostName(), id)
           : null;
     }
@@ -590,7 +590,7 @@ public final class Worker {
 
   public static class FactoryOptions {
     public static class Builder {
-      private boolean enableStickyExecution;
+      private boolean disableStickyExecution = false;
       private int stickyDecisionScheduleToStartTimeoutInSeconds = 5;
       private int cacheMaximumSize = 600;
       private int maxWorkflowThreadCount = 600;
@@ -598,12 +598,12 @@ public final class Worker {
       private Scope metricScope;
 
       /**
-       * When set to true it will create an affinity between the worker and the workflow run it's
+       * When set to false it will create an affinity between the worker and the workflow run it's
        * processing. Workers will cache workflows and will handle all decisions for that workflow
-       * instance until it's complete or evicted from the cache.
+       * instance until it's complete or evicted from the cache. Default value is false.
        */
-      public Builder setEnableStickyExecution(boolean enableStickyExecution) {
-        this.enableStickyExecution = enableStickyExecution;
+      public Builder setDisableStickyExecution(boolean disableStickyExecution) {
+        this.disableStickyExecution = disableStickyExecution;
         return this;
       }
 
@@ -652,7 +652,7 @@ public final class Worker {
 
       public FactoryOptions Build() {
         return new FactoryOptions(
-            enableStickyExecution,
+                disableStickyExecution,
             cacheMaximumSize,
             maxWorkflowThreadCount,
             stickyDecisionScheduleToStartTimeoutInSeconds,
@@ -661,7 +661,7 @@ public final class Worker {
       }
     }
 
-    private final boolean enableStickyExecution;
+    private final boolean disableStickyExecution;
     private final int cacheMaximumSize;
     private final int maxWorkflowThreadCount;
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
@@ -669,7 +669,7 @@ public final class Worker {
     private final Scope metricsScope;
 
     private FactoryOptions(
-        boolean enableStickyExecution,
+        boolean disableStickyExecution,
         int cacheMaximumSize,
         int maxWorkflowThreadCount,
         int stickyDecisionScheduleToStartTimeoutInSeconds,
@@ -683,7 +683,7 @@ public final class Worker {
           stickyDecisionScheduleToStartTimeoutInSeconds > 0,
           "stickyDecisionScheduleToStartTimeoutInSeconds should be greater than 0");
 
-      this.enableStickyExecution = enableStickyExecution;
+      this.disableStickyExecution = disableStickyExecution;
       this.cacheMaximumSize = cacheMaximumSize;
       this.maxWorkflowThreadCount = maxWorkflowThreadCount;
       this.stickyDecisionScheduleToStartTimeoutInSeconds =
