@@ -428,8 +428,9 @@ public final class Worker {
       this.workflowService =
           Objects.requireNonNull(workflowService, "workflowService should not be null");
 
-      this.factoryOptions =
+      factoryOptions =
           factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
+      this.factoryOptions = factoryOptions;
 
       workflowThreadPool =
           new ThreadPoolExecutor(
@@ -446,13 +447,13 @@ public final class Worker {
       }
 
       Scope metricsScope =
-          factoryOptions.metricsScope.tagged(
+          this.factoryOptions.metricsScope.tagged(
               new ImmutableMap.Builder<String, String>(2)
                   .put(MetricsTag.DOMAIN, domain)
                   .put(MetricsTag.TASK_LIST, getHostName())
                   .build());
 
-      this.cache = new DeciderCache(factoryOptions.cacheMaximumSize, metricsScope);
+      this.cache = new DeciderCache(this.factoryOptions.cacheMaximumSize, metricsScope);
 
       dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
       stickyPoller =
@@ -462,7 +463,7 @@ public final class Worker {
                       workflowService, domain, getStickyTaskListName(), metricsScope, id.toString())
                   .get(),
               dispatcher,
-              factoryOptions.stickyWorkflowPollerOptions,
+              this.factoryOptions.stickyWorkflowPollerOptions,
               metricsScope);
     }
 
@@ -510,7 +511,7 @@ public final class Worker {
                 workflowThreadPool);
         workers.add(worker);
 
-        if (this.factoryOptions.disableStickyExecution) {
+        if (!this.factoryOptions.disableStickyExecution) {
           dispatcher.subscribe(taskList, worker.workflowWorker);
         }
 
@@ -544,9 +545,10 @@ public final class Worker {
     }
 
     /**
-     * Shuts down Poller used for sticky workflows and all workers created by this factory.
-     * Shutdown will be called on each worker created by this factory with the given timeout.
-     * If the timeout is exceed the method will thrown an InterruptedException.
+     * Shuts down Poller used for sticky workflows and all workers created by this factory. Shutdown
+     * will be called on each worker created by this factory with the given timeout. If the timeout
+     * is exceed the method will thrown an InterruptedException.
+     *
      * @param timeout
      */
     public void shutdown(Duration timeout) {
@@ -554,6 +556,7 @@ public final class Worker {
         state = State.Shutdown;
         if (stickyPoller != null) {
           stickyPoller.shutdown();
+
         }
         for (Worker worker : workers) {
           worker.shutdown(timeout);
@@ -577,8 +580,8 @@ public final class Worker {
 
     private String getStickyTaskListName() {
       return this.factoryOptions.disableStickyExecution
-          ? String.format("%s:%s", getHostName(), id)
-          : null;
+          ? null
+          : String.format("%s:%s", getHostName(), id);
     }
 
     enum State {
@@ -652,7 +655,7 @@ public final class Worker {
 
       public FactoryOptions Build() {
         return new FactoryOptions(
-                disableStickyExecution,
+            disableStickyExecution,
             cacheMaximumSize,
             maxWorkflowThreadCount,
             stickyDecisionScheduleToStartTimeoutInSeconds,
