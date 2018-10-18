@@ -251,7 +251,7 @@ public class MetricsTest {
             .put(MetricsTag.DOMAIN, WorkflowTest.DOMAIN)
             .put(MetricsTag.TASK_LIST, taskList)
             .build();
-    verify(reporter, times(1)).reportCounter(MetricsType.CORRUPTED_SIGNALS_COUNTER, tags, 2);
+    verify(reporter, times(1)).reportCounter(MetricsType.CORRUPTED_SIGNALS_COUNTER, tags, 1);
   }
 
   private static class CorruptedSignalWorkflowInterceptorFactory
