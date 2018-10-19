@@ -42,6 +42,9 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -257,20 +260,16 @@ public final class Worker {
   /**
    * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
    */
-  private void shutdown(Duration timeout) {
-    try {
-      long time = System.currentTimeMillis();
-      if (activityWorker != null) {
-        activityWorker.shutdownAndAwaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
-      }
-      if (workflowWorker != null) {
-        long left = timeout.toMillis() - (System.currentTimeMillis() - time);
-        workflowWorker.shutdownAndAwaitTermination(left, TimeUnit.MILLISECONDS);
-      }
-      closed.set(true);
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+  private void shutdown(Duration timeout) throws InterruptedException {
+    long time = System.currentTimeMillis();
+    if (activityWorker != null) {
+      activityWorker.shutdownAndAwaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
     }
+    if (workflowWorker != null) {
+      long left = timeout.toMillis() - (System.currentTimeMillis() - time);
+      workflowWorker.shutdownAndAwaitTermination(left, TimeUnit.MILLISECONDS);
+    }
+    closed.set(true);
   }
 
   @Override
@@ -356,7 +355,7 @@ public final class Worker {
 
     private final String statusErrorMessage =
         "attempted to %s while in %s state. Acceptable States: %s";
-
+    private static final Logger log = LoggerFactory.getLogger(Factory.class);
     /**
      * Creates a factory. Workers will be connected to a local deployment of cadence-server
      *
@@ -547,7 +546,7 @@ public final class Worker {
     /**
      * Shuts down Poller used for sticky workflows and all workers created by this factory. Shutdown
      * will be called on each worker created by this factory with the given timeout. If the timeout
-     * is exceed the method will thrown an InterruptedException.
+     * is exceeded a warning is logged.
      *
      * @param timeout
      */
@@ -556,10 +555,14 @@ public final class Worker {
         state = State.Shutdown;
         if (stickyPoller != null) {
           stickyPoller.shutdown();
-
         }
+
         for (Worker worker : workers) {
-          worker.shutdown(timeout);
+          try{
+            worker.shutdown(timeout);
+          } catch (InterruptedException e) {
+            log.warn("Interrupted exception thrown during worker shutdown.",e);
+          }
         }
       }
     }
@@ -593,7 +596,7 @@ public final class Worker {
 
   public static class FactoryOptions {
     public static class Builder {
-      private boolean disableStickyExecution = false;
+      private boolean disableStickyExecution;
       private int stickyDecisionScheduleToStartTimeoutInSeconds = 5;
       private int cacheMaximumSize = 600;
       private int maxWorkflowThreadCount = 600;

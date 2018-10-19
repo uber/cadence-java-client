@@ -125,8 +125,7 @@ public class LoggerTest {
         workflowClient.newWorkflowStub(LoggerTest.TestWorkflow.class, options);
     workflow.execute(wfID);
 
-    assertEquals(
-        startLinesExpected, matchingLines(String.format("Start executing workflow %s.", wfID)));
+    assertEquals(1, matchingLines(String.format("Start executing workflow %s.", wfID)));
     assertEquals(1, matchingLines(String.format("Executing child workflow %s.", wfID)));
     assertEquals(1, matchingLines(String.format("Done executing workflow %s.", wfID)));
   }

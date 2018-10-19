@@ -24,7 +24,7 @@ import java.util.Objects;
 
 public final class PollDecisionTaskDispatcherFactory
     implements DispatcherFactory<String, PollForDecisionTaskResponse> {
-  private IWorkflowService service;;
+  private IWorkflowService service;
   private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
   public PollDecisionTaskDispatcherFactory(
