@@ -207,9 +207,13 @@ public class WorkflowTest {
     tracer = new TracingWorkflowInterceptorFactory();
     // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
     if (useExternalService) {
+      // TODO: Enable sticky execution as soon as the server commit
+      // a36c84991664571636d37a3826b282ddbdbd2402 is released
+      Worker.FactoryOptions factoryOptions =
+          new Worker.FactoryOptions.Builder().setDisableStickyExecution(true).build();
+      workerFactory = new Worker.Factory(service, DOMAIN, factoryOptions);
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
-      workerFactory = new Worker.Factory(service, DOMAIN);
       worker = workerFactory.newWorker(taskList, workerOptions);
       workflowClient = WorkflowClient.newInstance(DOMAIN);
       WorkflowClientOptions clientOptions =

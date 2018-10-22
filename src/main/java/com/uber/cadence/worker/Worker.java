@@ -427,7 +427,7 @@ public final class Worker {
           Objects.requireNonNull(workflowService, "workflowService should not be null");
 
       factoryOptions =
-          factoryOptions == null ? new FactoryOptions.Builder().Build() : factoryOptions;
+          factoryOptions == null ? new FactoryOptions.Builder().build() : factoryOptions;
       this.factoryOptions = factoryOptions;
 
       workflowThreadPool =
@@ -655,7 +655,7 @@ public final class Worker {
         return this;
       }
 
-      public FactoryOptions Build() {
+      public FactoryOptions build() {
         return new FactoryOptions(
             disableStickyExecution,
             cacheMaximumSize,
