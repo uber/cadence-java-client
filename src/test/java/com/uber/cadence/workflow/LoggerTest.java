@@ -32,6 +32,8 @@ import com.uber.cadence.worker.Worker;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.UUID;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -40,7 +42,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@RunWith(Parameterized.class)
 public class LoggerTest {
 
   private static final ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
@@ -54,22 +55,6 @@ public class LoggerTest {
   }
 
   private static final String taskList = "logger-test";
-  private static final Logger workflowLogger = Workflow.getLogger(TestLoggingInWorkflow.class);
-  private static final Logger childWorkflowLogger =
-      Workflow.getLogger(TestLoggerInChildWorkflow.class);
-
-  @Parameters
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {{false, "wf-1", 1}, {true, "wf-2", 3}});
-  }
-
-  @Parameter public boolean loggingEnabledInReplay;
-
-  @Parameter(1)
-  public String wfID;
-
-  @Parameter(2)
-  public int startLinesExpected;
 
   public interface TestWorkflow {
     @WorkflowMethod
@@ -77,6 +62,8 @@ public class LoggerTest {
   }
 
   public static class TestLoggingInWorkflow implements LoggerTest.TestWorkflow {
+    private final Logger workflowLogger = Workflow.getLogger(TestLoggingInWorkflow.class);
+
     @Override
     public void execute(String id) {
       workflowLogger.info("Start executing workflow {}.", id);
@@ -95,6 +82,8 @@ public class LoggerTest {
   }
 
   public static class TestLoggerInChildWorkflow implements LoggerTest.TestChildWorkflow {
+    private static final Logger childWorkflowLogger =
+        Workflow.getLogger(TestLoggerInChildWorkflow.class);
 
     @Override
     public void executeChild(String id) {
@@ -107,7 +96,7 @@ public class LoggerTest {
     TestEnvironmentOptions testOptions =
         new TestEnvironmentOptions.Builder()
             .setDomain(WorkflowTest.DOMAIN)
-            .setEnableLoggingInReplay(loggingEnabledInReplay)
+            .setEnableLoggingInReplay(false)
             .build();
     TestWorkflowEnvironment env = TestWorkflowEnvironment.newInstance(testOptions);
     Worker worker = env.newWorker(taskList);
@@ -123,6 +112,7 @@ public class LoggerTest {
             .build();
     LoggerTest.TestWorkflow workflow =
         workflowClient.newWorkflowStub(LoggerTest.TestWorkflow.class, options);
+    String wfID = UUID.randomUUID().toString();
     workflow.execute(wfID);
 
     assertEquals(1, matchingLines(String.format("Start executing workflow %s.", wfID)));

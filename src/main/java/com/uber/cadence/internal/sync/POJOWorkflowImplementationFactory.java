@@ -67,7 +67,6 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
       Collections.synchronizedMap(new HashMap<>());
 
   private final ExecutorService threadPool;
-  private final Scope metricsScope;
   private DeciderCache cache;
 
   POJOWorkflowImplementationFactory(
@@ -79,7 +78,6 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
     this.dataConverter = Objects.requireNonNull(dataConverter);
     this.threadPool = Objects.requireNonNull(threadPool);
     this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
-    this.metricsScope = metricsScope;
     this.cache = cache;
   }
 
@@ -320,7 +318,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
             + eventId
             + ". Dropping it.",
         exception);
-    metricsScope.counter(MetricsType.CORRUPTED_SIGNALS_COUNTER).inc(1);
+    Workflow.getMetricsScope().counter(MetricsType.CORRUPTED_SIGNALS_COUNTER).inc(1);
   }
 
   static WorkflowExecutionException mapToWorkflowExecutionException(
