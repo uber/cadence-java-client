@@ -147,7 +147,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
                 + " new decisions");
       }
       return createCompletedRequest(decisionTask, decisions);
-    } catch (Exception e) {
+    } catch (Throwable e) {
       if (stickyTaskListName != null) {
         cache.invalidate(decisionTask);
       }
