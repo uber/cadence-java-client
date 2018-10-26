@@ -110,9 +110,17 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (skipDockerService) {
-      return new Object[][] {{false, "TestService"}};
+      return new Object[][] {
+        {false, "TestService Sticky Off", true}, {false, "TestService Sticky On", false}
+      };
     } else {
-      return new Object[][] {{true, "Docker"}, {false, "TestService"}};
+      // TODO: Add sticky execution test as soon as the server commit
+      // a36c84991664571636d37a3826b282ddbdbd2402 is released
+      return new Object[][] {
+        {true, "Docker Sticky Off", true},
+        {false, "TestService Sticky Off", true},
+        {false, "TestService Sticky On", false}
+      };
     }
   }
 
@@ -140,6 +148,9 @@ public class WorkflowTest {
 
   @Parameter(1)
   public String testType;
+
+  @Parameter(2)
+  public boolean disableStickyExecution;
 
   public static final String DOMAIN = "UnitTest";
   private static final Logger log = LoggerFactory.getLogger(WorkflowTest.class);
@@ -208,10 +219,10 @@ public class WorkflowTest {
     tracer = new TracingWorkflowInterceptorFactory();
     // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
     if (useExternalService) {
-      // TODO: Enable sticky execution as soon as the server commit
-      // a36c84991664571636d37a3826b282ddbdbd2402 is released
       Worker.FactoryOptions factoryOptions =
-          new Worker.FactoryOptions.Builder().setDisableStickyExecution(true).build();
+          new Worker.FactoryOptions.Builder()
+              .setDisableStickyExecution(disableStickyExecution)
+              .build();
       workerFactory = new Worker.Factory(service, DOMAIN, factoryOptions);
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
@@ -228,6 +239,10 @@ public class WorkflowTest {
           new TestEnvironmentOptions.Builder()
               .setDomain(DOMAIN)
               .setInterceptorFactory(tracer)
+              .setFactoryOptions(
+                  new Worker.FactoryOptions.Builder()
+                      .setDisableStickyExecution(disableStickyExecution)
+                      .build())
               .build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       worker = testEnvironment.newWorker(taskList);
@@ -1862,7 +1877,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignal() {
+  public void testSignal() throws Exception {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
@@ -1872,7 +1887,6 @@ public class WorkflowTest {
       queryWorker = testEnvironment.newWorker(taskList);
     }
     queryWorker.registerWorkflowImplementationTypes(TestSignalWorkflowImpl.class);
-    int threadCount = ManagementFactory.getThreadMXBean().getThreadCount();
     startWorkerFor(TestSignalWorkflowImpl.class);
     WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
     String workflowId = UUID.randomUUID().toString();
@@ -1886,10 +1900,7 @@ public class WorkflowTest {
     sleep(Duration.ofSeconds(1));
     assertEquals(workflowId, execution.getWorkflowId());
     // Calls query multiple times to check at the end of the method that if it doesn't leak threads
-    int queryCount = 100;
-    for (int i = 0; i < queryCount; i++) {
-      assertEquals("initial", client.getState());
-    }
+    assertEquals("initial", client.getState());
     sleep(Duration.ofSeconds(1));
 
     client.mySignal("Hello ");
@@ -1902,21 +1913,56 @@ public class WorkflowTest {
     assertEquals("Hello ", client2.getState());
 
     String queryResult = null;
-    try {
-      queryResult =
-          queryWorker.queryWorkflowExecution(
-              execution, "QueryableWorkflow::getState", String.class);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    queryResult =
+        queryWorker.queryWorkflowExecution(execution, "QueryableWorkflow::getState", String.class);
     assertEquals("Hello ", queryResult);
     sleep(Duration.ofMillis(500));
     client2.mySignal("World!");
+    sleep(Duration.ofMillis(500));
     assertEquals("World!", client2.getState());
     assertEquals(
         "Hello World!",
         workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class));
     client2.execute();
+  }
+
+  public static class TestNoQueryWorkflowImpl implements QueryableWorkflow {
+
+    CompletablePromise<Void> promise = Workflow.newPromise();
+
+    @Override
+    public String execute() {
+      promise.get();
+      return "done";
+    }
+
+    @Override
+    public String getState() {
+      return "some state";
+    }
+
+    @Override
+    public void mySignal(String value) {
+      promise.complete(null);
+    }
+  }
+
+  @Test
+  public void testNoQueryThreadLeak() {
+    startWorkerFor(TestNoQueryWorkflowImpl.class);
+    int threadCount = ManagementFactory.getThreadMXBean().getThreadCount();
+    WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
+    QueryableWorkflow client =
+        workflowClient.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build());
+    WorkflowClient.start(client::execute);
+    sleep(Duration.ofSeconds(1));
+    // Calls query multiple times to check at the end of the method that if it doesn't leak threads
+    int queryCount = 100;
+    for (int i = 0; i < queryCount; i++) {
+      assertEquals("some state", client.getState());
+    }
+    client.mySignal("Hello ");
+    client.execute();
     // Ensures that no threads were leaked due to query
     int threadsCreated = ManagementFactory.getThreadMXBean().getThreadCount() - threadCount;
     assertTrue("query leaks threads: " + threadsCreated, threadsCreated < queryCount);

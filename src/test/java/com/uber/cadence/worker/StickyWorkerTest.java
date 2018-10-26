@@ -66,7 +66,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
-// @Ignore
 public class StickyWorkerTest {
   public static final String DOMAIN = "UnitTest";
 
