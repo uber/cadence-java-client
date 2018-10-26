@@ -57,6 +57,7 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.*;
@@ -275,6 +276,8 @@ public class WorkflowTest {
     }
   }
 
+  // TODO: Refactor testEnvironment to support testing through real service to avoid this
+  // conditional switches
   void registerDelayedCallback(Duration delay, Runnable r) {
     if (useExternalService) {
       ScheduledFuture<?> result =
@@ -282,6 +285,18 @@ public class WorkflowTest {
       delayedCallbacks.add(result);
     } else {
       testEnvironment.registerDelayedCallback(delay, r);
+    }
+  }
+
+  void sleep(Duration d) {
+    if (useExternalService) {
+      try {
+        Thread.sleep(d.toMillis());
+      } catch (InterruptedException e) {
+        throw new RuntimeException("Interrupted", e);
+      }
+    } else {
+      testEnvironment.sleep(d);
     }
   }
 
@@ -627,13 +642,13 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSyncUntypedAndStackTrace() throws InterruptedException {
+  public void testSyncUntypedAndStackTrace() {
     startWorkerFor(TestSyncWorkflowImpl.class);
     WorkflowStub workflowStub =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     WorkflowExecution execution = workflowStub.start(taskList);
-    Thread.sleep(500);
+    sleep(Duration.ofMillis(500));
     String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRCE, String.class);
     assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
     assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
@@ -754,13 +769,13 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testDetachedScope() throws InterruptedException {
+  public void testDetachedScope() {
     startWorkerFor(TestDetachedCancellationScope.class);
     WorkflowStub client =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     client.start(taskList);
-    Thread.sleep(500); // To let activityWithDelay start.
+    sleep(Duration.ofMillis(500)); // To let activityWithDelay start.
     client.cancel();
     try {
       client.getResult(String.class);
@@ -1848,67 +1863,63 @@ public class WorkflowTest {
 
   @Test
   public void testSignal() {
-    AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
+    // Test getTrace through replay by a local worker.
+    Worker queryWorker;
+    if (useExternalService) {
+      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      queryWorker = workerFactory.newWorker(taskList);
+    } else {
+      queryWorker = testEnvironment.newWorker(taskList);
+    }
+    queryWorker.registerWorkflowImplementationTypes(TestSignalWorkflowImpl.class);
+    int threadCount = ManagementFactory.getThreadMXBean().getThreadCount();
     startWorkerFor(TestSignalWorkflowImpl.class);
     WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
     String workflowId = UUID.randomUUID().toString();
     optionsBuilder.setWorkflowId(workflowId);
-    AtomicReference<QueryableWorkflow> client = new AtomicReference<>();
-    registerDelayedCallback(
-        Duration.ofSeconds(1),
-        () -> {
-          assertEquals(workflowId, execution.get().getWorkflowId());
-          assertEquals("initial", client.get().getState());
-          client.get().mySignal("Hello ");
-          try {
-            Thread.sleep(200);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-
-          // Test client.get() created using WorkflowExecution
-          client.set(
-              workflowClient.newWorkflowStub(
-                  QueryableWorkflow.class,
-                  execution.get().getWorkflowId(),
-                  Optional.of(execution.get().getRunId())));
-          assertEquals("Hello ", client.get().getState());
-
-          // Test getTrace through replay by a local worker.
-          Worker queryWorker;
-          if (useExternalService) {
-            Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
-            queryWorker = workerFactory.newWorker(taskList);
-          } else {
-            queryWorker = testEnvironment.newWorker(taskList);
-          }
-          queryWorker.registerWorkflowImplementationTypes(TestSignalWorkflowImpl.class);
-          String queryResult = null;
-          try {
-            queryResult =
-                queryWorker.queryWorkflowExecution(
-                    execution.get(), "QueryableWorkflow::getState", String.class);
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-          assertEquals("Hello ", queryResult);
-          try {
-            Thread.sleep(500);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-          client.get().mySignal("World!");
-          assertEquals("World!", client.get().getState());
-          assertEquals(
-              "Hello World!",
-              workflowClient
-                  .newUntypedWorkflowStub(execution.get(), Optional.empty())
-                  .getResult(String.class));
-        });
-    client.set(workflowClient.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build()));
+    QueryableWorkflow client =
+        workflowClient.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build());
     // To execute workflow client.execute() would do. But we want to start workflow and immediately
     // return.
-    execution.set(WorkflowClient.start(client.get()::execute));
+    WorkflowExecution execution = WorkflowClient.start(client::execute);
+
+    sleep(Duration.ofSeconds(1));
+    assertEquals(workflowId, execution.getWorkflowId());
+    // Calls query multiple times to check at the end of the method that if it doesn't leak threads
+    int queryCount = 100;
+    for (int i = 0; i < queryCount; i++) {
+      assertEquals("initial", client.getState());
+    }
+    sleep(Duration.ofSeconds(1));
+
+    client.mySignal("Hello ");
+    sleep(Duration.ofSeconds(1));
+
+    // Test client created using WorkflowExecution
+    QueryableWorkflow client2 =
+        workflowClient.newWorkflowStub(
+            QueryableWorkflow.class, execution.getWorkflowId(), Optional.of(execution.getRunId()));
+    assertEquals("Hello ", client2.getState());
+
+    String queryResult = null;
+    try {
+      queryResult =
+          queryWorker.queryWorkflowExecution(
+              execution, "QueryableWorkflow::getState", String.class);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    assertEquals("Hello ", queryResult);
+    sleep(Duration.ofMillis(500));
+    client2.mySignal("World!");
+    assertEquals("World!", client2.getState());
+    assertEquals(
+        "Hello World!",
+        workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class));
+    client2.execute();
+    // Ensures that no threads were leaked due to query
+    int threadsCreated = ManagementFactory.getThreadMXBean().getThreadCount() - threadCount;
+    assertTrue("query leaks threads: " + threadsCreated, threadsCreated < queryCount);
   }
 
   @Test
@@ -1955,7 +1966,7 @@ public class WorkflowTest {
         // Never sleep in a real workflow using Thread.sleep.
         // Here it is to simulate a race condition.
         try {
-          Thread.sleep(500);
+          Thread.sleep(1000);
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
@@ -1970,7 +1981,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignalDuringLastDecision() throws InterruptedException {
+  public void testSignalDuringLastDecision() {
     startWorkerFor(TestSignalDuringLastDecisionWorkflowImpl.class);
     WorkflowOptions.Builder options = newWorkflowOptionsBuilder(taskList);
     options.setWorkflowId("testSignalDuringLastDecision-" + UUID.randomUUID().toString());
@@ -1996,6 +2007,7 @@ public class WorkflowTest {
                   .newUntypedWorkflowStub(execution, Optional.empty())
                   .getResult(String.class));
         });
+    sleep(Duration.ofSeconds(2));
   }
 
   public static class TestTimerCallbackBlockedWorkflowImpl implements TestWorkflow1 {
@@ -3414,11 +3426,7 @@ public class WorkflowTest {
         WorkflowClient.execute(workflowStub::execute, taskList, uuidList, uuidSet);
     // Test signal and query serialization
     workflowStub.signal(uuidList);
-    if (useExternalService) {
-      Thread.sleep(10000);
-    } else {
-      testEnvironment.sleep(Duration.ofSeconds(1));
-    }
+    sleep(Duration.ofSeconds(1));
     List<UUID> queryArg = new ArrayList<>();
     queryArg.add(UUID.randomUUID());
     queryArg.add(UUID.randomUUID());
