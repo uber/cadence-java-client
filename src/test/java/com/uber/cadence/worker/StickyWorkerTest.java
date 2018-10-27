@@ -34,6 +34,8 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
+import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.workflow.Async;
@@ -56,9 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -69,10 +69,8 @@ import org.slf4j.LoggerFactory;
 public class StickyWorkerTest {
   public static final String DOMAIN = "UnitTest";
 
-  // TODO: Enable for docker as soon as the server commit
-  // a36c84991664571636d37a3826b282ddbdbd2402 is released
-  private static final boolean skipDockerService = true;
-  //      Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
+  private static final boolean skipDockerService =
+      Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
 
   @Parameterized.Parameter public boolean useExternalService;
 
@@ -89,6 +87,15 @@ public class StickyWorkerTest {
   public String testType;
 
   @Rule public TestName testName = new TestName();
+
+  private IWorkflowService service;
+
+  @Before
+  public void setUp() {
+    if (testType.equals("Docker") && service == null) {
+      service = new WorkflowServiceTChannel();
+    }
+  }
 
   @Test
   public void whenStickyIsEnabledThenTheWorkflowIsCachedSignals() throws Exception {
@@ -483,10 +490,16 @@ public class StickyWorkerTest {
       if (options == null) {
         options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
       }
-      factory = new Worker.Factory(DOMAIN, options);
-      TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).setFactoryOptions(options).build();
-      testEnv = TestWorkflowEnvironment.newInstance(testOptions);
+      if (useExternalService) {
+        factory = new Worker.Factory(service, DOMAIN, options);
+      } else {
+        TestEnvironmentOptions testOptions =
+            new TestEnvironmentOptions.Builder()
+                .setDomain(DOMAIN)
+                .setFactoryOptions(options)
+                .build();
+        testEnv = TestWorkflowEnvironment.newInstance(testOptions);
+      }
     }
 
     private Worker.Factory getWorkerFactory() {
@@ -494,12 +507,17 @@ public class StickyWorkerTest {
     }
 
     private WorkflowClient getWorkflowClient() {
-      return useExternalService ? WorkflowClient.newInstance(DOMAIN) : testEnv.newWorkflowClient();
+      return useExternalService
+          ? WorkflowClient.newInstance(service, DOMAIN)
+          : testEnv.newWorkflowClient();
     }
 
     private void close() {
-      factory.shutdown(Duration.ofSeconds(1));
-      testEnv.close();
+      if (useExternalService) {
+        factory.shutdown(Duration.ofSeconds(1));
+      } else {
+        testEnv.close();
+      }
     }
   }
 

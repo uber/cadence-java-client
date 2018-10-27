@@ -114,12 +114,11 @@ public class WorkflowTest {
         {false, "TestService Sticky Off", true}, {false, "TestService Sticky On", false}
       };
     } else {
-      // TODO: Add sticky execution test as soon as the server commit
-      // a36c84991664571636d37a3826b282ddbdbd2402 is released
       return new Object[][] {
-        {true, "Docker Sticky Off", true},
-        {false, "TestService Sticky Off", true},
-        {false, "TestService Sticky On", false}
+        {true, "Docker Sticky OFF", true},
+        {true, "Docker Sticky ON", false},
+        {false, "TestService Sticky OFF", true},
+        {false, "TestService Sticky ON", false}
       };
     }
   }
@@ -128,7 +127,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 10 : 20);
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 10 : 30);
 
   @Rule
   public TestWatcher watchman =
@@ -227,7 +226,7 @@ public class WorkflowTest {
       WorkerOptions workerOptions =
           new WorkerOptions.Builder().setInterceptorFactory(tracer).build();
       worker = workerFactory.newWorker(taskList, workerOptions);
-      workflowClient = WorkflowClient.newInstance(DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       WorkflowClientOptions clientOptions =
           new WorkflowClientOptions.Builder()
               .setDataConverter(JsonDataConverter.getInstance())
@@ -263,7 +262,9 @@ public class WorkflowTest {
 
   @After
   public void tearDown() throws Throwable {
-    activitiesImpl.close();
+    if (activitiesImpl != null) {
+      activitiesImpl.close();
+    }
     if (testEnvironment != null) {
       testEnvironment.close();
     }
@@ -1999,7 +2000,7 @@ public class WorkflowTest {
   }
 
   static final AtomicInteger decisionCount = new AtomicInteger();
-  static final CompletableFuture<Boolean> sendSignal = new CompletableFuture<>();
+  static CompletableFuture<Boolean> sendSignal;
 
   public static class TestSignalDuringLastDecisionWorkflowImpl implements TestWorkflowSignaled {
 
@@ -2028,6 +2029,8 @@ public class WorkflowTest {
 
   @Test
   public void testSignalDuringLastDecision() {
+    decisionCount.set(0);
+    sendSignal = new CompletableFuture<>();
     startWorkerFor(TestSignalDuringLastDecisionWorkflowImpl.class);
     WorkflowOptions.Builder options = newWorkflowOptionsBuilder(taskList);
     options.setWorkflowId("testSignalDuringLastDecision-" + UUID.randomUUID().toString());
@@ -2098,7 +2101,7 @@ public class WorkflowTest {
     String execute(String arg);
   }
 
-  private static String child2Id = UUID.randomUUID().toString();
+  private static String child2Id;
 
   public static class TestParentWorkflow implements TestWorkflow1 {
 
@@ -2138,6 +2141,7 @@ public class WorkflowTest {
 
   @Test
   public void testChildWorkflow() {
+    child2Id = UUID.randomUUID().toString();
     startWorkerFor(TestParentWorkflow.class, TestNamedChild.class, TestChild.class);
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
