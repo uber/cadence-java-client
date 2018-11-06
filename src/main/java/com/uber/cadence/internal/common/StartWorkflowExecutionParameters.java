@@ -21,7 +21,9 @@ import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowOptions;
-import java.nio.charset.StandardCharsets;
+import com.uber.cadence.common.RetryOptions;
+import java.util.ArrayList;
+import java.util.List;
 
 public class StartWorkflowExecutionParameters {
 
@@ -40,6 +42,8 @@ public class StartWorkflowExecutionParameters {
   private ChildPolicy childPolicy;
 
   private WorkflowIdReusePolicy workflowIdReusePolicy;
+
+  private RetryParameters retryParameters;
 
   /**
    * Returns the value of the WorkflowId property for this object.
@@ -267,6 +271,19 @@ public class StartWorkflowExecutionParameters {
     return this;
   }
 
+  public RetryParameters getRetryParameters() {
+    return retryParameters;
+  }
+
+  public void setRetryParameters(RetryParameters retryParameters) {
+    this.retryParameters = retryParameters;
+  }
+
+  public StartWorkflowExecutionParameters withRetryParameters(RetryParameters retryParameters) {
+    this.retryParameters = retryParameters;
+    return this;
+  }
+
   public static StartWorkflowExecutionParameters createStartWorkflowExecutionParametersFromOptions(
       WorkflowOptions options) {
     StartWorkflowExecutionParameters parameters = new StartWorkflowExecutionParameters();
@@ -276,27 +293,23 @@ public class StartWorkflowExecutionParameters {
         (int) options.getTaskStartToCloseTimeout().getSeconds());
     parameters.setTaskList(options.getTaskList());
     parameters.setChildPolicy(options.getChildPolicy());
+    RetryOptions retryOptions = options.getRetryOptions();
+    if (retryOptions != null) {
+      RetryParameters rp = new RetryParameters();
+      rp.setBackoffCoefficient(retryOptions.getBackoffCoefficient());
+      rp.setExpirationIntervalInSeconds((int) retryOptions.getExpiration().getSeconds());
+      rp.setInitialIntervalInSeconds((int) retryOptions.getInitialInterval().getSeconds());
+      rp.setMaximumIntervalInSeconds((int) retryOptions.getMaximumInterval().getSeconds());
+      rp.setMaximumAttempts(retryOptions.getMaximumAttempts());
+      List<String> reasons = new ArrayList<>();
+      // Use exception type name as the reason
+      for (Class<? extends Throwable> r : retryOptions.getDoNotRetry()) {
+        reasons.add(r.getName());
+      }
+      rp.setNonRetriableErrorReasons(reasons);
+      parameters.setRetryParameters(rp);
+    }
     return parameters;
-  }
-
-  /**
-   * Returns a string representation of this object; useful for testing and debugging.
-   *
-   * @return A string representation of this object.
-   * @see java.lang.Object#toString()
-   */
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("{");
-    sb.append("WorkflowId: " + workflowId + ", ");
-    sb.append("WorkflowType: " + workflowType + ", ");
-    sb.append("TaskList: " + taskList + ", ");
-    sb.append("Input: " + new String(input, 0, 512, StandardCharsets.UTF_8) + ", ");
-    sb.append("StartToCloseTimeout: " + executionStartToCloseTimeoutSeconds + ", ");
-    sb.append("ChildPolicy: " + childPolicy + ", ");
-    sb.append("}");
-    return sb.toString();
   }
 
   public StartWorkflowExecutionParameters copy() {
@@ -308,6 +321,33 @@ public class StartWorkflowExecutionParameters {
     result.setWorkflowId(workflowId);
     result.setWorkflowType(workflowType);
     result.setChildPolicy(childPolicy);
+    result.setRetryParameters(retryParameters.copy());
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return "StartWorkflowExecutionParameters{"
+        + "workflowId='"
+        + workflowId
+        + '\''
+        + ", workflowType="
+        + workflowType
+        + ", taskList='"
+        + taskList
+        + '\''
+        + ", input.length="
+        + input.length
+        + ", executionStartToCloseTimeoutSeconds="
+        + executionStartToCloseTimeoutSeconds
+        + ", taskStartToCloseTimeoutSeconds="
+        + taskStartToCloseTimeoutSeconds
+        + ", childPolicy="
+        + childPolicy
+        + ", workflowIdReusePolicy="
+        + workflowIdReusePolicy
+        + ", retryParameters="
+        + retryParameters
+        + '}';
   }
 }
