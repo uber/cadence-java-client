@@ -379,7 +379,6 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setMinimumAttempts(2)
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -421,7 +420,6 @@ public class WorkflowTest {
       if (Workflow.isReplaying()) {
         retryOptions =
             new RetryOptions.Builder()
-                .setMinimumAttempts(1)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(3)
@@ -429,7 +427,6 @@ public class WorkflowTest {
       } else {
         retryOptions =
             new RetryOptions.Builder()
-                .setMinimumAttempts(2)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)
@@ -469,7 +466,6 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setMinimumAttempts(2)
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -541,7 +537,6 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setMinimumAttempts(2)
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -584,7 +579,6 @@ public class WorkflowTest {
       if (Workflow.isReplaying()) {
         options.setRetryOptions(
             new RetryOptions.Builder()
-                .setMinimumAttempts(1)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setDoNotRetry(NullPointerException.class)
@@ -593,7 +587,6 @@ public class WorkflowTest {
       } else {
         options.setRetryOptions(
             new RetryOptions.Builder()
-                .setMinimumAttempts(2)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)
@@ -1668,7 +1661,6 @@ public class WorkflowTest {
       if (Workflow.isReplaying()) {
         retryOptions =
             new RetryOptions.Builder()
-                .setMinimumAttempts(1)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(3)
@@ -1676,7 +1668,6 @@ public class WorkflowTest {
       } else {
         retryOptions =
             new RetryOptions.Builder()
-                .setMinimumAttempts(2)
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)
@@ -2264,7 +2255,6 @@ public class WorkflowTest {
               .setTaskList(taskList)
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setMinimumAttempts(2)
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -2532,7 +2522,6 @@ public class WorkflowTest {
               .setTaskList(taskList)
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setMinimumAttempts(2)
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)

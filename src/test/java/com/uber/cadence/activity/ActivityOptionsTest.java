@@ -47,7 +47,6 @@ public class ActivityOptionsTest {
                     .setMaximumInterval(Duration.ofDays(3))
                     .setExpiration(Duration.ofDays(365))
                     .setInitialInterval(Duration.ofMinutes(12))
-                    .setMinimumAttempts(2)
                     .build())
             .build();
     ActivityMethod a =
@@ -78,7 +77,6 @@ public class ActivityOptionsTest {
                     .setMaximumInterval(Duration.ofDays(3))
                     .setExpiration(Duration.ofDays(365))
                     .setInitialInterval(Duration.ofMinutes(12))
-                    .setMinimumAttempts(2)
                     .build())
             .build();
     ActivityMethod a =
@@ -123,7 +121,6 @@ public class ActivityOptionsTest {
 
     RetryOptions rMerged = merged.getRetryOptions();
     Assert.assertEquals(r.maximumAttempts(), rMerged.getMaximumAttempts());
-    Assert.assertEquals(r.minimumAttempts(), rMerged.getMinimumAttempts());
     Assert.assertEquals(r.backoffCoefficient(), rMerged.getBackoffCoefficient(), 0.0);
     Assert.assertEquals(Duration.ofSeconds(r.expirationSeconds()), rMerged.getExpiration());
     Assert.assertEquals(
@@ -150,7 +147,6 @@ public class ActivityOptionsTest {
                     .setMaximumInterval(Duration.ofDays(3))
                     .setExpiration(Duration.ofDays(365))
                     .setInitialInterval(Duration.ofMinutes(12))
-                    .setMinimumAttempts(2)
                     .build())
             .build();
     ActivityMethod a =

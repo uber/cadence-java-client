@@ -61,7 +61,6 @@ public final class RetryOptions {
     }
     return builder
         .setMaximumAttempts(merge(r.maximumAttempts(), o.getMaximumAttempts(), int.class))
-        .setMinimumAttempts(merge(r.minimumAttempts(), o.getMinimumAttempts(), int.class))
         .setDoNotRetry(merge(r.doNotRetry(), o.getDoNotRetry()))
         .validateBuildWithDefaults();
   }
@@ -78,7 +77,6 @@ public final class RetryOptions {
         .setBackoffCoefficient(
             merge(getBackoffCoefficient(), o.getBackoffCoefficient(), double.class))
         .setMaximumAttempts(merge(getMaximumAttempts(), o.getMaximumAttempts(), int.class))
-        .setMinimumAttempts(merge(getMinimumAttempts(), o.getMinimumAttempts(), int.class))
         .setDoNotRetry(merge(getDoNotRetry(), o.getDoNotRetry()))
         .validateBuildWithDefaults();
   }
@@ -93,8 +91,6 @@ public final class RetryOptions {
 
     private int maximumAttempts;
 
-    private int minimumAttempts;
-
     private Duration maximumInterval;
 
     private List<Class<? extends Throwable>> doNotRetry;
@@ -106,7 +102,6 @@ public final class RetryOptions {
         return;
       }
       this.backoffCoefficient = o.getBackoffCoefficient();
-      this.minimumAttempts = o.getMinimumAttempts();
       this.maximumAttempts = o.getMaximumAttempts();
       this.expiration = o.getExpiration();
       this.initialInterval = o.getInitialInterval();
@@ -165,18 +160,6 @@ public final class RetryOptions {
     }
 
     /**
-     * Minimum number of retries. Even if expired will retry until this number is reached. Must be 1
-     * or bigger. Default is 0.
-     */
-    public Builder setMinimumAttempts(int minimumAttempts) {
-      if (maximumAttempts < 0) {
-        throw new IllegalArgumentException("Invalid maximumAttempts: " + maximumAttempts);
-      }
-      this.minimumAttempts = minimumAttempts;
-      return this;
-    }
-
-    /**
      * Maximum interval between retries. Exponential backoff leads to interval increase. This value
      * is the cap of the increase. Default is 100x of initial interval.
      */
@@ -218,7 +201,6 @@ public final class RetryOptions {
           backoffCoefficient,
           expiration,
           maximumAttempts,
-          minimumAttempts,
           maximumInterval,
           doNotRetry);
     }
@@ -231,13 +213,7 @@ public final class RetryOptions {
         backoff = DEFAULT_BACKOFF_COEFFICIENT;
       }
       return new RetryOptions(
-          initialInterval,
-          backoff,
-          expiration,
-          maximumAttempts,
-          minimumAttempts,
-          maximumInterval,
-          doNotRetry);
+          initialInterval, backoff, expiration, maximumAttempts, maximumInterval, doNotRetry);
     }
 
     private void validate() {
@@ -250,13 +226,6 @@ public final class RetryOptions {
                 + maximumInterval
                 + ") cannot be smaller than initialInterval("
                 + initialInterval);
-      }
-      if (maximumAttempts != 0 && minimumAttempts != 0 && maximumAttempts < minimumAttempts) {
-        throw new IllegalStateException(
-            "maximumAttempts("
-                + maximumAttempts
-                + ") cannot be smaller than minimumAttempts("
-                + minimumAttempts);
       }
       if (backoffCoefficient != 0d && backoffCoefficient < 1d) {
         throw new IllegalArgumentException("coefficient less than 1: " + backoffCoefficient);
@@ -275,8 +244,6 @@ public final class RetryOptions {
 
   private final int maximumAttempts;
 
-  private final int minimumAttempts;
-
   private final Duration maximumInterval;
 
   private final List<Class<? extends Throwable>> doNotRetry;
@@ -286,14 +253,12 @@ public final class RetryOptions {
       double backoffCoefficient,
       Duration expiration,
       int maximumAttempts,
-      int minimumAttempts,
       Duration maximumInterval,
       List<Class<? extends Throwable>> doNotRetry) {
     this.initialInterval = initialInterval;
     this.backoffCoefficient = backoffCoefficient;
     this.expiration = expiration;
     this.maximumAttempts = maximumAttempts;
-    this.minimumAttempts = minimumAttempts;
     this.maximumInterval = maximumInterval;
     this.doNotRetry = doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : null;
   }
@@ -314,10 +279,6 @@ public final class RetryOptions {
     return maximumAttempts;
   }
 
-  public int getMinimumAttempts() {
-    return minimumAttempts;
-  }
-
   public Duration getMaximumInterval() {
     return maximumInterval;
   }
@@ -332,13 +293,6 @@ public final class RetryOptions {
               + maximumInterval
               + ") cannot be smaller than initialInterval("
               + initialInterval);
-    }
-    if (maximumAttempts != 0 && minimumAttempts != 0 && maximumAttempts < minimumAttempts) {
-      throw new IllegalStateException(
-          "maximumAttempts("
-              + maximumAttempts
-              + ") cannot be smaller than minimumAttempts("
-              + minimumAttempts);
     }
     if (backoffCoefficient != 0d && backoffCoefficient < 1.0) {
       throw new IllegalArgumentException("coefficient less than 1");
@@ -367,8 +321,6 @@ public final class RetryOptions {
         + expiration
         + ", maximumAttempts="
         + maximumAttempts
-        + ", minimumAttempts="
-        + minimumAttempts
         + ", maximumInterval="
         + maximumInterval
         + ", doNotRetry="
@@ -391,9 +343,6 @@ public final class RetryOptions {
       return false;
     }
     if (maximumAttempts != that.maximumAttempts) {
-      return false;
-    }
-    if (minimumAttempts != that.minimumAttempts) {
       return false;
     }
     if (initialInterval != null
@@ -421,7 +370,6 @@ public final class RetryOptions {
     result = 31 * result + (int) (temp ^ (temp >>> 32));
     result = 31 * result + (expiration != null ? expiration.hashCode() : 0);
     result = 31 * result + maximumAttempts;
-    result = 31 * result + minimumAttempts;
     result = 31 * result + (maximumInterval != null ? maximumInterval.hashCode() : 0);
     result = 31 * result + (doNotRetry != null ? doNotRetry.hashCode() : 0);
     return result;
