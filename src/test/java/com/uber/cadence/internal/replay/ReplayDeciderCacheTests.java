@@ -103,7 +103,7 @@ public class ReplayDeciderCacheTests {
             .build();
     StatsReporter reporter = mock(StatsReporter.class);
     Scope scope =
-        new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(300)).tagged(tags);
+        new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(500)).tagged(tags);
 
     DeciderCache replayDeciderCache = new DeciderCache(10, scope);
     TestWorkflowService service = new TestWorkflowService();
@@ -123,7 +123,7 @@ public class ReplayDeciderCacheTests {
 
     // Assert
     // Wait for reporter
-    Thread.sleep(600);
+    Thread.sleep(1000);
     verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 1);
     assertEquals(decider, decider2);
     service.close();
