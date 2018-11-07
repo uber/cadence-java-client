@@ -93,7 +93,7 @@ public class ReplayDeciderCacheTests {
     service.close();
   }
 
-  @Test(timeout = 10000)
+  @Test(timeout = 2000)
   public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
     // Arrange
     Map<String, String> tags =
@@ -123,7 +123,7 @@ public class ReplayDeciderCacheTests {
 
     // Assert
     // Wait for reporter
-    Thread.sleep(1000);
+    Thread.sleep(500);
     verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 1);
     assertEquals(decider, decider2);
     service.close();
