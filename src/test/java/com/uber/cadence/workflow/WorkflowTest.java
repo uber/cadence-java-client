@@ -58,16 +58,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
@@ -2620,6 +2611,89 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals(" awoken i=1 loop i=1 awoken i=2 loop i=2", result);
+  }
+
+  private static Map<String, AtomicInteger> retryCount = new ConcurrentHashMap<>();
+
+  public interface TestWorkflowRetry {
+
+    @WorkflowMethod
+    String execute(String testName);
+  }
+
+  public static class TestWorkflowRetryImpl implements TestWorkflowRetry {
+
+    @Override
+    public String execute(String testName) {
+      AtomicInteger count = retryCount.get(testName);
+      if (count == null) {
+        count = new AtomicInteger();
+        retryCount.put(testName, count);
+      }
+      throw new IllegalStateException("simulated " + count.incrementAndGet());
+    }
+  }
+
+  @Test
+  public void testWorkflowRetry() {
+    startWorkerFor(TestWorkflowRetryImpl.class);
+    RetryOptions workflowRetryOptions =
+        new RetryOptions.Builder()
+            .setExpiration(Duration.ofSeconds(10))
+            .setMaximumAttempts(3)
+            .setBackoffCoefficient(1.0)
+            .build();
+    TestWorkflowRetry workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflowRetry.class,
+            newWorkflowOptionsBuilder(taskList).setRetryOptions(workflowRetryOptions).build());
+    try {
+      workflowStub.execute(testName.getMethodName());
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertEquals("simulated 3", e.getCause().getMessage());
+    }
+  }
+
+  public static class TestWorkflowRetryDoNotRetryException implements TestWorkflowRetry {
+
+    @Override
+    public String execute(String testName) {
+      AtomicInteger count = retryCount.get(testName);
+      if (count == null) {
+        count = new AtomicInteger();
+        retryCount.put(testName, count);
+      }
+      int c = count.incrementAndGet();
+      if (c < 3) {
+        throw new IllegalStateException("simulated " + c);
+      } else {
+        throw new IllegalArgumentException("simulated " + c);
+      }
+    }
+  }
+
+  @Test
+  public void testWorkflowRetryDoNotRetryException() {
+    startWorkerFor(TestWorkflowRetryDoNotRetryException.class);
+    RetryOptions workflowRetryOptions =
+        new RetryOptions.Builder()
+            .setExpiration(Duration.ofSeconds(10))
+            .setDoNotRetry(IllegalArgumentException.class)
+            .setMaximumAttempts(100)
+            .setBackoffCoefficient(1.0)
+            .build();
+    TestWorkflowRetry workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflowRetry.class,
+            newWorkflowOptionsBuilder(taskList).setRetryOptions(workflowRetryOptions).build());
+    try {
+      workflowStub.execute(testName.getMethodName());
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause() instanceof IllegalArgumentException);
+      assertEquals("simulated 3", e.getCause().getMessage());
+    }
   }
 
   public interface TestActivities {

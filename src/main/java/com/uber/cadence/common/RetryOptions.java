@@ -83,11 +83,11 @@ public final class RetryOptions {
 
   public static final class Builder {
 
-    private Duration initialInterval;
+    private Duration initialInterval = Duration.ofSeconds(1);
 
     private Duration expiration;
 
-    private double backoffCoefficient;
+    private double backoffCoefficient = 2.0;
 
     private int maximumAttempts;
 
@@ -110,8 +110,8 @@ public final class RetryOptions {
     }
 
     /**
-     * Interval of the first retry. If coefficient is 1.0 then it is used for all retries. Required
-     * if {@link com.uber.cadence.activity.ActivityMethod} is not specified.
+     * Interval of the first retry. If coefficient is 1.0 then it is used for all retries. Default
+     * is 1 second.
      */
     public Builder setInitialInterval(Duration initialInterval) {
       Objects.requireNonNull(initialInterval);
@@ -123,8 +123,8 @@ public final class RetryOptions {
     }
 
     /**
-     * Maximum time to retry. Default means forever. When exceeded the retries stop even if maximum
-     * retries is not reached yet.
+     * Maximum time to retry. Required. When exceeded the retries stop even if maximum retries is
+     * not reached yet.
      */
     public Builder setExpiration(Duration expiration) {
       Objects.requireNonNull(expiration);
@@ -260,7 +260,8 @@ public final class RetryOptions {
     this.expiration = expiration;
     this.maximumAttempts = maximumAttempts;
     this.maximumInterval = maximumInterval;
-    this.doNotRetry = doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : null;
+    this.doNotRetry =
+        doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : Collections.emptyList();
   }
 
   public Duration getInitialInterval() {

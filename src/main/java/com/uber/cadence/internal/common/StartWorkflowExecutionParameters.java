@@ -22,6 +22,7 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.common.RetryOptions;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -288,18 +289,18 @@ public class StartWorkflowExecutionParameters {
       WorkflowOptions options) {
     StartWorkflowExecutionParameters parameters = new StartWorkflowExecutionParameters();
     parameters.setExecutionStartToCloseTimeoutSeconds(
-        (int) options.getExecutionStartToCloseTimeout().getSeconds());
+        (int) getSeconds(options.getExecutionStartToCloseTimeout()));
     parameters.setTaskStartToCloseTimeoutSeconds(
-        (int) options.getTaskStartToCloseTimeout().getSeconds());
+        (int) getSeconds(options.getTaskStartToCloseTimeout()));
     parameters.setTaskList(options.getTaskList());
     parameters.setChildPolicy(options.getChildPolicy());
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       RetryParameters rp = new RetryParameters();
       rp.setBackoffCoefficient(retryOptions.getBackoffCoefficient());
-      rp.setExpirationIntervalInSeconds((int) retryOptions.getExpiration().getSeconds());
-      rp.setInitialIntervalInSeconds((int) retryOptions.getInitialInterval().getSeconds());
-      rp.setMaximumIntervalInSeconds((int) retryOptions.getMaximumInterval().getSeconds());
+      rp.setExpirationIntervalInSeconds((int) getSeconds(retryOptions.getExpiration()));
+      rp.setInitialIntervalInSeconds((int) getSeconds(retryOptions.getInitialInterval()));
+      rp.setMaximumIntervalInSeconds((int) getSeconds(retryOptions.getMaximumInterval()));
       rp.setMaximumAttempts(retryOptions.getMaximumAttempts());
       List<String> reasons = new ArrayList<>();
       // Use exception type name as the reason
@@ -310,6 +311,13 @@ public class StartWorkflowExecutionParameters {
       parameters.setRetryParameters(rp);
     }
     return parameters;
+  }
+
+  private static long getSeconds(Duration expiration) {
+    if (expiration == null) {
+      return 0;
+    }
+    return expiration.getSeconds();
   }
 
   public StartWorkflowExecutionParameters copy() {

@@ -50,6 +50,7 @@ public final class WorkflowOptions {
                 a.executionStartToCloseTimeoutSeconds(), o.getExecutionStartToCloseTimeout()))
         .setTaskList(OptionsUtils.merge(a.taskList(), o.getTaskList(), String.class))
         .setChildPolicy(o.getChildPolicy())
+        .setRetryOptions(o.getRetryOptions())
         .validateBuildWithDefaults();
   }
 
