@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.testservice;
 
+import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.MILLISECONDS_IN_SECOND;
+
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.CancellationAlreadyRequestedError;
 import com.uber.cadence.DeprecateDomainRequest;
@@ -220,8 +222,17 @@ public final class TestWorkflowService implements IWorkflowService {
           return throwDuplicatedWorkflow(startRequest, existing);
         }
       }
+      long expirationTime;
+      if (startRequest.getRetryPolicy() != null) {
+        expirationTime =
+            store.currentTimeMillis()
+                + startRequest.getRetryPolicy().getExpirationIntervalInSeconds()
+                    * MILLISECONDS_IN_SECOND;
+      } else {
+        expirationTime = 0;
+      }
       return startWorkflowExecutionNoRunningCheckLocked(
-          startRequest, parent, parentChildInitiatedEventId, workflowId);
+          startRequest, 0, expirationTime, parent, parentChildInitiatedEventId, workflowId);
     } finally {
       lock.unlock();
     }
@@ -242,6 +253,8 @@ public final class TestWorkflowService implements IWorkflowService {
 
   private StartWorkflowExecutionResponse startWorkflowExecutionNoRunningCheckLocked(
       StartWorkflowExecutionRequest startRequest,
+      int attempt,
+      long expirationTime,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       WorkflowId workflowId)
@@ -249,7 +262,13 @@ public final class TestWorkflowService implements IWorkflowService {
     String domain = startRequest.getDomain();
     TestWorkflowMutableState result =
         new TestWorkflowMutableStateImpl(
-            startRequest, parent, parentChildInitiatedEventId, this, store);
+            startRequest,
+            attempt,
+            expirationTime,
+            parent,
+            parentChildInitiatedEventId,
+            this,
+            store);
     WorkflowExecution execution = result.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     executionsByWorkflowId.put(workflowId, result);
@@ -490,6 +509,8 @@ public final class TestWorkflowService implements IWorkflowService {
   public String continueAsNew(
       StartWorkflowExecutionRequest previousRunStartRequest,
       WorkflowExecutionContinuedAsNewEventAttributes a,
+      int attempt,
+      long expirationTime,
       String identity,
       ExecutionId executionId,
       Optional<TestWorkflowMutableState> parent,
@@ -504,7 +525,10 @@ public final class TestWorkflowService implements IWorkflowService {
             .setTaskList(a.getTaskList())
             .setWorkflowId(executionId.getWorkflowId().getWorkflowId())
             .setWorkflowIdReusePolicy(previousRunStartRequest.getWorkflowIdReusePolicy())
-            .setIdentity(identity);
+            .setIdentity(identity)
+            .setInput(a.getInput())
+            .setRetryPolicy(previousRunStartRequest.getRetryPolicy())
+            .setChildPolicy(previousRunStartRequest.getChildPolicy());
     if (a.isSetInput()) {
       startRequest.setInput(a.getInput());
     }
@@ -512,7 +536,12 @@ public final class TestWorkflowService implements IWorkflowService {
     try {
       StartWorkflowExecutionResponse response =
           startWorkflowExecutionNoRunningCheckLocked(
-              startRequest, parent, parentChildInitiatedEventId, executionId.getWorkflowId());
+              startRequest,
+              attempt,
+              expirationTime,
+              parent,
+              parentChildInitiatedEventId,
+              executionId.getWorkflowId());
       return response.getRunId();
     } finally {
       lock.unlock();

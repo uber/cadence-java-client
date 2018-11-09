@@ -36,74 +36,7 @@ import static com.uber.cadence.internal.testservice.StateMachines.State.NONE;
 import static com.uber.cadence.internal.testservice.StateMachines.State.STARTED;
 import static com.uber.cadence.internal.testservice.StateMachines.State.TIMED_OUT;
 
-import com.uber.cadence.ActivityTaskCancelRequestedEventAttributes;
-import com.uber.cadence.ActivityTaskCanceledEventAttributes;
-import com.uber.cadence.ActivityTaskCompletedEventAttributes;
-import com.uber.cadence.ActivityTaskFailedEventAttributes;
-import com.uber.cadence.ActivityTaskScheduledEventAttributes;
-import com.uber.cadence.ActivityTaskStartedEventAttributes;
-import com.uber.cadence.ActivityTaskTimedOutEventAttributes;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.CancelTimerDecisionAttributes;
-import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionFailedCause;
-import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
-import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.DecisionTaskCompletedEventAttributes;
-import com.uber.cadence.DecisionTaskFailedEventAttributes;
-import com.uber.cadence.DecisionTaskScheduledEventAttributes;
-import com.uber.cadence.DecisionTaskStartedEventAttributes;
-import com.uber.cadence.DecisionTaskTimedOutEventAttributes;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.EventType;
-import com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.PollForActivityTaskRequest;
-import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.PollForDecisionTaskRequest;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
-import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
-import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
-import com.uber.cadence.RespondActivityTaskCanceledRequest;
-import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
-import com.uber.cadence.RespondActivityTaskCompletedRequest;
-import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
-import com.uber.cadence.RespondActivityTaskFailedRequest;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
-import com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionInitiatedEventAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes;
-import com.uber.cadence.StartTimerDecisionAttributes;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.TimeoutType;
-import com.uber.cadence.TimerCanceledEventAttributes;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.TimerStartedEventAttributes;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
-import com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes;
-import com.uber.cadence.WorkflowExecutionCanceledEventAttributes;
-import com.uber.cadence.WorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
-import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.WorkflowExecutionTimedOutEventAttributes;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.TaskListId;
@@ -142,7 +75,11 @@ class StateMachines {
     CONTINUE_AS_NEW
   }
 
-  static final class WorkflowData {}
+  static final class WorkflowData {
+    public long expirationTime;
+    int attempt;
+    RetryPolicy retryPolicy;
+  }
 
   static final class DecisionTaskData {
 
@@ -484,6 +421,9 @@ class StateMachines {
     if (!request.isSetExecutionStartToCloseTimeoutSeconds()) {
       throw new BadRequestError("missing executionStartToCloseTimeoutSeconds");
     }
+    if (request.isSetRetryPolicy()) {
+      data.retryPolicy = request.getRetryPolicy();
+    }
     a.setExecutionStartToCloseTimeoutSeconds(request.getExecutionStartToCloseTimeoutSeconds());
     if (request.isSetInput()) {
       a.setInput(request.getInput());
@@ -541,6 +481,7 @@ class StateMachines {
       a.setTaskStartToCloseTimeoutSeconds(sr.getTaskStartToCloseTimeoutSeconds());
     }
     a.setDecisionTaskCompletedEventId(decisionTaskCompletedEventId);
+    a.setBackoffStartIntervalInSeconds(d.getBackoffStartIntervalInSeconds());
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionContinuedAsNew)
