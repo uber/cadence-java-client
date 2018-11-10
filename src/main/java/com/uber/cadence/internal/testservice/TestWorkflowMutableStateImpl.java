@@ -18,7 +18,60 @@
 package com.uber.cadence.internal.testservice;
 
 import com.google.common.base.Throwables;
-import com.uber.cadence.*;
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancelTimerDecisionAttributes;
+import com.uber.cadence.CancelTimerFailedEventAttributes;
+import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
+import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.Decision;
+import com.uber.cadence.DecisionTaskFailedCause;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.EventType;
+import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.MarkerRecordedEventAttributes;
+import com.uber.cadence.PollForActivityTaskRequest;
+import com.uber.cadence.PollForActivityTaskResponse;
+import com.uber.cadence.PollForDecisionTaskRequest;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.QueryTaskCompletedType;
+import com.uber.cadence.QueryWorkflowRequest;
+import com.uber.cadence.QueryWorkflowResponse;
+import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RecordMarkerDecisionAttributes;
+import com.uber.cadence.RequestCancelActivityTaskDecisionAttributes;
+import com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes;
+import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
+import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
+import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
+import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
+import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
+import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.StartTimerDecisionAttributes;
+import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.StickyExecutionAttributes;
+import com.uber.cadence.TimeoutType;
+import com.uber.cadence.WorkflowExecutionCloseStatus;
+import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
+import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
@@ -697,7 +750,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     WorkflowData data = workflow.getData();
     if (data.retryState.isPresent()) {
       int backoffIntervalSeconds =
-          getBackoffIntervalInSeconds(data.retryState.get(), d.getReason());
+          data.retryState
+              .get()
+              .getBackoffIntervalInSeconds(d.getReason(), store.currentTimeMillis());
       if (backoffIntervalSeconds > 0) {
         ContinueAsNewWorkflowExecutionDecisionAttributes continueAsNewAttr =
             new ContinueAsNewWorkflowExecutionDecisionAttributes()
@@ -1331,52 +1386,5 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         throw new InternalServiceError(Throwables.getStackTraceAsString(e));
       }
     }
-  }
-
-  int getBackoffIntervalInSeconds(RetryState retryState, String errReason) {
-    RetryPolicy retryPolicy = retryState.getRetryPolicy();
-    long expirationTime = retryState.getExpirationTime();
-    if (retryPolicy.getMaximumAttempts() == 0 && expirationTime == 0) {
-      return 0;
-    }
-
-    if (retryPolicy.getMaximumAttempts() > 0
-        && retryState.getAttempt() >= retryPolicy.getMaximumAttempts() - 1) {
-      // currAttempt starts from 0.
-      // MaximumAttempts is the total attempts, including initial (non-retry) attempt.
-      return 0;
-    }
-    long initInterval = retryPolicy.getInitialIntervalInSeconds() * MILLISECONDS_IN_SECOND;
-    long nextInterval =
-        (long)
-            (initInterval * Math.pow(retryPolicy.getBackoffCoefficient(), retryState.getAttempt()));
-    long maxInterval = retryPolicy.getMaximumIntervalInSeconds() * MILLISECONDS_IN_SECOND;
-    if (nextInterval <= 0) {
-      // math.Pow() could overflow
-      if (maxInterval > 0) {
-        nextInterval = maxInterval;
-      } else {
-        return 0;
-      }
-    }
-
-    if (maxInterval > 0 && nextInterval > maxInterval) {
-      // cap next interval to MaxInterval
-      nextInterval = maxInterval;
-    }
-
-    long backoffInterval = nextInterval;
-    long nextScheduleTime = store.currentTimeMillis() + backoffInterval;
-    if (expirationTime != 0 && nextScheduleTime > expirationTime) {
-      return 0;
-    }
-
-    // check if error is non-retriable
-    for (String err : retryPolicy.getNonRetriableErrorReasons()) {
-      if (errReason.equals(err)) {
-        return 0;
-      }
-    }
-    return (int) (Math.ceil((double) backoffInterval) / MILLISECONDS_IN_SECOND);
   }
 }

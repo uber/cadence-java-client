@@ -228,7 +228,7 @@ public final class TestWorkflowService implements IWorkflowService {
             store.currentTimeMillis()
                 + startRequest.getRetryPolicy().getExpirationIntervalInSeconds()
                     * MILLISECONDS_IN_SECOND;
-        retryState = Optional.of(new RetryState(startRequest.getRetryPolicy(), expirationTime, 0));
+        retryState = Optional.of(new RetryState(startRequest.getRetryPolicy(), expirationTime));
       } else {
         retryState = Optional.empty();
       }

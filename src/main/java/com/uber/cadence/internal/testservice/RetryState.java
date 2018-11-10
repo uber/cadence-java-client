@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.testservice;
 
+import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.MILLISECONDS_IN_SECOND;
+
 import com.uber.cadence.RetryPolicy;
 
 final class RetryState {
@@ -25,25 +27,75 @@ final class RetryState {
   private final long expirationTime;
   private final int attempt;
 
-  public RetryState(RetryPolicy retryPolicy, long expirationTime, int attempt) {
+  RetryState(RetryPolicy retryPolicy, long expirationTime) {
+    this(retryPolicy, expirationTime, 0);
+  }
+
+  private RetryState(RetryPolicy retryPolicy, long expirationTime, int attempt) {
     this.retryPolicy = retryPolicy;
     this.expirationTime = expirationTime;
     this.attempt = attempt;
   }
 
-  public RetryPolicy getRetryPolicy() {
+  RetryPolicy getRetryPolicy() {
     return retryPolicy;
   }
 
-  public long getExpirationTime() {
+  long getExpirationTime() {
     return expirationTime;
   }
 
-  public int getAttempt() {
+  int getAttempt() {
     return attempt;
   }
 
   RetryState getNextAttempt() {
     return new RetryState(retryPolicy, expirationTime, attempt + 1);
+  }
+
+  int getBackoffIntervalInSeconds(String errReason, long currentTimeMillis) {
+    RetryPolicy retryPolicy = getRetryPolicy();
+    long expirationTime = getExpirationTime();
+    if (retryPolicy.getMaximumAttempts() == 0 && expirationTime == 0) {
+      return 0;
+    }
+
+    if (retryPolicy.getMaximumAttempts() > 0
+        && getAttempt() >= retryPolicy.getMaximumAttempts() - 1) {
+      // currAttempt starts from 0.
+      // MaximumAttempts is the total attempts, including initial (non-retry) attempt.
+      return 0;
+    }
+    long initInterval = retryPolicy.getInitialIntervalInSeconds() * MILLISECONDS_IN_SECOND;
+    long nextInterval =
+        (long) (initInterval * Math.pow(retryPolicy.getBackoffCoefficient(), getAttempt()));
+    long maxInterval = retryPolicy.getMaximumIntervalInSeconds() * MILLISECONDS_IN_SECOND;
+    if (nextInterval <= 0) {
+      // math.Pow() could overflow
+      if (maxInterval > 0) {
+        nextInterval = maxInterval;
+      } else {
+        return 0;
+      }
+    }
+
+    if (maxInterval > 0 && nextInterval > maxInterval) {
+      // cap next interval to MaxInterval
+      nextInterval = maxInterval;
+    }
+
+    long backoffInterval = nextInterval;
+    long nextScheduleTime = currentTimeMillis + backoffInterval;
+    if (expirationTime != 0 && nextScheduleTime > expirationTime) {
+      return 0;
+    }
+
+    // check if error is non-retriable
+    for (String err : retryPolicy.getNonRetriableErrorReasons()) {
+      if (errReason.equals(err)) {
+        return 0;
+      }
+    }
+    return (int) (Math.ceil((double) backoffInterval) / MILLISECONDS_IN_SECOND);
   }
 }
