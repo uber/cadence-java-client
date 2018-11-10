@@ -24,7 +24,9 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.common.RetryOptions;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class StartWorkflowExecutionParameters {
 
@@ -289,18 +291,17 @@ public class StartWorkflowExecutionParameters {
       WorkflowOptions options) {
     StartWorkflowExecutionParameters parameters = new StartWorkflowExecutionParameters();
     parameters.setExecutionStartToCloseTimeoutSeconds(
-        (int) getSeconds(options.getExecutionStartToCloseTimeout()));
-    parameters.setTaskStartToCloseTimeoutSeconds(
-        (int) getSeconds(options.getTaskStartToCloseTimeout()));
+        getSeconds(options.getExecutionStartToCloseTimeout()));
+    parameters.setTaskStartToCloseTimeoutSeconds(getSeconds(options.getTaskStartToCloseTimeout()));
     parameters.setTaskList(options.getTaskList());
     parameters.setChildPolicy(options.getChildPolicy());
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       RetryParameters rp = new RetryParameters();
       rp.setBackoffCoefficient(retryOptions.getBackoffCoefficient());
-      rp.setExpirationIntervalInSeconds((int) getSeconds(retryOptions.getExpiration()));
-      rp.setInitialIntervalInSeconds((int) getSeconds(retryOptions.getInitialInterval()));
-      rp.setMaximumIntervalInSeconds((int) getSeconds(retryOptions.getMaximumInterval()));
+      rp.setExpirationIntervalInSeconds(getSeconds(retryOptions.getExpiration()));
+      rp.setInitialIntervalInSeconds(getSeconds(retryOptions.getInitialInterval()));
+      rp.setMaximumIntervalInSeconds(getSeconds(retryOptions.getMaximumInterval()));
       rp.setMaximumAttempts(retryOptions.getMaximumAttempts());
       List<String> reasons = new ArrayList<>();
       // Use exception type name as the reason
@@ -313,24 +314,11 @@ public class StartWorkflowExecutionParameters {
     return parameters;
   }
 
-  private static long getSeconds(Duration expiration) {
+  private static int getSeconds(Duration expiration) {
     if (expiration == null) {
       return 0;
     }
-    return expiration.getSeconds();
-  }
-
-  public StartWorkflowExecutionParameters copy() {
-    StartWorkflowExecutionParameters result = new StartWorkflowExecutionParameters();
-    result.setInput(input);
-    result.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
-    result.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
-    result.setTaskList(taskList);
-    result.setWorkflowId(workflowId);
-    result.setWorkflowType(workflowType);
-    result.setChildPolicy(childPolicy);
-    result.setRetryParameters(retryParameters.copy());
-    return result;
+    return (int) expiration.getSeconds();
   }
 
   @Override
@@ -344,8 +332,8 @@ public class StartWorkflowExecutionParameters {
         + ", taskList='"
         + taskList
         + '\''
-        + ", input.length="
-        + input.length
+        + ", input="
+        + Arrays.toString(input)
         + ", executionStartToCloseTimeoutSeconds="
         + executionStartToCloseTimeoutSeconds
         + ", taskStartToCloseTimeoutSeconds="
@@ -357,5 +345,50 @@ public class StartWorkflowExecutionParameters {
         + ", retryParameters="
         + retryParameters
         + '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    StartWorkflowExecutionParameters that = (StartWorkflowExecutionParameters) o;
+    return executionStartToCloseTimeoutSeconds == that.executionStartToCloseTimeoutSeconds
+        && taskStartToCloseTimeoutSeconds == that.taskStartToCloseTimeoutSeconds
+        && Objects.equals(workflowId, that.workflowId)
+        && Objects.equals(workflowType, that.workflowType)
+        && Objects.equals(taskList, that.taskList)
+        && Arrays.equals(input, that.input)
+        && childPolicy == that.childPolicy
+        && workflowIdReusePolicy == that.workflowIdReusePolicy
+        && Objects.equals(retryParameters, that.retryParameters);
+  }
+
+  @Override
+  public int hashCode() {
+    int result =
+        Objects.hash(
+            workflowId,
+            workflowType,
+            taskList,
+            executionStartToCloseTimeoutSeconds,
+            taskStartToCloseTimeoutSeconds,
+            childPolicy,
+            workflowIdReusePolicy,
+            retryParameters);
+    result = 31 * result + Arrays.hashCode(input);
+    return result;
+  }
+
+  public StartWorkflowExecutionParameters copy() {
+    StartWorkflowExecutionParameters result = new StartWorkflowExecutionParameters();
+    result.setInput(input);
+    result.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
+    result.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
+    result.setTaskList(taskList);
+    result.setWorkflowId(workflowId);
+    result.setWorkflowType(workflowType);
+    result.setChildPolicy(childPolicy);
+    result.setRetryParameters(retryParameters.copy());
+    return result;
   }
 }

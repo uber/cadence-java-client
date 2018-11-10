@@ -76,9 +76,7 @@ class StateMachines {
   }
 
   static final class WorkflowData {
-    public long expirationTime;
-    int attempt;
-    RetryPolicy retryPolicy;
+    Optional<RetryState> retryState = Optional.empty();
   }
 
   static final class DecisionTaskData {
@@ -420,9 +418,6 @@ class StateMachines {
     a.setTaskList(request.getTaskList());
     if (!request.isSetExecutionStartToCloseTimeoutSeconds()) {
       throw new BadRequestError("missing executionStartToCloseTimeoutSeconds");
-    }
-    if (request.isSetRetryPolicy()) {
-      data.retryPolicy = request.getRetryPolicy();
     }
     a.setExecutionStartToCloseTimeoutSeconds(request.getExecutionStartToCloseTimeoutSeconds());
     if (request.isSetInput()) {

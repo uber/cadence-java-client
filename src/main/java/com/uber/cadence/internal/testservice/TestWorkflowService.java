@@ -222,17 +222,18 @@ public final class TestWorkflowService implements IWorkflowService {
           return throwDuplicatedWorkflow(startRequest, existing);
         }
       }
-      long expirationTime;
+      Optional<RetryState> retryState;
       if (startRequest.getRetryPolicy() != null) {
-        expirationTime =
+        long expirationTime =
             store.currentTimeMillis()
                 + startRequest.getRetryPolicy().getExpirationIntervalInSeconds()
                     * MILLISECONDS_IN_SECOND;
+        retryState = Optional.of(new RetryState(startRequest.getRetryPolicy(), expirationTime, 0));
       } else {
-        expirationTime = 0;
+        retryState = Optional.empty();
       }
       return startWorkflowExecutionNoRunningCheckLocked(
-          startRequest, 0, expirationTime, parent, parentChildInitiatedEventId, workflowId);
+          startRequest, retryState, parent, parentChildInitiatedEventId, workflowId);
     } finally {
       lock.unlock();
     }
@@ -253,8 +254,7 @@ public final class TestWorkflowService implements IWorkflowService {
 
   private StartWorkflowExecutionResponse startWorkflowExecutionNoRunningCheckLocked(
       StartWorkflowExecutionRequest startRequest,
-      int attempt,
-      long expirationTime,
+      Optional<RetryState> retryState,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       WorkflowId workflowId)
@@ -262,13 +262,7 @@ public final class TestWorkflowService implements IWorkflowService {
     String domain = startRequest.getDomain();
     TestWorkflowMutableState result =
         new TestWorkflowMutableStateImpl(
-            startRequest,
-            attempt,
-            expirationTime,
-            parent,
-            parentChildInitiatedEventId,
-            this,
-            store);
+            startRequest, retryState, parent, parentChildInitiatedEventId, this, store);
     WorkflowExecution execution = result.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     executionsByWorkflowId.put(workflowId, result);
@@ -509,8 +503,7 @@ public final class TestWorkflowService implements IWorkflowService {
   public String continueAsNew(
       StartWorkflowExecutionRequest previousRunStartRequest,
       WorkflowExecutionContinuedAsNewEventAttributes a,
-      int attempt,
-      long expirationTime,
+      Optional<RetryState> retryState,
       String identity,
       ExecutionId executionId,
       Optional<TestWorkflowMutableState> parent,
@@ -537,8 +530,7 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionResponse response =
           startWorkflowExecutionNoRunningCheckLocked(
               startRequest,
-              attempt,
-              expirationTime,
+              retryState,
               parent,
               parentChildInitiatedEventId,
               executionId.getWorkflowId());

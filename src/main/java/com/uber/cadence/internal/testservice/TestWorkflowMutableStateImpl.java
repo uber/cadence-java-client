@@ -89,13 +89,12 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   public StickyExecutionAttributes stickyExecutionAttributes;
 
   /**
-   * @param expirationTime
+   * @param retryState present if workflow is a retry
    * @param parentChildInitiatedEventId id of the child initiated event in the parent history
    */
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest,
-      int attempt,
-      long expirationTime,
+      Optional<RetryState> retryState,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       TestWorkflowService service,
@@ -112,9 +111,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     this.clock = selfAdvancingTimer.getClock();
     this.workflow = StateMachines.newWorkflowStateMachine();
     WorkflowData data = this.workflow.getData();
-    data.attempt = attempt;
-    data.expirationTime = expirationTime;
-    data.retryPolicy = startRequest.getRetryPolicy();
+    data.retryState = retryState;
   }
 
   private void update(UpdateProcedure updater)
@@ -698,10 +695,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       String identity)
       throws InternalServiceError, BadRequestError {
     WorkflowData data = workflow.getData();
-    if (data.retryPolicy != null) {
+    if (data.retryState.isPresent()) {
       int backoffIntervalSeconds =
-          getBackoffIntervalInSeconds(
-              data.attempt, data.retryPolicy, data.expirationTime, d.getReason());
+          getBackoffIntervalInSeconds(data.retryState.get(), d.getReason());
       if (backoffIntervalSeconds > 0) {
         ContinueAsNewWorkflowExecutionDecisionAttributes continueAsNewAttr =
             new ContinueAsNewWorkflowExecutionDecisionAttributes()
@@ -717,12 +713,18 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         HistoryEvent event = ctx.getEvents().get(ctx.getEvents().size() - 1);
         WorkflowExecutionContinuedAsNewEventAttributes continuedAsNewEventAttributes =
             event.getWorkflowExecutionContinuedAsNewEventAttributes();
+        Optional<RetryState> continuedRetryState;
+        if (data.retryState.isPresent()) {
+          RetryState rs = data.retryState.get();
+          continuedRetryState = Optional.of(rs.getNextAttempt());
+        } else {
+          continuedRetryState = Optional.empty();
+        }
         String runId =
             service.continueAsNew(
                 startRequest,
                 continuedAsNewEventAttributes,
-                data.attempt + 1,
-                data.expirationTime,
+                continuedRetryState,
                 identity,
                 getExecutionId(),
                 parent,
@@ -832,8 +834,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         service.continueAsNew(
             startRequest,
             event.getWorkflowExecutionContinuedAsNewEventAttributes(),
-            0,
-            0,
+            workflow.getData().retryState,
             identity,
             getExecutionId(),
             parent,
@@ -1332,21 +1333,23 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
   }
 
-  int getBackoffIntervalInSeconds(
-      int currAttempt, RetryPolicy retryPolicy, long expirationTime, String errReason) {
+  int getBackoffIntervalInSeconds(RetryState retryState, String errReason) {
+    RetryPolicy retryPolicy = retryState.getRetryPolicy();
+    long expirationTime = retryState.getExpirationTime();
     if (retryPolicy.getMaximumAttempts() == 0 && expirationTime == 0) {
       return 0;
     }
 
     if (retryPolicy.getMaximumAttempts() > 0
-        && currAttempt >= retryPolicy.getMaximumAttempts() - 1) {
+        && retryState.getAttempt() >= retryPolicy.getMaximumAttempts() - 1) {
       // currAttempt starts from 0.
       // MaximumAttempts is the total attempts, including initial (non-retry) attempt.
       return 0;
     }
     long initInterval = retryPolicy.getInitialIntervalInSeconds() * MILLISECONDS_IN_SECOND;
     long nextInterval =
-        (long) (initInterval * Math.pow(retryPolicy.getBackoffCoefficient(), currAttempt));
+        (long)
+            (initInterval * Math.pow(retryPolicy.getBackoffCoefficient(), retryState.getAttempt()));
     long maxInterval = retryPolicy.getMaximumIntervalInSeconds() * MILLISECONDS_IN_SECOND;
     if (nextInterval <= 0) {
       // math.Pow() could overflow

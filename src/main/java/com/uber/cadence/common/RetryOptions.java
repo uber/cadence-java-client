@@ -331,49 +331,26 @@ public final class RetryOptions {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     RetryOptions that = (RetryOptions) o;
-
-    if (Double.compare(that.backoffCoefficient, backoffCoefficient) != 0) {
-      return false;
-    }
-    if (maximumAttempts != that.maximumAttempts) {
-      return false;
-    }
-    if (initialInterval != null
-        ? !initialInterval.equals(that.initialInterval)
-        : that.initialInterval != null) {
-      return false;
-    }
-    if (expiration != null ? !expiration.equals(that.expiration) : that.expiration != null) {
-      return false;
-    }
-    if (maximumInterval != null
-        ? !maximumInterval.equals(that.maximumInterval)
-        : that.maximumInterval != null) {
-      return false;
-    }
-    return doNotRetry != null ? doNotRetry.equals(that.doNotRetry) : that.doNotRetry == null;
+    return Double.compare(that.backoffCoefficient, backoffCoefficient) == 0
+        && maximumAttempts == that.maximumAttempts
+        && Objects.equals(initialInterval, that.initialInterval)
+        && Objects.equals(expiration, that.expiration)
+        && Objects.equals(maximumInterval, that.maximumInterval)
+        && Objects.equals(doNotRetry, that.doNotRetry);
   }
 
   @Override
   public int hashCode() {
-    int result;
-    long temp;
-    result = initialInterval != null ? initialInterval.hashCode() : 0;
-    temp = Double.doubleToLongBits(backoffCoefficient);
-    result = 31 * result + (int) (temp ^ (temp >>> 32));
-    result = 31 * result + (expiration != null ? expiration.hashCode() : 0);
-    result = 31 * result + maximumAttempts;
-    result = 31 * result + (maximumInterval != null ? maximumInterval.hashCode() : 0);
-    result = 31 * result + (doNotRetry != null ? doNotRetry.hashCode() : 0);
-    return result;
+    return Objects.hash(
+        initialInterval,
+        backoffCoefficient,
+        expiration,
+        maximumAttempts,
+        maximumInterval,
+        doNotRetry);
   }
 
   private static <G> G merge(G annotation, G options, Class<G> type) {
