@@ -19,6 +19,7 @@ package com.uber.cadence.internal.testservice;
 
 import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.MILLISECONDS_IN_SECOND;
 
+import com.uber.cadence.BadRequestError;
 import com.uber.cadence.RetryPolicy;
 
 final class RetryState {
@@ -27,8 +28,8 @@ final class RetryState {
   private final long expirationTime;
   private final int attempt;
 
-  RetryState(RetryPolicy retryPolicy, long expirationTime) {
-    this(retryPolicy, expirationTime, 0);
+  RetryState(RetryPolicy retryPolicy, long expirationTime) throws BadRequestError {
+    this(validateRetryPolicy(retryPolicy), expirationTime, 0);
   }
 
   private RetryState(RetryPolicy retryPolicy, long expirationTime, int attempt) {
@@ -97,5 +98,34 @@ final class RetryState {
       }
     }
     return (int) (Math.ceil((double) backoffInterval) / MILLISECONDS_IN_SECOND);
+  }
+
+  private static RetryPolicy validateRetryPolicy(RetryPolicy policy) throws BadRequestError {
+    if (policy.getInitialIntervalInSeconds() <= 0) {
+      throw new BadRequestError("InitialIntervalInSeconds must be greater than 0 on retry policy.");
+    }
+    if (policy.getBackoffCoefficient() < 1) {
+      throw new BadRequestError("BackoffCoefficient cannot be less than 1 on retry policy.");
+    }
+    if (policy.getMaximumIntervalInSeconds() < 0) {
+      throw new BadRequestError("MaximumIntervalInSeconds cannot be less than 0 on retry policy.");
+    }
+    if (policy.getMaximumIntervalInSeconds() > 0
+        && policy.getMaximumIntervalInSeconds() < policy.getInitialIntervalInSeconds()) {
+      throw new BadRequestError(
+          "MaximumIntervalInSeconds cannot be less than InitialIntervalInSeconds on retry policy.");
+    }
+    if (policy.getMaximumAttempts() < 0) {
+      throw new BadRequestError("MaximumAttempts cannot be less than 0 on retry policy.");
+    }
+    if (policy.getExpirationIntervalInSeconds() <= 0) {
+      throw new BadRequestError(
+          "ExpirationIntervalInSeconds must be greater than 0 on retry policy.");
+    }
+    if (policy.getMaximumAttempts() == 0 && policy.getExpirationIntervalInSeconds() == 0) {
+      throw new BadRequestError(
+          "MaximumAttempts and ExpirationIntervalInSeconds are both 0. At least one of them must be specified.");
+    }
+    return policy;
   }
 }

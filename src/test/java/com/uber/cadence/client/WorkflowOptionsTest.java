@@ -42,7 +42,7 @@ public class WorkflowOptionsTest {
         WorkflowOptionsTest.class
             .getMethod("defaultWorkflowOptions")
             .getAnnotation(WorkflowMethod.class);
-    Assert.assertEquals(o, WorkflowOptions.merge(a, o));
+    Assert.assertEquals(o, WorkflowOptions.merge(a, null, o));
   }
 
   @Test
@@ -58,7 +58,7 @@ public class WorkflowOptionsTest {
         WorkflowOptionsTest.class
             .getMethod("defaultWorkflowOptions")
             .getAnnotation(WorkflowMethod.class);
-    Assert.assertEquals(o, WorkflowOptions.merge(a, o));
+    Assert.assertEquals(o, WorkflowOptions.merge(a, null, o));
   }
 
   @WorkflowMethod(
@@ -75,7 +75,7 @@ public class WorkflowOptionsTest {
     Method method = WorkflowOptionsTest.class.getMethod("workflowOptions");
     WorkflowMethod a = method.getAnnotation(WorkflowMethod.class);
     WorkflowOptions o = new WorkflowOptions.Builder().build();
-    WorkflowOptions merged = WorkflowOptions.merge(a, o);
+    WorkflowOptions merged = WorkflowOptions.merge(a, null, o);
     Assert.assertEquals(a.taskList(), merged.getTaskList());
     Assert.assertEquals(
         a.executionStartToCloseTimeoutSeconds(),
@@ -98,6 +98,6 @@ public class WorkflowOptionsTest {
             .build();
     WorkflowMethod a =
         WorkflowOptionsTest.class.getMethod("workflowOptions").getAnnotation(WorkflowMethod.class);
-    Assert.assertEquals(o, WorkflowOptions.merge(a, o));
+    Assert.assertEquals(o, WorkflowOptions.merge(a, null, o));
   }
 }

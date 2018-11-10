@@ -423,6 +423,7 @@ public class WorkflowTest {
             new RetryOptions.Builder()
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
+                .setExpiration(Duration.ofDays(1))
                 .setMaximumAttempts(3)
                 .build();
       } else {
@@ -430,6 +431,7 @@ public class WorkflowTest {
             new RetryOptions.Builder()
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
+                .setExpiration(Duration.ofDays(1))
                 .setMaximumAttempts(2)
                 .build();
       }
@@ -2259,6 +2261,7 @@ public class WorkflowTest {
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
+                      .setExpiration(Duration.ofDays(1))
                       .build())
               .build();
       child = Workflow.newChildWorkflowStub(ITestChild.class, options);
@@ -2525,6 +2528,7 @@ public class WorkflowTest {
                   new RetryOptions.Builder()
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
+                      .setExpiration(Duration.ofDays(1))
                       .setMaximumAttempts(3)
                       .build())
               .build();
@@ -2649,6 +2653,7 @@ public class WorkflowTest {
     startWorkerFor(TestWorkflowRetryImpl.class);
     RetryOptions workflowRetryOptions =
         new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofSeconds(1))
             .setExpiration(Duration.ofSeconds(10))
             .setMaximumAttempts(3)
             .setBackoffCoefficient(1.0)
@@ -2688,6 +2693,7 @@ public class WorkflowTest {
     startWorkerFor(TestWorkflowRetryDoNotRetryException.class);
     RetryOptions workflowRetryOptions =
         new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofSeconds(1))
             .setExpiration(Duration.ofSeconds(10))
             .setDoNotRetry(IllegalArgumentException.class)
             .setMaximumAttempts(100)
@@ -2702,6 +2708,53 @@ public class WorkflowTest {
       fail("unreachable");
     } catch (WorkflowException e) {
       assertTrue(e.getCause() instanceof IllegalArgumentException);
+      assertEquals("simulated 3", e.getCause().getMessage());
+    }
+  }
+
+  public interface TestWorkflowRetryWithMethodRetry {
+
+    @WorkflowMethod
+    @MethodRetry(
+      initialIntervalSeconds = 1,
+      maximumIntervalSeconds = 1,
+      maximumAttempts = 30,
+      expirationSeconds = 100,
+      doNotRetry = IllegalArgumentException.class
+    )
+    String execute(String testName);
+  }
+
+  public static class TestWorkflowRetryWithMethodRetryImpl
+      implements TestWorkflowRetryWithMethodRetry {
+
+    @Override
+    public String execute(String testName) {
+      AtomicInteger count = retryCount.get(testName);
+      if (count == null) {
+        count = new AtomicInteger();
+        retryCount.put(testName, count);
+      }
+      int c = count.incrementAndGet();
+      if (c < 3) {
+        throw new IllegalStateException("simulated " + c);
+      } else {
+        throw new IllegalArgumentException("simulated " + c);
+      }
+    }
+  }
+
+  @Test
+  public void testWorkflowRetryWithMethodRetryDoNotRetryException() {
+    startWorkerFor(TestWorkflowRetryWithMethodRetryImpl.class);
+    TestWorkflowRetryWithMethodRetry workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflowRetryWithMethodRetry.class, newWorkflowOptionsBuilder(taskList).build());
+    try {
+      workflowStub.execute(testName.getMethodName());
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().toString(), e.getCause() instanceof IllegalArgumentException);
       assertEquals("simulated 3", e.getCause().getMessage());
     }
   }
@@ -2750,8 +2803,8 @@ public class WorkflowTest {
     @MethodRetry(
       initialIntervalSeconds = 1,
       maximumIntervalSeconds = 1,
-      minimumAttempts = 2,
-      maximumAttempts = 3
+      maximumAttempts = 3,
+      expirationSeconds = 100
     )
     void throwIOAnnotated();
 

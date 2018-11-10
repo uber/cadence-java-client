@@ -21,6 +21,7 @@ import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
+import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.workflow.WorkflowMethod;
@@ -29,7 +30,8 @@ import java.util.Objects;
 
 public final class WorkflowOptions {
 
-  public static WorkflowOptions merge(WorkflowMethod a, WorkflowOptions o) {
+  public static WorkflowOptions merge(
+      WorkflowMethod a, MethodRetry methodRetry, WorkflowOptions o) {
     if (a == null) {
       return new WorkflowOptions.Builder(o).validateBuildWithDefaults();
     }
@@ -50,7 +52,7 @@ public final class WorkflowOptions {
                 a.executionStartToCloseTimeoutSeconds(), o.getExecutionStartToCloseTimeout()))
         .setTaskList(OptionsUtils.merge(a.taskList(), o.getTaskList(), String.class))
         .setChildPolicy(o.getChildPolicy())
-        .setRetryOptions(o.getRetryOptions())
+        .setRetryOptions(RetryOptions.merge(methodRetry, o.getRetryOptions()))
         .validateBuildWithDefaults();
   }
 
@@ -182,11 +184,21 @@ public final class WorkflowOptions {
             "Required property executionStartToCloseTimeout is not set");
       }
       if (taskList == null) {
-        throw new IllegalStateException("Required property taskList is not set");
+        throw new IllegalArgumentException("Required property taskList is not set");
       }
       WorkflowIdReusePolicy policy = workflowIdReusePolicy;
       if (policy == null) {
         policy = WorkflowIdReusePolicy.AllowDuplicateFailedOnly;
+      }
+      if (retryOptions != null) {
+        if (retryOptions.getInitialInterval() == null) {
+          throw new IllegalArgumentException(
+              "RetryOptions missing required initialInterval property");
+        }
+        if (retryOptions.getExpiration() == null && retryOptions.getMaximumAttempts() == 0) {
+          throw new IllegalArgumentException(
+              "RetryOptions must specify either expiration or maximum attempts");
+        }
       }
       return new WorkflowOptions(
           workflowId,

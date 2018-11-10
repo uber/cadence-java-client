@@ -47,7 +47,7 @@ public @interface MethodRetry {
    * Maximum time to retry. Default is forever. When exceeded the retries stop even if maximum
    * retries is not reached yet.
    */
-  long expirationSeconds() default 0;
+  long expirationSeconds();
 
   /**
    * Coefficient used to calculate the next retry interval. The next retry interval is previous
@@ -60,12 +60,6 @@ public @interface MethodRetry {
    * or bigger. Default is unlimited.
    */
   int maximumAttempts() default 0;
-
-  /**
-   * Minimum number of retries. Even if expired will retry until this number is reached. Must be 1
-   * or bigger. Default is 0.
-   */
-  int minimumAttempts() default 0;
 
   /**
    * Maximum interval between retries. Exponential backoff leads to interval increase. This value is

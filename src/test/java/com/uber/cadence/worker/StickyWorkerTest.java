@@ -88,12 +88,19 @@ public class StickyWorkerTest {
 
   @Rule public TestName testName = new TestName();
 
-  private IWorkflowService service;
+  private WorkflowServiceTChannel service;
 
   @Before
   public void setUp() {
     if (testType.equals("Docker") && service == null) {
       service = new WorkflowServiceTChannel();
+    }
+  }
+
+  @AfterClass
+  public void tearDown() {
+    if (service != null) {
+      service.close();
     }
   }
 

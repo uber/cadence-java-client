@@ -58,6 +58,8 @@ public final class RetryOptions {
     double coefficient = merge(r.backoffCoefficient(), o.getBackoffCoefficient(), double.class);
     if (coefficient != 0d) {
       builder.setBackoffCoefficient(coefficient);
+    } else {
+      builder.setBackoffCoefficient(DEFAULT_BACKOFF_COEFFICIENT);
     }
     return builder
         .setMaximumAttempts(merge(r.maximumAttempts(), o.getMaximumAttempts(), int.class))
@@ -83,11 +85,11 @@ public final class RetryOptions {
 
   public static final class Builder {
 
-    private Duration initialInterval = Duration.ofSeconds(1);
+    private Duration initialInterval;
 
     private Duration expiration;
 
-    private double backoffCoefficient = 2.0;
+    private double backoffCoefficient;
 
     private int maximumAttempts;
 
@@ -218,7 +220,10 @@ public final class RetryOptions {
 
     private void validate() {
       if (initialInterval == null) {
-        throw new IllegalStateException("required property initialInterval not set");
+        throw new IllegalArgumentException("required property initialInterval not set");
+      }
+      if (expiration == null) {
+        throw new IllegalArgumentException("required property expiration is not set");
       }
       if (maximumInterval != null && maximumInterval.compareTo(initialInterval) == -1) {
         throw new IllegalStateException(
@@ -260,8 +265,7 @@ public final class RetryOptions {
     this.expiration = expiration;
     this.maximumAttempts = maximumAttempts;
     this.maximumInterval = maximumInterval;
-    this.doNotRetry =
-        doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : Collections.emptyList();
+    this.doNotRetry = doNotRetry != null ? Collections.unmodifiableList(doNotRetry) : null;
   }
 
   public Duration getInitialInterval() {

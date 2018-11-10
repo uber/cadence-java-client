@@ -56,7 +56,7 @@ public class ActivityOptionsTest {
     Assert.assertEquals(o, ActivityOptions.merge(a, null, o));
   }
 
-  @MethodRetry(initialIntervalSeconds = 3)
+  @MethodRetry(initialIntervalSeconds = 3, expirationSeconds = 100)
   @ActivityMethod
   public void defaultActivityAndRetryOptions() {}
 
