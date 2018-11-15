@@ -112,8 +112,7 @@ public final class RetryOptions {
     }
 
     /**
-     * Interval of the first retry. If coefficient is 1.0 then it is used for all retries. Default
-     * is 1 second.
+     * Interval of the first retry. If coefficient is 1.0 then it is used for all retries. Required.
      */
     public Builder setInitialInterval(Duration initialInterval) {
       Objects.requireNonNull(initialInterval);

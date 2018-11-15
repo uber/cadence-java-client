@@ -34,7 +34,6 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
-import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -88,17 +87,17 @@ public class StickyWorkerTest {
 
   @Rule public TestName testName = new TestName();
 
-  private WorkflowServiceTChannel service;
+  private static WorkflowServiceTChannel service;
 
-  @Before
-  public void setUp() {
-    if (testType.equals("Docker") && service == null) {
+  @BeforeClass
+  public static void setUp() {
+    if (!skipDockerService) {
       service = new WorkflowServiceTChannel();
     }
   }
 
   @AfterClass
-  public void tearDown() {
+  public static void tearDown() {
     if (service != null) {
       service.close();
     }
