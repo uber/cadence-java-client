@@ -17,8 +17,6 @@
 
 package com.uber.cadence.internal.testservice;
 
-import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.MILLISECONDS_IN_SECOND;
-
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.CancellationAlreadyRequestedError;
 import com.uber.cadence.DeprecateDomainRequest;
@@ -94,6 +92,7 @@ import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.thrift.TException;
@@ -224,10 +223,10 @@ public final class TestWorkflowService implements IWorkflowService {
       }
       Optional<RetryState> retryState;
       if (startRequest.getRetryPolicy() != null) {
-        long expirationTime =
-            store.currentTimeMillis()
-                + startRequest.getRetryPolicy().getExpirationIntervalInSeconds()
-                    * MILLISECONDS_IN_SECOND;
+        long expirationInterval =
+            TimeUnit.SECONDS.toMillis(
+                startRequest.getRetryPolicy().getExpirationIntervalInSeconds());
+        long expirationTime = store.currentTimeMillis() + expirationInterval;
         retryState = Optional.of(new RetryState(startRequest.getRetryPolicy(), expirationTime));
       } else {
         retryState = Optional.empty();

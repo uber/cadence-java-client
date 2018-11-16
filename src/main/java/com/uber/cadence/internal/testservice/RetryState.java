@@ -17,10 +17,10 @@
 
 package com.uber.cadence.internal.testservice;
 
-import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.MILLISECONDS_IN_SECOND;
-
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.RetryPolicy;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 final class RetryState {
 
@@ -67,10 +67,10 @@ final class RetryState {
       // MaximumAttempts is the total attempts, including initial (non-retry) attempt.
       return 0;
     }
-    long initInterval = retryPolicy.getInitialIntervalInSeconds() * MILLISECONDS_IN_SECOND;
+    long initInterval = TimeUnit.SECONDS.toMillis(retryPolicy.getInitialIntervalInSeconds());
     long nextInterval =
         (long) (initInterval * Math.pow(retryPolicy.getBackoffCoefficient(), getAttempt()));
-    long maxInterval = retryPolicy.getMaximumIntervalInSeconds() * MILLISECONDS_IN_SECOND;
+    long maxInterval = TimeUnit.SECONDS.toMillis(retryPolicy.getMaximumIntervalInSeconds());
     if (nextInterval <= 0) {
       // math.Pow() could overflow
       if (maxInterval > 0) {
@@ -92,12 +92,15 @@ final class RetryState {
     }
 
     // check if error is non-retriable
-    for (String err : retryPolicy.getNonRetriableErrorReasons()) {
-      if (errReason.equals(err)) {
-        return 0;
+    List<String> nonRetriableErrorReasons = retryPolicy.getNonRetriableErrorReasons();
+    if (nonRetriableErrorReasons != null) {
+      for (String err : nonRetriableErrorReasons) {
+        if (errReason.equals(err)) {
+          return 0;
+        }
       }
     }
-    return (int) (Math.ceil((double) backoffInterval) / MILLISECONDS_IN_SECOND);
+    return (int) TimeUnit.MILLISECONDS.toSeconds((long) Math.ceil((double) backoffInterval));
   }
 
   private static RetryPolicy validateRetryPolicy(RetryPolicy policy) throws BadRequestError {

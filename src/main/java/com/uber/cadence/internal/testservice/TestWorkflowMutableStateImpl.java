@@ -99,6 +99,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
@@ -117,7 +118,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   private static final Logger log = LoggerFactory.getLogger(TestWorkflowMutableStateImpl.class);
 
-  static final long MILLISECONDS_IN_SECOND = 1000;
   private final Lock lock = new ReentrantLock();
   private final SelfAdvancingTimer selfAdvancingTimer;
   private final LongSupplier clock;
@@ -1126,9 +1126,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             }
             if (timeoutType == TimeoutType.HEARTBEAT) {
               // Deal with timers which are never cancelled
-              if (clock.getAsLong() - activity.getData().lastHeartbeatTime
-                  < activity.getData().scheduledEvent.getHeartbeatTimeoutSeconds()
-                      * MILLISECONDS_IN_SECOND) {
+              long heartbeatTimeout =
+                  TimeUnit.SECONDS.toMillis(
+                      activity.getData().scheduledEvent.getHeartbeatTimeoutSeconds());
+              if (clock.getAsLong() - activity.getData().lastHeartbeatTime < heartbeatTimeout) {
                 return;
               }
             }
