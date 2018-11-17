@@ -56,7 +56,7 @@ public class ActivityOptionsTest {
     Assert.assertEquals(o, ActivityOptions.merge(a, null, o));
   }
 
-  @MethodRetry(initialIntervalSeconds = 3, expirationSeconds = 100)
+  @MethodRetry(initialIntervalSeconds = 3)
   @ActivityMethod
   public void defaultActivityAndRetryOptions() {}
 
@@ -149,10 +149,9 @@ public class ActivityOptionsTest {
                     .setInitialInterval(Duration.ofMinutes(12))
                     .build())
             .build();
-    ActivityMethod a =
-        ActivityOptionsTest.class
-            .getMethod("activityAndRetryOptions")
-            .getAnnotation(ActivityMethod.class);
-    Assert.assertEquals(o, ActivityOptions.merge(a, null, o));
+    Method method = ActivityOptionsTest.class.getMethod("activityAndRetryOptions");
+    ActivityMethod a = method.getAnnotation(ActivityMethod.class);
+    MethodRetry r = method.getAnnotation(MethodRetry.class);
+    Assert.assertEquals(o, ActivityOptions.merge(a, r, o));
   }
 }

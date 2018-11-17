@@ -749,10 +749,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, BadRequestError {
     WorkflowData data = workflow.getData();
     if (data.retryState.isPresent()) {
+      RetryState rs = data.retryState.get();
       int backoffIntervalSeconds =
-          data.retryState
-              .get()
-              .getBackoffIntervalInSeconds(d.getReason(), store.currentTimeMillis());
+          rs.getBackoffIntervalInSeconds(d.getReason(), store.currentTimeMillis());
       if (backoffIntervalSeconds > 0) {
         ContinueAsNewWorkflowExecutionDecisionAttributes continueAsNewAttr =
             new ContinueAsNewWorkflowExecutionDecisionAttributes()
@@ -768,13 +767,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         HistoryEvent event = ctx.getEvents().get(ctx.getEvents().size() - 1);
         WorkflowExecutionContinuedAsNewEventAttributes continuedAsNewEventAttributes =
             event.getWorkflowExecutionContinuedAsNewEventAttributes();
-        Optional<RetryState> continuedRetryState;
-        if (data.retryState.isPresent()) {
-          RetryState rs = data.retryState.get();
-          continuedRetryState = Optional.of(rs.getNextAttempt());
-        } else {
-          continuedRetryState = Optional.empty();
-        }
+
+        Optional<RetryState> continuedRetryState = Optional.of(rs.getNextAttempt());
         String runId =
             service.continueAsNew(
                 startRequest,
