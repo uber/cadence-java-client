@@ -125,7 +125,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 10 : 30);
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 20 : 30);
 
   @Rule
   public TestWatcher watchman =
@@ -1226,7 +1226,7 @@ public class WorkflowTest {
     }
   }
 
-  @Test(timeout = 20000)
+  @Test
   public void testChildAsyncWorkflow() {
     startWorkerFor(TestChildAsyncWorkflow.class, TestMultiargsWorkflowsImpl.class);
 
