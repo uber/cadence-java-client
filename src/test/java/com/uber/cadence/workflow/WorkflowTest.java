@@ -1226,7 +1226,7 @@ public class WorkflowTest {
     }
   }
 
-  @Test
+  @Test(timeout = 20000)
   public void testChildAsyncWorkflow() {
     startWorkerFor(TestChildAsyncWorkflow.class, TestMultiargsWorkflowsImpl.class);
 
