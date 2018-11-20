@@ -17,13 +17,15 @@
 
 package com.uber.cadence.internal.sync;
 
+import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
+
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.OptionsUtils;
+import com.uber.cadence.internal.common.RetryParameters;
 import com.uber.cadence.internal.replay.ActivityTaskFailedException;
 import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
 import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
@@ -51,7 +53,9 @@ import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.m3.tally.Scope;
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -244,7 +248,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       byte[] input,
       CompletablePromise<WorkflowExecution> executionResult) {
     RetryOptions retryOptions = options.getRetryOptions();
-    if (retryOptions != null) {
+    if (retryOptions != null && !context.isChildWorkflowExecutionStartedWithRetryOptions()) {
       return WorkflowRetryerInternal.retryAsync(
           retryOptions, () -> executeChildWorkflowOnce(name, options, input, executionResult));
     }
@@ -257,6 +261,29 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       ChildWorkflowOptions options,
       byte[] input,
       CompletablePromise<WorkflowExecution> executionResult) {
+    RetryParameters retryParameters = null;
+    RetryOptions retryOptions = options.getRetryOptions();
+    if (retryOptions != null) {
+      retryParameters = new RetryParameters();
+      retryParameters.setBackoffCoefficient(retryOptions.getBackoffCoefficient());
+      retryParameters.setExpirationIntervalInSeconds(
+          (int) roundUpToSeconds(retryOptions.getExpiration()).getSeconds());
+      retryParameters.setMaximumAttempts(retryOptions.getMaximumAttempts());
+      retryParameters.setInitialIntervalInSeconds(
+          (int) roundUpToSeconds(retryOptions.getInitialInterval()).getSeconds());
+      retryParameters.setMaximumIntervalInSeconds(
+          (int) roundUpToSeconds(retryOptions.getMaximumInterval()).getSeconds());
+      // Use exception type name as the reason
+      List<String> reasons = new ArrayList<>();
+      // Use exception type name as the reason
+      List<Class<? extends Throwable>> doNotRetry = retryOptions.getDoNotRetry();
+      if (doNotRetry != null) {
+        for (Class<? extends Throwable> r : doNotRetry) {
+          reasons.add(r.getName());
+        }
+        retryParameters.setNonRetriableErrorReasons(reasons);
+      }
+    }
     StartChildWorkflowExecutionParameters parameters =
         new StartChildWorkflowExecutionParameters.Builder()
             .setWorkflowType(new WorkflowType().setName(name))
@@ -269,6 +296,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
             .setTaskList(options.getTaskList())
             .setTaskStartToCloseTimeoutSeconds(options.getTaskStartToCloseTimeout().getSeconds())
             .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+            .setRetryParameters(retryParameters)
             .build();
     CompletablePromise<byte[]> result = Workflow.newPromise();
     Consumer<Exception> cancellationCallback =
@@ -334,7 +362,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public Promise<Void> newTimer(Duration delay) {
     Objects.requireNonNull(delay);
-    long delaySeconds = OptionsUtils.roundUpToSeconds(delay).getSeconds();
+    long delaySeconds = roundUpToSeconds(delay).getSeconds();
     if (delaySeconds < 0) {
       throw new IllegalArgumentException("negative delay");
     }

@@ -44,6 +44,7 @@ import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
+import com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TimerCanceledEventAttributes;
@@ -195,6 +196,24 @@ class DecisionsHelper {
     DecisionId decisionId = new DecisionId(DecisionTarget.CHILD_WORKFLOW, nextDecisionEventId);
     addDecision(decisionId, new ChildWorkflowDecisionStateMachine(decisionId, childWorkflow));
     return nextDecisionEventId;
+  }
+
+  /**
+   * @return true if it is not replay or retryOptions are present in the
+   *     StartChildWorkflowExecutionInitiated event.
+   */
+  boolean isChildWorkflowExecutionStartedWithRetryOptions() {
+    Optional<HistoryEvent> optionalEvent = getOptionalDecisionEvent(nextDecisionEventId);
+    if (!optionalEvent.isPresent()) {
+      return true;
+    }
+    StartChildWorkflowExecutionInitiatedEventAttributes attr =
+        optionalEvent.get().getStartChildWorkflowExecutionInitiatedEventAttributes();
+    if (attr == null) {
+      throw new NonDeterminisicWorkflowError(
+          "Unknown " + nextDecisionEventId + ". " + NON_DETERMINISTIC_MESSAGE);
+    }
+    return attr.getRetryPolicy() != null;
   }
 
   void handleStartChildWorkflowExecutionInitiated(HistoryEvent event) {

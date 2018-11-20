@@ -59,6 +59,7 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.RetryPolicy;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
@@ -525,7 +526,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   // TODO
-  private void validateStartChildWorkflow(StartChildWorkflowExecutionDecisionAttributes a) {}
+  private void validateStartChildWorkflow(StartChildWorkflowExecutionDecisionAttributes a)
+      throws BadRequestError {
+    RetryPolicy retryPolicy = a.getRetryPolicy();
+    if (retryPolicy != null) {
+      RetryState.validateRetryPolicy(retryPolicy);
+    }
+  }
 
   private void processSignalExternalWorkflowExecution(
       RequestContext ctx,
@@ -599,7 +606,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     try {
       completeDecisionUpdate(
           ctx -> {
-            if (decision == null || decision.getData().scheduledEventId != scheduledEventId) {
+            if (decision == null
+                || decision.getData().scheduledEventId != scheduledEventId
+                || decision.getState() == State.COMPLETED) {
               // timeout for a previous decision
               return;
             }
