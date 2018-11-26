@@ -19,6 +19,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
@@ -105,31 +106,25 @@ public final class WorkflowWorker
     GetWorkflowExecutionHistoryResponse historyResponse =
         WorkflowExecutionUtils.getHistoryPage(null, service, domain, exec);
     History history = historyResponse.getHistory();
-    WorkflowExecutionUtils.SerializedHistory serializedHistory =
-        new WorkflowExecutionUtils.SerializedHistory(
-            exec.getWorkflowId(), exec.getRunId(), history.getEvents());
+    WorkflowExecutionHistory workflowExecutionHistory =
+        new WorkflowExecutionHistory(exec.getWorkflowId(), exec.getRunId(), history.getEvents());
     return queryWorkflowExecution(
-        queryType, args, serializedHistory, historyResponse.getNextPageToken());
+        queryType, args, workflowExecutionHistory, historyResponse.getNextPageToken());
   }
 
   public byte[] queryWorkflowExecution(String jsonSerializedHistory, String queryType, byte[] args)
       throws Exception {
-    WorkflowExecutionUtils.SerializedHistory history =
-        WorkflowExecutionUtils.deserializeHistory(jsonSerializedHistory);
+    WorkflowExecutionHistory history = WorkflowExecutionHistory.fromJson(jsonSerializedHistory);
     return queryWorkflowExecution(queryType, args, history, null);
   }
 
   public byte[] queryWorkflowExecution(
-      WorkflowExecutionUtils.SerializedHistory history, String queryType, byte[] args)
-      throws Exception {
+      WorkflowExecutionHistory history, String queryType, byte[] args) throws Exception {
     return queryWorkflowExecution(queryType, args, history, null);
   }
 
   private byte[] queryWorkflowExecution(
-      String queryType,
-      byte[] args,
-      WorkflowExecutionUtils.SerializedHistory history,
-      byte[] nextPageToken)
+      String queryType, byte[] args, WorkflowExecutionHistory history, byte[] nextPageToken)
       throws Exception {
     List<HistoryEvent> events = history.getEvents();
     HistoryEvent startedEvent = events.get(0);

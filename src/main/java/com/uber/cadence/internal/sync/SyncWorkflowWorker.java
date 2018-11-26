@@ -19,8 +19,8 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
@@ -129,7 +129,7 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
   }
 
   public <R> R queryWorkflowExecution(
-      WorkflowExecutionUtils.SerializedHistory history,
+      WorkflowExecutionHistory history,
       String queryType,
       Class<R> resultClass,
       Type resultType,

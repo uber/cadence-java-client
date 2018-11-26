@@ -23,8 +23,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.replay.DeciderCache;
@@ -284,8 +284,7 @@ public final class Worker {
    * @param history workflow execution history to replay
    * @throws Exception if replay failed for any reason
    */
-  public void replayWorkflowExecution(WorkflowExecutionUtils.SerializedHistory history)
-      throws Exception {
+  public void replayWorkflowExecution(WorkflowExecutionHistory history) throws Exception {
     workflowWorker.queryWorkflowExecution(
         history, WorkflowClient.QUERY_TYPE_STACK_TRCE, String.class, String.class, new Object[] {});
   }
@@ -300,8 +299,7 @@ public final class Worker {
    * @throws Exception if replay failed for any reason
    */
   public void replayWorkflowExecution(String jsonSerializedHistory) throws Exception {
-    WorkflowExecutionUtils.SerializedHistory history =
-        WorkflowExecutionUtils.deserializeHistory(jsonSerializedHistory);
+    WorkflowExecutionHistory history = WorkflowExecutionHistory.fromJson(jsonSerializedHistory);
     replayWorkflowExecution(history);
   }
 

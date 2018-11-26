@@ -20,6 +20,7 @@ package com.uber.cadence.testing;
 import com.google.common.collect.ObjectArrays;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.worker.Worker;
 import java.io.File;
@@ -29,30 +30,25 @@ public final class WorkflowReplayer {
   public static void replayWorkflowExecutionFromResource(
       String resourceName, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
-    WorkflowExecutionUtils.SerializedHistory history =
-        WorkflowExecutionUtils.readHistoryFromResource(resourceName);
+    WorkflowExecutionHistory history = WorkflowExecutionUtils.readHistoryFromResource(resourceName);
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
   public static void replayWorkflowExecution(
       File historyFile, Class<?> workflowClass, Class<?>... moreWorkflowClasses) throws Exception {
-    WorkflowExecutionUtils.SerializedHistory history =
-        WorkflowExecutionUtils.readHistory(historyFile);
+    WorkflowExecutionHistory history = WorkflowExecutionUtils.readHistory(historyFile);
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
   public static void replayWorkflowExecution(
       String jsonSerializedHistory, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
-    WorkflowExecutionUtils.SerializedHistory history =
-        WorkflowExecutionUtils.deserializeHistory(jsonSerializedHistory);
+    WorkflowExecutionHistory history = WorkflowExecutionHistory.fromJson(jsonSerializedHistory);
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
   public static void replayWorkflowExecution(
-      WorkflowExecutionUtils.SerializedHistory history,
-      Class<?> workflowClass,
-      Class<?>... moreWorkflowClasses)
+      WorkflowExecutionHistory history, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
     WorkflowExecutionStartedEventAttributes attr =
         history.getEvents().get(0).getWorkflowExecutionStartedEventAttributes();
