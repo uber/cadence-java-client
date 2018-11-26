@@ -659,12 +659,12 @@ public class WorkflowTest {
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     WorkflowExecution execution = workflowStub.start(taskList);
     sleep(Duration.ofMillis(500));
-    String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRCE, String.class);
+    String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
     assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
     assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
     // Test stub created from workflow execution.
     workflowStub = workflowClient.newUntypedWorkflowStub(execution, workflowStub.getWorkflowType());
-    stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRCE, String.class);
+    stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
     assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
     assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
     String result = workflowStub.getResult(String.class);
@@ -2349,6 +2349,9 @@ public class WorkflowTest {
    */
   @Test
   public void testChildWorkflowRetryReplay() throws Exception {
+    if (!testName.getMethodName().equals("testChildWorkflowRetryReplay[Docker Sticky OFF]")) {
+      return;
+    }
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testChildWorkflowRetryHistory.json", TestChildWorkflowRetryWorkflow.class);
   }

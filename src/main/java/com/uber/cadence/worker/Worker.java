@@ -286,7 +286,11 @@ public final class Worker {
    */
   public void replayWorkflowExecution(WorkflowExecutionHistory history) throws Exception {
     workflowWorker.queryWorkflowExecution(
-        history, WorkflowClient.QUERY_TYPE_STACK_TRCE, String.class, String.class, new Object[] {});
+        history,
+        WorkflowClient.QUERY_TYPE_REPLAY_ONLY,
+        String.class,
+        String.class,
+        new Object[] {});
   }
 
   /**

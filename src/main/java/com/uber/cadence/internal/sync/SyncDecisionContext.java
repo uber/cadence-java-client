@@ -430,7 +430,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       throw new IllegalArgumentException(
           "No value found for mutableSideEffectId="
               + id
-              + ", during replay it usually indicatesa  different workflow runId than the original one");
+              + ", during replay it usually indicates a different workflow runId than the original one");
     }
     byte[] binaryResult = optionalBytes.get();
     // An optimization that avoids unnecessary deserialization of the result.

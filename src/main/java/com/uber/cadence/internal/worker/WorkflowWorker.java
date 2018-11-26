@@ -130,11 +130,9 @@ public final class WorkflowWorker
     HistoryEvent startedEvent = events.get(0);
     WorkflowExecutionStartedEventAttributes started =
         startedEvent.getWorkflowExecutionStartedEventAttributes();
-    WorkflowExecution execution =
-        new WorkflowExecution().setRunId("runId").setWorkflowId("workflowId");
     PollForDecisionTaskResponse task;
     task = new PollForDecisionTaskResponse();
-    task.setWorkflowExecution(execution);
+    task.setWorkflowExecution(history.getWorkflowExecution());
     task.setStartedEventId(Long.MAX_VALUE);
     task.setPreviousStartedEventId(Long.MAX_VALUE);
     task.setNextPageToken(nextPageToken);
@@ -154,7 +152,7 @@ public final class WorkflowWorker
       if (r.getErrorMessage() != null) {
         throw new RuntimeException(
             "query failure for "
-                + execution
+                + history.getWorkflowExecution()
                 + ", queryType="
                 + queryType
                 + ", args="
