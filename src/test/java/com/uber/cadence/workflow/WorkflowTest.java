@@ -48,6 +48,7 @@ import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
+import com.uber.cadence.testing.WorkflowReplayer;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
 import com.uber.cadence.workflow.Functions.Func;
@@ -97,7 +98,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -1917,10 +1918,6 @@ public class WorkflowTest {
             QueryableWorkflow.class, execution.getWorkflowId(), Optional.of(execution.getRunId()));
     assertEquals("Hello ", client2.getState());
 
-    String queryResult = null;
-    queryResult =
-        queryWorker.queryWorkflowExecution(execution, "QueryableWorkflow::getState", String.class);
-    assertEquals("Hello ", queryResult);
     sleep(Duration.ofMillis(500));
     client2.mySignal("World!");
     sleep(Duration.ofMillis(500));
@@ -2344,6 +2341,16 @@ public class WorkflowTest {
     }
     assertEquals("TestWorkflow1::execute", capturedWorkflowType.get());
     assertEquals(3, angryChildActivity.getInvocationCount());
+  }
+
+  /**
+   * Tests that history that was created before server side retry was supported is backwards
+   * compatible with the client that supports the server side retry.
+   */
+  @Test
+  public void testChildWorkflowRetryReplay() throws Exception {
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "testChildWorkflowRetryHistory.json", TestChildWorkflowRetryWorkflow.class);
   }
 
   public static class TestSignalExternalWorkflow implements TestWorkflowSignaled {

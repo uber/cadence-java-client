@@ -248,9 +248,18 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       byte[] input,
       CompletablePromise<WorkflowExecution> executionResult) {
     RetryOptions retryOptions = options.getRetryOptions();
-    if (retryOptions != null && !context.isChildWorkflowExecutionStartedWithRetryOptions()) {
+    if (retryOptions != null /* && !context.isChildWorkflowExecutionStartedWithRetryOptions()*/) {
+      ChildWorkflowOptions o1 =
+          new ChildWorkflowOptions.Builder()
+              .setTaskList(options.getTaskList())
+              .setExecutionStartToCloseTimeout(options.getExecutionStartToCloseTimeout())
+              .setTaskStartToCloseTimeout(options.getTaskStartToCloseTimeout())
+              .setWorkflowId(options.getWorkflowId())
+              .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+              .setChildPolicy(options.getChildPolicy())
+              .build();
       return WorkflowRetryerInternal.retryAsync(
-          retryOptions, () -> executeChildWorkflowOnce(name, options, input, executionResult));
+          retryOptions, () -> executeChildWorkflowOnce(name, o1, input, executionResult));
     }
     return executeChildWorkflowOnce(name, options, input, executionResult);
   }
@@ -399,26 +408,31 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public <R> R mutableSideEffect(
       String id, Class<R> resultClass, Type resultType, BiPredicate<R, R> updated, Func<R> func) {
     AtomicReference<R> unserializedResult = new AtomicReference<>();
-    // As lambda below never returns Optional.empty() if there is no stored value
+    // As lambda below never returns Optional.empty() if there is a stored value
     // it is safe to call get on mutableSideEffect result.
-    byte[] binaryResult =
-        context
-            .mutableSideEffect(
-                id,
-                converter,
-                (storedBinary) -> {
-                  Optional<R> stored =
-                      storedBinary.map((b) -> converter.fromData(b, resultClass, resultType));
-                  R funcResult =
-                      Objects.requireNonNull(
-                          func.apply(), "mutableSideEffect function " + "returned null");
-                  if (!stored.isPresent() || updated.test(stored.get(), funcResult)) {
-                    unserializedResult.set(funcResult);
-                    return Optional.of(converter.toData(funcResult));
-                  }
-                  return Optional.empty(); // returned only when value doesn't need to be updated
-                })
-            .get();
+    Optional<byte[]> optionalBytes =
+        context.mutableSideEffect(
+            id,
+            converter,
+            (storedBinary) -> {
+              Optional<R> stored =
+                  storedBinary.map((b) -> converter.fromData(b, resultClass, resultType));
+              R funcResult =
+                  Objects.requireNonNull(
+                      func.apply(), "mutableSideEffect function " + "returned null");
+              if (!stored.isPresent() || updated.test(stored.get(), funcResult)) {
+                unserializedResult.set(funcResult);
+                return Optional.of(converter.toData(funcResult));
+              }
+              return Optional.empty(); // returned only when value doesn't need to be updated
+            });
+    if (!optionalBytes.isPresent()) {
+      throw new IllegalArgumentException(
+          "No value found for mutableSideEffectId="
+              + id
+              + ", during replay it usually indicatesa  different workflow runId than the original one");
+    }
+    byte[] binaryResult = optionalBytes.get();
     // An optimization that avoids unnecessary deserialization of the result.
     R unserialized = unserializedResult.get();
     if (unserialized != null) {

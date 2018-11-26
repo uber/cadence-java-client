@@ -17,12 +17,20 @@
 
 package com.uber.cadence.internal.common;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import com.google.common.io.CharStreams;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.Decision;
@@ -50,11 +58,17 @@ import com.uber.cadence.client.WorkflowTerminatedException;
 import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Type;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
@@ -141,7 +155,7 @@ public class WorkflowExecutionUtils {
         return closeEvent.getWorkflowExecutionCompletedEventAttributes().getResult();
       case WorkflowExecutionCanceled:
         byte[] details = closeEvent.getWorkflowExecutionCanceledEventAttributes().getDetails();
-        String message = details != null ? new String(details, StandardCharsets.UTF_8) : null;
+        String message = details != null ? new String(details, UTF_8) : null;
         throw new CancellationException(message);
       case WorkflowExecutionFailed:
         WorkflowExecutionFailedEventAttributes failed =
@@ -754,7 +768,7 @@ public class WorkflowExecutionUtils {
       return (String) object;
     }
     if (clz.equals(byte[].class)) {
-      return new String((byte[]) object, StandardCharsets.UTF_8);
+      return new String((byte[]) object, UTF_8);
     }
 
     if (clz.equals(Date.class)) {
@@ -833,7 +847,7 @@ public class WorkflowExecutionUtils {
         result.append(" = ");
         // Pretty print JSON serialized exceptions.
         if (name.equals("getDetails") && value instanceof byte[]) {
-          String details = new String((byte[]) value, StandardCharsets.UTF_8);
+          String details = new String((byte[]) value, UTF_8);
           details = prettyPrintJson(details, INDENTATION + INDENTATION);
           // GSON pretty prints, but doesn't let to set an initial indentation.
           // Thus indenting the pretty printed JSON through regexp :(.
@@ -960,5 +974,82 @@ public class WorkflowExecutionUtils {
         return EventType.SignalExternalWorkflowExecutionInitiated;
     }
     throw new IllegalArgumentException("Unknown decisionType");
+  }
+
+  private static final class ByteBufferTypeAdapter
+      implements JsonDeserializer<ByteBuffer>, JsonSerializer<ByteBuffer> {
+
+    @Override
+    public JsonElement serialize(ByteBuffer value, Type type, JsonSerializationContext ctx) {
+      if (value.arrayOffset() > 0) {
+        throw new IllegalArgumentException("non zero value array offset: " + value.arrayOffset());
+      }
+      return new JsonPrimitive(Base64.getEncoder().encodeToString(value.array()));
+    }
+
+    @Override
+    public ByteBuffer deserialize(JsonElement e, Type type, JsonDeserializationContext ctx)
+        throws JsonParseException {
+      return ByteBuffer.wrap(Base64.getDecoder().decode(e.getAsString()));
+    }
+  }
+
+  public static SerializedHistory readHistoryFromResource(String resourceFileName)
+      throws IOException {
+    ClassLoader classLoader = WorkflowExecutionUtils.class.getClassLoader();
+    String historyUrl = classLoader.getResource(resourceFileName).getFile();
+    File historyFile = new File(historyUrl);
+    return readHistory(historyFile);
+  }
+
+  public static SerializedHistory readHistory(File historyFile) throws IOException {
+    try (Reader reader = Files.newBufferedReader(historyFile.toPath(), UTF_8)) {
+      String jsonHistory = CharStreams.toString(reader);
+      return deserializeHistory(jsonHistory);
+    }
+  }
+
+  public static final class SerializedHistory {
+    private final String workflowId;
+    private final String runId;
+    private final List<HistoryEvent> history;
+
+    public SerializedHistory(String workflowId, String runId, List<HistoryEvent> history) {
+      this.workflowId = workflowId;
+      this.runId = runId;
+      this.history = history;
+    }
+
+    public String getWorkflowId() {
+      return workflowId;
+    }
+
+    public String getRunId() {
+      return runId;
+    }
+
+    public List<HistoryEvent> getEvents() {
+      return history;
+    }
+  }
+
+  public static SerializedHistory deserializeHistory(String jsonSerializedHistory) {
+    GsonBuilder gsonBuilder = new GsonBuilder();
+    gsonBuilder.registerTypeAdapter(ByteBuffer.class, new ByteBufferTypeAdapter());
+    Gson gson = gsonBuilder.create();
+    SerializedHistory result = gson.fromJson(jsonSerializedHistory, SerializedHistory.class);
+    List<HistoryEvent> events = result.getEvents();
+    if (events == null || events.size() == 0) {
+      throw new IllegalArgumentException("Empty history");
+    }
+    HistoryEvent startedEvent = events.get(0);
+    if (startedEvent.getEventType() != EventType.WorkflowExecutionStarted) {
+      throw new IllegalArgumentException(
+          "First event is not WorkflowExecutionStarted but " + startedEvent);
+    }
+    if (startedEvent.getWorkflowExecutionStartedEventAttributes() == null) {
+      throw new IllegalArgumentException("First event is corrupted");
+    }
+    return result;
   }
 }

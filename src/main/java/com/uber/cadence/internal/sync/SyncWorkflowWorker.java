@@ -20,6 +20,7 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
@@ -124,6 +125,19 @@ public class SyncWorkflowWorker implements Consumer<PollForDecisionTaskResponse>
     DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = worker.queryWorkflowExecution(execution, queryType, serializedArgs);
+    return dataConverter.fromData(result, resultClass, resultType);
+  }
+
+  public <R> R queryWorkflowExecution(
+      WorkflowExecutionUtils.SerializedHistory history,
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      Object[] args)
+      throws Exception {
+    DataConverter dataConverter = options.getDataConverter();
+    byte[] serializedArgs = dataConverter.toData(args);
+    byte[] result = worker.queryWorkflowExecution(history, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
   }
 
