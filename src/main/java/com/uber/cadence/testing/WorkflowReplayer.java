@@ -25,8 +25,17 @@ import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.worker.Worker;
 import java.io.File;
 
+/** Replays a workflow given its history. Useful for backwards compatibility testing. */
 public final class WorkflowReplayer {
 
+  /**
+   * Replays workflow from a resource that contains a json serialized history.
+   *
+   * @param resourceName name of the resource
+   * @param workflowClass workflow implementation class to replay
+   * @param moreWorkflowClasses optional additional workflow implementation classes
+   * @throws Exception if replay failed for any reason.
+   */
   public static void replayWorkflowExecutionFromResource(
       String resourceName, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
@@ -34,12 +43,40 @@ public final class WorkflowReplayer {
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
+  /**
+   * Replays workflow from a file
+   *
+   * @param historyFile file that contains a json serialized history.
+   * @param workflowClass s workflow implementation class to replay
+   * @param moreWorkflowClasses optional additional workflow implementation classes
+   * @throws Exception if replay failed for any reason.
+   */
   public static void replayWorkflowExecution(
       File historyFile, Class<?> workflowClass, Class<?>... moreWorkflowClasses) throws Exception {
     WorkflowExecutionHistory history = WorkflowExecutionUtils.readHistory(historyFile);
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
+  /**
+   * Replays workflow from a json serialized history. The json should be in the format:
+   *
+   * <pre>
+   * {
+   *   "workflowId": "...",
+   *   "runId": "...",
+   *   "events": [
+   *     ...
+   *   ]
+   * }
+   * </pre>
+   *
+   * RunId <b>must</b> match the one used to generate the serialized history.
+   *
+   * @param jsonSerializedHistory string that contains the json serialized history.
+   * @param workflowClass s workflow implementation class to replay
+   * @param moreWorkflowClasses optional additional workflow implementation classes
+   * @throws Exception if replay failed for any reason.
+   */
   public static void replayWorkflowExecution(
       String jsonSerializedHistory, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
@@ -47,6 +84,15 @@ public final class WorkflowReplayer {
     replayWorkflowExecution(history, workflowClass, moreWorkflowClasses);
   }
 
+  /**
+   * Replays workflow from a {@link WorkflowExecutionHistory}. RunId <b>must</b> match the one used
+   * to generate the serialized history.
+   *
+   * @param history object that contains the workflow ids and the events.
+   * @param workflowClass s workflow implementation class to replay
+   * @param moreWorkflowClasses optional additional workflow implementation classes
+   * @throws Exception if replay failed for any reason.
+   */
   public static void replayWorkflowExecution(
       WorkflowExecutionHistory history, Class<?> workflowClass, Class<?>... moreWorkflowClasses)
       throws Exception {
