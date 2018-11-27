@@ -248,7 +248,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       byte[] input,
       CompletablePromise<WorkflowExecution> executionResult) {
     RetryOptions retryOptions = options.getRetryOptions();
-    if (retryOptions != null && !context.isChildWorkflowExecutionStartedWithRetryOptions()) {
+    if (retryOptions != null && !context.isServerSideChildWorkflowRetry()) {
       ChildWorkflowOptions o1 =
           new ChildWorkflowOptions.Builder()
               .setTaskList(options.getTaskList())

@@ -168,7 +168,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
-  public boolean isChildWorkflowExecutionStartedWithRetryOptions() {
+  public boolean isServerSideChildWorkflowRetry() {
     return workflowClient.isChildWorkflowExecutionStartedWithRetryOptions();
   }
 

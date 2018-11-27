@@ -96,10 +96,11 @@ public interface DecisionContext extends ReplayAware {
       BiConsumer<byte[], Exception> callback);
 
   /**
-   * Used for backwards compatibility with the code that used local workflow retry when RetryOptions
-   * were specified.
+   * Is the next event in the history is child workflow initiated event and it has attached retry
+   * policy. Used for backwards compatibility with the code that used local workflow retry when
+   * RetryOptions were specified.
    */
-  boolean isChildWorkflowExecutionStartedWithRetryOptions();
+  boolean isServerSideChildWorkflowRetry();
 
   Consumer<Exception> signalWorkflowExecution(
       SignalExternalWorkflowParameters signalParameters, BiConsumer<Void, Exception> callback);

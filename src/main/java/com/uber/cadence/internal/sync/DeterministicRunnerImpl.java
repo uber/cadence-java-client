@@ -549,7 +549,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public boolean isChildWorkflowExecutionStartedWithRetryOptions() {
+    public boolean isServerSideChildWorkflowRetry() {
       throw new UnsupportedOperationException("not implemented");
     }
 
