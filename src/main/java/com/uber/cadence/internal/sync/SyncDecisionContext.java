@@ -248,6 +248,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       byte[] input,
       CompletablePromise<WorkflowExecution> executionResult) {
     RetryOptions retryOptions = options.getRetryOptions();
+    // This condition is for backwards compatibility with the code that
+    // used client side retry before the server side retry existed.
     if (retryOptions != null && !context.isServerSideChildWorkflowRetry()) {
       ChildWorkflowOptions o1 =
           new ChildWorkflowOptions.Builder()
