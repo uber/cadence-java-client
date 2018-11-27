@@ -207,11 +207,14 @@ class DecisionsHelper {
     if (!optionalEvent.isPresent()) {
       return true;
     }
+    HistoryEvent event = optionalEvent.get();
+    if (event.getEventType() != EventType.StartChildWorkflowExecutionInitiated) {
+      return false;
+    }
     StartChildWorkflowExecutionInitiatedEventAttributes attr =
-        optionalEvent.get().getStartChildWorkflowExecutionInitiatedEventAttributes();
+        event.getStartChildWorkflowExecutionInitiatedEventAttributes();
     if (attr == null) {
-      throw new NonDeterminisicWorkflowError(
-          "Unknown " + nextDecisionEventId + ". " + NON_DETERMINISTIC_MESSAGE);
+      throw new Error("Corrupted event: " + event);
     }
     return attr.getRetryPolicy() != null;
   }
