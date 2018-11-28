@@ -126,10 +126,6 @@ public final class WorkflowWorker
   private byte[] queryWorkflowExecution(
       String queryType, byte[] args, WorkflowExecutionHistory history, byte[] nextPageToken)
       throws Exception {
-    List<HistoryEvent> events = history.getEvents();
-    HistoryEvent startedEvent = events.get(0);
-    WorkflowExecutionStartedEventAttributes started =
-        startedEvent.getWorkflowExecutionStartedEventAttributes();
     PollForDecisionTaskResponse task;
     task = new PollForDecisionTaskResponse();
     task.setWorkflowExecution(history.getWorkflowExecution());
@@ -139,6 +135,10 @@ public final class WorkflowWorker
     WorkflowQuery query = new WorkflowQuery();
     query.setQueryType(queryType).setQueryArgs(args);
     task.setQuery(query);
+    List<HistoryEvent> events = history.getEvents();
+    HistoryEvent startedEvent = events.get(0);
+    WorkflowExecutionStartedEventAttributes started =
+        startedEvent.getWorkflowExecutionStartedEventAttributes();
     if (started == null) {
       throw new IllegalStateException(
           "First event of the history is not  WorkflowExecutionStarted: " + startedEvent);

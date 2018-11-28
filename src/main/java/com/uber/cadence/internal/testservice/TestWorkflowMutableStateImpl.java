@@ -518,16 +518,49 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       StartChildWorkflowExecutionDecisionAttributes a,
       long decisionTaskCompletedId)
       throws BadRequestError, InternalServiceError {
-    validateStartChildWorkflow(a);
+    validateStartChildExecutionAttributes(a);
     StateMachine<ChildWorkflowData> child = StateMachines.newChildWorkflowStateMachine(service);
     childWorkflows.put(ctx.getNextEventId(), child);
     child.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
     ctx.lockTimer();
   }
 
-  // TODO
-  private void validateStartChildWorkflow(StartChildWorkflowExecutionDecisionAttributes a)
-      throws BadRequestError {
+  /** Clone of the validateStartChildExecutionAttributes from historyEngine.go */
+  private void validateStartChildExecutionAttributes(
+      StartChildWorkflowExecutionDecisionAttributes a) throws BadRequestError {
+    if (a == null) {
+      throw new BadRequestError(
+          "StartChildWorkflowExecutionDecisionAttributes is not set on decision.");
+    }
+
+    if (a.getWorkflowId().isEmpty()) {
+      throw new BadRequestError("Required field WorkflowID is not set on decision.");
+    }
+
+    if (a.getWorkflowType() == null || a.getWorkflowType().getName().isEmpty()) {
+      throw new BadRequestError("Required field WorkflowType is not set on decision.");
+    }
+
+    if (a.getChildPolicy() == null) {
+      throw new BadRequestError("Required field ChildPolicy is not set on decision.");
+    }
+
+    // Inherit tasklist from parent workflow execution if not provided on decision
+    if (a.getTaskList() == null || a.getTaskList().getName().isEmpty()) {
+      a.setTaskList(startRequest.getTaskList());
+    }
+
+    // Inherit workflow timeout from parent workflow execution if not provided on decision
+    if (a.getExecutionStartToCloseTimeoutSeconds() <= 0) {
+      a.setExecutionStartToCloseTimeoutSeconds(
+          startRequest.getExecutionStartToCloseTimeoutSeconds());
+    }
+
+    // Inherit decision task timeout from parent workflow execution if not provided on decision
+    if (a.getTaskStartToCloseTimeoutSeconds() <= 0) {
+      a.setTaskStartToCloseTimeoutSeconds(startRequest.getTaskStartToCloseTimeoutSeconds());
+    }
+
     RetryPolicy retryPolicy = a.getRetryPolicy();
     if (retryPolicy != null) {
       RetryState.validateRetryPolicy(retryPolicy);
