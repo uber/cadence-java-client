@@ -126,7 +126,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 5 : 30);
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : skipDockerService ? 15 : 30);
 
   @Rule
   public TestWatcher watchman =
