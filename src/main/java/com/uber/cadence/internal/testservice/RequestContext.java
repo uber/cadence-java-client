@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.BadRequestError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.InternalServiceError;
@@ -34,7 +35,7 @@ final class RequestContext {
   @FunctionalInterface
   interface CommitCallback {
 
-    void apply(int historySize) throws InternalServiceError;
+    void apply(int historySize) throws InternalServiceError, BadRequestError;
   }
 
   static final class Timer {
@@ -205,12 +206,13 @@ final class RequestContext {
   }
 
   /** @return nextEventId */
-  long commitChanges(TestWorkflowStore store) throws InternalServiceError, EntityNotExistsError {
+  long commitChanges(TestWorkflowStore store)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
     return store.save(this);
   }
 
   /** Called by {@link TestWorkflowStore#save(RequestContext)} */
-  void fireCallbacks(int historySize) throws InternalServiceError {
+  void fireCallbacks(int historySize) throws InternalServiceError, BadRequestError {
     for (CommitCallback callback : commitCallbacks) {
       callback.apply(historySize);
     }

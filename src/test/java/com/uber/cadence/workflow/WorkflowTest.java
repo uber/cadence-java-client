@@ -381,6 +381,7 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -470,6 +471,7 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -541,6 +543,7 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -583,6 +586,7 @@ public class WorkflowTest {
       if (Workflow.isReplaying()) {
         options.setRetryOptions(
             new RetryOptions.Builder()
+                .setExpiration(Duration.ofSeconds(100))
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setDoNotRetry(NullPointerException.class)
@@ -591,6 +595,7 @@ public class WorkflowTest {
       } else {
         options.setRetryOptions(
             new RetryOptions.Builder()
+                .setExpiration(Duration.ofSeconds(10))
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)

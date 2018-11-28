@@ -468,7 +468,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     if (activity != null) {
       throw new BadRequestError("Already open activity with " + activityId);
     }
-    activity = StateMachines.newActivityStateMachine();
+    activity = StateMachines.newActivityStateMachine(store);
     activities.put(activityId, activity);
     activity.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
     ctx.addTimer(

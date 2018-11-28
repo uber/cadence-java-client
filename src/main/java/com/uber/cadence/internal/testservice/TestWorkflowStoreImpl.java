@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.testservice;
 
+import com.uber.cadence.BadRequestError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
@@ -168,7 +169,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   }
 
   @Override
-  public long save(RequestContext ctx) throws InternalServiceError, EntityNotExistsError {
+  public long save(RequestContext ctx)
+      throws InternalServiceError, EntityNotExistsError, BadRequestError {
     long result;
     lock.lock();
     boolean historiesEmpty = histories.isEmpty();
