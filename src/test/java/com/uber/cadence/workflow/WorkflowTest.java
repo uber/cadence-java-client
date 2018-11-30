@@ -570,7 +570,6 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
-
   /**
    * Tests that history that was created before server side retry was supported is backwards
    * compatible with the client that supports the server side retry.
@@ -582,9 +581,9 @@ public class WorkflowTest {
       return;
     }
     WorkflowReplayer.replayWorkflowExecutionFromResource(
-            "testAsyncActivityRetryHistory.json", TestAsyncActivityRetry.class);
+        "testAsyncActivityRetryHistory.json", TestAsyncActivityRetry.class);
   }
-  
+
   public static class TestAsyncActivityRetryOptionsChange implements TestWorkflow1 {
 
     private TestActivities activities;

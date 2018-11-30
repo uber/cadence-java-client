@@ -29,6 +29,7 @@ import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -96,6 +97,21 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
       if (lastException != null) {
         throw lastException;
       }
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  @Override
+  public <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
+    lock.lock();
+    try {
+      if (lastDetails != null) {
+        @SuppressWarnings("unchecked")
+        V ld = (V) this.lastDetails;
+        return ld;
+      }
+      return dataConverter.fromData(task.getHeartbeatDetails(), detailsClass, detailsType);
     } finally {
       lock.unlock();
     }
@@ -193,5 +209,10 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   @Override
   public String getDomain() {
     return domain;
+  }
+
+  @Override
+  public DataConverter getDataConverter() {
+    return dataConverter;
   }
 }

@@ -19,7 +19,9 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCompletionException;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.lang.reflect.Type;
 import java.util.concurrent.CancellationException;
 
 /**
@@ -52,6 +54,8 @@ public interface ActivityExecutionContext {
    */
   void recordActivityHeartbeat(Object details) throws ActivityCompletionException;
 
+  <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType);
+
   /**
    * If this method is called during an activity execution then activity is not going to complete
    * when its method returns. It is expected to be completed asynchronously using {@link
@@ -68,4 +72,6 @@ public interface ActivityExecutionContext {
   IWorkflowService getService();
 
   String getDomain();
+
+  DataConverter getDataConverter();
 }

@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.lang.reflect.Type;
 
 public final class ActivityInternal {
 
@@ -46,5 +47,9 @@ public final class ActivityInternal {
 
   public static void doNotCompleteOnReturn() {
     getContext().doNotCompleteOnReturn();
+  }
+
+  public static <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
+    return getContext().getHeartbeatDetails(detailsClass, detailsType);
   }
 }
