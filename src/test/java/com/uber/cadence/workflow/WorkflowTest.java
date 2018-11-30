@@ -570,6 +570,21 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
+
+  /**
+   * Tests that history that was created before server side retry was supported is backwards
+   * compatible with the client that supports the server side retry.
+   */
+  @Test
+  public void testAsyncActivityRetryReplay() throws Exception {
+    // Avoid executing 4 times
+    if (!testName.getMethodName().equals("testAsyncActivityRetryReplay[Docker Sticky OFF]")) {
+      return;
+    }
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+            "testAsyncActivityRetryHistory.json", TestAsyncActivityRetry.class);
+  }
+  
   public static class TestAsyncActivityRetryOptionsChange implements TestWorkflow1 {
 
     private TestActivities activities;
