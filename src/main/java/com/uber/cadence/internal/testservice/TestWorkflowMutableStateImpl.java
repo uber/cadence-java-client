@@ -1077,9 +1077,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
-          activities.remove(activityId);
-          ctx.unlockTimer();
-          scheduleDecision(ctx);
+          if (isTerminalState(activity.getState())) {
+            activities.remove(activityId);
+            ctx.unlockTimer();
+            scheduleDecision(ctx);
+          } else {
+            //            throw new Error("not implemented yet");
+          }
         });
   }
 
@@ -1090,9 +1094,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         ctx -> {
           StateMachine<?> activity = getActivity(activityId);
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
-          activities.remove(activityId);
-          scheduleDecision(ctx);
-          ctx.unlockTimer();
+          if (isTerminalState(activity.getState())) {
+            activities.remove(activityId);
+            scheduleDecision(ctx);
+            ctx.unlockTimer();
+          } else {
+            //            throw new Error("not implemented yet");
+          }
         });
   }
 
