@@ -95,6 +95,7 @@ public class WorkflowExecutionUtils {
           .setBackoffCoefficient(2)
           .setInitialInterval(Duration.ofMillis(500))
           .setMaximumInterval(Duration.ofSeconds(30))
+          .setMaximumAttempts(Integer.MAX_VALUE)
           .setDoNotRetry(BadRequestError.class, EntityNotExistsError.class)
           .build();
 

@@ -783,6 +783,9 @@ class StateMachines {
         new ActivityTaskStartedEventAttributes()
             .setIdentity(request.getIdentity())
             .setScheduledEventId(data.scheduledEventId);
+    if (data.retryState != null) {
+      a.setAttempt(data.retryState.getAttempt());
+    }
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.ActivityTaskStarted)
@@ -986,12 +989,12 @@ class StateMachines {
         ctx.onCommit(
             (historySize) -> {
               data.retryState = nextAttempt;
-              data.activityTask.getTask().setAttempt(data.retryState.getAttempt());
+              data.activityTask.getTask().setAttempt(nextAttempt.getAttempt());
             });
         return true;
+      } else {
+        data.startedEventId = ctx.addEvent(data.startedEvent);
       }
-    } else {
-      ctx.addEvent(data.startedEvent);
     }
     return false;
   }

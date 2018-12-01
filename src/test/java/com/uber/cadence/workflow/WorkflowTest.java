@@ -315,6 +315,14 @@ public class WorkflowTest {
     }
   }
 
+  long currentTimeMillis() {
+    if (useExternalService) {
+      return System.currentTimeMillis();
+    } else {
+      return testEnvironment.currentTimeMillis();
+    }
+  }
+
   public interface TestWorkflow1 {
 
     @WorkflowMethod
@@ -371,6 +379,7 @@ public class WorkflowTest {
   public static class TestActivityRetry implements TestWorkflow1 {
 
     @Override
+    @SuppressWarnings("Finally")
     public String execute(String taskList) {
       ActivityOptions options =
           new ActivityOptions.Builder()
@@ -385,10 +394,18 @@ public class WorkflowTest {
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
+                      .setDoNotRetry(AssertionError.class)
                       .build())
               .build();
       TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
-      activities.heartbeatAndThrowIO();
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.heartbeatAndThrowIO();
+      } finally {
+        if (Workflow.currentTimeMillis() - start < 2000) {
+          throw new RuntimeException("Activity retried without delay");
+        }
+      }
       return "ignored";
     }
   }
@@ -406,6 +423,7 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    //    fail("boo");
   }
 
   public static class TestActivityRetryOptionsChange implements TestWorkflow1 {
@@ -2613,9 +2631,9 @@ public class WorkflowTest {
             .build();
 
     TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, o);
-    long start = System.currentTimeMillis();
+    long start = currentTimeMillis();
     String result = workflowStub.execute(taskList);
-    long elapsed = System.currentTimeMillis() - start;
+    long elapsed = currentTimeMillis() - start;
     assertTrue("spinned on fail decision", elapsed > 1000);
     assertEquals("result1", result);
   }
@@ -2691,11 +2709,14 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(
             TestWorkflowRetry.class,
             newWorkflowOptionsBuilder(taskList).setRetryOptions(workflowRetryOptions).build());
+    long start = currentTimeMillis();
     try {
       workflowStub.execute(testName.getMethodName());
       fail("unreachable");
     } catch (WorkflowException e) {
-      assertEquals("simulated 3", e.getCause().getMessage());
+      assertEquals(e.toString(), "simulated 3", e.getCause().getMessage());
+    } finally {
+      assertTrue(currentTimeMillis() - start > 2000); // Ensure that retry delays the restart
     }
   }
 
