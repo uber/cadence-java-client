@@ -183,6 +183,7 @@ class StateMachines {
     byte[] heartbeatDetails;
     long lastHeartbeatTime;
     RetryState retryState;
+    long nextBackoffIntervalSeconds;
 
     ActivityTaskData(TestWorkflowStore store) {
       this.store = store;
@@ -786,9 +787,13 @@ class StateMachines {
     if (data.retryState != null) {
       a.setAttempt(data.retryState.getAttempt());
     }
+    // Setting timestamp here as the default logic will set it to the time when it is added to the
+    // history. But in the case of retry it happens only after an activity completion.
+    long timestamp = TimeUnit.MILLISECONDS.toNanos(data.store.currentTimeMillis());
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.ActivityTaskStarted)
+            .setTimestamp(timestamp)
             .setActivityTaskStartedEventAttributes(a);
     long startedEventId;
     if (data.retryState == null) {
@@ -802,7 +807,7 @@ class StateMachines {
           data.startedEvent = event;
           PollForActivityTaskResponse task = data.activityTask.getTask();
           task.setTaskToken(new ActivityId(ctx.getExecutionId(), task.getActivityId()).toBytes());
-          task.setStartedTimestamp(ctx.currentTimeInNanoseconds());
+          task.setStartedTimestamp(timestamp);
         });
   }
 
@@ -981,11 +986,10 @@ class StateMachines {
       RequestContext ctx, String errorReason, ActivityTaskData data) {
     if (data.retryState != null) {
       RetryState nextAttempt = data.retryState.getNextAttempt();
-      int backoffIntervalInSeconds =
+      data.nextBackoffIntervalSeconds =
           data.retryState.getBackoffIntervalInSeconds(errorReason, data.store.currentTimeMillis());
-      if (backoffIntervalInSeconds > 0) {
+      if (data.nextBackoffIntervalSeconds > 0) {
         data.activityTask.getTask().setHeartbeatDetails(data.heartbeatDetails);
-        ctx.addActivityTask(data.activityTask);
         ctx.onCommit(
             (historySize) -> {
               data.retryState = nextAttempt;

@@ -998,6 +998,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
+          log.info("Start activity time=" + store.currentTimeMillis());
+
           String activityId = task.getActivityId();
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.action(StateMachines.Action.START, ctx, pollRequest, 0);
@@ -1075,16 +1077,46 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<?> activity = getActivity(activityId);
+          log.info("Fail activity time=" + store.currentTimeMillis());
+
+          StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           if (isTerminalState(activity.getState())) {
             activities.remove(activityId);
             ctx.unlockTimer();
             scheduleDecision(ctx);
           } else {
-            throw new Error("not implemented yet");
+            addActivityRetryTimer(ctx, activity);
           }
         });
+  }
+
+  private void addActivityRetryTimer(RequestContext ctx, StateMachine<ActivityTaskData> activity) {
+    ctx.lockTimer();
+    try {
+      ActivityTaskData data = activity.getData();
+      int attempt = data.retryState.getAttempt();
+      ctx.addTimer(
+          data.nextBackoffIntervalSeconds,
+          () -> {
+            // Timers are not removed, so skip if it is not for this attempt.
+            if (activity.getState() != State.INITIATED && data.retryState.getAttempt() != attempt) {
+              return;
+            }
+            ctx.lockTimer();
+            try {
+              update(ctx1 -> ctx1.addActivityTask(data.activityTask));
+            } catch (EntityNotExistsError e) {
+              // Expected as timers are not removed
+            } catch (Exception e) {
+              // Cannot fail to timer threads
+              log.error("Failure trying to add task for an activity retry", e);
+            }
+          },
+          "Activity Retry");
+    } finally {
+      ctx.unlockTimer();
+    }
   }
 
   @Override
@@ -1092,14 +1124,14 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws EntityNotExistsError, InternalServiceError, BadRequestError {
     update(
         ctx -> {
-          StateMachine<?> activity = getActivity(activityId);
+          StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           if (isTerminalState(activity.getState())) {
             activities.remove(activityId);
             scheduleDecision(ctx);
             ctx.unlockTimer();
           } else {
-            throw new Error("not implemented yet");
+            addActivityRetryTimer(ctx, activity);
           }
         });
   }

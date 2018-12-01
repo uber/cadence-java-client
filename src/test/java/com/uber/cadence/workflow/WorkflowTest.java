@@ -423,7 +423,6 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
-    //    fail("boo");
   }
 
   public static class TestActivityRetryOptionsChange implements TestWorkflow1 {

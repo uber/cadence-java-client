@@ -28,6 +28,7 @@ import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 final class RequestContext {
@@ -123,7 +124,7 @@ final class RequestContext {
   }
 
   long currentTimeInNanoseconds() {
-    return clock.getAsLong() * NANOS_PER_MILLIS;
+    return TimeUnit.MILLISECONDS.toNanos(clock.getAsLong());
   }
 
   /** Returns eventId of the added event; */

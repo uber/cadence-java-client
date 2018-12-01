@@ -91,7 +91,10 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
                   + WorkflowExecutionUtils.prettyPrintHistoryEvent(event));
         }
         event.setEventId(history.size() + 1L);
-        event.setTimestamp(timeInNanos);
+        // It can be set in StateMachines.startActivityTask
+        if (!event.isSetTimestamp()) {
+          event.setTimestamp(timeInNanos);
+        }
         history.add(event);
         completed = completed || WorkflowExecutionUtils.isWorkflowExecutionCompletedEvent(event);
       }
