@@ -204,8 +204,8 @@ final class StateMachine<Data> {
   }
 
   /**
-   * Registers a dynamic transition between states.
-   * Used when the same action can transition to more than one state depending on data.
+   * Registers a dynamic transition between states. Used when the same action can transition to more
+   * than one state depending on data.
    *
    * @param from initial state that transition applies to
    * @param toStates allowed destination states of a transition.
