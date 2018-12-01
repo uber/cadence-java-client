@@ -54,7 +54,7 @@ public interface ActivityExecutionContext {
    */
   void recordActivityHeartbeat(Object details) throws ActivityCompletionException;
 
-  <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType);
+  <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue);
 
   /**
    * If this method is called during an activity execution then activity is not going to complete

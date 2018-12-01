@@ -103,7 +103,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   }
 
   @Override
-  public <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
+  public <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue) {
     lock.lock();
     try {
       if (lastDetails != null) {
@@ -111,7 +111,11 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
         V ld = (V) this.lastDetails;
         return ld;
       }
-      return dataConverter.fromData(task.getHeartbeatDetails(), detailsClass, detailsType);
+      byte[] details = task.getHeartbeatDetails();
+      if (details == null) {
+        return defaultValue;
+      }
+      return dataConverter.fromData(details, detailsClass, detailsType);
     } finally {
       lock.unlock();
     }

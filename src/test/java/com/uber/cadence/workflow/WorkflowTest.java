@@ -388,7 +388,7 @@ public class WorkflowTest {
                       .build())
               .build();
       TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
-      activities.throwIO();
+      activities.heartbeatAndThrowIO();
       return "ignored";
     }
   }
@@ -550,7 +550,7 @@ public class WorkflowTest {
                       .build())
               .build();
       this.activities = Workflow.newActivityStub(TestActivities.class, options);
-      Async.procedure(activities::throwIO).get();
+      Async.procedure(activities::heartbeatAndThrowIO).get();
       return "ignored";
     }
   }
@@ -2821,6 +2821,8 @@ public class WorkflowTest {
 
     void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
 
+    void heartbeatAndThrowIO();
+
     void throwIO();
 
     @ActivityMethod(
@@ -2845,6 +2847,7 @@ public class WorkflowTest {
     final ActivityCompletionClient completionClient;
     final List<String> invocations = Collections.synchronizedList(new ArrayList<>());
     final List<String> procResult = Collections.synchronizedList(new ArrayList<>());
+    final AtomicInteger heartbeatCounter = new AtomicInteger();
     private final ThreadPoolExecutor executor =
         new ThreadPoolExecutor(0, 100, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
@@ -2983,6 +2986,18 @@ public class WorkflowTest {
     public void proc6(String a1, int a2, int a3, int a4, int a5, int a6) {
       invocations.add("proc6");
       procResult.add(a1 + a2 + a3 + a4 + a5 + a6);
+    }
+
+    @Override
+    public void heartbeatAndThrowIO() {
+      invocations.add("throwIO");
+      assertEquals(heartbeatCounter.get(), (int) Activity.getHeartbeatDetails(int.class, 0));
+      Activity.heartbeat(heartbeatCounter.incrementAndGet());
+      try {
+        throw new IOException("simulated IO problem");
+      } catch (IOException e) {
+        throw Activity.wrap(e);
+      }
     }
 
     @Override

@@ -49,7 +49,7 @@ public final class ActivityInternal {
     getContext().doNotCompleteOnReturn();
   }
 
-  public static <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
-    return getContext().getHeartbeatDetails(detailsClass, detailsType);
+  public static <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue) {
+    return getContext().getHeartbeatDetails(detailsClass, detailsType, defaultValue);
   }
 }

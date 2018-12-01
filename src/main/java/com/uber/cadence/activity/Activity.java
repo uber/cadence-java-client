@@ -245,16 +245,25 @@ public final class Activity {
    * activity failed then server would attempt to dispatch another activity task to retry according
    * to the retry policy. If there was heartbeat details reported by activity from the failed
    * attempt, the details would be delivered along with the activity task for retry attempt.
-   * Activity could extract the details by {@link #getHeartbeatDetails(Class)}() and resume from the
-   * progress.
+   * Activity could extract the details by {@link #getHeartbeatDetails(Class, Object)}() and resume
+   * from the progress.
+   *
+   * @param detailsClass type of the heartbeat details
+   * @param defaultValue value ot return if no heartbeat was ever emitted
    */
-  public <V> V getHeartbeatDetails(Class<V> detailsClass) {
-    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsClass);
+  public static <V> V getHeartbeatDetails(Class<V> detailsClass, V defaultValue) {
+    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsClass, defaultValue);
   }
 
-  /** Similar to {@link #getHeartbeatDetails(Class)}. Use when details is a generic type. */
-  public <V> V getDetails(Class<V> detailsClass, Type detailsType) {
-    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsType);
+  /**
+   * Similar to {@link #getHeartbeatDetails(Class, Object)}. Use when details is a generic type.
+   *
+   * @param detailsClass type of the heartbeat details
+   * @param detailsType type including generic information of the heartbeat details.
+   * @param defaultValue value ot return if no heartbeat was ever emitted
+   */
+  public static <V> V getDetails(Class<V> detailsClass, Type detailsType, V defaultValue) {
+    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsType, defaultValue);
   }
 
   /**

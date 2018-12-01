@@ -980,6 +980,7 @@ class StateMachines {
       int backoffIntervalInSeconds =
           data.retryState.getBackoffIntervalInSeconds(errorReason, data.store.currentTimeMillis());
       if (backoffIntervalInSeconds > 0) {
+        data.activityTask.getTask().setHeartbeatDetails(data.heartbeatDetails);
         ctx.addActivityTask(data.activityTask);
         ctx.onCommit(
             (historySize) -> {
