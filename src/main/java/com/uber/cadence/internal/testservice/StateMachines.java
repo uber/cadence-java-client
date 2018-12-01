@@ -255,7 +255,9 @@ class StateMachines {
             CANCELLATION_REQUESTED,
             StateMachines::requestActivityCancellation)
         .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeActivityTask)
+        // Transitions to initiated in case of the a retry
         .add(STARTED, FAIL, new State[] {FAILED, INITIATED}, StateMachines::failActivityTask)
+        // Transitions to initiated in case of a retry
         .add(
             STARTED,
             TIME_OUT,
@@ -672,7 +674,7 @@ class StateMachines {
             .setScheduleToCloseTimeoutSeconds(d.getScheduleToCloseTimeoutSeconds())
             .setStartToCloseTimeoutSeconds(d.getStartToCloseTimeoutSeconds())
             .setScheduledTimestamp(ctx.currentTimeInNanoseconds())
-            .setAttempt(1);
+            .setAttempt(0);
 
     TaskListId taskListId = new TaskListId(ctx.getDomain(), d.getTaskList().getName());
     ActivityTask activityTask = new ActivityTask(taskListId, taskResponse);
@@ -777,7 +779,6 @@ class StateMachines {
 
   private static void startActivityTask(
       RequestContext ctx, ActivityTaskData data, PollForActivityTaskRequest request, long notUsed) {
-    long startedEventId;
     ActivityTaskStartedEventAttributes a =
         new ActivityTaskStartedEventAttributes()
             .setIdentity(request.getIdentity())
@@ -786,6 +787,7 @@ class StateMachines {
         new HistoryEvent()
             .setEventType(EventType.ActivityTaskStarted)
             .setActivityTaskStartedEventAttributes(a);
+    long startedEventId;
     if (data.retryState == null) {
       startedEventId = ctx.addEvent(event);
     } else {
@@ -952,9 +954,8 @@ class StateMachines {
 
   private static State timeoutActivityTask(
       RequestContext ctx, ActivityTaskData data, TimeoutType timeoutType, long notUsed) {
-    // ScheduleToStart (queue timeout) is not retriable. Instead of retry, customer should set
-    // larger
-    // ScheduleToStart timeout.
+    // ScheduleToStart (queue timeout) is not retriable. Instead of the retry, a customer should set
+    // a larger ScheduleToStart timeout.
     if (timeoutType != TimeoutType.SCHEDULE_TO_START
         && attemptActivityRetry(ctx, TIMEOUT_ERROR_REASON, data)) {
       return INITIATED;

@@ -222,7 +222,7 @@ class DecisionsHelper {
 
   /**
    * @return true if it is not replay or retryOptions are present in the ActivityTaskScheduled
-   *     event.
+   *     event. false is only for the legacy code that used client side retry.
    */
   boolean isActivityScheduledWithRetryOptions() {
     Optional<HistoryEvent> optionalEvent = getOptionalDecisionEvent(nextDecisionEventId);

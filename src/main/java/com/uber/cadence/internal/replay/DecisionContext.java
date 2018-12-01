@@ -103,8 +103,8 @@ public interface DecisionContext extends ReplayAware {
   boolean isServerSideChildWorkflowRetry();
 
   /**
-   * Is the next event in the history is activity scheduled event and it has an attached retry
-   * policy. Used for backwards compatibility with the code that used local activity retry when
+   * Is the next event in the history is an activity scheduled event and it has an attached retry
+   * policy. Used for the backwards compatibility with the code that used local activity retry when
    * RetryOptions were specified.
    */
   boolean isServerSideActivityRetry();

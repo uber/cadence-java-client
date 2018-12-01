@@ -1082,7 +1082,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             ctx.unlockTimer();
             scheduleDecision(ctx);
           } else {
-            //            throw new Error("not implemented yet");
+                        throw new Error("not implemented yet");
           }
         });
   }
@@ -1099,7 +1099,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             scheduleDecision(ctx);
             ctx.unlockTimer();
           } else {
-            //            throw new Error("not implemented yet");
+                        throw new Error("not implemented yet");
           }
         });
   }

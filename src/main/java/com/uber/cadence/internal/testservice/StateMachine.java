@@ -48,7 +48,10 @@ final class StateMachine<Data> {
         throws InternalServiceError, BadRequestError;
   }
 
-  /** Function invoked when an action happens in a given state */
+  /**
+   * Function invoked when an action happens in a given state. Returns the next state. Used when the
+   * next state depends not only on the current state and action, but also on the data.
+   */
   @FunctionalInterface
   interface DynamicCallback<D, R> {
 
@@ -193,13 +196,23 @@ final class StateMachine<Data> {
    * @param to destination state of a transition.
    * @param callback callback to invoke upon transition
    * @param <V> type of callback parameter.
-   * @return the current StateMachine instance for fluid pattern.
+   * @return the current StateMachine instance for the fluid pattern.
    */
   <V> StateMachine<Data> add(State from, Action action, State to, Callback<Data, V> callback) {
     transitions.put(new Transition(from, action), new FixedTransitionDestination<>(to, callback));
     return this;
   }
 
+  /**
+   * Registers a dynamic transition between states.
+   * Used when the same action can transition to more than one state depending on data.
+   *
+   * @param from initial state that transition applies to
+   * @param toStates allowed destination states of a transition.
+   * @param callback callback to invoke upon transition
+   * @param <V> type of callback parameter.
+   * @return the current StateMachine instance for the fluid pattern.
+   */
   <V> StateMachine<Data> add(
       State from, Action action, State[] toStates, DynamicCallback<Data, V> callback) {
     transitions.put(

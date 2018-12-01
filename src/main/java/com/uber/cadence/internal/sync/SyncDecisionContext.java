@@ -118,6 +118,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Object[] args,
       ActivityOptions options) {
     RetryOptions retryOptions = options.getRetryOptions();
+    // Replays a legacy history that used the client side retry correctly
     if (retryOptions != null && !context.isServerSideActivityRetry()) {
       return WorkflowRetryerInternal.retryAsync(
           retryOptions,

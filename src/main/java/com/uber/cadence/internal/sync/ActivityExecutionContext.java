@@ -52,7 +52,7 @@ public interface ActivityExecutionContext {
    *     workflow.Should be rethrown from activity implementation to indicate successful
    *     cancellation.
    */
-  void recordActivityHeartbeat(Object details) throws ActivityCompletionException;
+  <V> void recordActivityHeartbeat(V details) throws ActivityCompletionException;
 
   <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue);
 
@@ -72,6 +72,4 @@ public interface ActivityExecutionContext {
   IWorkflowService getService();
 
   String getDomain();
-
-  DataConverter getDataConverter();
 }

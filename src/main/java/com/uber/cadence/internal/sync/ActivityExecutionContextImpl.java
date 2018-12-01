@@ -83,7 +83,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
 
   /** @see ActivityExecutionContext#recordActivityHeartbeat(Object) */
   @Override
-  public void recordActivityHeartbeat(Object details) throws ActivityCompletionException {
+  public <V> void recordActivityHeartbeat(V details) throws ActivityCompletionException {
     lock.lock();
     try {
       // always set lastDetail. Successful heartbeat will clear it.
@@ -213,10 +213,5 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   @Override
   public String getDomain() {
     return domain;
-  }
-
-  @Override
-  public DataConverter getDataConverter() {
-    return dataConverter;
   }
 }
