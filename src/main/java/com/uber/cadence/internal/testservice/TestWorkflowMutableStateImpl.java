@@ -1083,40 +1083,46 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           if (isTerminalState(activity.getState())) {
             activities.remove(activityId);
-            ctx.unlockTimer();
             scheduleDecision(ctx);
           } else {
             addActivityRetryTimer(ctx, activity);
           }
+          // Allow time skipping when waiting for retry
+          ctx.unlockTimer();
         });
   }
 
   private void addActivityRetryTimer(RequestContext ctx, StateMachine<ActivityTaskData> activity) {
-    ctx.lockTimer();
-    try {
-      ActivityTaskData data = activity.getData();
-      int attempt = data.retryState.getAttempt();
-      ctx.addTimer(
-          data.nextBackoffIntervalSeconds,
-          () -> {
-            // Timers are not removed, so skip if it is not for this attempt.
-            if (activity.getState() != State.INITIATED && data.retryState.getAttempt() != attempt) {
-              return;
+    ActivityTaskData data = activity.getData();
+    int attempt = data.retryState.getAttempt();
+    ctx.addTimer(
+        data.nextBackoffIntervalSeconds,
+        () -> {
+          // Timers are not removed, so skip if it is not for this attempt.
+          if (activity.getState() != State.INITIATED && data.retryState.getAttempt() != attempt) {
+            return;
+          }
+          selfAdvancingTimer.lockTimeSkipping(
+              "activityRetryTimer " + activity.getData().scheduledEvent.getActivityId());
+          boolean unlockTimer = false;
+          try {
+            update(ctx1 -> ctx1.addActivityTask(data.activityTask));
+          } catch (EntityNotExistsError e) {
+            unlockTimer = true;
+            // Expected as timers are not removed
+          } catch (Exception e) {
+            unlockTimer = true;
+            // Cannot fail to timer threads
+            log.error("Failure trying to add task for an activity retry", e);
+          } finally {
+            if (unlockTimer) {
+              // Allow time skipping when waiting for an activity retry
+              selfAdvancingTimer.unlockTimeSkipping(
+                  "activityRetryTimer " + activity.getData().scheduledEvent.getActivityId());
             }
-            ctx.lockTimer();
-            try {
-              update(ctx1 -> ctx1.addActivityTask(data.activityTask));
-            } catch (EntityNotExistsError e) {
-              // Expected as timers are not removed
-            } catch (Exception e) {
-              // Cannot fail to timer threads
-              log.error("Failure trying to add task for an activity retry", e);
-            }
-          },
-          "Activity Retry");
-    } finally {
-      ctx.unlockTimer();
-    }
+          }
+        },
+        "Activity Retry");
   }
 
   @Override
@@ -1129,10 +1135,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           if (isTerminalState(activity.getState())) {
             activities.remove(activityId);
             scheduleDecision(ctx);
-            ctx.unlockTimer();
           } else {
             addActivityRetryTimer(ctx, activity);
           }
+          ctx.unlockTimer();
         });
   }
 
