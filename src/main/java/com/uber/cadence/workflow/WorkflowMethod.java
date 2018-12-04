@@ -7,7 +7,7 @@
  *  use this file except in compliance with the License. A copy of the License is
  *  located at
  *
- *  http://aws.amazon.com/apache2.0
+ *  http:aws.amazon.com/apache2.0
  *
  *  or in the "license" file accompanying this file. This file is distributed on
  *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
@@ -16,6 +16,8 @@
  */
 
 package com.uber.cadence.workflow;
+
+import static com.uber.cadence.workflow.NonDeterministicWorkflowPolicy.NonDeterministicWorkflowPolicyBlockWorkflow;
 
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.client.WorkflowOptions;
@@ -82,4 +84,13 @@ public @interface WorkflowMethod {
    * annotation or through WorkflowOptions.
    */
   String taskList() default "";
+
+  /**
+   * Optional: Sets how decision worker deals with non-deterministic history events (presumably
+   * arising from non-deterministic workflow definitions or non-backward compatible workflow
+   * definition changes). default: NonDeterministicWorkflowPolicyBlockWorkflow, which just logs
+   * error but reply nothing back to server.
+   */
+  NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy() default
+      NonDeterministicWorkflowPolicyBlockWorkflow;
 }
