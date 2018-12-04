@@ -17,8 +17,6 @@
 
 package com.uber.cadence.workflow;
 
-import static com.uber.cadence.workflow.NonDeterministicWorkflowPolicy.NonDeterministicWorkflowPolicyBlockWorkflow;
-
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.client.WorkflowOptions;
 import java.lang.annotation.ElementType;
@@ -84,13 +82,4 @@ public @interface WorkflowMethod {
    * annotation or through WorkflowOptions.
    */
   String taskList() default "";
-
-  /**
-   * Optional: Sets how decision worker deals with non-deterministic history events (presumably
-   * arising from non-deterministic workflow definitions or non-backward compatible workflow
-   * definition changes). default: NonDeterministicWorkflowPolicyBlockWorkflow, which just logs
-   * error but reply nothing back to server.
-   */
-  NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy() default
-      NonDeterministicWorkflowPolicyBlockWorkflow;
 }

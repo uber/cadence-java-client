@@ -1,4 +1,4 @@
-package com.uber.cadence.workflow;
+package com.uber.cadence.worker;
 
 public enum NonDeterministicWorkflowPolicy {
 
