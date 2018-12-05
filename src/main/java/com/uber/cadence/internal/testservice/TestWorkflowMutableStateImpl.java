@@ -998,8 +998,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          log.info("Start activity time=" + store.currentTimeMillis());
-
           String activityId = task.getActivityId();
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.action(StateMachines.Action.START, ctx, pollRequest, 0);
@@ -1077,8 +1075,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError, BadRequestError {
     update(
         ctx -> {
-          log.info("Fail activity time=" + store.currentTimeMillis());
-
           StateMachine<ActivityTaskData> activity = getActivity(activityId);
           activity.action(StateMachines.Action.FAIL, ctx, request, 0);
           if (isTerminalState(activity.getState())) {
@@ -1249,9 +1245,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             if (isTerminalState(workflow.getState())) {
               return;
             }
-            log.info("Workflow timed out before action");
             workflow.action(StateMachines.Action.TIME_OUT, ctx, TimeoutType.START_TO_CLOSE, 0);
-            log.info("Workflow timed out after action");
             if (parent != null) {
               ctx.lockTimer(); // unlocked by the parent
             }
@@ -1261,7 +1255,6 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       // Cannot fail to timer threads
       log.error("Failure trying to timeout a workflow", e);
     }
-    log.info("Workflow timed out done");
   }
 
   private void reportWorkflowTimeoutToParent(RequestContext ctx) {
