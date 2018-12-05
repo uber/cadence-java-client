@@ -88,7 +88,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     lock.lock();
     try {
       // always set lastDetail. Successful heartbeat will clear it.
-      lastDetails = Optional.of(details);
+      lastDetails = Optional.ofNullable(details);
       heartbeatCalled = true;
       // Only do sync heartbeat if there is no such call scheduled.
       if (future == null) {
