@@ -253,6 +253,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
                   + context.getWorkflowType(),
               targetException);
         }
+        // Cast to Exception is safe as Error is handled above.
         throw mapToWorkflowExecutionException((Exception) targetException, dataConverter);
       }
     }
@@ -335,7 +336,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
   }
 
   static WorkflowExecutionException mapToWorkflowExecutionException(
-      Throwable failure, DataConverter dataConverter) {
+      Exception failure, DataConverter dataConverter) {
     failure = CheckedExceptionWrapper.unwrap(failure);
     // Only expected during unit tests.
     if (failure instanceof SimulatedTimeoutException) {
