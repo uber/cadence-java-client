@@ -262,7 +262,7 @@ public final class Activity {
    * @param detailsClass type of the heartbeat details
    * @param detailsType type including generic information of the heartbeat details.
    */
-  public static <V> Optional<V> getDetails(Class<V> detailsClass, Type detailsType) {
+  public static <V> Optional<V> getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
     return ActivityInternal.getHeartbeatDetails(detailsClass, detailsType);
   }
 

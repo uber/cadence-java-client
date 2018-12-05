@@ -59,6 +59,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   private boolean doNotCompleteOnReturn;
   private final long heartbeatIntervalMillis;
   private Optional<Object> lastDetails;
+  private boolean heartbeatCalled;
   private final ScheduledExecutorService heartbeatExecutor;
   private Lock lock = new ReentrantLock();
   private ScheduledFuture future;
@@ -87,13 +88,12 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     lock.lock();
     try {
       // always set lastDetail. Successful heartbeat will clear it.
-      lastDetails = details == null ? Optional.empty() : Optional.of(details);
-
+      lastDetails = Optional.of(details);
+      heartbeatCalled = true;
       // Only do sync heartbeat if there is no such call scheduled.
       if (future == null) {
         doHeartBeat(details);
       }
-
       if (lastException != null) {
         throw lastException;
       }
@@ -107,7 +107,9 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     lock.lock();
     try {
       if (lastDetails != null) {
-        return (Optional<V>) this.lastDetails;
+        @SuppressWarnings("unchecked")
+        Optional<V> result = (Optional<V>) this.lastDetails;
+        return result;
       }
       byte[] details = task.getHeartbeatDetails();
       if (details == null) {
@@ -123,8 +125,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     long nextHeartbeatDelay;
     try {
       sendHeartbeatRequest(details);
-      // Clear lastDetails only if heartbeat succeeds.
-      lastDetails = null;
+      heartbeatCalled = false;
       nextHeartbeatDelay = heartbeatIntervalMillis;
     } catch (TException e) {
       // Not rethrowing to not fail activity implementation on intermittent connection or Cadence
@@ -142,7 +143,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
             () -> {
               lock.lock();
               try {
-                if (lastDetails != null) {
+                if (heartbeatCalled) {
                   Object details = lastDetails.orElse(null);
                   doHeartBeat(details);
                 } else {

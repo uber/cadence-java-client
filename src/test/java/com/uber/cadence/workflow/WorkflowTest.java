@@ -100,7 +100,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -3076,6 +3076,7 @@ public class WorkflowTest {
       Optional<Integer> heartbeatDetails = Activity.getHeartbeatDetails(int.class);
       assertEquals(heartbeatCounter.get(), (int) heartbeatDetails.orElse(0));
       Activity.heartbeat(heartbeatCounter.incrementAndGet());
+      assertEquals(heartbeatCounter.get(), (int) Activity.getHeartbeatDetails(int.class).get());
       try {
         throw new IOException("simulated IO problem");
       } catch (IOException e) {
