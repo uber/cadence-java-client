@@ -23,6 +23,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 import java.lang.reflect.Type;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 
 /**
@@ -246,25 +247,23 @@ public final class Activity {
    * the server would attempt to dispatch another activity task to retry according to the retry
    * options. If there was heartbeat details reported by the activity from the failed attempt, the
    * details would be delivered along with the activity task for the retry attempt. The activity
-   * could extract the details by {@link #getHeartbeatDetails(Class, Object)}() and resume from the
+   * could extract the details by {@link #getHeartbeatDetails(Class)}() and resume from the
    * progress.
    *
    * @param detailsClass type of the heartbeat details
-   * @param defaultValue value to return if no heartbeat was ever emitted
    */
-  public static <V> V getHeartbeatDetails(Class<V> detailsClass, V defaultValue) {
-    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsClass, defaultValue);
+  public static <V> Optional<V> getHeartbeatDetails(Class<V> detailsClass) {
+    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsClass);
   }
 
   /**
-   * Similar to {@link #getHeartbeatDetails(Class, Object)}. Use when details is of a generic type.
+   * Similar to {@link #getHeartbeatDetails(Class)}. Use when details is of a generic type.
    *
    * @param detailsClass type of the heartbeat details
    * @param detailsType type including generic information of the heartbeat details.
-   * @param defaultValue value ot return if no heartbeat was ever emitted
    */
-  public static <V> V getDetails(Class<V> detailsClass, Type detailsType, V defaultValue) {
-    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsType, defaultValue);
+  public static <V> Optional<V> getDetails(Class<V> detailsClass, Type detailsType) {
+    return ActivityInternal.getHeartbeatDetails(detailsClass, detailsType);
   }
 
   /**

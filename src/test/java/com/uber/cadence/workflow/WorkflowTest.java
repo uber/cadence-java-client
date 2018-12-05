@@ -3073,7 +3073,8 @@ public class WorkflowTest {
     @Override
     public void heartbeatAndThrowIO() {
       invocations.add("throwIO");
-      assertEquals(heartbeatCounter.get(), (int) Activity.getHeartbeatDetails(int.class, 0));
+      Optional<Integer> heartbeatDetails = Activity.getHeartbeatDetails(int.class);
+      assertEquals(heartbeatCounter.get(), (int) heartbeatDetails.orElse(0));
       Activity.heartbeat(heartbeatCounter.incrementAndGet());
       try {
         throw new IOException("simulated IO problem");

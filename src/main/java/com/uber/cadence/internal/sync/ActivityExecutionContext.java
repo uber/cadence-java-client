@@ -21,6 +21,7 @@ import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCompletionException;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.lang.reflect.Type;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 
 /**
@@ -53,7 +54,7 @@ public interface ActivityExecutionContext {
    */
   <V> void recordActivityHeartbeat(V details) throws ActivityCompletionException;
 
-  <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue);
+  <V> Optional<V> getHeartbeatDetails(Class<V> detailsClass, Type detailsType);
 
   /**
    * If this method is called during an activity execution then activity is not going to complete

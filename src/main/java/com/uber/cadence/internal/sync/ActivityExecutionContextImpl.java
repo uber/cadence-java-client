@@ -103,19 +103,17 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   }
 
   @Override
-  public <V> V getHeartbeatDetails(Class<V> detailsClass, Type detailsType, V defaultValue) {
+  public <V> Optional<V> getHeartbeatDetails(Class<V> detailsClass, Type detailsType) {
     lock.lock();
     try {
       if (lastDetails != null) {
-        @SuppressWarnings("unchecked")
-        V ld = (V) this.lastDetails;
-        return ld;
+        return (Optional<V>) this.lastDetails;
       }
       byte[] details = task.getHeartbeatDetails();
       if (details == null) {
-        return defaultValue;
+        return Optional.empty();
       }
-      return dataConverter.fromData(details, detailsClass, detailsType);
+      return Optional.of(dataConverter.fromData(details, detailsClass, detailsType));
     } finally {
       lock.unlock();
     }
