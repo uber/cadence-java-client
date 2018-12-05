@@ -3563,6 +3563,9 @@ public class WorkflowTest {
       fail("unreachable");
     } catch (WorkflowFailureException e) {
       // expected to fail on non deterministic error
+      assertTrue(e.getCause() instanceof Error);
+      String causeMsg = e.getCause().getMessage();
+      assertTrue(causeMsg, causeMsg.contains("nondeterministic"));
     }
   }
 
