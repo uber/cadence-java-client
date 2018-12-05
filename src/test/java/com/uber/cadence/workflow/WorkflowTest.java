@@ -41,6 +41,7 @@ import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
+import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
@@ -50,8 +51,10 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
+import com.uber.cadence.worker.NonDeterministicWorkflowPolicy;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.FileNotFoundException;
@@ -78,6 +81,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -3490,6 +3494,75 @@ public class WorkflowTest {
       fail("unreachable");
     } catch (WorkflowException e) {
       assertEquals("unsupported change version", e.getCause().getMessage());
+    }
+  }
+
+  public interface DeterminismFailingWorkflow {
+
+    @WorkflowMethod
+    void execute(String taskList);
+  }
+
+  public static class DeterminismFailingWorkflowImpl implements DeterminismFailingWorkflow {
+
+    @Override
+    public void execute(String taskList) {
+      TestActivities activities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      if (!Workflow.isReplaying()) {
+        activities.activity1("foo");
+      }
+    }
+  }
+
+  @Test
+  public void testNonDeterministicWorkflowPolicyBlockWorkflow() {
+    Assume.assumeTrue("skipping as no replay in sticky", disableStickyExecution);
+    startWorkerFor(DeterminismFailingWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
+            .setTaskList(taskList)
+            .build();
+    DeterminismFailingWorkflow workflowStub =
+        workflowClient.newWorkflowStub(DeterminismFailingWorkflow.class, options);
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowTimedOutException e) {
+      // expected to timeout as workflow is going get blocked.
+    }
+  }
+
+  @Test
+  public void testNonDeterministicWorkflowPolicyFailWorkflow() {
+    Assume.assumeTrue("skipping as no replay in sticky", disableStickyExecution);
+    WorkflowImplementationOptions implementationOptions =
+        new WorkflowImplementationOptions.Builder()
+            .setNonDeterministicWorkflowPolicy(
+                NonDeterministicWorkflowPolicy.NonDeterministicWorkflowPolicyFailWorkflow)
+            .build();
+    worker.registerWorkflowImplementationTypes(
+        implementationOptions, DeterminismFailingWorkflowImpl.class);
+    if (useExternalService) {
+      workerFactory.start();
+    } else {
+      testEnvironment.start();
+    }
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
+            .setTaskList(taskList)
+            .build();
+    DeterminismFailingWorkflow workflowStub =
+        workflowClient.newWorkflowStub(DeterminismFailingWorkflow.class, options);
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowFailureException e) {
+      // expected to fail on non deterministic error
     }
   }
 

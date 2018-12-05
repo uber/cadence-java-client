@@ -196,7 +196,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
   @Override
   public ReplayWorkflow getWorkflow(WorkflowType workflowType) {
     SyncWorkflowDefinition workflow = getWorkflowDefinition(workflowType);
-    WorkflowImplementationOptions options = implementationOptions.get(workflowType);
+    WorkflowImplementationOptions options = implementationOptions.get(workflowType.getName());
     return new SyncWorkflow(
         workflow, options, dataConverter, threadPool, interceptorFactory, cache);
   }
@@ -335,7 +335,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
   }
 
   static WorkflowExecutionException mapToWorkflowExecutionException(
-      Exception failure, DataConverter dataConverter) {
+      Throwable failure, DataConverter dataConverter) {
     failure = CheckedExceptionWrapper.unwrap(failure);
     // Only expected during unit tests.
     if (failure instanceof SimulatedTimeoutException) {
@@ -346,6 +346,11 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
               dataConverter.toData(timeoutException.getDetails()));
     }
 
+    return new WorkflowExecutionException(
+        failure.getClass().getName(), dataConverter.toData(failure));
+  }
+
+  static WorkflowExecutionException mapError(Error failure, DataConverter dataConverter) {
     return new WorkflowExecutionException(
         failure.getClass().getName(), dataConverter.toData(failure));
   }

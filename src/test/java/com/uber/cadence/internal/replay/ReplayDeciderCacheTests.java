@@ -273,7 +273,12 @@ public class ReplayDeciderCacheTests {
           }
 
           @Override
-          public WorkflowExecutionException mapUnexpectedException(Exception failure) {
+          public WorkflowExecutionException mapUnexpectedException(Throwable failure) {
+            return null;
+          }
+
+          @Override
+          public WorkflowExecutionException mapError(Error failure) {
             return null;
           }
 

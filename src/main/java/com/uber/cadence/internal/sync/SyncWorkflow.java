@@ -56,7 +56,10 @@ class SyncWorkflow implements ReplayWorkflow {
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       DeciderCache cache) {
     this.workflow = Objects.requireNonNull(workflow);
-    this.workflowImplementationOptions = Objects.requireNonNull(workflowImplementationOptions);
+    this.workflowImplementationOptions =
+        workflowImplementationOptions == null
+            ? new WorkflowImplementationOptions.Builder().build()
+            : workflowImplementationOptions;
     this.dataConverter = Objects.requireNonNull(dataConverter);
     this.threadPool = Objects.requireNonNull(threadPool);
     this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
@@ -142,8 +145,13 @@ class SyncWorkflow implements ReplayWorkflow {
   }
 
   @Override
-  public WorkflowExecutionException mapUnexpectedException(Exception failure) {
+  public WorkflowExecutionException mapUnexpectedException(Throwable failure) {
     return POJOWorkflowImplementationFactory.mapToWorkflowExecutionException(
         failure, dataConverter);
+  }
+
+  @Override
+  public WorkflowExecutionException mapError(Error failure) {
+    return POJOWorkflowImplementationFactory.mapError(failure, dataConverter);
   }
 }
