@@ -425,6 +425,60 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
+  public static class TestActivityRetryOnTimeout implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setScheduleToCloseTimeout(Duration.ofSeconds(1))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setMaximumAttempts(3)
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.neverComplete(); // should timeout as scheduleToClose is 1 second
+        throw new IllegalStateException("unreachable");
+      } catch (ActivityTimeoutException e) {
+        long elapsed = Workflow.currentTimeMillis() - start;
+        if (elapsed < 5000) {
+          throw new RuntimeException("Activity retried without delay: " + elapsed);
+        }
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testActivityRetryOnTimeout() {
+    startWorkerFor(TestActivityRetryOnTimeout.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    // Wall time on purpose
+    long start = System.currentTimeMillis();
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause() instanceof ActivityTimeoutException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    long elapsed = System.currentTimeMillis() - start;
+    if (testName.toString().contains("TestService")) {
+      assertTrue("retry timer skips time", elapsed < 5000);
+    }
+  }
+
   public static class TestActivityRetryOptionsChange implements TestWorkflow1 {
 
     @Override
@@ -2845,6 +2899,8 @@ public class WorkflowTest {
 
     void throwIO();
 
+    void neverComplete();
+
     @ActivityMethod(
       scheduleToStartTimeoutSeconds = 5,
       scheduleToCloseTimeoutSeconds = 5,
@@ -3028,6 +3084,12 @@ public class WorkflowTest {
       } catch (IOException e) {
         throw Activity.wrap(e);
       }
+    }
+
+    @Override
+    public void neverComplete() {
+      invocations.add("neverComplete");
+      Activity.doNotCompleteOnReturn(); // Simulate activity timeout
     }
 
     @Override

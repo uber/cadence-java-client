@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.testservice;
 
 import com.google.common.base.Throwables;
+import com.uber.cadence.ActivityTaskScheduledEventAttributes;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.CancelTimerDecisionAttributes;
 import com.uber.cadence.CancelTimerFailedEventAttributes;
@@ -468,15 +469,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     if (activity != null) {
       throw new BadRequestError("Already open activity with " + activityId);
     }
-    activity = StateMachines.newActivityStateMachine(store);
+    activity = StateMachines.newActivityStateMachine(store, this.startRequest);
     activities.put(activityId, activity);
     activity.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
+    ActivityTaskScheduledEventAttributes scheduledEvent = activity.getData().scheduledEvent;
     ctx.addTimer(
-        a.getScheduleToCloseTimeoutSeconds(),
+        scheduledEvent.getScheduleToCloseTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_CLOSE),
         "Activity ScheduleToCloseTimeout");
     ctx.addTimer(
-        a.getScheduleToStartTimeoutSeconds(),
+        scheduledEvent.getScheduleToStartTimeoutSeconds(),
         () -> timeoutActivity(activityId, TimeoutType.SCHEDULE_TO_START),
         "Activity ScheduleToStartTimeout");
     ctx.lockTimer();
@@ -1200,7 +1202,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             StateMachine<ActivityTaskData> activity = getActivity(activityId);
             if (timeoutType == TimeoutType.SCHEDULE_TO_START
                 && activity.getState() != StateMachines.State.INITIATED) {
-              return;
+              throw new EntityNotExistsError("Not in INITIATED");
             }
             if (timeoutType == TimeoutType.HEARTBEAT) {
               // Deal with timers which are never cancelled
@@ -1208,12 +1210,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
                   TimeUnit.SECONDS.toMillis(
                       activity.getData().scheduledEvent.getHeartbeatTimeoutSeconds());
               if (clock.getAsLong() - activity.getData().lastHeartbeatTime < heartbeatTimeout) {
-                return;
+                throw new EntityNotExistsError("Not heartbeat timeout");
               }
             }
             activity.action(StateMachines.Action.TIME_OUT, ctx, timeoutType, 0);
-            activities.remove(activityId);
-            scheduleDecision(ctx);
+            if (isTerminalState(activity.getState())) {
+              activities.remove(activityId);
+              scheduleDecision(ctx);
+            } else {
+              addActivityRetryTimer(ctx, activity);
+            }
           });
     } catch (EntityNotExistsError e) {
       // Expected as timers are not removed
