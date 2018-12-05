@@ -17,7 +17,7 @@
 
 package com.uber.cadence.worker;
 
-import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.NonDeterministicWorkflowPolicyBlockWorkflow;
+import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.BlockWorkflow;
 
 import java.util.Objects;
 
@@ -25,14 +25,13 @@ public final class WorkflowImplementationOptions {
 
   public static final class Builder {
 
-    private NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy =
-        NonDeterministicWorkflowPolicyBlockWorkflow;
+    private NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy = BlockWorkflow;
 
     /**
      * Optional: Sets how decision worker deals with non-deterministic history events (presumably
      * arising from non-deterministic workflow definitions or non-backward compatible workflow
-     * definition changes). default: NonDeterministicWorkflowPolicyBlockWorkflow, which just logs
-     * error but reply nothing back to server.
+     * definition changes). default: BlockWorkflow, which just logs error but reply nothing back to
+     * server.
      */
     public Builder setNonDeterministicWorkflowPolicy(
         NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy) {

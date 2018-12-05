@@ -17,6 +17,7 @@
 
 package com.uber.cadence.workflow;
 
+import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.FailWorkflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -51,7 +52,6 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.NonDeterministicWorkflowPolicy;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
@@ -3540,8 +3540,7 @@ public class WorkflowTest {
     Assume.assumeTrue("skipping as no replay in sticky", disableStickyExecution);
     WorkflowImplementationOptions implementationOptions =
         new WorkflowImplementationOptions.Builder()
-            .setNonDeterministicWorkflowPolicy(
-                NonDeterministicWorkflowPolicy.NonDeterministicWorkflowPolicyFailWorkflow)
+            .setNonDeterministicWorkflowPolicy(FailWorkflow)
             .build();
     worker.registerWorkflowImplementationTypes(
         implementationOptions, DeterminismFailingWorkflowImpl.class);
