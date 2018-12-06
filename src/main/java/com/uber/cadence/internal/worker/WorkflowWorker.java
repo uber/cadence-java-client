@@ -220,7 +220,7 @@ public final class WorkflowWorker
 
   @Override
   public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
-    pollTaskExecutor.accept(pollForDecisionTaskResponse);
+    pollTaskExecutor.process(pollForDecisionTaskResponse);
   }
 
   private class TaskHandlerImpl

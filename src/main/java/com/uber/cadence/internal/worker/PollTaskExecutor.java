@@ -22,10 +22,9 @@ import com.uber.cadence.internal.logging.LoggerTag;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import org.slf4j.MDC;
 
-final class PollTaskExecutor<T> implements Consumer<T> {
+final class PollTaskExecutor<T> implements TaskExecutor<T> {
 
   public interface TaskHandler<TT> {
     void handle(TT task) throws Exception;
@@ -62,7 +61,7 @@ final class PollTaskExecutor<T> implements Consumer<T> {
   }
 
   @Override
-  public void accept(T task) {
+  public void process(T task) {
     taskExecutor.execute(
         () -> {
           MDC.put(LoggerTag.DOMAIN, domain);
@@ -79,5 +78,15 @@ final class PollTaskExecutor<T> implements Consumer<T> {
             MDC.remove(LoggerTag.TASK_LIST);
           }
         });
+  }
+
+  @Override
+  public void shutdown() {
+    taskExecutor.shutdown();
+  }
+
+  @Override
+  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    return taskExecutor.awaitTermination(timeout, unit);
   }
 }

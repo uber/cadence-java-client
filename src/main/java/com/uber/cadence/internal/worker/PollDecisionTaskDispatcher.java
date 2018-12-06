@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +52,7 @@ final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDeci
   }
 
   @Override
-  public void accept(PollForDecisionTaskResponse t) {
+  public void process(PollForDecisionTaskResponse t) {
     String taskListName = t.getWorkflowExecutionTaskList().getName();
     if (subscribers.containsKey(taskListName)) {
       subscribers.get(taskListName).accept(t);
@@ -73,6 +74,14 @@ final class PollDecisionTaskDispatcher implements Dispatcher<String, PollForDeci
         uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
       }
     }
+  }
+
+  @Override
+  public void shutdown() {}
+
+  @Override
+  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    return true;
   }
 
   @Override

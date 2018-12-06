@@ -17,8 +17,13 @@
 
 package com.uber.cadence.internal.worker;
 
-import java.util.function.Consumer;
+import java.util.concurrent.TimeUnit;
 
-public interface Dispatcher<TTopic, TMessage> extends TaskExecutor<TMessage> {
-  void subscribe(TTopic topic, Consumer<TMessage> consumer);
+interface TaskExecutor<T> {
+
+  void process(T task);
+
+  void shutdown();
+
+  boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
 }

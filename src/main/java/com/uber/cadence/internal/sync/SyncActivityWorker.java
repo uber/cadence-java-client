@@ -62,9 +62,11 @@ public class SyncActivityWorker {
 
   public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit)
       throws InterruptedException {
+    boolean result =
+        worker.shutdownAndAwaitTermination(timeout, unit)
+            && heartbeatExecutor.awaitTermination(timeout, unit);
     heartbeatExecutor.shutdownNow();
-    return worker.shutdownAndAwaitTermination(timeout, unit)
-        && heartbeatExecutor.awaitTermination(timeout, unit);
+    return result;
   }
 
   public boolean isRunning() {
