@@ -17,6 +17,7 @@
 
 package com.uber.cadence.worker;
 
+import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
 import static org.junit.Assert.assertNotNull;
 
 import com.uber.cadence.activity.ActivityMethod;
@@ -46,7 +47,6 @@ import org.slf4j.LoggerFactory;
 
 @RunWith(Parameterized.class)
 public class WorkerStressTests {
-  public static final String DOMAIN = "UnitTest";
 
   private static final boolean skipDockerService =
       Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
