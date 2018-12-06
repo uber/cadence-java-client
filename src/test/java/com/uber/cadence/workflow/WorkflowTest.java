@@ -2775,7 +2775,8 @@ public class WorkflowTest {
     } catch (WorkflowException e) {
       assertEquals(e.toString(), "simulated 3", e.getCause().getMessage());
     } finally {
-      assertTrue(currentTimeMillis() - start >= 2000); // Ensure that retry delays the restart
+      long elapsed = currentTimeMillis() - start;
+      assertTrue(String.valueOf(elapsed), elapsed >= 2000); // Ensure that retry delays the restart
     }
   }
 
