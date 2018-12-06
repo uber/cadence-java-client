@@ -149,6 +149,7 @@ class StateMachines {
 
   static final class WorkflowData {
     Optional<RetryState> retryState = Optional.empty();
+    int backoffStartIntervalInSeconds;
   }
 
   static final class DecisionTaskData {
@@ -471,6 +472,7 @@ class StateMachines {
               try {
                 data.service.startWorkflowExecutionImpl(
                     startChild,
+                    0,
                     Optional.of(ctx.getWorkflowMutableState()),
                     OptionalLong.of(data.initiatedEventId));
               } catch (WorkflowExecutionAlreadyStartedError workflowExecutionAlreadyStartedError) {
@@ -515,6 +517,9 @@ class StateMachines {
     a.setExecutionStartToCloseTimeoutSeconds(request.getExecutionStartToCloseTimeoutSeconds());
     if (request.isSetInput()) {
       a.setInput(request.getInput());
+    }
+    if (data.retryState.isPresent()) {
+      a.setAttempt(data.retryState.get().getAttempt());
     }
     HistoryEvent event =
         new HistoryEvent()

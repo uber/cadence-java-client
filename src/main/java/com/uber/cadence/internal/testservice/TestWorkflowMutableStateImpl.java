@@ -145,11 +145,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
   /**
    * @param retryState present if workflow is a retry
+   * @param backoffStartIntervalInSeconds
    * @param parentChildInitiatedEventId id of the child initiated event in the parent history
    */
   TestWorkflowMutableStateImpl(
       StartWorkflowExecutionRequest startRequest,
       Optional<RetryState> retryState,
+      int backoffStartIntervalInSeconds,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       TestWorkflowService service,
@@ -167,6 +169,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     this.workflow = StateMachines.newWorkflowStateMachine();
     WorkflowData data = this.workflow.getData();
     data.retryState = retryState;
+    data.backoffStartIntervalInSeconds = backoffStartIntervalInSeconds;
   }
 
   private void update(UpdateProcedure updater)
@@ -941,7 +944,24 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       update(
           ctx -> {
             workflow.action(StateMachines.Action.START, ctx, startRequest, 0);
-            scheduleDecision(ctx);
+            int backoffStartIntervalInSeconds = workflow.getData().backoffStartIntervalInSeconds;
+            if (backoffStartIntervalInSeconds > 0) {
+              ctx.addTimer(
+                  backoffStartIntervalInSeconds,
+                  () -> {
+                    try {
+                      update(ctx1 -> scheduleDecision(ctx1));
+                    } catch (EntityNotExistsError e) {
+                      // Expected as timers are not removed
+                    } catch (Exception e) {
+                      // Cannot fail to timer threads
+                      log.error("Failure trying to add task for an delayed workflow retry", e);
+                    }
+                  },
+                  "delayedFirstDecision");
+            } else {
+              scheduleDecision(ctx);
+            }
             ctx.addTimer(
                 startRequest.getExecutionStartToCloseTimeoutSeconds(),
                 this::timeoutWorkflow,
@@ -1027,7 +1047,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     return workflowState == State.COMPLETED
         || workflowState == State.TIMED_OUT
         || workflowState == State.FAILED
-        || workflowState == State.CANCELED;
+        || workflowState == State.CANCELED
+        || workflowState == State.CONTINUED_AS_NEW;
   }
 
   private void updateHeartbeatTimer(
