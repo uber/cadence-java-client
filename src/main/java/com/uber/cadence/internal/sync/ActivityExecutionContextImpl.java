@@ -59,7 +59,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
   private boolean doNotCompleteOnReturn;
   private final long heartbeatIntervalMillis;
   private Optional<Object> lastDetails;
-  private boolean heartbeatCalled;
+  private boolean hasOutstandingHeartbeat;
   private final ScheduledExecutorService heartbeatExecutor;
   private Lock lock = new ReentrantLock();
   private ScheduledFuture future;
@@ -89,7 +89,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     try {
       // always set lastDetail. Successful heartbeat will clear it.
       lastDetails = Optional.ofNullable(details);
-      heartbeatCalled = true;
+      hasOutstandingHeartbeat = true;
       // Only do sync heartbeat if there is no such call scheduled.
       if (future == null) {
         doHeartBeat(details);
@@ -125,7 +125,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
     long nextHeartbeatDelay;
     try {
       sendHeartbeatRequest(details);
-      heartbeatCalled = false;
+      hasOutstandingHeartbeat = false;
       nextHeartbeatDelay = heartbeatIntervalMillis;
     } catch (TException e) {
       // Not rethrowing to not fail activity implementation on intermittent connection or Cadence
@@ -143,7 +143,7 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
             () -> {
               lock.lock();
               try {
-                if (heartbeatCalled) {
+                if (hasOutstandingHeartbeat) {
                   Object details = lastDetails.orElse(null);
                   doHeartBeat(details);
                 } else {
