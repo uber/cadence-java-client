@@ -104,7 +104,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -325,6 +325,14 @@ public class WorkflowTest {
     }
   }
 
+  long currentTimeMillis() {
+    if (useExternalService) {
+      return System.currentTimeMillis();
+    } else {
+      return testEnvironment.currentTimeMillis();
+    }
+  }
+
   public interface TestWorkflow1 {
 
     @WorkflowMethod
@@ -381,6 +389,7 @@ public class WorkflowTest {
   public static class TestActivityRetry implements TestWorkflow1 {
 
     @Override
+    @SuppressWarnings("Finally")
     public String execute(String taskList) {
       ActivityOptions options =
           new ActivityOptions.Builder()
@@ -391,13 +400,22 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
+                      .setDoNotRetry(AssertionError.class)
                       .build())
               .build();
       TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
-      activities.throwIO();
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.heartbeatAndThrowIO();
+      } finally {
+        if (Workflow.currentTimeMillis() - start < 2000) {
+          throw new RuntimeException("Activity retried without delay");
+        }
+      }
       return "ignored";
     }
   }
@@ -415,6 +433,60 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestActivityRetryOnTimeout implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setScheduleToCloseTimeout(Duration.ofSeconds(1))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setMaximumAttempts(3)
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.neverComplete(); // should timeout as scheduleToClose is 1 second
+        throw new IllegalStateException("unreachable");
+      } catch (ActivityTimeoutException e) {
+        long elapsed = Workflow.currentTimeMillis() - start;
+        if (elapsed < 5000) {
+          throw new RuntimeException("Activity retried without delay: " + elapsed);
+        }
+        throw e;
+      }
+    }
+  }
+
+  @Test
+  public void testActivityRetryOnTimeout() {
+    startWorkerFor(TestActivityRetryOnTimeout.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    // Wall time on purpose
+    long start = System.currentTimeMillis();
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause() instanceof ActivityTimeoutException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    long elapsed = System.currentTimeMillis() - start;
+    if (testName.toString().contains("TestService")) {
+      assertTrue("retry timer skips time", elapsed < 5000);
+    }
   }
 
   public static class TestActivityRetryOptionsChange implements TestWorkflow1 {
@@ -480,6 +552,7 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -551,13 +624,14 @@ public class WorkflowTest {
               .setStartToCloseTimeout(Duration.ofSeconds(10))
               .setRetryOptions(
                   new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
                       .build())
               .build();
       this.activities = Workflow.newActivityStub(TestActivities.class, options);
-      Async.procedure(activities::throwIO).get();
+      Async.procedure(activities::heartbeatAndThrowIO).get();
       return "ignored";
     }
   }
@@ -577,6 +651,20 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
+  /**
+   * Tests that history that was created before server side retry was supported is backwards
+   * compatible with the client that supports the server side retry.
+   */
+  @Test
+  public void testAsyncActivityRetryReplay() throws Exception {
+    // Avoid executing 4 times
+    if (!testName.getMethodName().equals("testAsyncActivityRetryReplay[Docker Sticky OFF]")) {
+      return;
+    }
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "testAsyncActivityRetryHistory.json", TestAsyncActivityRetry.class);
+  }
+
   public static class TestAsyncActivityRetryOptionsChange implements TestWorkflow1 {
 
     private TestActivities activities;
@@ -593,6 +681,7 @@ public class WorkflowTest {
       if (Workflow.isReplaying()) {
         options.setRetryOptions(
             new RetryOptions.Builder()
+                .setExpiration(Duration.ofSeconds(100))
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setDoNotRetry(NullPointerException.class)
@@ -601,6 +690,7 @@ public class WorkflowTest {
       } else {
         options.setRetryOptions(
             new RetryOptions.Builder()
+                .setExpiration(Duration.ofSeconds(10))
                 .setMaximumInterval(Duration.ofSeconds(1))
                 .setInitialInterval(Duration.ofSeconds(1))
                 .setMaximumAttempts(2)
@@ -2604,9 +2694,9 @@ public class WorkflowTest {
             .build();
 
     TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, o);
-    long start = System.currentTimeMillis();
+    long start = currentTimeMillis();
     String result = workflowStub.execute(taskList);
-    long elapsed = System.currentTimeMillis() - start;
+    long elapsed = currentTimeMillis() - start;
     assertTrue("spinned on fail decision", elapsed > 1000);
     assertEquals("result1", result);
   }
@@ -2682,11 +2772,15 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(
             TestWorkflowRetry.class,
             newWorkflowOptionsBuilder(taskList).setRetryOptions(workflowRetryOptions).build());
+    long start = currentTimeMillis();
     try {
       workflowStub.execute(testName.getMethodName());
       fail("unreachable");
     } catch (WorkflowException e) {
-      assertEquals("simulated 3", e.getCause().getMessage());
+      assertEquals(e.toString(), "simulated 3", e.getCause().getMessage());
+    } finally {
+      long elapsed = currentTimeMillis() - start;
+      assertTrue(String.valueOf(elapsed), elapsed >= 2000); // Ensure that retry delays the restart
     }
   }
 
@@ -2812,7 +2906,11 @@ public class WorkflowTest {
 
     void proc6(String a1, int a2, int a3, int a4, int a5, int a6);
 
+    void heartbeatAndThrowIO();
+
     void throwIO();
+
+    void neverComplete();
 
     @ActivityMethod(
       scheduleToStartTimeoutSeconds = 5,
@@ -2836,6 +2934,7 @@ public class WorkflowTest {
     final ActivityCompletionClient completionClient;
     final List<String> invocations = Collections.synchronizedList(new ArrayList<>());
     final List<String> procResult = Collections.synchronizedList(new ArrayList<>());
+    final AtomicInteger heartbeatCounter = new AtomicInteger();
     private final ThreadPoolExecutor executor =
         new ThreadPoolExecutor(0, 100, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
 
@@ -2977,6 +3076,20 @@ public class WorkflowTest {
     }
 
     @Override
+    public void heartbeatAndThrowIO() {
+      invocations.add("throwIO");
+      Optional<Integer> heartbeatDetails = Activity.getHeartbeatDetails(int.class);
+      assertEquals(heartbeatCounter.get(), (int) heartbeatDetails.orElse(0));
+      Activity.heartbeat(heartbeatCounter.incrementAndGet());
+      assertEquals(heartbeatCounter.get(), (int) Activity.getHeartbeatDetails(int.class).get());
+      try {
+        throw new IOException("simulated IO problem");
+      } catch (IOException e) {
+        throw Activity.wrap(e);
+      }
+    }
+
+    @Override
     public void throwIO() {
       invocations.add("throwIO");
       try {
@@ -2984,6 +3097,12 @@ public class WorkflowTest {
       } catch (IOException e) {
         throw Activity.wrap(e);
       }
+    }
+
+    @Override
+    public void neverComplete() {
+      invocations.add("neverComplete");
+      Activity.doNotCompleteOnReturn(); // Simulate activity timeout
     }
 
     @Override
