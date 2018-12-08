@@ -1,34 +1,56 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.worker;
 
-import com.uber.cadence.activity.Activity;
+import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import com.uber.cadence.EventType;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
-import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
-import com.uber.cadence.workflow.WorkflowTest;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import org.apache.thrift.TException;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import java.time.Duration;
-import java.util.UUID;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
-import static org.junit.Assert.assertEquals;
-
+@RunWith(Parameterized.class)
 public class CleanWorkerShutdownTest {
 
   private static final boolean skipDockerService =
@@ -50,7 +72,7 @@ public class CleanWorkerShutdownTest {
 
   @Rule public TestName testName = new TestName();
 
-  private static WorkflowServiceTChannel service;
+  private static IWorkflowService service;
 
   @BeforeClass
   public static void setUp() {
@@ -61,8 +83,8 @@ public class CleanWorkerShutdownTest {
 
   @AfterClass
   public static void tearDown() {
-    if (service != null) {
-      service.close();
+    if (service != null && service instanceof WorkflowServiceTChannel) {
+      ((WorkflowServiceTChannel) service).close();
     }
   }
 
@@ -82,54 +104,130 @@ public class CleanWorkerShutdownTest {
   }
 
   public interface Activities {
-      @ActivityMethod(scheduleToCloseTimeoutSeconds = 100)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 100)
     String execute();
   }
 
   public static class ActivitiesImpl implements Activities {
+    private final CompletableFuture<Boolean> started;
+
+    public ActivitiesImpl(CompletableFuture<Boolean> started) {
+      this.started = started;
+    }
+
     @Override
     public String execute() {
       try {
+        started.complete(true);
         Thread.sleep(1000);
-        throw new RuntimeException("should be interrupted");
       } catch (InterruptedException e) {
         return "interrupted";
       }
+      return "completed";
     }
   }
 
   @Test
-  public void testCleanShutdown() {
+  public void testShutdown() throws ExecutionException, InterruptedException, TException {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-      Worker.Factory workerFactory = null;
-      TestWorkflowEnvironment testEnvironment = null;
+    Worker.Factory workerFactory = null;
+    TestWorkflowEnvironment testEnvironment = null;
+    CompletableFuture<Boolean> started = new CompletableFuture<>();
     if (useExternalService) {
-        workerFactory = new Worker.Factory(service, DOMAIN);
-    Worker worker= workerFactory.newWorker(taskList);
+      workerFactory = new Worker.Factory(service, DOMAIN);
+      Worker worker = workerFactory.newWorker(taskList);
       workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
-      worker.registerActivitiesImplementations(new ActivitiesImpl());
+      worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
           new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
-        testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
-        Worker worker = testEnvironment.newWorker(taskList);
+      testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
+      service = testEnvironment.getWorkflowService();
+      Worker worker = testEnvironment.newWorker(taskList);
       workflowClient = testEnvironment.newWorkflowClient();
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
-      worker.registerActivitiesImplementations(new ActivitiesImpl());
+      worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       testEnvironment.start();
     }
-      WorkflowOptions options = new WorkflowOptions.Builder().setTaskList(taskList).build();
-      TestWorkflow workflow = workflowClient.newWorkflowStub(TestWorkflow.class, options);
-      WorkflowClient.start(workflow::execute);
+    WorkflowOptions options = new WorkflowOptions.Builder().setTaskList(taskList).build();
+    TestWorkflow workflow = workflowClient.newWorkflowStub(TestWorkflow.class, options);
+    WorkflowExecution execution = WorkflowClient.start(workflow::execute);
+    started.get();
     if (useExternalService) {
-      workerFactory.shutdown(Duration.ofSeconds(1));
+      workerFactory.shutdown();
+      workerFactory.awaitTermination(10, TimeUnit.MINUTES);
     } else {
-        testEnvironment.close();
+      testEnvironment.shutdown();
+      testEnvironment.awaitTermination(10, TimeUnit.MINUTES);
     }
-          assertEquals("interrupted", workflow.execute());
+    GetWorkflowExecutionHistoryRequest request =
+        new GetWorkflowExecutionHistoryRequest().setDomain(DOMAIN).setExecution(execution);
+    GetWorkflowExecutionHistoryResponse result = service.GetWorkflowExecutionHistory(request);
+    List<HistoryEvent> events = result.getHistory().getEvents();
+    boolean found = false;
+    for (HistoryEvent e : events) {
+      if (e.getEventType() == EventType.ActivityTaskCompleted) {
+        found = true;
+        byte[] ar = e.getActivityTaskCompletedEventAttributes().getResult();
+        assertEquals("\"completed\"", new String(ar, StandardCharsets.UTF_8));
+      }
+    }
+    assertTrue("Contains ActivityTaskCompleted", found);
+  }
+
+  @Test
+  public void testShutdownNow() throws ExecutionException, InterruptedException, TException {
+    String taskList =
+        "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
+    WorkflowClient workflowClient;
+    Worker.Factory workerFactory = null;
+    TestWorkflowEnvironment testEnvironment = null;
+    CompletableFuture<Boolean> started = new CompletableFuture<>();
+    if (useExternalService) {
+      workerFactory = new Worker.Factory(service, DOMAIN);
+      Worker worker = workerFactory.newWorker(taskList);
+      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
+      worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
+      worker.registerActivitiesImplementations(new ActivitiesImpl(started));
+      workerFactory.start();
+    } else {
+      TestEnvironmentOptions testOptions =
+          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+      testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
+      service = testEnvironment.getWorkflowService();
+      Worker worker = testEnvironment.newWorker(taskList);
+      workflowClient = testEnvironment.newWorkflowClient();
+      worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
+      worker.registerActivitiesImplementations(new ActivitiesImpl(started));
+      testEnvironment.start();
+    }
+    WorkflowOptions options = new WorkflowOptions.Builder().setTaskList(taskList).build();
+    TestWorkflow workflow = workflowClient.newWorkflowStub(TestWorkflow.class, options);
+    WorkflowExecution execution = WorkflowClient.start(workflow::execute);
+    started.get();
+    if (useExternalService) {
+      workerFactory.shutdownNow();
+      workerFactory.awaitTermination(10, TimeUnit.MINUTES);
+    } else {
+      testEnvironment.shutdownNow();
+      testEnvironment.awaitTermination(10, TimeUnit.MINUTES);
+    }
+    GetWorkflowExecutionHistoryRequest request =
+        new GetWorkflowExecutionHistoryRequest().setDomain(DOMAIN).setExecution(execution);
+    GetWorkflowExecutionHistoryResponse result = service.GetWorkflowExecutionHistory(request);
+    List<HistoryEvent> events = result.getHistory().getEvents();
+    boolean found = false;
+    for (HistoryEvent e : events) {
+      if (e.getEventType() == EventType.ActivityTaskCompleted) {
+        found = true;
+        byte[] ar = e.getActivityTaskCompletedEventAttributes().getResult();
+        assertEquals("\"interrupted\"", new String(ar, StandardCharsets.UTF_8));
+      }
+    }
+    assertTrue("Contains ActivityTaskCompleted", found);
   }
 }

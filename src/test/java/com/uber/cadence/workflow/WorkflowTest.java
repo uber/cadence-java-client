@@ -80,6 +80,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -172,7 +173,12 @@ public class WorkflowTest {
   private TestWorkflowEnvironment testEnvironment;
   private ScheduledExecutorService scheduledExecutor;
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
-  private static WorkflowServiceTChannel service = new WorkflowServiceTChannel();
+  private static final WorkflowServiceTChannel service = new WorkflowServiceTChannel();
+
+  @AfterClass
+  public static void closeService() {
+    service.close();
+  }
 
   private static WorkflowOptions.Builder newWorkflowOptionsBuilder(String taskList) {
     if (DEBUGGER_TIMEOUTS) {

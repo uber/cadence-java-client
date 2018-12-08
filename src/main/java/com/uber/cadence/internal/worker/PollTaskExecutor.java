@@ -18,13 +18,18 @@
 package com.uber.cadence.internal.worker;
 
 import com.google.common.base.Preconditions;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-final class PollTaskExecutor<T> implements TaskExecutor<T> {
+final class PollTaskExecutor<T> implements ShuttableTaskExecutor<T> {
+
+  private static final Logger log = LoggerFactory.getLogger(PollTaskExecutor.class);
 
   public interface TaskHandler<TT> {
     void handle(TT task) throws Exception;
@@ -62,6 +67,7 @@ final class PollTaskExecutor<T> implements TaskExecutor<T> {
 
   @Override
   public void process(T task) {
+    log.debug("process");
     taskExecutor.execute(
         () -> {
           MDC.put(LoggerTag.DOMAIN, domain);
@@ -81,12 +87,29 @@ final class PollTaskExecutor<T> implements TaskExecutor<T> {
   }
 
   @Override
+  public boolean isShutdown() {
+    return taskExecutor.isShutdown();
+  }
+
+  @Override
+  public boolean isTerminated() {
+    return taskExecutor.isTerminated();
+  }
+
+  @Override
   public void shutdown() {
+    log.debug("shutdown");
     taskExecutor.shutdown();
   }
 
   @Override
-  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    return taskExecutor.awaitTermination(timeout, unit);
+  public void shutdownNow() {
+    taskExecutor.shutdownNow();
+  }
+
+  @Override
+  public void awaitTermination(long timeout, TimeUnit unit) {
+    log.debug("awaitTermination");
+    InternalUtils.awaitTermination(taskExecutor, unit.toMillis(timeout));
   }
 }

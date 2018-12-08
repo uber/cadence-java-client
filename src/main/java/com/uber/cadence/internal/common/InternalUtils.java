@@ -19,8 +19,12 @@ package com.uber.cadence.internal.common;
 
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
+import com.uber.cadence.internal.worker.Shuttable;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /** Utility functions shared by the implementation code. */
 public final class InternalUtils {
@@ -78,6 +82,41 @@ public final class InternalUtils {
     tl.setName(taskListName);
     tl.setKind(TaskListKind.NORMAL);
     return tl;
+  }
+
+  public static long awaitTermination(Shuttable s, long timeoutMillis) {
+    if (s == null) {
+      return timeoutMillis;
+    }
+    return awaitTermination(
+        timeoutMillis,
+        (t) -> {
+          s.awaitTermination(t, TimeUnit.MILLISECONDS);
+        });
+  }
+
+  public static long awaitTermination(ExecutorService s, long timeoutMillis) {
+    if (s == null) {
+      return timeoutMillis;
+    }
+    return awaitTermination(
+        timeoutMillis,
+        (t) -> {
+          try {
+            s.awaitTermination(t, TimeUnit.MILLISECONDS);
+          } catch (InterruptedException e) {
+          }
+        });
+  }
+
+  public static long awaitTermination(long timeoutMillis, Consumer<Long> toTerminate) {
+    long started = System.currentTimeMillis();
+    toTerminate.accept(timeoutMillis);
+    long remainingTimeout = timeoutMillis - (System.currentTimeMillis() - started);
+    if (remainingTimeout < 0) {
+      remainingTimeout = 0;
+    }
+    return remainingTimeout;
   }
 
   /** Prohibit instantiation */

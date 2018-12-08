@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -188,7 +189,8 @@ public class WorkerStressTests {
     }
 
     private void close() {
-      factory.shutdown(Duration.ofSeconds(1));
+      factory.shutdown();
+      factory.awaitTermination(10, TimeUnit.SECONDS);
       testEnv.close();
     }
   }

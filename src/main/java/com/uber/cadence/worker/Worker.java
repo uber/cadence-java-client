@@ -25,13 +25,14 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
-import com.uber.cadence.internal.worker.Dispatcher;
-import com.uber.cadence.internal.worker.PollDecisionTaskDispatcherFactory;
+import com.uber.cadence.internal.worker.Lifecycle;
+import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
 import com.uber.cadence.internal.worker.Poller;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -282,16 +283,36 @@ public final class Worker {
   /**
    * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
    */
-  private void shutdown(Duration timeout) throws InterruptedException {
-    long time = System.currentTimeMillis();
+  private void shutdown() {
     if (activityWorker != null) {
-      activityWorker.shutdownAndAwaitTermination(timeout.toMillis(), TimeUnit.MILLISECONDS);
+      activityWorker.shutdown();
     }
     if (workflowWorker != null) {
-      long left = timeout.toMillis() - (System.currentTimeMillis() - time);
-      workflowWorker.shutdownAndAwaitTermination(left, TimeUnit.MILLISECONDS);
+      workflowWorker.shutdown();
     }
     closed.set(true);
+  }
+
+  /**
+   * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
+   */
+  private void shutdownNow() {
+    if (activityWorker != null) {
+      activityWorker.shutdownNow();
+    }
+    if (workflowWorker != null) {
+      workflowWorker.shutdownNow();
+    }
+    closed.set(true);
+  }
+
+  private boolean isTerminated() {
+    return activityWorker.isTerminated() && workflowWorker.isTerminated();
+  }
+
+  public void awaitTermination(long timeout, TimeUnit unit) {
+    long timeoutMillis = InternalUtils.awaitTermination(activityWorker, unit.toMillis(timeout));
+    InternalUtils.awaitTermination(workflowWorker, timeoutMillis);
   }
 
   @Override
@@ -336,7 +357,7 @@ public final class Worker {
   }
 
   /** Maintains worker creation and lifecycle. */
-  public static final class Factory {
+  public static final class Factory implements Lifecycle {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
     private final String domain;
@@ -347,7 +368,7 @@ public final class Worker {
     private final FactoryOptions factoryOptions;
 
     private Poller<PollForDecisionTaskResponse> stickyPoller;
-    private Dispatcher<String, PollForDecisionTaskResponse> dispatcher;
+    private PollDecisionTaskDispatcher dispatcher;
     private DeciderCache cache;
 
     private State state = State.Initial;
@@ -453,7 +474,7 @@ public final class Worker {
 
       this.cache = new DeciderCache(this.factoryOptions.cacheMaximumSize, metricsScope);
 
-      dispatcher = new PollDecisionTaskDispatcherFactory(workflowService).create();
+      dispatcher = new PollDecisionTaskDispatcher(workflowService);
       stickyPoller =
           new Poller<>(
               id.toString(),
@@ -488,81 +509,120 @@ public final class Worker {
      * @param options Options (like {@link DataConverter} override) for configuring worker.
      * @return Worker
      */
-    public Worker newWorker(String taskList, WorkerOptions options) {
+    public synchronized Worker newWorker(String taskList, WorkerOptions options) {
       Preconditions.checkArgument(
           !Strings.isNullOrEmpty(taskList), "taskList should not be an empty string");
+      Preconditions.checkState(
+          state == State.Initial,
+          String.format(
+              statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
+      Worker worker =
+          new Worker(
+              workflowService,
+              domain,
+              taskList,
+              options,
+              cache,
+              getStickyTaskListName(),
+              Duration.ofSeconds(factoryOptions.stickyDecisionScheduleToStartTimeoutInSeconds),
+              workflowThreadPool);
+      workers.add(worker);
 
-      synchronized (this) {
-        Preconditions.checkState(
-            state == State.Initial,
-            String.format(
-                statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
-        Worker worker =
-            new Worker(
-                workflowService,
-                domain,
-                taskList,
-                options,
-                cache,
-                getStickyTaskListName(),
-                Duration.ofSeconds(factoryOptions.stickyDecisionScheduleToStartTimeoutInSeconds),
-                workflowThreadPool);
-        workers.add(worker);
-
-        if (!this.factoryOptions.disableStickyExecution) {
-          dispatcher.subscribe(taskList, worker.workflowWorker);
-        }
-
-        return worker;
+      if (!this.factoryOptions.disableStickyExecution) {
+        dispatcher.subscribe(taskList, worker.workflowWorker);
       }
+      return worker;
     }
 
     /** Starts all the workers created by this factory. */
-    public void start() {
-      synchronized (this) {
-        Preconditions.checkState(
-            state == State.Initial || state == State.Started,
-            String.format(
-                statusErrorMessage,
-                "start WorkerFactory",
-                state.name(),
-                String.format("%s, %s", State.Initial.name(), State.Initial.name())));
-        if (state == State.Started) {
-          return;
-        }
-        state = State.Started;
+    @Override
+    public synchronized void start() {
+      Preconditions.checkState(
+          state == State.Initial || state == State.Started,
+          String.format(
+              statusErrorMessage,
+              "start WorkerFactory",
+              state.name(),
+              String.format("%s, %s", State.Initial.name(), State.Initial.name())));
+      if (state == State.Started) {
+        return;
+      }
+      state = State.Started;
 
-        for (Worker worker : workers) {
-          worker.start();
-        }
+      for (Worker worker : workers) {
+        worker.start();
+      }
 
-        if (stickyPoller != null) {
-          stickyPoller.start();
+      if (stickyPoller != null) {
+        stickyPoller.start();
+      }
+    }
+
+    @Override
+    public synchronized boolean isStarted() {
+      return state != State.Initial;
+    }
+
+    @Override
+    public synchronized boolean isShutdown() {
+      return state == State.Shutdown;
+    }
+
+    @Override
+    public synchronized boolean isTerminated() {
+      if (state != State.Shutdown) {
+        return false;
+      }
+      if (stickyPoller != null) {
+        if (!stickyPoller.isTerminated()) {
+          return false;
         }
       }
+      for (Worker worker : workers) {
+        if (!worker.isTerminated()) {
+          return false;
+        }
+      }
+      return true;
     }
 
     /**
      * Shuts down Poller used for sticky workflows and all workers created by this factory. Shutdown
      * will be called on each worker created by this factory with the given timeout. If the timeout
      * is exceeded a warning is logged.
-     *
-     * @param timeout
      */
-    public void shutdown(Duration timeout) {
-      synchronized (this) {
-        state = State.Shutdown;
-        if (stickyPoller != null) {
-          stickyPoller.shutdown();
-        }
+    @Override
+    public synchronized void shutdown() {
+      state = State.Shutdown;
+      if (stickyPoller != null) {
+        stickyPoller.shutdown();
+      }
+      for (Worker worker : workers) {
+        worker.shutdown();
+      }
+    }
 
-        for (Worker worker : workers) {
-          try {
-            worker.shutdown(timeout);
-          } catch (InterruptedException e) {
-            log.warn("Interrupted exception thrown during worker shutdown.", e);
-          }
-        }
+    @Override
+    public synchronized void shutdownNow() {
+      state = State.Shutdown;
+      if (stickyPoller != null) {
+        stickyPoller.shutdownNow();
+        // To ensure that it doesn't get new tasks before workers are shutdown.
+        stickyPoller.awaitTermination(1, TimeUnit.SECONDS);
+      }
+      for (Worker worker : workers) {
+        worker.shutdownNow();
+      }
+    }
+
+    @Override
+    public void awaitTermination(long timeout, TimeUnit unit) {
+      long timeoutMillis = unit.toMillis(timeout);
+      InternalUtils.awaitTermination(stickyPoller, timeoutMillis);
+      for (Worker worker : workers) {
+        timeoutMillis =
+            InternalUtils.awaitTermination(
+                timeoutMillis, (t) -> worker.awaitTermination(t, TimeUnit.MILLISECONDS));
       }
     }
 

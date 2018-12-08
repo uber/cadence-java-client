@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 import org.junit.*;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
@@ -520,7 +521,8 @@ public class StickyWorkerTest {
 
     private void close() {
       if (useExternalService) {
-        factory.shutdown(Duration.ofSeconds(1));
+        factory.shutdown();
+        factory.awaitTermination(1, TimeUnit.SECONDS);
       } else {
         testEnv.close();
       }

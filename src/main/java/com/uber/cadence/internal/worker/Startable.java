@@ -17,19 +17,8 @@
 
 package com.uber.cadence.internal.worker;
 
-import java.util.concurrent.TimeUnit;
-
-interface WorkerLifecycle {
-
+public interface Startable {
   void start();
 
-  boolean isRunning();
-
-  void shutdown();
-
-  void shutdownNow();
-
-  boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
-
-  boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit) throws InterruptedException;
+  boolean isStarted();
 }

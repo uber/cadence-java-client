@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.internal.common.BackoffThrottler;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
 import java.util.Objects;
@@ -38,7 +39,7 @@ public final class Poller<T> implements SuspendableWorker {
   }
 
   private final String identity;
-  private final TaskExecutor<T> taskExecutor;
+  private final ShuttableTaskExecutor<T> taskExecutor;
   private final PollTask<T> pollTask;
   private final PollerOptions pollerOptions;
   private static final Logger log = LoggerFactory.getLogger(Poller.class);
@@ -56,7 +57,7 @@ public final class Poller<T> implements SuspendableWorker {
   public Poller(
       String identity,
       PollTask<T> pollTask,
-      TaskExecutor<T> taskExecutor,
+      ShuttableTaskExecutor<T> taskExecutor,
       PollerOptions pollerOptions,
       Scope metricsScope) {
     Objects.requireNonNull(identity, "identity cannot be null");
@@ -110,8 +111,19 @@ public final class Poller<T> implements SuspendableWorker {
     }
   }
 
-  private boolean isStarted() {
+  @Override
+  public boolean isStarted() {
     return pollExecutor != null;
+  }
+
+  @Override
+  public boolean isShutdown() {
+    return pollExecutor.isShutdown();
+  }
+
+  @Override
+  public boolean isTerminated() {
+    return pollExecutor.isTerminated();
   }
 
   @Override
@@ -120,7 +132,13 @@ public final class Poller<T> implements SuspendableWorker {
     if (!isStarted()) {
       return;
     }
-    pollExecutor.shutdown();
+    // shutdownNow and then await to stop long polling and ensure that no new tasks
+    // are dispatched to the taskExecutor.
+    pollExecutor.shutdownNow();
+    try {
+      pollExecutor.awaitTermination(1, TimeUnit.SECONDS);
+    } catch (InterruptedException e) {
+    }
     taskExecutor.shutdown();
   }
 
@@ -131,35 +149,18 @@ public final class Poller<T> implements SuspendableWorker {
       return;
     }
     pollExecutor.shutdownNow();
-    taskExecutor.shutdown();
+    taskExecutor.shutdownNow();
   }
 
   @Override
-  public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    if (pollExecutor == null) {
-      // not started yet.
-      return true;
-    }
-    long start = System.currentTimeMillis();
-    boolean result = pollExecutor.awaitTermination(timeout, unit);
-    long elapsed = System.currentTimeMillis() - start;
-    timeout = unit.toMillis(timeout) - elapsed;
-    return taskExecutor.awaitTermination(timeout, TimeUnit.MILLISECONDS) && result;
-  }
-
-  @Override
-  public boolean shutdownAndAwaitTermination(long timeout, TimeUnit unit)
-      throws InterruptedException {
+  public void awaitTermination(long timeout, TimeUnit unit) {
+    log.debug("awaitTermination begin");
     if (!isStarted()) {
-      return true;
+      return;
     }
-    shutdown();
-    return awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public boolean isRunning() {
-    return isStarted() && !pollExecutor.isTerminated();
+    long timeoutMillis = unit.toMillis(timeout);
+    timeoutMillis = InternalUtils.awaitTermination(pollExecutor, timeoutMillis);
+    InternalUtils.awaitTermination(taskExecutor, timeoutMillis);
   }
 
   @Override
@@ -175,6 +176,11 @@ public final class Poller<T> implements SuspendableWorker {
     if (existing != null) {
       existing.countDown();
     }
+  }
+
+  @Override
+  public boolean isSuspended() {
+    return suspendLatch.get() != null;
   }
 
   @Override

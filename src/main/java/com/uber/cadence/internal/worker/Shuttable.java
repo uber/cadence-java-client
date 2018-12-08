@@ -15,6 +15,19 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.workflow;
+package com.uber.cadence.internal.worker;
 
-public class ExecutorShutdownTest {}
+import java.util.concurrent.TimeUnit;
+
+public interface Shuttable {
+
+  boolean isShutdown();
+
+  boolean isTerminated();
+
+  void shutdown();
+
+  void shutdownNow();
+
+  void awaitTermination(long timeout, TimeUnit unit);
+}

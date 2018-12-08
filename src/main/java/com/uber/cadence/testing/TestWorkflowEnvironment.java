@@ -21,10 +21,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
+import com.uber.cadence.internal.worker.Lifecycle;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerOptions;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -88,7 +90,7 @@ import java.util.function.Function;
  * </code></pre>
  */
 @VisibleForTesting
-public interface TestWorkflowEnvironment {
+public interface TestWorkflowEnvironment extends Lifecycle {
 
   static TestWorkflowEnvironment newInstance() {
     return new TestWorkflowEnvironmentInternal(new TestEnvironmentOptions.Builder().build());
@@ -99,16 +101,14 @@ public interface TestWorkflowEnvironment {
   }
 
   /**
-   * Creates a new Worker instance that is connected to the in-memory test Cadence service. {@link
-   * #close()} calls {@link Worker#shutdown(Duration)} for all workers created through this method.
+   * Creates a new Worker instance that is connected to the in-memory test Cadence service.
    *
    * @param taskList task list to poll.
    */
   Worker newWorker(String taskList);
 
   /**
-   * Creates a new Worker instance that is connected to the in-memory test Cadence service. {@link
-   * #close()} calls {@link Worker#shutdown(Duration)} for all workers created through this method.
+   * Creates a new Worker instance that is connected to the in-memory test Cadence service.
    *
    * @param taskList task list to poll.
    * @param overrideOptions is used to override the default worker options.
@@ -171,14 +171,11 @@ public interface TestWorkflowEnvironment {
   String getDiagnostics();
 
   /**
-   * Performs the final validation of the service state and calls {@link Worker#shutdown(Duration)}
-   * on all workers created through {@link #newWorker(String)} and closes the in-memory Cadence
-   * service.
+   * Performs the final validation of the service state and calls {@link #shutdownNow()} and {@link
+   * #awaitTermination(long, TimeUnit)} on all workers created through {@link #newWorker(String)}
+   * and closes the in-memory Cadence service.
    */
   void close();
-
-  /** Starts all the workers created by the test environment instance */
-  void start();
 
   Worker.Factory getWorkerFactory();
 }

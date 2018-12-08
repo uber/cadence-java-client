@@ -17,6 +17,4 @@
 
 package com.uber.cadence.internal.worker;
 
-interface TaskExecutor<T> {
-  void process(T task);
-}
+public interface ShuttableTaskExecutor<T> extends TaskExecutor<T>, Shuttable {}

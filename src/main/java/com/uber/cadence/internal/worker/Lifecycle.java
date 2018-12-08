@@ -17,6 +17,4 @@
 
 package com.uber.cadence.internal.worker;
 
-public interface DispatcherFactory<TTopic, TMessage> {
-  Dispatcher<TTopic, TMessage> create();
-}
+public interface Lifecycle extends Startable, Shuttable {}

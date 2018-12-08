@@ -25,6 +25,9 @@ class BlockCallerPolicy implements RejectedExecutionHandler {
 
   @Override
   public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+    if (executor.isShutdown()) {
+      throw new IllegalStateException("Executor is shutdown");
+    }
     try {
       // block until there's room
       executor.getQueue().put(r);
