@@ -23,13 +23,9 @@ import com.uber.cadence.internal.logging.LoggerTag;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
-
-  private static final Logger log = LoggerFactory.getLogger(PollTaskExecutor.class);
 
   public interface TaskHandler<TT> {
     void handle(TT task) throws Exception;

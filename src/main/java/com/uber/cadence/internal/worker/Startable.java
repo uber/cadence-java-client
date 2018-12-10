@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.worker;
 
 public interface Startable {
+
   void start();
 
   boolean isStarted();

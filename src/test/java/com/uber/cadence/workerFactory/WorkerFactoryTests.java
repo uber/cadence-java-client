@@ -17,6 +17,7 @@
 
 package com.uber.cadence.workerFactory;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.uber.cadence.worker.Worker;
@@ -42,8 +43,7 @@ public class WorkerFactoryTests {
     Worker worker2 = factory.newWorker("task2");
 
     factory.start();
-    assertTrue(worker1.isStarted());
-    assertTrue(worker2.isStarted());
+    assertTrue(factory.isStarted());
     factory.shutdown();
     factory.awaitTermination(1, TimeUnit.SECONDS);
   }
@@ -54,13 +54,16 @@ public class WorkerFactoryTests {
     Worker worker1 = factory.newWorker("task1");
     Worker worker2 = factory.newWorker("task2");
 
+    assertFalse(factory.isStarted());
     factory.start();
+    assertTrue(factory.isStarted());
+    assertFalse(factory.isShutdown());
     factory.shutdown();
     factory.awaitTermination(1, TimeUnit.MILLISECONDS);
 
-    assertTrue(worker1.isClosed());
-    assertTrue(worker2.isClosed());
+    assertTrue(factory.isShutdown());
     factory.shutdown();
+    assertTrue(factory.isShutdown());
     factory.awaitTermination(1, TimeUnit.SECONDS);
   }
 

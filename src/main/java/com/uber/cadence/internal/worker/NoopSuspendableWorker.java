@@ -20,6 +20,10 @@ package com.uber.cadence.internal.worker;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Helper class that is used instead of null for non initialized worker. This eliminates needs for
+ * null checks when calling into it.
+ */
 class NoopSuspendableWorker implements SuspendableWorker {
 
   private AtomicBoolean shutdown = new AtomicBoolean();

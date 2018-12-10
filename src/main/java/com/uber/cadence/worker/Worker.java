@@ -70,7 +70,6 @@ public final class Worker {
   private final SyncWorkflowWorker workflowWorker;
   private final SyncActivityWorker activityWorker;
   private final AtomicBoolean started = new AtomicBoolean();
-  private final AtomicBoolean closed = new AtomicBoolean();
   private final DeciderCache cache;
   private final String stickyTaskListName;
   private ThreadPoolExecutor threadPoolExecutor;
@@ -272,17 +271,6 @@ public final class Worker {
     }
   }
 
-  public boolean isStarted() {
-    return started.get();
-  }
-
-  public boolean isClosed() {
-    return closed.get();
-  }
-
-  /**
-   * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
-   */
   private void shutdown() {
     if (activityWorker != null) {
       activityWorker.shutdown();
@@ -290,12 +278,8 @@ public final class Worker {
     if (workflowWorker != null) {
       workflowWorker.shutdown();
     }
-    closed.set(true);
   }
 
-  /**
-   * Shutdown a worker, waiting for activities to complete execution up to the specified timeout.
-   */
   private void shutdownNow() {
     if (activityWorker != null) {
       activityWorker.shutdownNow();
@@ -303,14 +287,13 @@ public final class Worker {
     if (workflowWorker != null) {
       workflowWorker.shutdownNow();
     }
-    closed.set(true);
   }
 
   private boolean isTerminated() {
     return activityWorker.isTerminated() && workflowWorker.isTerminated();
   }
 
-  public void awaitTermination(long timeout, TimeUnit unit) {
+  private void awaitTermination(long timeout, TimeUnit unit) {
     long timeoutMillis = InternalUtils.awaitTermination(activityWorker, unit.toMillis(timeout));
     InternalUtils.awaitTermination(workflowWorker, timeoutMillis);
   }
@@ -360,8 +343,8 @@ public final class Worker {
   public static final class Factory {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
-    /** Indicates if factory owns the service which means closes it on shutdown. */
-    private final boolean closeService;
+    /** Indicates if factory owns the service. An owned service is closed on shutdown. */
+    private final boolean closeServiceOnShutdown;
 
     private final String domain;
     private final UUID id =
@@ -448,7 +431,7 @@ public final class Worker {
 
     private Factory(
         IWorkflowService workflowService,
-        boolean closeService,
+        boolean closeServiceOnShutdown,
         String domain,
         FactoryOptions factoryOptions) {
       Preconditions.checkArgument(
@@ -457,7 +440,7 @@ public final class Worker {
       this.domain = domain;
       this.workflowService =
           Objects.requireNonNull(workflowService, "workflowService should not be null");
-      this.closeService = closeService;
+      this.closeServiceOnShutdown = closeServiceOnShutdown;
       factoryOptions =
           factoryOptions == null ? new FactoryOptions.Builder().build() : factoryOptions;
       this.factoryOptions = factoryOptions;
@@ -568,14 +551,20 @@ public final class Worker {
       }
     }
 
+    /** Was {@link #start()} called. */
     public synchronized boolean isStarted() {
       return state != State.Initial;
     }
 
+    /** Was {@link #shutdown()} or {@link #shutdownNow()} called. */
     public synchronized boolean isShutdown() {
       return state == State.Shutdown;
     }
 
+    /**
+     * Returns true if all tasks have completed following shut down. Note that isTerminated is never
+     * true unless either shutdown or shutdownNow was called first.
+     */
     public synchronized boolean isTerminated() {
       if (state != State.Shutdown) {
         return false;
@@ -593,15 +582,18 @@ public final class Worker {
       return true;
     }
 
+    /** @return instance of the cadence client that this worker uses. */
     public IWorkflowService getWorkflowService() {
       return workflowService;
     }
 
     /**
      * Initiates an orderly shutdown in which polls are stopped and already received decision and
-     * activity tasks are executed. Invocation has no additional effect if already shut down. This
-     * method does not wait for previously received tasks to complete execution. Use {@link
-     * #awaitTermination(long, TimeUnit)} to do that.
+     * activity tasks are executed. After the shutdown calls to {@link
+     * com.uber.cadence.activity.Activity#heartbeat(Object)} start throwing {@link
+     * com.uber.cadence.client.ActivityWorkerShutdownException}. Invocation has no additional effect
+     * if already shut down. This method does not wait for previously received tasks to complete
+     * execution. Use {@link #awaitTermination(long, TimeUnit)} to do that.
      */
     public synchronized void shutdown() {
       log.info("shutdown");
@@ -615,8 +607,12 @@ public final class Worker {
       closeServiceWhenTerminated();
     }
 
+    /**
+     * Closes Cadence client object. It should be closed only after all tasks have completed
+     * execution as tasks use it to report completion.
+     */
     private void closeServiceWhenTerminated() {
-      if (closeService) {
+      if (closeServiceOnShutdown) {
         ForkJoinPool.commonPool()
             .execute(
                 () -> {
@@ -631,10 +627,12 @@ public final class Worker {
     /**
      * Initiates an orderly shutdown in which polls are stopped and already received decision and
      * activity tasks are attempted to be stopped. This implementation cancels tasks via
-     * Thread.interrupt(), so any task that fails to respond to interrupts may never terminate.
-     * Invocation has no additional effect if already shut down. This method does not wait for
-     * previously received tasks to complete execution. Use {@link #awaitTermination(long,
-     * TimeUnit)} to do that.
+     * Thread.interrupt(), so any task that fails to respond to interrupts may never terminate. Also
+     * after the shutdownNow calls to {@link com.uber.cadence.activity.Activity#heartbeat(Object)}
+     * start throwing {@link com.uber.cadence.client.ActivityWorkerShutdownException}. Invocation
+     * has no additional effect if already shut down. This method does not wait for previously
+     * received tasks to complete execution. Use {@link #awaitTermination(long, TimeUnit)} to do
+     * that.
      */
     public synchronized void shutdownNow() {
       log.info("shutdownNow");
@@ -650,6 +648,10 @@ public final class Worker {
       closeServiceWhenTerminated();
     }
 
+    /**
+     * Blocks until all tasks have completed execution after a shutdown request, or the timeout
+     * occurs, or the current thread is interrupted, whichever happens first.
+     */
     public void awaitTermination(long timeout, TimeUnit unit) {
       log.info("awaitTermination begin");
       long timeoutMillis = unit.toMillis(timeout);
