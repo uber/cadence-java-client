@@ -19,7 +19,7 @@ package com.uber.cadence.internal.worker;
 
 import java.util.concurrent.TimeUnit;
 
-public interface Shuttable {
+public interface Shutdownable {
 
   boolean isShutdown();
 

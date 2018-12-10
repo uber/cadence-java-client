@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class PollDecisionTaskDispatcher
-    implements ShuttableTaskExecutor<PollForDecisionTaskResponse> {
+    implements ShutdownableTaskExecutor<PollForDecisionTaskResponse> {
 
   private static final Logger log = LoggerFactory.getLogger(PollDecisionTaskDispatcher.class);
   private final Map<String, Consumer<PollForDecisionTaskResponse>> subscribers =

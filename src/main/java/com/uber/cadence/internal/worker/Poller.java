@@ -39,7 +39,7 @@ public final class Poller<T> implements SuspendableWorker {
   }
 
   private final String identity;
-  private final ShuttableTaskExecutor<T> taskExecutor;
+  private final ShutdownableTaskExecutor<T> taskExecutor;
   private final PollTask<T> pollTask;
   private final PollerOptions pollerOptions;
   private static final Logger log = LoggerFactory.getLogger(Poller.class);
@@ -57,7 +57,7 @@ public final class Poller<T> implements SuspendableWorker {
   public Poller(
       String identity,
       PollTask<T> pollTask,
-      ShuttableTaskExecutor<T> taskExecutor,
+      ShutdownableTaskExecutor<T> taskExecutor,
       PollerOptions pollerOptions,
       Scope metricsScope) {
     Objects.requireNonNull(identity, "identity cannot be null");
@@ -154,7 +154,6 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public void awaitTermination(long timeout, TimeUnit unit) {
-    log.debug("awaitTermination begin");
     if (!isStarted()) {
       return;
     }

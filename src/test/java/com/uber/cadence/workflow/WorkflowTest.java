@@ -246,7 +246,7 @@ public class WorkflowTest {
           new WorkflowClientOptions.Builder()
               .setDataConverter(JsonDataConverter.getInstance())
               .build();
-      workflowClientWithOptions = WorkflowClient.newInstance(DOMAIN, clientOptions);
+      workflowClientWithOptions = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
       scheduledExecutor = new ScheduledThreadPoolExecutor(1);
     } else {
       TestEnvironmentOptions testOptions =
@@ -2431,7 +2431,7 @@ public class WorkflowTest {
             .build();
     WorkflowClient wc;
     if (useExternalService) {
-      wc = WorkflowClient.newInstance(DOMAIN, clientOptions);
+      wc = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
     } else {
       wc = testEnvironment.newWorkflowClient(clientOptions);
     }

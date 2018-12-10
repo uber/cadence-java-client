@@ -31,7 +31,6 @@ import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
-import com.uber.cadence.internal.worker.Lifecycle;
 import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
 import com.uber.cadence.internal.worker.Poller;
 import com.uber.cadence.internal.worker.PollerOptions;
@@ -51,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -357,9 +357,12 @@ public final class Worker {
   }
 
   /** Maintains worker creation and lifecycle. */
-  public static final class Factory implements Lifecycle {
+  public static final class Factory {
     private final List<Worker> workers = new ArrayList<>();
     private final IWorkflowService workflowService;
+    /** Indicates if factory owns the service which means closes it on shutdown. */
+    private final boolean closeService;
+
     private final String domain;
     private final UUID id =
         UUID.randomUUID(); // Guarantee uniqueness for stickyTaskListName when multiple factories
@@ -382,7 +385,7 @@ public final class Worker {
      * @param domain Domain used by workers to poll for workflows.
      */
     public Factory(String domain) {
-      this(new WorkflowServiceTChannel(), domain, null);
+      this(new WorkflowServiceTChannel(), true, domain, null);
     }
 
     /**
@@ -394,7 +397,7 @@ public final class Worker {
      * @param domain Domain used by workers to poll for workflows.
      */
     public Factory(String host, int port, String domain) {
-      this(new WorkflowServiceTChannel(host, port), domain, null);
+      this(new WorkflowServiceTChannel(host, port), true, domain, null);
     }
 
     /**
@@ -404,7 +407,7 @@ public final class Worker {
      * @param factoryOptions Options used to configure factory settings
      */
     public Factory(String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(), domain, factoryOptions);
+      this(new WorkflowServiceTChannel(), true, domain, factoryOptions);
     }
 
     /**
@@ -417,7 +420,7 @@ public final class Worker {
      * @param factoryOptions Options used to configure factory settings
      */
     public Factory(String host, int port, String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(host, port), domain, factoryOptions);
+      this(new WorkflowServiceTChannel(host, port), true, domain, factoryOptions);
     }
 
     /**
@@ -428,7 +431,7 @@ public final class Worker {
      * @param domain Domain used by workers to poll for workflows.
      */
     public Factory(IWorkflowService workflowService, String domain) {
-      this(workflowService, domain, null);
+      this(workflowService, false, domain, null);
     }
 
     /**
@@ -440,13 +443,21 @@ public final class Worker {
      * @param factoryOptions Options used to configure factory settings
      */
     public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
+      this(workflowService, false, domain, factoryOptions);
+    }
+
+    private Factory(
+        IWorkflowService workflowService,
+        boolean closeService,
+        String domain,
+        FactoryOptions factoryOptions) {
       Preconditions.checkArgument(
           !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
 
       this.domain = domain;
       this.workflowService =
           Objects.requireNonNull(workflowService, "workflowService should not be null");
-
+      this.closeService = closeService;
       factoryOptions =
           factoryOptions == null ? new FactoryOptions.Builder().build() : factoryOptions;
       this.factoryOptions = factoryOptions;
@@ -535,7 +546,6 @@ public final class Worker {
     }
 
     /** Starts all the workers created by this factory. */
-    @Override
     public synchronized void start() {
       Preconditions.checkState(
           state == State.Initial || state == State.Started,
@@ -558,17 +568,14 @@ public final class Worker {
       }
     }
 
-    @Override
     public synchronized boolean isStarted() {
       return state != State.Initial;
     }
 
-    @Override
     public synchronized boolean isShutdown() {
       return state == State.Shutdown;
     }
 
-    @Override
     public synchronized boolean isTerminated() {
       if (state != State.Shutdown) {
         return false;
@@ -586,13 +593,18 @@ public final class Worker {
       return true;
     }
 
+    public IWorkflowService getWorkflowService() {
+      return workflowService;
+    }
+
     /**
-     * Shuts down Poller used for sticky workflows and all workers created by this factory. Shutdown
-     * will be called on each worker created by this factory with the given timeout. If the timeout
-     * is exceeded a warning is logged.
+     * Initiates an orderly shutdown in which polls are stopped and already received decision and
+     * activity tasks are executed. Invocation has no additional effect if already shut down. This
+     * method does not wait for previously received tasks to complete execution. Use {@link
+     * #awaitTermination(long, TimeUnit)} to do that.
      */
-    @Override
     public synchronized void shutdown() {
+      log.info("shutdown");
       state = State.Shutdown;
       if (stickyPoller != null) {
         stickyPoller.shutdown();
@@ -600,10 +612,32 @@ public final class Worker {
       for (Worker worker : workers) {
         worker.shutdown();
       }
+      closeServiceWhenTerminated();
     }
 
-    @Override
+    private void closeServiceWhenTerminated() {
+      if (closeService) {
+        ForkJoinPool.commonPool()
+            .execute(
+                () -> {
+                  // Service is used to report task completions.
+                  awaitTermination(1, TimeUnit.HOURS);
+                  log.info("Closing workflow service client");
+                  workflowService.close();
+                });
+      }
+    }
+
+    /**
+     * Initiates an orderly shutdown in which polls are stopped and already received decision and
+     * activity tasks are attempted to be stopped. This implementation cancels tasks via
+     * Thread.interrupt(), so any task that fails to respond to interrupts may never terminate.
+     * Invocation has no additional effect if already shut down. This method does not wait for
+     * previously received tasks to complete execution. Use {@link #awaitTermination(long,
+     * TimeUnit)} to do that.
+     */
     public synchronized void shutdownNow() {
+      log.info("shutdownNow");
       state = State.Shutdown;
       if (stickyPoller != null) {
         stickyPoller.shutdownNow();
@@ -613,10 +647,11 @@ public final class Worker {
       for (Worker worker : workers) {
         worker.shutdownNow();
       }
+      closeServiceWhenTerminated();
     }
 
-    @Override
     public void awaitTermination(long timeout, TimeUnit unit) {
+      log.info("awaitTermination begin");
       long timeoutMillis = unit.toMillis(timeout);
       InternalUtils.awaitTermination(stickyPoller, timeoutMillis);
       for (Worker worker : workers) {
@@ -624,6 +659,7 @@ public final class Worker {
             InternalUtils.awaitTermination(
                 timeoutMillis, (t) -> worker.awaitTermination(t, TimeUnit.MILLISECONDS));
       }
+      log.info("awaitTermination done");
     }
 
     @VisibleForTesting

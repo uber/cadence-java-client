@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-final class PollTaskExecutor<T> implements ShuttableTaskExecutor<T> {
+final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
 
   private static final Logger log = LoggerFactory.getLogger(PollTaskExecutor.class);
 
@@ -67,7 +67,6 @@ final class PollTaskExecutor<T> implements ShuttableTaskExecutor<T> {
 
   @Override
   public void process(T task) {
-    log.debug("process");
     taskExecutor.execute(
         () -> {
           MDC.put(LoggerTag.DOMAIN, domain);
@@ -98,7 +97,6 @@ final class PollTaskExecutor<T> implements ShuttableTaskExecutor<T> {
 
   @Override
   public void shutdown() {
-    log.debug("shutdown");
     taskExecutor.shutdown();
   }
 
@@ -109,7 +107,6 @@ final class PollTaskExecutor<T> implements ShuttableTaskExecutor<T> {
 
   @Override
   public void awaitTermination(long timeout, TimeUnit unit) {
-    log.debug("awaitTermination");
     InternalUtils.awaitTermination(taskExecutor, unit.toMillis(timeout));
   }
 }

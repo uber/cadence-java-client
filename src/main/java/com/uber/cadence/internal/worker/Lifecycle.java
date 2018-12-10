@@ -17,4 +17,4 @@
 
 package com.uber.cadence.internal.worker;
 
-public interface Lifecycle extends Startable, Shuttable {}
+public interface Lifecycle extends Startable, Shutdownable {}

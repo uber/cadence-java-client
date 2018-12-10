@@ -185,7 +185,9 @@ public class WorkerStressTests {
     }
 
     private WorkflowClient getWorkflowClient() {
-      return useExternalService ? WorkflowClient.newInstance(DOMAIN) : testEnv.newWorkflowClient();
+      return useExternalService
+          ? WorkflowClient.newInstance(factory.getWorkflowService(), DOMAIN)
+          : testEnv.newWorkflowClient();
     }
 
     private void close() {

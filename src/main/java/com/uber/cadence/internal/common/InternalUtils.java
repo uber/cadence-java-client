@@ -19,7 +19,7 @@ package com.uber.cadence.internal.common;
 
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
-import com.uber.cadence.internal.worker.Shuttable;
+import com.uber.cadence.internal.worker.Shutdownable;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
@@ -84,7 +84,7 @@ public final class InternalUtils {
     return tl;
   }
 
-  public static long awaitTermination(Shuttable s, long timeoutMillis) {
+  public static long awaitTermination(Shutdownable s, long timeoutMillis) {
     if (s == null) {
       return timeoutMillis;
     }

@@ -42,8 +42,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -74,18 +74,16 @@ public class CleanWorkerShutdownTest {
 
   private static IWorkflowService service;
 
-  @BeforeClass
-  public static void setUp() {
-    if (!skipDockerService) {
+  @Before
+  public void setUp() {
+    if (useExternalService) {
       service = new WorkflowServiceTChannel();
     }
   }
 
-  @AfterClass
-  public static void tearDown() {
-    if (service != null && service instanceof WorkflowServiceTChannel) {
-      ((WorkflowServiceTChannel) service).close();
-    }
+  @After
+  public void tearDown() {
+    service.close();
   }
 
   public interface TestWorkflow {

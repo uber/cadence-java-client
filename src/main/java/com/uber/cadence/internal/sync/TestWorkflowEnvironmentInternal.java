@@ -209,7 +209,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
 
   @Override
   public boolean isStarted() {
-    return false;
+    return workerFactory.isStarted();
   }
 
   @Override
@@ -669,6 +669,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       impl.getDiagnostics(result);
     }
 
+    @Override
     public void close() {
       impl.close();
     }

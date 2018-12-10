@@ -17,8 +17,4 @@
 
 package com.uber.cadence.internal.worker;
 
-import java.util.function.Consumer;
-
-public interface Dispatcher<TTopic, TMessage> extends TaskExecutor<TMessage> {
-  void subscribe(TTopic topic, Consumer<TMessage> consumer);
-}
+public interface ShutdownableTaskExecutor<T> extends TaskExecutor<T>, Shutdownable {}
