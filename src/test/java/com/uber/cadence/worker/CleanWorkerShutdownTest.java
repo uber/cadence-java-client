@@ -26,7 +26,9 @@ import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.client.ActivityWorkerShutdownException;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -224,6 +226,85 @@ public class CleanWorkerShutdownTest {
         found = true;
         byte[] ar = e.getActivityTaskCompletedEventAttributes().getResult();
         assertEquals("\"interrupted\"", new String(ar, StandardCharsets.UTF_8));
+      }
+    }
+    assertTrue("Contains ActivityTaskCompleted", found);
+  }
+
+  public static class HeartbeatingActivitiesImpl implements Activities {
+    private final CompletableFuture<Boolean> started;
+
+    public HeartbeatingActivitiesImpl(CompletableFuture<Boolean> started) {
+      this.started = started;
+    }
+
+    @Override
+    public String execute() {
+      try {
+        started.complete(true);
+        Thread.sleep(1000);
+        Activity.heartbeat("foo");
+      } catch (ActivityWorkerShutdownException e) {
+        return "workershutdown";
+      } catch (InterruptedException e) {
+        return "interrupted";
+      }
+      return "completed";
+    }
+  }
+
+  /**
+   * Tests that Activity#heartbeat throws ActivityWorkerShutdownException after {@link
+   * Worker.Factory#shutdown()} is closed.
+   */
+  @Test
+  public void testShutdownHeartbeatingActivity()
+      throws ExecutionException, InterruptedException, TException {
+    String taskList =
+        "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
+    WorkflowClient workflowClient;
+    Worker.Factory workerFactory = null;
+    TestWorkflowEnvironment testEnvironment = null;
+    CompletableFuture<Boolean> started = new CompletableFuture<>();
+    if (useExternalService) {
+      workerFactory = new Worker.Factory(service, DOMAIN);
+      Worker worker = workerFactory.newWorker(taskList);
+      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
+      worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
+      worker.registerActivitiesImplementations(new HeartbeatingActivitiesImpl(started));
+      workerFactory.start();
+    } else {
+      TestEnvironmentOptions testOptions =
+          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+      testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
+      service = testEnvironment.getWorkflowService();
+      Worker worker = testEnvironment.newWorker(taskList);
+      workflowClient = testEnvironment.newWorkflowClient();
+      worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
+      worker.registerActivitiesImplementations(new HeartbeatingActivitiesImpl(started));
+      testEnvironment.start();
+    }
+    WorkflowOptions options = new WorkflowOptions.Builder().setTaskList(taskList).build();
+    TestWorkflow workflow = workflowClient.newWorkflowStub(TestWorkflow.class, options);
+    WorkflowExecution execution = WorkflowClient.start(workflow::execute);
+    started.get();
+    if (useExternalService) {
+      workerFactory.shutdown();
+      workerFactory.awaitTermination(10, TimeUnit.MINUTES);
+    } else {
+      testEnvironment.shutdown();
+      testEnvironment.awaitTermination(10, TimeUnit.MINUTES);
+    }
+    GetWorkflowExecutionHistoryRequest request =
+        new GetWorkflowExecutionHistoryRequest().setDomain(DOMAIN).setExecution(execution);
+    GetWorkflowExecutionHistoryResponse result = service.GetWorkflowExecutionHistory(request);
+    List<HistoryEvent> events = result.getHistory().getEvents();
+    boolean found = false;
+    for (HistoryEvent e : events) {
+      if (e.getEventType() == EventType.ActivityTaskCompleted) {
+        found = true;
+        byte[] ar = e.getActivityTaskCompletedEventAttributes().getResult();
+        assertEquals("\"workershutdown\"", new String(ar, StandardCharsets.UTF_8));
       }
     }
     assertTrue("Contains ActivityTaskCompleted", found);
