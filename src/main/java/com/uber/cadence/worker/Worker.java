@@ -600,6 +600,8 @@ public final class Worker {
       state = State.Shutdown;
       if (stickyPoller != null) {
         stickyPoller.shutdown();
+        // To ensure that it doesn't get new tasks before workers are shutdown.
+        stickyPoller.awaitTermination(1, TimeUnit.SECONDS);
       }
       for (Worker worker : workers) {
         worker.shutdown();
