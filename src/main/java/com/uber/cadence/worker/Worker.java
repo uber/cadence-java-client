@@ -655,11 +655,12 @@ public final class Worker {
     public void awaitTermination(long timeout, TimeUnit unit) {
       log.info("awaitTermination begin");
       long timeoutMillis = unit.toMillis(timeout);
-      InternalUtils.awaitTermination(stickyPoller, timeoutMillis);
+      timeoutMillis = InternalUtils.awaitTermination(stickyPoller, timeoutMillis);
       for (Worker worker : workers) {
+        long t = timeoutMillis; // closure needs immutable value
         timeoutMillis =
             InternalUtils.awaitTermination(
-                timeoutMillis, (t) -> worker.awaitTermination(t, TimeUnit.MILLISECONDS));
+                timeoutMillis, () -> worker.awaitTermination(t, TimeUnit.MILLISECONDS));
       }
       log.info("awaitTermination done");
     }

@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -56,6 +57,9 @@ public final class PollDecisionTaskDispatcher
 
   @Override
   public void process(PollForDecisionTaskResponse t) {
+    if (isShutdown()) {
+      throw new RejectedExecutionException("shutdown");
+    }
     String taskListName = t.getWorkflowExecutionTaskList().getName();
     if (subscribers.containsKey(taskListName)) {
       subscribers.get(taskListName).accept(t);

@@ -24,7 +24,6 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 /** Utility functions shared by the implementation code. */
 public final class InternalUtils {
@@ -90,8 +89,8 @@ public final class InternalUtils {
     }
     return awaitTermination(
         timeoutMillis,
-        (t) -> {
-          s.awaitTermination(t, TimeUnit.MILLISECONDS);
+        () -> {
+          s.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS);
         });
   }
 
@@ -101,17 +100,17 @@ public final class InternalUtils {
     }
     return awaitTermination(
         timeoutMillis,
-        (t) -> {
+        () -> {
           try {
-            s.awaitTermination(t, TimeUnit.MILLISECONDS);
+            s.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS);
           } catch (InterruptedException e) {
           }
         });
   }
 
-  public static long awaitTermination(long timeoutMillis, Consumer<Long> toTerminate) {
+  public static long awaitTermination(long timeoutMillis, Runnable toTerminate) {
     long started = System.currentTimeMillis();
-    toTerminate.accept(timeoutMillis);
+    toTerminate.run();
     long remainingTimeout = timeoutMillis - (System.currentTimeMillis() - started);
     if (remainingTimeout < 0) {
       remainingTimeout = 0;

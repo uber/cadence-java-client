@@ -27,7 +27,7 @@ class BlockCallerPolicy implements RejectedExecutionHandler {
   public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
     // Without this check the call hangs forever on the queue put.
     if (executor.isShutdown()) {
-      throw new IllegalStateException("Executor is shutdown");
+      throw new RejectedExecutionException("Executor is shutdown");
     }
     try {
       // block until there's room
