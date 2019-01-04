@@ -1133,6 +1133,12 @@ public class WorkflowTest {
     assertEquals(expected, result);
   }
 
+  private void assertResult(int expected, WorkflowExecution execution) {
+    int result =
+        workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(int.class);
+    assertEquals(expected, result);
+  }
+
   private void waitForProc(WorkflowExecution execution) {
     workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(Void.class);
   }
@@ -1150,8 +1156,8 @@ public class WorkflowTest {
 
     if (!useExternalService) {
       // Use worker that polls on a task list configured through @WorkflowMethod annotation of func1
-      assertResult("1", WorkflowClient.start(stubF1::func1, "1"));
-      assertEquals("1", stubF1.func1("1")); // Check that duplicated start just returns the result.
+      assertResult(1, WorkflowClient.start(stubF1::func1, 1));
+      assertEquals(1, stubF1.func1(1)); // Check that duplicated start just returns the result.
     }
     // Check that duplicated start is not allowed for AllowDuplicate IdReusePolicy
     TestMultiargsWorkflowsFunc2 stubF2 =
@@ -1227,8 +1233,8 @@ public class WorkflowTest {
     assertEquals("func", WorkflowClient.execute(stubF::func).get());
     TestMultiargsWorkflowsFunc1 stubF1 =
         workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc1.class, workflowOptions);
-    assertEquals("1", WorkflowClient.execute(stubF1::func1, "1").get());
-    assertEquals("1", stubF1.func1("1")); // Check that duplicated start just returns the result.
+    assertEquals(1, (int) WorkflowClient.execute(stubF1::func1, 1).get());
+    assertEquals(1, stubF1.func1(1)); // Check that duplicated start just returns the result.
     TestMultiargsWorkflowsFunc2 stubF2 =
         workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc2.class, workflowOptions);
     assertEquals("12", WorkflowClient.execute(stubF2::func2, "1", 2).get());
@@ -1294,7 +1300,7 @@ public class WorkflowTest {
       assertEquals("func", Async.function(stubF::func).get());
       TestMultiargsWorkflowsFunc1 stubF1 =
           Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc1.class, workflowOptions);
-      assertEquals("1", Async.function(stubF1::func1, "1").get());
+      assertEquals(1, (int) Async.function(stubF1::func1, 1).get());
       TestMultiargsWorkflowsFunc2 stubF2 =
           Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc2.class, workflowOptions);
       assertEquals("12", Async.function(stubF2::func2, "1", 2).get());
@@ -3150,7 +3156,7 @@ public class WorkflowTest {
       workflowIdReusePolicy = WorkflowIdReusePolicy.RejectDuplicate,
       executionStartToCloseTimeoutSeconds = 10
     )
-    String func1(String input);
+    int func1(int input);
   }
 
   public interface TestMultiargsWorkflowsFunc2 {
@@ -3249,7 +3255,7 @@ public class WorkflowTest {
     }
 
     @Override
-    public String func1(String a1) {
+    public int func1(int a1) {
       return a1;
     }
 
