@@ -138,7 +138,7 @@ class WorkflowStubImpl implements WorkflowStub {
     if (!options.isPresent()) {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
-    return startWithOptions(WorkflowOptions.merge(null, null, options.get()), args);
+    return startWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
   }
 
   @Override
