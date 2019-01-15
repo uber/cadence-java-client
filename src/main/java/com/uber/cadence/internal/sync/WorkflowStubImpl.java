@@ -110,8 +110,7 @@ class WorkflowStubImpl implements WorkflowStub {
           "Cannot reuse a stub instance to start more than one workflow execution. The stub "
               + "points to already started execution.");
     }
-    StartWorkflowExecutionParameters p =
-        StartWorkflowExecutionParameters.createStartWorkflowExecutionParametersFromOptions(o);
+    StartWorkflowExecutionParameters p = StartWorkflowExecutionParameters.fromWorkflowOptions(o);
     if (o.getWorkflowId() == null) {
       p.setWorkflowId(UUID.randomUUID().toString());
     } else {

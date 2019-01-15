@@ -79,7 +79,11 @@ class SyncWorkflow implements ReplayWorkflow {
       throw new IllegalArgumentException("Unknown workflow type: " + workflowType);
     }
     SyncDecisionContext syncContext =
-        new SyncDecisionContext(context, dataConverter, interceptorFactory);
+        new SyncDecisionContext(
+            context,
+            dataConverter,
+            interceptorFactory,
+            event.getWorkflowExecutionStartedEventAttributes().getLastCompletionResult());
     if (event.getEventType() != EventType.WorkflowExecutionStarted) {
       throw new IllegalArgumentException(
           "first event is not WorkflowExecutionStarted, but " + event.getEventType());
