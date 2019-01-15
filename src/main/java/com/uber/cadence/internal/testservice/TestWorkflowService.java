@@ -190,8 +190,7 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
-      throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
-          ServiceBusyError, TException {
+      throws TException {
     return startWorkflowExecutionImpl(startRequest, 0, Optional.empty(), OptionalLong.empty());
   }
 
@@ -536,6 +535,7 @@ public final class TestWorkflowService implements IWorkflowService {
             .setWorkflowIdReusePolicy(previousRunStartRequest.getWorkflowIdReusePolicy())
             .setIdentity(identity)
             .setRetryPolicy(previousRunStartRequest.getRetryPolicy())
+            .setCronSchedule(previousRunStartRequest.getCronSchedule())
             .setChildPolicy(previousRunStartRequest.getChildPolicy());
     if (a.isSetInput()) {
       startRequest.setInput(a.getInput());

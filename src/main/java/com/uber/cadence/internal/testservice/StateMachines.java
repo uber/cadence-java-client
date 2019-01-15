@@ -150,6 +150,13 @@ class StateMachines {
   static final class WorkflowData {
     Optional<RetryState> retryState = Optional.empty();
     int backoffStartIntervalInSeconds;
+    String cronSchedule;
+
+    WorkflowData(Optional<RetryState> retryState, int backoffStartIntervalInSeconds, String cronSchedule) {
+      this.retryState = retryState;
+      this.backoffStartIntervalInSeconds = backoffStartIntervalInSeconds;
+      this.cronSchedule = cronSchedule;
+    }
   }
 
   static final class DecisionTaskData {
@@ -220,8 +227,8 @@ class StateMachines {
     public long startedEventId;
   }
 
-  static StateMachine<WorkflowData> newWorkflowStateMachine() {
-    return new StateMachine<>(new WorkflowData())
+  static StateMachine<WorkflowData> newWorkflowStateMachine(WorkflowData data) {
+    return new StateMachine<>(data)
         .add(NONE, START, STARTED, StateMachines::startWorkflow)
         .add(STARTED, COMPLETE, COMPLETED, StateMachines::completeWorkflow)
         .add(STARTED, CONTINUE_AS_NEW, CONTINUED_AS_NEW, StateMachines::continueAsNewWorkflow)

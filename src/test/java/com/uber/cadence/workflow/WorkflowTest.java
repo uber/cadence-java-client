@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.uber.cadence.*;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
@@ -43,6 +44,7 @@ import com.uber.cadence.client.WorkflowFailureException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
@@ -64,6 +66,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Type;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -124,10 +127,10 @@ public class WorkflowTest {
       };
     } else {
       return new Object[][] {
-        {true, "Docker Sticky OFF", true},
-        {true, "Docker Sticky ON", false},
+//        {true, "Docker Sticky OFF", true},
+//        {true, "Docker Sticky ON", false},
         {false, "TestService Sticky OFF", true},
-        {false, "TestService Sticky ON", false}
+//        {false, "TestService Sticky ON", false}
       };
     }
   }
@@ -2886,6 +2889,48 @@ public class WorkflowTest {
       assertEquals("simulated 3", e.getCause().getMessage());
     }
   }
+
+  public interface TestWorkflowWithCronSchedule {
+    @WorkflowMethod
+    @CronSchedule("0 * * * *")
+    String execute(String testName);
+  }
+
+  public static class TestWorkflowWithCronScheduleImpl
+      implements TestWorkflowWithCronSchedule {
+
+    @Override
+    public String execute(String testName) {
+      AtomicInteger count = retryCount.get(testName);
+      if (count == null) {
+        count = new AtomicInteger();
+        retryCount.put(testName, count);
+      }
+      int c = count.incrementAndGet();
+      SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss");
+      Date now = new Date(Workflow.currentTimeMillis());
+      System.out.println("run at " + sdf.format(now));
+      return "run " + c;
+      }
+    }
+
+  @Test
+  public void testTestWorkflowWithCronSchedule() {
+    startWorkerFor(TestWorkflowWithCronScheduleImpl.class);
+
+    WorkflowStub client = workflowClient.newUntypedWorkflowStub("TestWorkflowWithCronSchedule::execute",
+        newWorkflowOptionsBuilder(taskList).setCronSchedule("0 * * * *").setExecutionStartToCloseTimeout(Duration.ofHours(1)).build());
+    registerDelayedCallback(Duration.ofMinutes(10), client::cancel);
+    client.start(testName.getMethodName());
+
+    try {
+      client.getResult(String.class);
+      fail("unreachable");
+    } catch (CancellationException ignored) {
+    }
+
+  }
+
 
   public interface TestActivities {
 
