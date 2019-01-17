@@ -308,7 +308,10 @@ class WorkflowStubImpl implements WorkflowStub {
     if (execution.get() == null || execution.get().getWorkflowId() == null) {
       return;
     }
-    genericClient.requestCancelWorkflowExecution(execution.get());
+
+    WorkflowExecution e =  execution.get();
+    e.unsetRunId();
+    genericClient.requestCancelWorkflowExecution(e);
   }
 
   @Override

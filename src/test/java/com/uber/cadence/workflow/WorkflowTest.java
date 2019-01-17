@@ -2901,26 +2901,31 @@ public class WorkflowTest {
 
     @Override
     public String execute(String testName) {
+      if (CancellationScope.current().isCancelRequested()) {
+        System.out.println("Run cancelled.");
+        return null;
+      }
+
       AtomicInteger count = retryCount.get(testName);
       if (count == null) {
         count = new AtomicInteger();
         retryCount.put(testName, count);
       }
       int c = count.incrementAndGet();
-      SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss");
+      SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss.SSS");
       Date now = new Date(Workflow.currentTimeMillis());
       System.out.println("run at " + sdf.format(now));
       return "run " + c;
-      }
     }
+  }
 
   @Test
   public void testTestWorkflowWithCronSchedule() {
     startWorkerFor(TestWorkflowWithCronScheduleImpl.class);
 
     WorkflowStub client = workflowClient.newUntypedWorkflowStub("TestWorkflowWithCronSchedule::execute",
-        newWorkflowOptionsBuilder(taskList).setCronSchedule("0 * * * *").setExecutionStartToCloseTimeout(Duration.ofHours(1)).build());
-    registerDelayedCallback(Duration.ofMinutes(10), client::cancel);
+        newWorkflowOptionsBuilder(taskList).setExecutionStartToCloseTimeout(Duration.ofHours(1)).setCronSchedule("0 * * * *").build());
+    registerDelayedCallback(Duration.ofHours(3), client::cancel);
     client.start(testName.getMethodName());
 
     try {
