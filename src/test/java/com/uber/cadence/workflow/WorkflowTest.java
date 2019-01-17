@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.uber.cadence.*;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
@@ -111,7 +110,7 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = true;
+  private static final boolean DEBUGGER_TIMEOUTS = false;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
@@ -2898,8 +2897,7 @@ public class WorkflowTest {
 
   static String lastCompletionResult;
 
-  public static class TestWorkflowWithCronScheduleImpl
-      implements TestWorkflowWithCronSchedule {
+  public static class TestWorkflowWithCronScheduleImpl implements TestWorkflowWithCronSchedule {
 
     @Override
     public String execute(String testName) {
@@ -2931,8 +2929,13 @@ public class WorkflowTest {
 
     startWorkerFor(TestWorkflowWithCronScheduleImpl.class);
 
-    WorkflowStub client = workflowClient.newUntypedWorkflowStub("TestWorkflowWithCronSchedule::execute",
-        newWorkflowOptionsBuilder(taskList).setExecutionStartToCloseTimeout(Duration.ofHours(1)).setCronSchedule("0 * * * *").build());
+    WorkflowStub client =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflowWithCronSchedule::execute",
+            newWorkflowOptionsBuilder(taskList)
+                .setExecutionStartToCloseTimeout(Duration.ofHours(1))
+                .setCronSchedule("0 * * * *")
+                .build());
     registerDelayedCallback(Duration.ofHours(3), client::cancel);
     client.start(testName.getMethodName());
 

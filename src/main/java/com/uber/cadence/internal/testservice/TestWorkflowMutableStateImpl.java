@@ -111,11 +111,17 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     this.parentChildInitiatedEventId = parentChildInitiatedEventId;
     this.service = service;
     String runId = UUID.randomUUID().toString();
-    this.executionId = new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
+    this.executionId =
+        new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
     this.store = store;
     selfAdvancingTimer = store.getTimer();
     this.clock = selfAdvancingTimer.getClock();
-    WorkflowData data = new WorkflowData(retryState, backoffStartIntervalInSeconds, startRequest.getCronSchedule(), lastCompletionResult);
+    WorkflowData data =
+        new WorkflowData(
+            retryState,
+            backoffStartIntervalInSeconds,
+            startRequest.getCronSchedule(),
+            lastCompletionResult);
     this.workflow = StateMachines.newWorkflowStateMachine(data);
   }
 
@@ -292,7 +298,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     switch (d.getDecisionType()) {
       case CompleteWorkflowExecution:
         processCompleteWorkflowExecution(
-            ctx, d.getCompleteWorkflowExecutionDecisionAttributes(), decisionTaskCompletedId, identity);
+            ctx,
+            d.getCompleteWorkflowExecutionDecisionAttributes(),
+            decisionTaskCompletedId,
+            identity);
         break;
       case FailWorkflowExecution:
         processFailWorkflowExecution(
@@ -848,7 +857,12 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
   }
 
-  private void startNewCronRun(RequestContext ctx, long decisionTaskCompletedId, String identity, WorkflowData data, byte[] lastCompletionResult)
+  private void startNewCronRun(
+      RequestContext ctx,
+      long decisionTaskCompletedId,
+      String identity,
+      WorkflowData data,
+      byte[] lastCompletionResult)
       throws InternalServiceError, BadRequestError {
     CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
     CronParser parser = new CronParser(cronDefinition);
@@ -859,11 +873,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
     ExecutionTime executionTime = ExecutionTime.forCron(cron);
     Optional<Duration> backoff = executionTime.timeToNextExecution(now);
-    int backoffIntervalSeconds = (int)backoff.get().getSeconds();
+    int backoffIntervalSeconds = (int) backoff.get().getSeconds();
 
     if (backoffIntervalSeconds == 0) {
       backoff = executionTime.timeToNextExecution(now.plusSeconds(1));
-      backoffIntervalSeconds = (int)backoff.get().getSeconds() + 1;
+      backoffIntervalSeconds = (int) backoff.get().getSeconds() + 1;
     }
 
     ContinueAsNewWorkflowExecutionDecisionAttributes continueAsNewAttr =
@@ -882,7 +896,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     WorkflowExecutionContinuedAsNewEventAttributes continuedAsNewEventAttributes =
         event.getWorkflowExecutionContinuedAsNewEventAttributes();
 
-    String runId = service.continueAsNew(
+    String runId =
+        service.continueAsNew(
             startRequest,
             continuedAsNewEventAttributes,
             Optional.empty(),
@@ -970,9 +985,11 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
             int executionTimeoutTimerDelay = startRequest.getExecutionStartToCloseTimeoutSeconds();
             if (backoffStartIntervalInSeconds > 0) {
-              executionTimeoutTimerDelay = executionTimeoutTimerDelay+backoffStartIntervalInSeconds;
+              executionTimeoutTimerDelay =
+                  executionTimeoutTimerDelay + backoffStartIntervalInSeconds;
             }
-            ctx.addTimer(executionTimeoutTimerDelay, this::timeoutWorkflow, "workflow execution timeout");
+            ctx.addTimer(
+                executionTimeoutTimerDelay, this::timeoutWorkflow, "workflow execution timeout");
           });
     } catch (EntityNotExistsError entityNotExistsError) {
       throw new InternalServiceError(Throwables.getStackTraceAsString(entityNotExistsError));

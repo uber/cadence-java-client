@@ -189,8 +189,7 @@ public final class TestWorkflowService implements IWorkflowService {
 
   @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
-      StartWorkflowExecutionRequest startRequest)
-      throws TException {
+      StartWorkflowExecutionRequest startRequest) throws TException {
     return startWorkflowExecutionImpl(startRequest, 0, Optional.empty(), OptionalLong.empty());
   }
 

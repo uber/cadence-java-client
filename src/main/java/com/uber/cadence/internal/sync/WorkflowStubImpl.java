@@ -309,7 +309,9 @@ class WorkflowStubImpl implements WorkflowStub {
       return;
     }
 
-    WorkflowExecution e =  execution.get();
+    // RunId can change if workflow does ContinueAsNew. So we remove it here and
+    // let the server figure out the current run.
+    WorkflowExecution e = execution.get();
     e.unsetRunId();
     genericClient.requestCancelWorkflowExecution(e);
   }

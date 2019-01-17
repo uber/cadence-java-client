@@ -153,7 +153,11 @@ class StateMachines {
     String cronSchedule;
     byte[] lastCompletionResult;
 
-    WorkflowData(Optional<RetryState> retryState, int backoffStartIntervalInSeconds, String cronSchedule, byte[] lastCompletionResult) {
+    WorkflowData(
+        Optional<RetryState> retryState,
+        int backoffStartIntervalInSeconds,
+        String cronSchedule,
+        byte[] lastCompletionResult) {
       this.retryState = retryState;
       this.backoffStartIntervalInSeconds = backoffStartIntervalInSeconds;
       this.cronSchedule = cronSchedule;
