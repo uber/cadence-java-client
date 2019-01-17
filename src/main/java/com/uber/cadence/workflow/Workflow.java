@@ -1029,11 +1029,11 @@ public final class Workflow {
     return WorkflowInternal.getLogger(name);
   }
 
-  public <R> R getLastCompletionResult(Class<R> resultClass) {
+  public static <R> R getLastCompletionResult(Class<R> resultClass) {
     return WorkflowInternal.getLastCompletionResult(resultClass, resultClass);
   }
 
-  public <R> R getLastCompletionResult(Class<R> resultClass, Type resultType) {
+  public static <R> R getLastCompletionResult(Class<R> resultClass, Type resultType) {
     return WorkflowInternal.getLastCompletionResult(resultClass, resultType);
   }
 

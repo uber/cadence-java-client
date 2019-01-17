@@ -127,10 +127,10 @@ public class WorkflowTest {
       };
     } else {
       return new Object[][] {
-//        {true, "Docker Sticky OFF", true},
-//        {true, "Docker Sticky ON", false},
+        {true, "Docker Sticky OFF", true},
+        {true, "Docker Sticky ON", false},
         {false, "TestService Sticky OFF", true},
-//        {false, "TestService Sticky ON", false}
+        {false, "TestService Sticky ON", false}
       };
     }
   }
@@ -2896,6 +2896,8 @@ public class WorkflowTest {
     String execute(String testName);
   }
 
+  static String lastCompletionResult;
+
   public static class TestWorkflowWithCronScheduleImpl
       implements TestWorkflowWithCronSchedule {
 
@@ -2905,6 +2907,8 @@ public class WorkflowTest {
         System.out.println("Run cancelled.");
         return null;
       }
+
+      lastCompletionResult = Workflow.getLastCompletionResult(String.class);
 
       AtomicInteger count = retryCount.get(testName);
       if (count == null) {
@@ -2921,6 +2925,10 @@ public class WorkflowTest {
 
   @Test
   public void testTestWorkflowWithCronSchedule() {
+    // Min interval in cron is 1min. So we will not test it against real service in Jenkins.
+    // Feel free to uncomment the line below and test in local.
+    Assume.assumeFalse("skipping as test will timeout", useExternalService);
+
     startWorkerFor(TestWorkflowWithCronScheduleImpl.class);
 
     WorkflowStub client = workflowClient.newUntypedWorkflowStub("TestWorkflowWithCronSchedule::execute",
@@ -2934,8 +2942,8 @@ public class WorkflowTest {
     } catch (CancellationException ignored) {
     }
 
+    Assert.assertEquals("run 3", lastCompletionResult);
   }
-
 
   public interface TestActivities {
 

@@ -229,6 +229,7 @@ public final class TestWorkflowService implements IWorkflowService {
           startRequest,
           retryState,
           backoffStartIntervalInSeconds,
+          null,
           parent,
           parentChildInitiatedEventId,
           workflowId);
@@ -264,6 +265,7 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest,
       Optional<RetryState> retryState,
       int backoffStartIntervalInSeconds,
+      byte[] lastCompletionResult,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       WorkflowId workflowId)
@@ -274,6 +276,7 @@ public final class TestWorkflowService implements IWorkflowService {
             startRequest,
             retryState,
             backoffStartIntervalInSeconds,
+            lastCompletionResult,
             parent,
             parentChildInitiatedEventId,
             this,
@@ -547,6 +550,7 @@ public final class TestWorkflowService implements IWorkflowService {
               startRequest,
               retryState,
               a.getBackoffStartIntervalInSeconds(),
+              a.getLastCompletionResult(),
               parent,
               parentChildInitiatedEventId,
               executionId.getWorkflowId());

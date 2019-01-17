@@ -101,6 +101,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       StartWorkflowExecutionRequest startRequest,
       Optional<RetryState> retryState,
       int backoffStartIntervalInSeconds,
+      byte[] lastCompletionResult,
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       TestWorkflowService service,
@@ -114,7 +115,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     this.store = store;
     selfAdvancingTimer = store.getTimer();
     this.clock = selfAdvancingTimer.getClock();
-    WorkflowData data = new WorkflowData(retryState, backoffStartIntervalInSeconds, startRequest.getCronSchedule());
+    WorkflowData data = new WorkflowData(retryState, backoffStartIntervalInSeconds, startRequest.getCronSchedule(), lastCompletionResult);
     this.workflow = StateMachines.newWorkflowStateMachine(data);
   }
 
@@ -777,7 +778,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
 
     if (!Strings.isNullOrEmpty(data.cronSchedule)) {
-      startNewCronRun(ctx, decisionTaskCompletedId, identity, data);
+      startNewCronRun(ctx, decisionTaskCompletedId, identity, data, null);
       return;
     }
 
@@ -816,7 +817,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throws InternalServiceError, BadRequestError {
     WorkflowData data = workflow.getData();
     if (!Strings.isNullOrEmpty(data.cronSchedule)) {
-      startNewCronRun(ctx, decisionTaskCompletedId, identity, data);
+      startNewCronRun(ctx, decisionTaskCompletedId, identity, data, d.getResult());
       return;
     }
 
@@ -847,7 +848,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
   }
 
-  private void startNewCronRun(RequestContext ctx, long decisionTaskCompletedId, String identity, WorkflowData data)
+  private void startNewCronRun(RequestContext ctx, long decisionTaskCompletedId, String identity, WorkflowData data, byte[] lastCompletionResult)
       throws InternalServiceError, BadRequestError {
     CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
     CronParser parser = new CronParser(cronDefinition);
@@ -874,7 +875,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             .setTaskStartToCloseTimeoutSeconds(startRequest.getTaskStartToCloseTimeoutSeconds())
             .setTaskList(startRequest.getTaskList())
             .setBackoffStartIntervalInSeconds(backoffIntervalSeconds)
-            .setRetryPolicy(startRequest.getRetryPolicy());
+            .setRetryPolicy(startRequest.getRetryPolicy())
+            .setLastCompletionResult(lastCompletionResult);
     workflow.action(Action.CONTINUE_AS_NEW, ctx, continueAsNewAttr, decisionTaskCompletedId);
     HistoryEvent event = ctx.getEvents().get(ctx.getEvents().size() - 1);
     WorkflowExecutionContinuedAsNewEventAttributes continuedAsNewEventAttributes =

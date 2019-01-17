@@ -151,11 +151,13 @@ class StateMachines {
     Optional<RetryState> retryState = Optional.empty();
     int backoffStartIntervalInSeconds;
     String cronSchedule;
+    byte[] lastCompletionResult;
 
-    WorkflowData(Optional<RetryState> retryState, int backoffStartIntervalInSeconds, String cronSchedule) {
+    WorkflowData(Optional<RetryState> retryState, int backoffStartIntervalInSeconds, String cronSchedule, byte[] lastCompletionResult) {
       this.retryState = retryState;
       this.backoffStartIntervalInSeconds = backoffStartIntervalInSeconds;
       this.cronSchedule = cronSchedule;
+      this.lastCompletionResult = lastCompletionResult;
     }
   }
 
@@ -528,6 +530,7 @@ class StateMachines {
     if (data.retryState.isPresent()) {
       a.setAttempt(data.retryState.get().getAttempt());
     }
+    a.setLastCompletionResult(data.lastCompletionResult);
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionStarted)
@@ -582,6 +585,7 @@ class StateMachines {
     }
     a.setDecisionTaskCompletedEventId(decisionTaskCompletedEventId);
     a.setBackoffStartIntervalInSeconds(d.getBackoffStartIntervalInSeconds());
+    a.setLastCompletionResult(d.getLastCompletionResult());
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionContinuedAsNew)
