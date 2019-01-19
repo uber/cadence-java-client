@@ -787,7 +787,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     }
 
     if (!Strings.isNullOrEmpty(data.cronSchedule)) {
-      startNewCronRun(ctx, decisionTaskCompletedId, identity, data, null);
+      startNewCronRun(ctx, decisionTaskCompletedId, identity, data, data.lastCompletionResult);
       return;
     }
 

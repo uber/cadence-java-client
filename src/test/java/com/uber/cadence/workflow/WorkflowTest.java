@@ -2914,6 +2914,11 @@ public class WorkflowTest {
         retryCount.put(testName, count);
       }
       int c = count.incrementAndGet();
+
+      if (c == 3) {
+        throw new RuntimeException("simulated error");
+      }
+
       SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss.SSS");
       Date now = new Date(Workflow.currentTimeMillis());
       System.out.println("run at " + sdf.format(now));
@@ -2945,7 +2950,8 @@ public class WorkflowTest {
     } catch (CancellationException ignored) {
     }
 
-    Assert.assertEquals("run 3", lastCompletionResult);
+    // Run 3 failed. So on run 4 we get the last completion result from run 2.
+    Assert.assertEquals("run 2", lastCompletionResult);
   }
 
   public interface TestActivities {

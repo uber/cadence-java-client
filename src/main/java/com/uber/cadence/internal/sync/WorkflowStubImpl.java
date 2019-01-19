@@ -309,11 +309,10 @@ class WorkflowStubImpl implements WorkflowStub {
       return;
     }
 
-    // RunId can change if workflow does ContinueAsNew. So we remove it here and
+    // RunId can change if workflow does ContinueAsNew. So we do not set it here and
     // let the server figure out the current run.
-    WorkflowExecution e = execution.get();
-    e.unsetRunId();
-    genericClient.requestCancelWorkflowExecution(e);
+    genericClient.requestCancelWorkflowExecution(
+        new WorkflowExecution().setWorkflowId(execution.get().getWorkflowId()));
   }
 
   @Override

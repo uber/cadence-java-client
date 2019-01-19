@@ -29,10 +29,7 @@ import java.lang.annotation.Target;
  * supplied, and the workflow failed or timeout, the workflow will be retried based on the retry
  * policy. While the workflow is retrying, it won't schedule its next run. If next schedule is due
  * while workflow is running (or retrying), then it will skip that schedule. Cron workflow will not
- * stop until it is terminated or cancelled (by returning cadence.CanceledError). he cron spec is as
- * following: ┌───────────── minute (0 - 59) │ ┌───────────── hour (0 - 23) │ │ ┌───────────── day
- * of the month (1 - 31) │ │ │ ┌───────────── month (1 - 12) │ │ │ │ ┌───────────── day of the week
- * (0 - 6) (Sunday to Saturday) │ │ │ │ │ │ │ │ │ │ * * * * *
+ * stop until it is terminated or cancelled.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
