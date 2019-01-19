@@ -2901,8 +2901,10 @@ public class WorkflowTest {
 
     @Override
     public String execute(String testName) {
+      Logger log = Workflow.getLogger(TestWorkflowWithCronScheduleImpl.class);
+
       if (CancellationScope.current().isCancelRequested()) {
-        System.out.println("Run cancelled.");
+        log.debug("TestWorkflowWithCronScheduleImpl run cancelled.");
         return null;
       }
 
@@ -2921,7 +2923,7 @@ public class WorkflowTest {
 
       SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss.SSS");
       Date now = new Date(Workflow.currentTimeMillis());
-      System.out.println("run at " + sdf.format(now));
+      log.debug("TestWorkflowWithCronScheduleImpl run at " + sdf.format(now));
       return "run " + c;
     }
   }
