@@ -52,7 +52,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
   public enum InvocationType {
     START,
-    EXECUTE
+    EXECUTE,
   }
 
   private static class AsyncInvocation {
