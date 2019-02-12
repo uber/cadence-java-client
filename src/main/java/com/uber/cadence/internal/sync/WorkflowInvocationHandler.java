@@ -64,7 +64,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     <R> R getResult(Class<R> resultClass);
   }
 
-  private static final ThreadLocal<SyncWorkflowInvocationHandler> invocationContext =
+  private static final ThreadLocal<SpecificInvocationHandler> invocationContext =
       new ThreadLocal<>();
 
   /** Must call {@link #closeAsyncInvocation()} if this one was called. */
@@ -77,12 +77,16 @@ class WorkflowInvocationHandler implements InvocationHandler {
     if (invocationContext.get() != null) {
       throw new IllegalStateException("already in start invocation");
     }
-    invocationContext.set(new SyncWorkflowInvocationHandler(type));
+    if (type == InvocationType.START) {
+      invocationContext.set(new StartWorkflowInvocationHandler());
+    } else {
+      invocationContext.set(new AsyncWorkflowInvocationHandler(type));
+    }
   }
 
   @SuppressWarnings("unchecked")
   static <R> R getAsyncInvocationResult(Class<R> resultClass) {
-    SyncWorkflowInvocationHandler invocation = invocationContext.get();
+    SpecificInvocationHandler invocation = invocationContext.get();
     if (invocation == null) {
       throw new IllegalStateException("initAsyncInvocation wasn't called");
     }
@@ -151,7 +155,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     }
     SpecificInvocationHandler handler = invocationContext.get();
     if (handler == null) {
-      handler = new SyncWorkflowInvocationHandler(InvocationType.SYNC);
+      handler = new AsyncWorkflowInvocationHandler(InvocationType.SYNC);
     }
     handler.invoke(untyped, method, args);
     if (handler.getInvocationType() == InvocationType.SYNC) {
@@ -160,12 +164,38 @@ class WorkflowInvocationHandler implements InvocationHandler {
     return Defaults.defaultValue(method.getReturnType());
   }
 
-  private static class SyncWorkflowInvocationHandler implements SpecificInvocationHandler {
+  private static class StartWorkflowInvocationHandler implements SpecificInvocationHandler {
+
+    private Object result;
+
+    @Override
+    public InvocationType getInvocationType() {
+      return InvocationType.START;
+    }
+
+    @Override
+    public void invoke(WorkflowStub untyped, Method method, Object[] args) {
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      if (workflowMethod == null) {
+        throw new IllegalArgumentException(
+            "WorkflowClient.start can be called only on a method annotated with @WorkflowMethod");
+      }
+      result = untyped.start(args);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <R> R getResult(Class<R> resultClass) {
+      return (R) result;
+    }
+  }
+
+  private static class AsyncWorkflowInvocationHandler implements SpecificInvocationHandler {
 
     private final InvocationType invocationType;
     private Object result;
 
-    private SyncWorkflowInvocationHandler(InvocationType invocationType) {
+    private AsyncWorkflowInvocationHandler(InvocationType invocationType) {
       this.invocationType = invocationType;
     }
 
