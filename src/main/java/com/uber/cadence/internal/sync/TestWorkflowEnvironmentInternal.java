@@ -737,6 +737,12 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
+      public WorkflowExecution signalWithStart(
+          String signalName, Object[] signalArgs, Object[] startArgs) {
+        return next.signalWithStart(signalName, signalArgs, startArgs);
+      }
+
+      @Override
       public Optional<String> getWorkflowType() {
         return next.getWorkflowType();
       }

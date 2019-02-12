@@ -38,7 +38,8 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,58 +47,77 @@ import org.slf4j.LoggerFactory;
  * Dynamic implementation of a strongly typed workflow interface that can be used to start, signal
  * and query workflows from external processes.
  */
-class WorkflowInvocationHandler implements InvocationHandler {
+class WorkflowInvocationHandler implements InvocationHandler, Supplier<WorkflowStub> {
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowInvocationHandler.class);
 
   public enum InvocationType {
     START,
     EXECUTE,
+    BATCH,
   }
 
-  private static class AsyncInvocation {
+  private static class AsyncInvocation<T> {
 
     private final InvocationType type;
-    // Holds either WorkflowExecution or CompletableFuture to workflow result.
-    private final AtomicReference<Object> result = new AtomicReference<>();
+
+    private T value;
 
     AsyncInvocation(InvocationType type) {
       this.type = type;
     }
+
+    AsyncInvocation(InvocationType type, T value) {
+      this.type = type;
+      this.value = value;
+    }
+
+    public T getValue() {
+      return value;
+    }
+
+    public void setValue(T value) {
+      this.value = value;
+    }
   }
 
-  private static final ThreadLocal<AsyncInvocation> asyncInvocation = new ThreadLocal<>();
+  private static final ThreadLocal<AsyncInvocation<?>> asyncInvocation = new ThreadLocal<>();
 
   private final WorkflowStub untyped;
 
   /** Must call {@link #closeAsyncInvocation()} if this one was called. */
   static void initAsyncInvocation(InvocationType type) {
+    initAsyncInvocation(type, null);
+  }
+
+  /** Must call {@link #closeAsyncInvocation()} if this one was called. */
+  static <T> void initAsyncInvocation(InvocationType type, T value) {
     if (asyncInvocation.get() != null) {
       throw new IllegalStateException("already in start invocation");
     }
-    asyncInvocation.set(new AsyncInvocation(type));
+    asyncInvocation.set(new AsyncInvocation<T>(type, value));
   }
 
   @SuppressWarnings("unchecked")
   static <R> R getAsyncInvocationResult(Class<R> resultClass) {
-    AsyncInvocation reference = asyncInvocation.get();
-    if (reference == null) {
+    AsyncInvocation invocation = asyncInvocation.get();
+    if (invocation == null) {
       throw new IllegalStateException("initAsyncInvocation wasn't called");
     }
-    Object result = reference.result.get();
+    Object result = invocation.getValue();
     if (result == null) {
       throw new IllegalStateException(
           "Only methods of a stub created through WorkflowClient.newWorkflowStub "
               + "can be used as a parameter to the start.");
     }
-    if (reference.type == InvocationType.START) {
+    if (invocation.type == InvocationType.START) {
       if (!resultClass.equals(WorkflowExecution.class)) {
         throw new IllegalArgumentException(
             "Only WorkflowExecution type is allowed with START " + "InvocationThype");
       }
       return (R) result;
     }
-    if (reference.type == InvocationType.EXECUTE) {
+    if (invocation.type == InvocationType.EXECUTE) {
       if (!resultClass.isAssignableFrom(result.getClass())) {
         throw new IllegalArgumentException(
             "Result type \""
@@ -109,7 +129,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
       }
       return (R) result;
     }
-    throw new Error("Unknown invocation type: " + reference.type);
+    throw new Error("Unknown invocation type: " + invocation.type);
   }
 
   /** Closes async invocation created through {@link #initAsyncInvocation(InvocationType)} */
@@ -239,16 +259,27 @@ class WorkflowInvocationHandler implements InvocationHandler {
         }
       }
     }
-    AsyncInvocation async = asyncInvocation.get();
+    AsyncInvocation<?> async = asyncInvocation.get();
     if (async != null) {
       if (async.type == InvocationType.START) {
-        async.result.set(untyped.getExecution());
-      } else {
-        async.result.set(
+        @SuppressWarnings("unchecked")
+        AsyncInvocation<WorkflowExecution> startInvocation =
+            (AsyncInvocation<WorkflowExecution>) async;
+        startInvocation.setValue(untyped.getExecution());
+      } else if (async.type == InvocationType.EXECUTE) {
+        @SuppressWarnings("unchecked")
+        AsyncInvocation<CompletableFuture<?>> executeInvocation =
+            (AsyncInvocation<CompletableFuture<?>>) async;
+        executeInvocation.setValue(
             untyped.getResultAsync(method.getReturnType(), method.getGenericReturnType()));
       }
       return null;
     }
     return untyped.getResult(method.getReturnType(), method.getGenericReturnType());
+  }
+
+  @Override
+  public WorkflowStub get() {
+    return untyped;
   }
 }
