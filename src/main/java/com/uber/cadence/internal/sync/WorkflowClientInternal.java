@@ -254,7 +254,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
 
   @Override
   public BatchRequest newSignalWithStartRequest() {
-    return new SignalWithStartBatchRequest(this);
+    return new SignalWithStartBatchRequest();
   }
 
   public static WorkflowExecution start(Functions.Proc workflow) {
