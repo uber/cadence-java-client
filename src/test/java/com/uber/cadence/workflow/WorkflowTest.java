@@ -2451,8 +2451,8 @@ public class WorkflowTest {
       client.execute(taskList);
       fail("unreachable");
     } catch (WorkflowException e) {
-      assertTrue(e.getCause() instanceof ChildWorkflowFailureException);
-      assertTrue(e.getCause().getCause() instanceof UnsupportedOperationException);
+      assertTrue(e.toString(), e.getCause() instanceof ChildWorkflowFailureException);
+      assertTrue(e.toString(), e.getCause().getCause() instanceof UnsupportedOperationException);
       assertEquals("simulated failure", e.getCause().getCause().getMessage());
     }
     assertEquals("TestWorkflow1::execute", capturedWorkflowType.get());

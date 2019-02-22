@@ -79,8 +79,10 @@ class WorkflowInvocationHandler implements InvocationHandler {
     }
     if (type == InvocationType.START) {
       invocationContext.set(new StartWorkflowInvocationHandler());
+    } else if (type == InvocationType.EXECUTE) {
+      invocationContext.set(new ExecuteWorkflowInvocationHandler(type));
     } else {
-      invocationContext.set(new AsyncWorkflowInvocationHandler(type));
+      throw new IllegalArgumentException("Unexpected InvocationType: " + type);
     }
   }
 
@@ -155,7 +157,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     }
     SpecificInvocationHandler handler = invocationContext.get();
     if (handler == null) {
-      handler = new AsyncWorkflowInvocationHandler(InvocationType.SYNC);
+      handler = new SyncWorkflowInvocationHandler();
     }
     handler.invoke(untyped, method, args);
     if (handler.getInvocationType() == InvocationType.SYNC) {
@@ -190,18 +192,13 @@ class WorkflowInvocationHandler implements InvocationHandler {
     }
   }
 
-  private static class AsyncWorkflowInvocationHandler implements SpecificInvocationHandler {
+  private static class SyncWorkflowInvocationHandler implements SpecificInvocationHandler {
 
-    private final InvocationType invocationType;
     private Object result;
-
-    private AsyncWorkflowInvocationHandler(InvocationType invocationType) {
-      this.invocationType = invocationType;
-    }
 
     @Override
     public InvocationType getInvocationType() {
-      return invocationType;
+      return InvocationType.SYNC;
     }
 
     @Override
@@ -282,12 +279,54 @@ class WorkflowInvocationHandler implements InvocationHandler {
           }
         }
       }
-      if (invocationType == InvocationType.START) {
-        return untyped.getExecution();
-      } else if (invocationType == InvocationType.EXECUTE) {
-        return untyped.getResultAsync(method.getReturnType(), method.getGenericReturnType());
-      }
       return untyped.getResult(method.getReturnType(), method.getGenericReturnType());
+    }
+  }
+
+  private static class ExecuteWorkflowInvocationHandler implements SpecificInvocationHandler {
+
+    private final InvocationType invocationType;
+    private Object result;
+
+    private ExecuteWorkflowInvocationHandler(InvocationType invocationType) {
+      this.invocationType = invocationType;
+    }
+
+    @Override
+    public InvocationType getInvocationType() {
+      return invocationType;
+    }
+
+    @Override
+    public void invoke(WorkflowStub untyped, Method method, Object[] args) {
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      if (workflowMethod == null) {
+        throw new IllegalArgumentException(
+            "WorkflowClient.execute can be called only on a method annotated with @WorkflowMethod");
+      }
+      Optional<WorkflowOptions> options = untyped.getOptions();
+      if (untyped.getExecution() == null
+          || (options.isPresent()
+              && options.get().getWorkflowIdReusePolicy()
+                  == WorkflowIdReusePolicy.AllowDuplicate)) {
+        try {
+          untyped.start(args);
+        } catch (DuplicateWorkflowException e) {
+          // We do allow duplicated calls if policy is not AllowDuplicate. Semantic is to wait for
+          // result.
+          if (options.isPresent()
+              && options.get().getWorkflowIdReusePolicy() == WorkflowIdReusePolicy.AllowDuplicate) {
+            throw e;
+          }
+        }
+      }
+      result = untyped.getResultAsync(method.getReturnType(), method.getGenericReturnType());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <R> R getResult(Class<R> resultClass) {
+      return (R) result;
     }
   }
 }
