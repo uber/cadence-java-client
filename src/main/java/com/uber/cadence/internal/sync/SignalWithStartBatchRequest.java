@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.BatchRequest;
+import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,18 +28,46 @@ final class SignalWithStartBatchRequest implements BatchRequest {
 
   private final List<Functions.Proc> requests = new ArrayList<>();
 
+  private WorkflowStub stub;
+  private String signalName;
+  private Object[] signalArgs;
+  private Object[] startArgs;
+
   @Override
   public WorkflowExecution invoke() {
     WorkflowInvocationHandler.initAsyncInvocation(
-        WorkflowInvocationHandler.InvocationType.BATCH, this);
+        WorkflowInvocationHandler.InvocationType.SIGNAL_WITH_START, this);
     try {
       for (Functions.Proc request : requests) {
         request.apply();
       }
-      return WorkflowInvocationHandler.getAsyncInvocationResult(WorkflowExecution.class);
+      return signalWithStart();
     } finally {
       WorkflowInvocationHandler.closeAsyncInvocation();
     }
+  }
+
+  private WorkflowExecution signalWithStart() {
+    return stub.signalWithStart(signalName, signalArgs, startArgs);
+  }
+
+  void signal(WorkflowStub stub, String signalName, Object[] args) {
+    setStub(stub);
+    this.signalName = signalName;
+    this.signalArgs = args;
+  }
+
+  void start(WorkflowStub stub, Object[] args) {
+    setStub(stub);
+    this.startArgs = args;
+  }
+
+  private void setStub(WorkflowStub stub) {
+    if (this.stub != null && stub != this.stub) {
+      throw new IllegalArgumentException(
+          "SignalWithStart Batch invoked on different workflow stubs");
+    }
+    this.stub = stub;
   }
 
   @Override

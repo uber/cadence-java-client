@@ -54,7 +54,7 @@ class ChildWorkflowInvocationHandler implements InvocationHandler {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) {
     // Implement WorkflowStub
-    if (method.getName().equals(WorkflowStub.GET_EXECUTION_METHOD_NAME)) {
+    if (method.getName().equals(WorkflowStubMarker.GET_EXECUTION_METHOD_NAME)) {
       return stub.getExecution();
     }
     WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);

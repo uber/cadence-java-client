@@ -53,7 +53,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     SYNC,
     START,
     EXECUTE,
-    BATCH,
+    SIGNAL_WITH_START,
   }
 
   interface SpecificInvocationHandler {
@@ -80,7 +80,10 @@ class WorkflowInvocationHandler implements InvocationHandler {
     if (type == InvocationType.START) {
       invocationContext.set(new StartWorkflowInvocationHandler());
     } else if (type == InvocationType.EXECUTE) {
-      invocationContext.set(new ExecuteWorkflowInvocationHandler(type));
+      invocationContext.set(new ExecuteWorkflowInvocationHandler());
+    } else if (type == InvocationType.SIGNAL_WITH_START) {
+      SignalWithStartBatchRequest batch = (SignalWithStartBatchRequest) value;
+      invocationContext.set(new SignalWithStartWorkflowInvocationHandler(batch));
     } else {
       throw new IllegalArgumentException("Unexpected InvocationType: " + type);
     }
@@ -241,10 +244,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
         throw new IllegalArgumentException("Signal method must have void return type: " + method);
       }
 
-      String signalName = signalMethod.name();
-      if (signalName.isEmpty()) {
-        signalName = InternalUtils.getSimpleName(method);
-      }
+      String signalName = nameFromMethodAndAnnotation(method, signalMethod.name());
       untyped.signal(signalName, args);
     }
 
@@ -253,10 +253,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
       if (method.getReturnType() == Void.TYPE) {
         throw new IllegalArgumentException("Query method cannot have void return type: " + method);
       }
-      String queryType = queryMethod.name();
-      if (queryType.isEmpty()) {
-        queryType = InternalUtils.getSimpleName(method);
-      }
+      String queryType = nameFromMethodAndAnnotation(method, queryMethod.name());
 
       return untyped.query(queryType, method.getReturnType(), method.getGenericReturnType(), args);
     }
@@ -283,18 +280,21 @@ class WorkflowInvocationHandler implements InvocationHandler {
     }
   }
 
+  private static String nameFromMethodAndAnnotation(Method method, String name) {
+    String signalName = name;
+    if (signalName.isEmpty()) {
+      signalName = InternalUtils.getSimpleName(method);
+    }
+    return signalName;
+  }
+
   private static class ExecuteWorkflowInvocationHandler implements SpecificInvocationHandler {
 
-    private final InvocationType invocationType;
     private Object result;
-
-    private ExecuteWorkflowInvocationHandler(InvocationType invocationType) {
-      this.invocationType = invocationType;
-    }
 
     @Override
     public InvocationType getInvocationType() {
-      return invocationType;
+      return InvocationType.EXECUTE;
     }
 
     @Override
@@ -327,6 +327,53 @@ class WorkflowInvocationHandler implements InvocationHandler {
     @SuppressWarnings("unchecked")
     public <R> R getResult(Class<R> resultClass) {
       return (R) result;
+    }
+  }
+
+  private static class SignalWithStartWorkflowInvocationHandler
+      implements SpecificInvocationHandler {
+
+    private final SignalWithStartBatchRequest batch;
+
+    public SignalWithStartWorkflowInvocationHandler(SignalWithStartBatchRequest batch) {
+      this.batch = batch;
+    }
+
+    @Override
+    public InvocationType getInvocationType() {
+      return InvocationType.SIGNAL_WITH_START;
+    }
+
+    @Override
+    public void invoke(WorkflowStub untyped, Method method, Object[] args) throws Throwable {
+      SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
+      if (signalMethod != null) {
+        throw new IllegalArgumentException(
+            "SignalWithStart batch doesn't accept methods annotated with @SignalMethod");
+      }
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+      int count = (workflowMethod == null ? 0 : 1) + (queryMethod == null ? 0 : 1);
+      if (count > 1) {
+        throw new IllegalArgumentException(
+            method
+                + " must contain at most one annotation "
+                + "from @WorkflowMethod or @QueryMethod");
+      }
+      if (workflowMethod != null) {
+        batch.start(untyped, args);
+      } else if (signalMethod != null) {
+        String signalName = nameFromMethodAndAnnotation(method, signalMethod.name());
+        batch.signal(untyped, signalName, args);
+      } else {
+        throw new IllegalArgumentException(
+            method + " is not annotated with @WorkflowMethod or @SignalMethod");
+      }
+    }
+
+    @Override
+    public <R> R getResult(Class<R> resultClass) {
+      throw new IllegalStateException("No result is expected");
     }
   }
 }
