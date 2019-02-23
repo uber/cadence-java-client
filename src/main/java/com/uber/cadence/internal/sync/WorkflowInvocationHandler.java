@@ -82,6 +82,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
     } else if (type == InvocationType.EXECUTE) {
       invocationContext.set(new ExecuteWorkflowInvocationHandler());
     } else if (type == InvocationType.SIGNAL_WITH_START) {
+      @SuppressWarnings("unchecked")
       SignalWithStartBatchRequest batch = (SignalWithStartBatchRequest) value;
       invocationContext.set(new SignalWithStartWorkflowInvocationHandler(batch));
     } else {
@@ -346,13 +347,13 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
     @Override
     public void invoke(WorkflowStub untyped, Method method, Object[] args) throws Throwable {
-      SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
-      if (signalMethod != null) {
-        throw new IllegalArgumentException(
-            "SignalWithStart batch doesn't accept methods annotated with @SignalMethod");
-      }
-      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
       QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+      if (queryMethod != null) {
+        throw new IllegalArgumentException(
+            "SignalWithStart batch doesn't accept methods annotated with @QueryMethod");
+      }
+      SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
       int count = (workflowMethod == null ? 0 : 1) + (queryMethod == null ? 0 : 1);
       if (count > 1) {
         throw new IllegalArgumentException(
