@@ -19,7 +19,7 @@ package com.uber.cadence.client;
 
 import com.uber.cadence.workflow.Functions;
 
-/** Used to accumulate multiple operations and */
+/** Used to accumulate multiple operations */
 public interface BatchRequest {
 
   /**
