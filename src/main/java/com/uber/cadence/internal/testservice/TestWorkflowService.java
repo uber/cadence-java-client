@@ -274,13 +274,14 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   private StartWorkflowExecutionResponse startWorkflowExecutionNoRunningCheckLocked(
-          StartWorkflowExecutionRequest startRequest,
-          Optional<RetryState> retryState,
-          int backoffStartIntervalInSeconds,
-          byte[] lastCompletionResult,
-          Optional<TestWorkflowMutableState> parent,
-          OptionalLong parentChildInitiatedEventId,
-          Optional<SignalWorkflowExecutionRequest> signalWithStartSignal, WorkflowId workflowId)
+      StartWorkflowExecutionRequest startRequest,
+      Optional<RetryState> retryState,
+      int backoffStartIntervalInSeconds,
+      byte[] lastCompletionResult,
+      Optional<TestWorkflowMutableState> parent,
+      OptionalLong parentChildInitiatedEventId,
+      Optional<SignalWorkflowExecutionRequest> signalWithStartSignal,
+      WorkflowId workflowId)
       throws InternalServiceError, BadRequestError {
     String domain = startRequest.getDomain();
     TestWorkflowMutableState mutableState =
@@ -596,8 +597,8 @@ public final class TestWorkflowService implements IWorkflowService {
               a.getLastCompletionResult(),
               parent,
               parentChildInitiatedEventId,
-                  Optional.empty(),
-                  executionId.getWorkflowId());
+              Optional.empty(),
+              executionId.getWorkflowId());
       return response.getRunId();
     } finally {
       lock.unlock();

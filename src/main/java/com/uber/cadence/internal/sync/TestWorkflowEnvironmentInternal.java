@@ -95,12 +95,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnvironment {
-
-  private static final Logger log = LoggerFactory.getLogger(TestWorkflowEnvironmentInternal.class);
 
   private final TestEnvironmentOptions testEnvironmentOptions;
   private final WorkflowServiceWrapper service;
@@ -840,6 +836,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       private class TimeLockingFuture<R> extends CompletableFuture<R> {
 
         public TimeLockingFuture(CompletableFuture<R> resultAsync) {
+          @SuppressWarnings({"FutureReturnValueIgnored", "unused"})
           CompletableFuture<R> ignored =
               resultAsync.whenComplete(
                   (r, e) -> {

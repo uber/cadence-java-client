@@ -82,6 +82,7 @@ class ExternalWorkflowInvocationHandler implements InvocationHandler {
     stub.signal(signalName, args);
   }
 
+  @SuppressWarnings("unused")
   private Object queryWorkflow(Method method, QueryMethod queryMethod, Object[] args) {
     throw new UnsupportedOperationException(
         "Query is not supported from workflow to workflow. "

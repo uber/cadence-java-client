@@ -245,7 +245,6 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
   @Override
   public void terminateWorkflowExecution(TerminateWorkflowExecutionParameters terminateParameters) {
     TerminateWorkflowExecutionRequest request = new TerminateWorkflowExecutionRequest();
-    WorkflowExecution workflowExecution = terminateParameters.getWorkflowExecution();
     request.setWorkflowExecution(terminateParameters.getWorkflowExecution());
     request.setDomain(domain);
     request.setDetails(terminateParameters.getDetails());

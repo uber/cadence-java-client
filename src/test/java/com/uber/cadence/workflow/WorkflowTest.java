@@ -787,16 +787,14 @@ public class WorkflowTest {
 
     @Override
     public String execute(String taskList) {
-      Promise<String> failedPromise =
-          Async.function(
-              () -> {
-                throw new UncheckedExecutionException(new Exception("Oh noo!"));
-              });
-      Promise<String> failedPromise2 =
-          Async.function(
-              () -> {
-                throw new UncheckedExecutionException(new Exception("Oh noo again!"));
-              });
+      Async.function(
+          () -> {
+            throw new UncheckedExecutionException(new Exception("Oh noo!"));
+          });
+      Async.function(
+          () -> {
+            throw new UncheckedExecutionException(new Exception("Oh noo again!"));
+          });
       Workflow.await(() -> false);
       fail("unreachable");
       return "done";
@@ -4000,6 +3998,7 @@ public class WorkflowTest {
   }
 
   public static class NonSerializableException extends RuntimeException {
+    @SuppressWarnings("unused")
     private final InputStream file; // gson chokes on this field
 
     public NonSerializableException() {

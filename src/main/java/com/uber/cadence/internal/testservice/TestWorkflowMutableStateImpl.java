@@ -959,7 +959,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   }
 
   @Override
-  public void startWorkflow(Optional<SignalWorkflowExecutionRequest> signalWithStartSignal) throws InternalServiceError, BadRequestError {
+  public void startWorkflow(Optional<SignalWorkflowExecutionRequest> signalWithStartSignal)
+      throws InternalServiceError, BadRequestError {
     try {
       update(
           ctx -> {

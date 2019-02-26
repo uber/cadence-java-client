@@ -38,16 +38,12 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Dynamic implementation of a strongly typed workflow interface that can be used to start, signal
  * and query workflows from external processes.
  */
 class WorkflowInvocationHandler implements InvocationHandler {
-
-  private static final Logger log = LoggerFactory.getLogger(WorkflowInvocationHandler.class);
 
   public enum InvocationType {
     SYNC,
