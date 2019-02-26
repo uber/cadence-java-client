@@ -2103,7 +2103,7 @@ public class WorkflowTest {
     BatchRequest batch2 = workflowClient.newSignalWithStartRequest();
     batch2.add(client2::mySignal, "World!");
     batch2.add(client2::execute);
-    WorkflowExecution execution2 = workflowClient.signalWithStart(batch);
+    WorkflowExecution execution2 = workflowClient.signalWithStart(batch2);
     assertEquals(execution, execution2);
 
     sleep(Duration.ofMillis(500));

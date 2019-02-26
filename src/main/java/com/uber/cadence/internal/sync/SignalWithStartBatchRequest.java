@@ -23,6 +23,7 @@ import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.workflow.Functions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 final class SignalWithStartBatchRequest implements BatchRequest {
 
@@ -32,8 +33,13 @@ final class SignalWithStartBatchRequest implements BatchRequest {
   private String signalName;
   private Object[] signalArgs;
   private Object[] startArgs;
+  private AtomicBoolean invoked = new AtomicBoolean();
 
   WorkflowExecution invoke() {
+    if (!invoked.compareAndSet(false, true)) {
+      throw new IllegalStateException(
+          "A batch instance can be used only for a single signalWithStart call");
+    }
     WorkflowInvocationHandler.initAsyncInvocation(
         WorkflowInvocationHandler.InvocationType.SIGNAL_WITH_START, this);
     try {
