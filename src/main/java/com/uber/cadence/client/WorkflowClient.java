@@ -17,7 +17,6 @@
 
 package com.uber.cadence.client;
 
-import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.internal.sync.WorkflowClientInternal;
@@ -274,10 +273,17 @@ public interface WorkflowClient {
    * running. The batch before invocation must contain exactly two operations. One annotated
    * with @WorkflowMethod and another with @SignalMethod.
    *
-   * @return batch request used to call {@link
-   *     com.uber.cadence.WorkflowService.Iface#SignalWithStartWorkflowExecution(SignalWithStartWorkflowExecutionRequest)}.
+   * @return batch request used to call {@link #signalWithStart(BatchRequest)}
    */
   BatchRequest newSignalWithStartRequest();
+
+  /**
+   * Invoke SignalWithStart operation.
+   *
+   * @param signalWithStartBatch Must be created with {@link #newSignalWithStartRequest()}
+   * @return workflowID and runId of the signaled or started workflow.
+   */
+  WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch);
 
   /**
    * Executes zero argument workflow with void return type

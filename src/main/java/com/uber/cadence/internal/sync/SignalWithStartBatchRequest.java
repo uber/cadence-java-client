@@ -33,8 +33,7 @@ final class SignalWithStartBatchRequest implements BatchRequest {
   private Object[] signalArgs;
   private Object[] startArgs;
 
-  @Override
-  public WorkflowExecution invoke() {
+  WorkflowExecution invoke() {
     WorkflowInvocationHandler.initAsyncInvocation(
         WorkflowInvocationHandler.InvocationType.SIGNAL_WITH_START, this);
     try {

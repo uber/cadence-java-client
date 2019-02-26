@@ -257,6 +257,11 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return new SignalWithStartBatchRequest();
   }
 
+  @Override
+  public WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch) {
+    return ((SignalWithStartBatchRequest) signalWithStartBatch).invoke();
+  }
+
   public static WorkflowExecution start(Functions.Proc workflow) {
     WorkflowInvocationHandler.initAsyncInvocation(InvocationType.START);
     try {

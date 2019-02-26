@@ -17,13 +17,10 @@
 
 package com.uber.cadence.client;
 
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.workflow.Functions;
 
+/** Used to accumulate multiple operations and */
 public interface BatchRequest {
-
-  /** Sends the batch to the service. Blocks until it is processed. */
-  WorkflowExecution invoke();
 
   /**
    * Executes zero argument request with void return type

@@ -2093,7 +2093,7 @@ public class WorkflowTest {
     BatchRequest batch = workflowClient.newSignalWithStartRequest();
     batch.add(client::mySignal, "Hello ");
     batch.add(client::execute);
-    WorkflowExecution execution = batch.invoke();
+    WorkflowExecution execution = workflowClient.signalWithStart(batch);
     sleep(Duration.ofSeconds(1));
 
     // Test client created using WorkflowExecution
@@ -2103,7 +2103,7 @@ public class WorkflowTest {
     BatchRequest batch2 = workflowClient.newSignalWithStartRequest();
     batch2.add(client2::mySignal, "World!");
     batch2.add(client2::execute);
-    WorkflowExecution execution2 = batch2.invoke();
+    WorkflowExecution execution2 = workflowClient.signalWithStart(batch);
     assertEquals(execution, execution2);
 
     sleep(Duration.ofMillis(500));
