@@ -166,6 +166,41 @@ class WorkflowInvocationHandler implements InvocationHandler {
     return Defaults.defaultValue(method.getReturnType());
   }
 
+  private static void startWorkflow(WorkflowStub untyped, Object[] args) {
+    Optional<WorkflowOptions> options = untyped.getOptions();
+    if (untyped.getExecution() == null
+        || (options.isPresent()
+            && options.get().getWorkflowIdReusePolicy() == WorkflowIdReusePolicy.AllowDuplicate)) {
+      try {
+        untyped.start(args);
+      } catch (DuplicateWorkflowException e) {
+        // We do allow duplicated calls if policy is not AllowDuplicate. Semantic is to wait for
+        // result.
+        if (options.isPresent()
+            && options.get().getWorkflowIdReusePolicy() == WorkflowIdReusePolicy.AllowDuplicate) {
+          throw e;
+        }
+      }
+    }
+  }
+
+  static void checkAnnotations(
+      Method method,
+      WorkflowMethod workflowMethod,
+      QueryMethod queryMethod,
+      SignalMethod signalMethod) {
+    int count =
+        (workflowMethod == null ? 0 : 1)
+            + (queryMethod == null ? 0 : 1)
+            + (signalMethod == null ? 0 : 1);
+    if (count > 1) {
+      throw new IllegalArgumentException(
+          method
+              + " must contain at most one annotation "
+              + "from @WorkflowMethod, @QueryMethod or @SignalMethod");
+    }
+  }
+
   private static class StartWorkflowInvocationHandler implements SpecificInvocationHandler {
 
     private Object result;
@@ -206,16 +241,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
       WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
       QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
       SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
-      int count =
-          (workflowMethod == null ? 0 : 1)
-              + (queryMethod == null ? 0 : 1)
-              + (signalMethod == null ? 0 : 1);
-      if (count > 1) {
-        throw new IllegalArgumentException(
-            method
-                + " must contain at most one annotation "
-                + "from @WorkflowMethod, @QueryMethod or @SignalMethod");
-      }
+      checkAnnotations(method, workflowMethod, queryMethod, signalMethod);
       if (workflowMethod != null) {
         result = startWorkflow(untyped, method, args);
       } else if (queryMethod != null) {
@@ -257,22 +283,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
 
     @SuppressWarnings("FutureReturnValueIgnored")
     private Object startWorkflow(WorkflowStub untyped, Method method, Object[] args) {
-      Optional<WorkflowOptions> options = untyped.getOptions();
-      if (untyped.getExecution() == null
-          || (options.isPresent()
-              && options.get().getWorkflowIdReusePolicy()
-                  == WorkflowIdReusePolicy.AllowDuplicate)) {
-        try {
-          untyped.start(args);
-        } catch (DuplicateWorkflowException e) {
-          // We do allow duplicated calls if policy is not AllowDuplicate. Semantic is to wait for
-          // result.
-          if (options.isPresent()
-              && options.get().getWorkflowIdReusePolicy() == WorkflowIdReusePolicy.AllowDuplicate) {
-            throw e;
-          }
-        }
-      }
+      WorkflowInvocationHandler.startWorkflow(untyped, args);
       return untyped.getResult(method.getReturnType(), method.getGenericReturnType());
     }
   }
@@ -301,22 +312,7 @@ class WorkflowInvocationHandler implements InvocationHandler {
         throw new IllegalArgumentException(
             "WorkflowClient.execute can be called only on a method annotated with @WorkflowMethod");
       }
-      Optional<WorkflowOptions> options = untyped.getOptions();
-      if (untyped.getExecution() == null
-          || (options.isPresent()
-              && options.get().getWorkflowIdReusePolicy()
-                  == WorkflowIdReusePolicy.AllowDuplicate)) {
-        try {
-          untyped.start(args);
-        } catch (DuplicateWorkflowException e) {
-          // We do allow duplicated calls if policy is not AllowDuplicate. Semantic is to wait for
-          // result.
-          if (options.isPresent()
-              && options.get().getWorkflowIdReusePolicy() == WorkflowIdReusePolicy.AllowDuplicate) {
-            throw e;
-          }
-        }
-      }
+      WorkflowInvocationHandler.startWorkflow(untyped, args);
       result = untyped.getResultAsync(method.getReturnType(), method.getGenericReturnType());
     }
 
@@ -344,18 +340,12 @@ class WorkflowInvocationHandler implements InvocationHandler {
     @Override
     public void invoke(WorkflowStub untyped, Method method, Object[] args) throws Throwable {
       QueryMethod queryMethod = method.getAnnotation(QueryMethod.class);
+      SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      checkAnnotations(method, workflowMethod, queryMethod, signalMethod);
       if (queryMethod != null) {
         throw new IllegalArgumentException(
             "SignalWithStart batch doesn't accept methods annotated with @QueryMethod");
-      }
-      SignalMethod signalMethod = method.getAnnotation(SignalMethod.class);
-      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
-      int count = (workflowMethod == null ? 0 : 1) + (queryMethod == null ? 0 : 1);
-      if (count > 1) {
-        throw new IllegalArgumentException(
-            method
-                + " must contain at most one annotation "
-                + "from @WorkflowMethod or @QueryMethod");
       }
       if (workflowMethod != null) {
         batch.start(untyped, args);
