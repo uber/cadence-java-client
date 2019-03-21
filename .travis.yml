@@ -3,7 +3,7 @@ language: java
 sudo: required
 
 env:
-  - SKIP_DOCKER_SERVICE=false # used to skip docker service tests in WorkflowTest.
+  - SKIP_DOCKER_SERVICE=false # used to skip docker service tests in WorkflowTest
   - COMPOSE_FILE=docker-compose-travis.yml
 
 before_install:
