@@ -13,5 +13,5 @@ before_install:
   - ./configure --enable-libs=no --enable-tests=no --enable-tutorial=no --with-cpp=no --with-c_glib=no --with-java=yes --with-ruby=no --with-erlang=no --with-go=no --with-nodejs=no
   - make -j2 && sudo make install
   - popd
-  - docker-compose up --detach
+  - docker-compose up -d
   - sleep 30
