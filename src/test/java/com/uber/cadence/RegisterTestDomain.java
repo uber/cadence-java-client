@@ -9,7 +9,7 @@ import org.apache.thrift.TException;
 /** Waits for local service to become available and registers UnitTest domain. */
 public class RegisterTestDomain {
 
-  public static void main(String[] args) throws TException {
+  public static void main(String[] args) throws TException, InterruptedException {
     IWorkflowService service = new WorkflowServiceTChannel();
     RegisterDomainRequest request =
         new RegisterDomainRequest().setName(DOMAIN).setWorkflowExecutionRetentionPeriodInDays(0);
@@ -26,6 +26,7 @@ public class RegisterTestDomain {
             && !message.contains("Connection timeout on identification")) {
           e.printStackTrace();
         }
+        Thread.sleep(500);
         continue;
       } catch (Throwable e) {
         e.printStackTrace();
