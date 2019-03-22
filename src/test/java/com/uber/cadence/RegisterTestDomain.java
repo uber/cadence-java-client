@@ -12,7 +12,7 @@ public class RegisterTestDomain {
   public static void main(String[] args) throws TException, InterruptedException {
     IWorkflowService service = new WorkflowServiceTChannel();
     RegisterDomainRequest request =
-        new RegisterDomainRequest().setName(DOMAIN).setWorkflowExecutionRetentionPeriodInDays(0);
+        new RegisterDomainRequest().setName(DOMAIN).setWorkflowExecutionRetentionPeriodInDays(1);
     while (true) {
       try {
         service.RegisterDomain(request);
