@@ -14,4 +14,3 @@ before_install:
   - make -j2 && sudo make install
   - popd
   - docker-compose up -d
-  - sleep 30
