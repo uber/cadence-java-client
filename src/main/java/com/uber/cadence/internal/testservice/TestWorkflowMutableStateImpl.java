@@ -77,6 +77,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final OptionalLong parentChildInitiatedEventId;
   private final TestWorkflowStore store;
   private final TestWorkflowService service;
+  private final ForkJoinPool forkJoinPool;
   private final StartWorkflowExecutionRequest startRequest;
   private long nextEventId;
   private final List<RequestContext> concurrentToDecision = new ArrayList<>();
@@ -105,7 +106,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       Optional<TestWorkflowMutableState> parent,
       OptionalLong parentChildInitiatedEventId,
       TestWorkflowService service,
-      TestWorkflowStore store) {
+      TestWorkflowStore store,
+      ForkJoinPool forkJoinPool) {
     this.startRequest = startRequest;
     this.parent = parent;
     this.parentChildInitiatedEventId = parentChildInitiatedEventId;
@@ -114,6 +116,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     this.executionId =
         new ExecutionId(startRequest.getDomain(), startRequest.getWorkflowId(), runId);
     this.store = store;
+    this.forkJoinPool = forkJoinPool;
     selfAdvancingTimer = store.getTimer();
     this.clock = selfAdvancingTimer.getClock();
     WorkflowData data =
@@ -538,15 +541,14 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         StateMachines.newSignalExternalStateMachine();
     externalSignals.put(signalId, signalStateMachine);
     signalStateMachine.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
-    ForkJoinPool.commonPool()
-        .execute(
-            () -> {
-              try {
-                service.signalExternalWorkflowExecution(signalId, a, this);
-              } catch (Exception e) {
-                log.error("Failure signalling an external workflow execution", e);
-              }
-            });
+    forkJoinPool.execute(
+        () -> {
+          try {
+            service.signalExternalWorkflowExecution(signalId, a, this);
+          } catch (Exception e) {
+            log.error("Failure signalling an external workflow execution", e);
+          }
+        });
     ctx.lockTimer();
   }
 
@@ -802,19 +804,18 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setWorkflowType(startRequest.getWorkflowType())
               .setDomain(ctx.getDomain())
               .setWorkflowExecution(ctx.getExecution());
-      ForkJoinPool.commonPool()
-          .execute(
-              () -> {
-                try {
-                  parent
-                      .get()
-                      .childWorkflowFailed(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
-                } catch (EntityNotExistsError entityNotExistsError) {
-                  // Parent might already close
-                } catch (BadRequestError | InternalServiceError e) {
-                  log.error("Failure reporting child completion", e);
-                }
-              });
+      forkJoinPool.execute(
+          () -> {
+            try {
+              parent
+                  .get()
+                  .childWorkflowFailed(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
+            } catch (EntityNotExistsError entityNotExistsError) {
+              // Parent might already close
+            } catch (BadRequestError | InternalServiceError e) {
+              log.error("Failure reporting child completion", e);
+            }
+          });
     }
   }
 
@@ -840,20 +841,18 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setDomain(ctx.getDomain())
               .setWorkflowExecution(ctx.getExecution())
               .setWorkflowType(startRequest.getWorkflowType());
-      ForkJoinPool.commonPool()
-          .execute(
-              () -> {
-                try {
-                  parent
-                      .get()
-                      .childWorkflowCompleted(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
-                } catch (EntityNotExistsError entityNotExistsError) {
-                  // Parent might already close
-                } catch (BadRequestError | InternalServiceError e) {
-                  log.error("Failure reporting child completion", e);
-                }
-              });
+      forkJoinPool.execute(
+          () -> {
+            try {
+              parent
+                  .get()
+                  .childWorkflowCompleted(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
+            } catch (EntityNotExistsError entityNotExistsError) {
+              // Parent might already close
+            } catch (BadRequestError | InternalServiceError e) {
+              log.error("Failure reporting child completion", e);
+            }
+          });
     }
   }
 
@@ -921,20 +920,18 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setDomain(ctx.getDomain())
               .setWorkflowExecution(ctx.getExecution())
               .setWorkflowType(startRequest.getWorkflowType());
-      ForkJoinPool.commonPool()
-          .execute(
-              () -> {
-                try {
-                  parent
-                      .get()
-                      .childWorkflowCanceled(
-                          ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
-                } catch (EntityNotExistsError entityNotExistsError) {
-                  // Parent might already close
-                } catch (BadRequestError | InternalServiceError e) {
-                  log.error("Failure reporting child completion", e);
-                }
-              });
+      forkJoinPool.execute(
+          () -> {
+            try {
+              parent
+                  .get()
+                  .childWorkflowCanceled(ctx.getExecutionId().getWorkflowId().getWorkflowId(), a);
+            } catch (EntityNotExistsError entityNotExistsError) {
+              // Parent might already close
+            } catch (BadRequestError | InternalServiceError e) {
+              log.error("Failure reporting child completion", e);
+            }
+          });
     }
   }
 
@@ -1005,17 +1002,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setWorkflowExecution(getExecutionId().getExecution())
               .setDomain(getExecutionId().getDomain())
               .setWorkflowType(startRequest.getWorkflowType());
-      ForkJoinPool.commonPool()
-          .execute(
-              () -> {
-                try {
-                  parent.get().childWorkflowStarted(a);
-                } catch (EntityNotExistsError entityNotExistsError) {
-                  // Not a problem. Parent might just close by now.
-                } catch (BadRequestError | InternalServiceError e) {
-                  log.error("Failure reporting child completion", e);
-                }
-              });
+      forkJoinPool.execute(
+          () -> {
+            try {
+              parent.get().childWorkflowStarted(a);
+            } catch (EntityNotExistsError entityNotExistsError) {
+              // Not a problem. Parent might just close by now.
+            } catch (BadRequestError | InternalServiceError e) {
+              log.error("Failure reporting child completion", e);
+            }
+          });
     }
   }
 
@@ -1304,7 +1300,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             if (parent != null) {
               ctx.lockTimer(); // unlocked by the parent
             }
-            ForkJoinPool.commonPool().execute(() -> reportWorkflowTimeoutToParent(ctx));
+            forkJoinPool.execute(() -> reportWorkflowTimeoutToParent(ctx));
           });
     } catch (BadRequestError | InternalServiceError | EntityNotExistsError e) {
       // Cannot fail to timer threads
