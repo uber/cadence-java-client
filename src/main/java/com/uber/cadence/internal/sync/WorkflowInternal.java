@@ -37,7 +37,6 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.QueryMethod;
-import com.uber.cadence.workflow.RunnableCancellationScope;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
 import com.uber.cadence.workflow.WorkflowInterceptor;
@@ -280,9 +279,7 @@ public final class WorkflowInternal {
   }
 
   public static CancellationScope newCancellationScope(boolean detached, Runnable runnable) {
-    CancellationScopeImpl result = new CancellationScopeImpl(detached, runnable);
-    result.run();
-    return result;
+    return new CancellationScopeImpl(detached, runnable);
   }
 
   public static CancellationScopeImpl currentCancellationScope() {
