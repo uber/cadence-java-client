@@ -27,6 +27,7 @@ import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.logging.ReplayAwareLogger;
 import com.uber.cadence.workflow.ActivityStub;
+import com.uber.cadence.workflow.CancellationScope;
 import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ChildWorkflowStub;
 import com.uber.cadence.workflow.CompletablePromise;
@@ -278,7 +279,7 @@ public final class WorkflowInternal {
     return CompletablePromiseImpl.promiseAnyOf(promises);
   }
 
-  public static RunnableCancellationScope newCancellationScope(boolean detached, Runnable runnable) {
+  public static CancellationScope newCancellationScope(boolean detached, Runnable runnable) {
     CancellationScopeImpl result = new CancellationScopeImpl(detached, runnable);
     result.run();
     return result;
