@@ -537,13 +537,26 @@ public final class Workflow {
     return WorkflowInternal.getWorkflowInfo();
   }
 
-  public static <R> CancellationScope newCancellationScope(Runnable runnable) {
-    return WorkflowInternal.newCancellationScope(false, runnable);
+  public static CancellationScope newCancellationScope(Runnable runnable) {
+    RunnableCancellationScope result = WorkflowInternal.newCancellationScope(false, runnable);
+    result.run();
+    return result;
   }
 
   public static CancellationScope newDetachedCancellationScope(Runnable runnable) {
+    RunnableCancellationScope result = WorkflowInternal.newCancellationScope(true, runnable);
+    result.run();
+    return result;
+  }
+
+  public static RunnableCancellationScope newRunnableCancellationScope(Runnable runnable) {
+    return WorkflowInternal.newCancellationScope(false, runnable);
+  }
+
+  public static RunnableCancellationScope newDetachedRunnableCancellationScope(Runnable runnable) {
     return WorkflowInternal.newCancellationScope(true, runnable);
   }
+
 
   /**
    * Create new timer. Note that Cadence service time resolution is in seconds. So all durations are
