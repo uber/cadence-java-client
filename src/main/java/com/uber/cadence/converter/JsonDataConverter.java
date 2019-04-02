@@ -97,7 +97,9 @@ public final class JsonDataConverter implements DataConverter {
     GsonBuilder gsonBuilder =
         new GsonBuilder()
             .serializeNulls()
-            .registerTypeAdapterFactory(new ThrowableTypeAdapterFactory());
+            .registerTypeAdapterFactory(new ThrowableTypeAdapterFactory())
+            .registerTypeAdapterFactory(new TBaseTypeAdapterFactory())
+            .registerTypeAdapterFactory(new TEnumTypeAdapterFactory());
     GsonBuilder intercepted = builderInterceptor.apply(gsonBuilder);
     gson = intercepted.create();
   }
