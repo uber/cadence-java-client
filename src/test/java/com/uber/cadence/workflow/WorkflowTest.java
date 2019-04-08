@@ -3043,7 +3043,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testChildWorkflowWithCronSchedule() throws InterruptedException {
+  public void testChildWorkflowWithCronSchedule() {
     // Min interval in cron is 1min. So we will not test it against real service in Jenkins.
     // Feel free to uncomment the line below and test in local.
     Assume.assumeFalse("skipping as test will timeout", useExternalService);
@@ -3066,7 +3066,7 @@ public class WorkflowTest {
     }
 
     // Run 3 failed. So on run 4 we get the last completion result from run 2.
-    //    Assert.assertEquals("run 2", lastCompletionResult);
+    Assert.assertEquals("run 2", lastCompletionResult);
   }
 
   public interface TestActivities {
