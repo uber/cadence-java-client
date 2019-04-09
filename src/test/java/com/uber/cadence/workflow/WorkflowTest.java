@@ -3056,8 +3056,9 @@ public class WorkflowTest {
             newWorkflowOptionsBuilder(taskList)
                 .setExecutionStartToCloseTimeout(Duration.ofHours(10))
                 .build());
-    registerDelayedCallback(Duration.ofHours(3), client::cancel);
     client.start(testName.getMethodName());
+    testEnvironment.sleep(Duration.ofHours(3));
+    client.cancel();
 
     try {
       client.getResult(String.class);
