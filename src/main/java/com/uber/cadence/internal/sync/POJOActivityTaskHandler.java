@@ -47,16 +47,20 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
 
   private final DataConverter dataConverter;
   private final ScheduledExecutorService heartbeatExecutor;
-  private final Map<String, POJOActivityImplementation> activities =
+  private final Map<String, ActivityTaskExecutor> activities =
       Collections.synchronizedMap(new HashMap<>());
+  private final IWorkflowService service;
+  private final String domain;
 
-  POJOActivityTaskHandler(DataConverter dataConverter, ScheduledExecutorService heartbeatExecutor) {
+  POJOActivityTaskHandler(
+      IWorkflowService service,
+      String domain,
+      DataConverter dataConverter,
+      ScheduledExecutorService heartbeatExecutor) {
+    this.service = service;
+    this.domain = domain;
     this.dataConverter = dataConverter;
     this.heartbeatExecutor = heartbeatExecutor;
-  }
-
-  public DataConverter getDataConverter() {
-    return dataConverter;
   }
 
   public void addActivityImplementation(Object activity) {
@@ -87,8 +91,6 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         continue;
       }
       for (Method method : i.getRawType().getMethods()) {
-        POJOActivityImplementation implementation =
-            new POJOActivityImplementation(method, activity);
         ActivityMethod annotation = method.getAnnotation(ActivityMethod.class);
         String activityType;
         if (annotation != null && !annotation.name().isEmpty()) {
@@ -100,6 +102,14 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
           throw new IllegalStateException(
               activityType + " activity type is already registered with the worker");
         }
+
+        ActivityTaskExecutor implementation;
+        if (annotation != null && annotation.isLocalActivity()) {
+          implementation = new POJOLocalActivityImplementation(method, activity);
+        } else {
+          implementation = new POJOActivityImplementation(method, activity);
+        }
+
         activities.put(activityType, implementation);
       }
     }
@@ -158,7 +168,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       Scope metricsScope) {
     String activityType = pollResponse.getActivityType().getName();
     ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
-    POJOActivityImplementation activity = activities.get(activityType);
+    ActivityTaskExecutor activity = activities.get(activityType);
     if (activity == null) {
       String knownTypes = Joiner.on(", ").join(activities.keySet());
       return mapToActivityFailure(
@@ -170,21 +180,24 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
                   + knownTypes),
           metricsScope);
     }
-    return activity.execute(service, domain, activityTask, metricsScope);
+    return activity.execute(activityTask, metricsScope);
   }
 
-  private class POJOActivityImplementation {
+  interface ActivityTaskExecutor {
+    ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope);
+  }
+
+  private class POJOActivityImplementation implements ActivityTaskExecutor {
     private final Method method;
     private final Object activity;
 
     POJOActivityImplementation(Method interfaceMethod, Object activity) {
       this.method = interfaceMethod;
-
       this.activity = activity;
     }
 
-    public ActivityTaskHandler.Result execute(
-        IWorkflowService service, String domain, ActivityTaskImpl task, Scope metricsScope) {
+    @Override
+    public ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope) {
       ActivityExecutionContext context =
           new ActivityExecutionContextImpl(service, domain, task, dataConverter, heartbeatExecutor);
       byte[] input = task.getInput();
@@ -206,6 +219,35 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         return mapToActivityFailure(task.getActivityType(), e.getTargetException(), metricsScope);
       } finally {
         CurrentActivityExecutionContext.unset();
+      }
+    }
+  }
+
+  private class POJOLocalActivityImplementation implements ActivityTaskExecutor {
+    private final Method method;
+    private final Object activity;
+
+    POJOLocalActivityImplementation(Method interfaceMethod, Object activity) {
+      this.method = interfaceMethod;
+      this.activity = activity;
+    }
+
+    @Override
+    public ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope) {
+
+      byte[] input = task.getInput();
+      Object[] args = dataConverter.fromDataArray(input, method.getGenericParameterTypes());
+      try {
+        Object result = method.invoke(activity, args);
+        RespondActivityTaskCompletedRequest request = new RespondActivityTaskCompletedRequest();
+        if (method.getReturnType() != Void.TYPE) {
+          request.setResult(dataConverter.toData(result));
+        }
+        return new ActivityTaskHandler.Result(request, null, null, null);
+      } catch (RuntimeException | IllegalAccessException e) {
+        return mapToActivityFailure(task.getActivityType(), e, metricsScope);
+      } catch (InvocationTargetException e) {
+        return mapToActivityFailure(task.getActivityType(), e.getTargetException(), metricsScope);
       }
     }
   }

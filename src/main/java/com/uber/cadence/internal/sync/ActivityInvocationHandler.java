@@ -83,7 +83,14 @@ class ActivityInvocationHandler implements InvocationHandler {
         }
 
         ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-        ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
+        ActivityStub stub;
+        if (!mergedOptions.getIsLocalActivity()) {
+          stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor::executeActivity);
+        } else {
+          stub =
+              ActivityStubImpl.newInstance(mergedOptions, activityExecutor::executeLocalActivity);
+        }
+
         function =
             (a) ->
                 stub.execute(

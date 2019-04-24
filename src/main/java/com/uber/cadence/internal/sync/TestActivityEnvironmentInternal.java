@@ -126,7 +126,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
       this.testEnvironmentOptions = options;
     }
     activityTaskHandler =
-        new POJOActivityTaskHandler(testEnvironmentOptions.getDataConverter(), heartbeatExecutor);
+        new POJOActivityTaskHandler(
+            null,
+            testEnvironmentOptions.getDomain(),
+            testEnvironmentOptions.getDataConverter(),
+            heartbeatExecutor);
   }
 
   /**
@@ -210,6 +214,16 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
           activityTaskHandler.handle(
               service, testEnvironmentOptions.getDomain(), task, NoopScope.getInstance());
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
+    }
+
+    @Override
+    public <R> Promise<R> executeLocalActivity(
+        String activityName,
+        Class<R> resultClass,
+        Type resultType,
+        Object[] args,
+        ActivityOptions options) {
+      throw new UnsupportedOperationException("not implemented");
     }
 
     @Override

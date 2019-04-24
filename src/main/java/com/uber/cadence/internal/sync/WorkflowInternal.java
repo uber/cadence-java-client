@@ -152,7 +152,7 @@ public final class WorkflowInternal {
   }
 
   public static ActivityStub newUntypedActivityStub(ActivityOptions options) {
-    return ActivityStubImpl.newInstance(options, getWorkflowInterceptor());
+    return ActivityStubImpl.newInstance(options, getWorkflowInterceptor()::executeActivity);
   }
 
   @SuppressWarnings("unchecked")

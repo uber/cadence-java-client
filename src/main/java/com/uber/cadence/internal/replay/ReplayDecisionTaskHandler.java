@@ -23,6 +23,7 @@ import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
+import com.uber.cadence.internal.worker.LocalActivityPollTask;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
@@ -48,6 +49,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private final Duration stickyTaskListScheduleToStartTimeout;
   private IWorkflowService service;
   private String stickyTaskListName;
+  private final LocalActivityPollTask laPollTask;
 
   public ReplayDecisionTaskHandler(
       String domain,
@@ -56,7 +58,8 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       SingleWorkerOptions options,
       String stickyTaskListName,
       Duration stickyTaskListScheduleToStartTimeout,
-      IWorkflowService service) {
+      IWorkflowService service,
+      LocalActivityPollTask laPollTask) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
@@ -65,6 +68,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     this.stickyTaskListName = stickyTaskListName;
     this.stickyTaskListScheduleToStartTimeout = stickyTaskListScheduleToStartTimeout;
     this.service = Objects.requireNonNull(service);
+    this.laPollTask = Objects.requireNonNull(laPollTask);
   }
 
   @Override
@@ -254,7 +258,16 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     }
     DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask);
     ReplayWorkflow workflow = workflowFactory.getWorkflow(workflowType);
-    return new ReplayDecider(
-        service, domain, workflow, decisionsHelper, metricsScope, enableLoggingInReplay);
+    ReplayDecider replayDecider =
+        new ReplayDecider(
+            service,
+            domain,
+            workflow,
+            decisionsHelper,
+            metricsScope,
+            enableLoggingInReplay,
+            laPollTask);
+    replayDecider.context.workflowClock.setReplayDecider(replayDecider);
+    return replayDecider;
   }
 }

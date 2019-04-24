@@ -56,6 +56,13 @@ public interface WorkflowInterceptor {
       Object[] args,
       ActivityOptions options);
 
+  <R> Promise<R> executeLocalActivity(
+      String activityName,
+      Class<R> resultClass,
+      Type resultType,
+      Object[] args,
+      ActivityOptions options);
+
   <R> WorkflowResult<R> executeChildWorkflow(
       String workflowType,
       Class<R> resultClass,

@@ -49,6 +49,16 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
+  public <R> Promise<R> executeLocalActivity(
+      String activityName,
+      Class<R> resultClass,
+      Type resultType,
+      Object[] args,
+      ActivityOptions options) {
+    return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
+  }
+
+  @Override
   public <R> WorkflowResult<R> executeChildWorkflow(
       String workflowType,
       Class<R> resultClass,

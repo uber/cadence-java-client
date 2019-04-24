@@ -22,22 +22,30 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
 
 /** Supports calling activity by name and arguments without its strongly typed interface. */
 class ActivityStubImpl implements ActivityStub {
 
-  private final ActivityOptions options;
-  private final WorkflowInterceptor activityExecutor;
+  interface ActivityExecutor {
+    <R> Promise<R> executeActivity(
+        String activityName,
+        Class<R> resultClass,
+        Type resultType,
+        Object[] args,
+        ActivityOptions options);
+  }
 
-  static ActivityStub newInstance(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  protected final ActivityOptions options;
+  protected final ActivityExecutor activityExecutor;
+
+  static ActivityStub newInstance(ActivityOptions options, ActivityExecutor activityExecutor) {
     ActivityOptions validatedOptions =
         new ActivityOptions.Builder(options).validateAndBuildWithDefaults();
     return new ActivityStubImpl(validatedOptions, activityExecutor);
   }
 
-  private ActivityStubImpl(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  ActivityStubImpl(ActivityOptions options, ActivityExecutor activityExecutor) {
     this.options = options;
     this.activityExecutor = activityExecutor;
   }

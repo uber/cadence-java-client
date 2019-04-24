@@ -19,21 +19,12 @@ package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
-import com.uber.cadence.ActivityType;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.*;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.RetryParameters;
-import com.uber.cadence.internal.replay.ActivityTaskFailedException;
-import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
-import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
-import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
-import com.uber.cadence.internal.replay.DecisionContext;
-import com.uber.cadence.internal.replay.ExecuteActivityParameters;
-import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
-import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.internal.replay.*;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
@@ -142,27 +133,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   private Promise<byte[]> executeActivityOnce(String name, ActivityOptions options, byte[] input) {
     CompletablePromise<byte[]> result = Workflow.newPromise();
-    ExecuteActivityParameters parameters = new ExecuteActivityParameters();
-    // TODO: Real task list
-    String taskList = options.getTaskList();
-    if (taskList == null) {
-      taskList = context.getTaskList();
-    }
-    parameters
-        .withActivityType(new ActivityType().setName(name))
-        .withInput(input)
-        .withTaskList(taskList)
-        .withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeout().getSeconds())
-        .withStartToCloseTimeoutSeconds(options.getStartToCloseTimeout().getSeconds())
-        .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds())
-        .setHeartbeatTimeoutSeconds(options.getHeartbeatTimeout().getSeconds());
-    RetryOptions retryOptions = options.getRetryOptions();
-    if (retryOptions != null) {
-      parameters.setRetryParameters(new RetryParameters(retryOptions));
-    }
+    ExecuteActivityParameters params = constructExecuteActivityParameters(name, options, input);
     Consumer<Exception> cancellationCallback =
         context.scheduleActivityTask(
-            parameters,
+            params,
             (output, failure) -> {
               if (failure != null) {
                 runner.executeInWorkflowThread(
@@ -232,6 +206,85 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     }
     throw new IllegalArgumentException(
         "Unexpected exception type: " + failure.getClass().getName(), failure);
+  }
+
+  @Override
+  public <R> Promise<R> executeLocalActivity(
+      String activityName,
+      Class<R> resultClass,
+      Type resultType,
+      Object[] args,
+      ActivityOptions options) {
+    RetryOptions retryOptions = options.getRetryOptions();
+    // Replays a legacy history that used the client side retry correctly
+    if (retryOptions != null && !context.isServerSideActivityRetry()) {
+      return WorkflowRetryerInternal.retryAsync(
+          retryOptions,
+          () -> executeLocalActivityOnce(activityName, options, args, resultClass, resultType));
+    }
+    return executeLocalActivityOnce(activityName, options, args, resultClass, resultType);
+  }
+
+  private <T> Promise<T> executeLocalActivityOnce(
+      String name, ActivityOptions options, Object[] args, Class<T> returnClass, Type returnType) {
+    byte[] input = converter.toData(args);
+    Promise<byte[]> binaryResult = executeLocalActivityOnce(name, options, input);
+    if (returnClass == Void.TYPE) {
+      return binaryResult.thenApply((r) -> null);
+    }
+    return binaryResult.thenApply((r) -> converter.fromData(r, returnClass, returnType));
+  }
+
+  private Promise<byte[]> executeLocalActivityOnce(
+      String name, ActivityOptions options, byte[] input) {
+    CompletablePromise<byte[]> result = Workflow.newPromise();
+    ExecuteActivityParameters params = constructExecuteActivityParameters(name, options, input);
+
+    Consumer<Exception> cancellationCallback =
+        context.scheduleLocalActivityTask(
+            params,
+            (output, failure) -> {
+              System.out.println("In local activity completion callback");
+              if (failure != null) {
+                runner.executeInWorkflowThread(
+                    "activity failure callback",
+                    () -> result.completeExceptionally(mapActivityException(failure)));
+              } else {
+                runner.executeInWorkflowThread(
+                    "activity completion callback", () -> result.complete(output));
+              }
+            });
+    CancellationScope.current()
+        .getCancellationRequest()
+        .thenApply(
+            (reason) -> {
+              cancellationCallback.accept(new CancellationException(reason));
+              return null;
+            });
+    return result;
+  }
+
+  private ExecuteActivityParameters constructExecuteActivityParameters(
+      String name, ActivityOptions options, byte[] input) {
+    ExecuteActivityParameters parameters = new ExecuteActivityParameters();
+    // TODO: Real task list
+    String taskList = options.getTaskList();
+    if (taskList == null) {
+      taskList = context.getTaskList();
+    }
+    parameters
+        .withActivityType(new ActivityType().setName(name))
+        .withInput(input)
+        .withTaskList(taskList)
+        .withScheduleToStartTimeoutSeconds(options.getScheduleToStartTimeout().getSeconds())
+        .withStartToCloseTimeoutSeconds(options.getStartToCloseTimeout().getSeconds())
+        .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds())
+        .setHeartbeatTimeoutSeconds(options.getHeartbeatTimeout().getSeconds());
+    RetryOptions retryOptions = options.getRetryOptions();
+    if (retryOptions != null) {
+      parameters.setRetryParameters(new RetryParameters(retryOptions));
+    }
+    return parameters;
   }
 
   @Override

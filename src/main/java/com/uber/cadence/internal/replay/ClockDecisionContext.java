@@ -17,19 +17,17 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.MarkerRecordedEventAttributes;
-import com.uber.cadence.StartTimerDecisionAttributes;
-import com.uber.cadence.TimerCanceledEventAttributes;
-import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
+import com.uber.cadence.internal.worker.LocalActivityPollTask;
+import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -39,13 +37,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Clock that must be used inside workflow definition code to ensure replay determinism. */
-final class ClockDecisionContext {
+public final class ClockDecisionContext {
 
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
   private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
   public static final String VERSION_MARKER_NAME = "Version";
+  public static final String LOCAL_ACTIVITY_MARKER_NAME = "LocalActivity";
 
-  private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
+  private static final Logger log = LoggerFactory.getLogger(ClockDecisionContext.class);
 
   private final class TimerCancellationHandler implements Consumer<Exception> {
 
@@ -62,25 +61,25 @@ final class ClockDecisionContext {
   }
 
   private final DecisionsHelper decisions;
-
-  // key is startedEventId
-  private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers = new HashMap<>();
-
+  private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers =
+      new HashMap<>(); // key is startedEventId
   private long replayCurrentTimeMilliseconds = -1;
-
   private boolean replaying = true;
-
-  // Key is side effect marker eventId
-  private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
-
+  private final Map<Long, byte[]> sideEffectResults =
+      new HashMap<>(); // Key is side effect marker eventId
   private final MarkerHandler mutableSideEffectHandler;
   private final MarkerHandler versionHandler;
+  private final LocalActivityPollTask laPollTask;
+  private final Map<String, OpenRequestInfo<byte[], ActivityType>> pendingLaTasks = new HashMap<>();
+  private final List<ExecuteActivityParameters> unstartedLaTasks = new LinkedList<>();
+  private ReplayDecider replayDecider;
 
-  ClockDecisionContext(DecisionsHelper decisions) {
+  ClockDecisionContext(DecisionsHelper decisions, LocalActivityPollTask laPollTask) {
     this.decisions = decisions;
     mutableSideEffectHandler =
         new MarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
     versionHandler = new MarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
+    this.laPollTask = laPollTask;
   }
 
   long currentTimeMillis() {
@@ -89,6 +88,10 @@ final class ClockDecisionContext {
 
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
     this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
+  }
+
+  void setReplayDecider(ReplayDecider replayDecider) {
+    this.replayDecider = replayDecider;
   }
 
   boolean isReplaying() {
@@ -182,13 +185,50 @@ final class ClockDecisionContext {
     return mutableSideEffectHandler.handle(id, converter, func);
   }
 
+  public static class LocalActivityMarkerData {
+    String activityId;
+    String activityType;
+    String errReason;
+    String errJson;
+    byte[] result;
+    long replayTime;
+    int attempt;
+    Duration backoff;
+
+    public LocalActivityMarkerData(String activityId, String activityType, byte[] resultJson) {
+      this.activityId = activityId;
+      this.activityType = activityType;
+      this.result = resultJson;
+    }
+  }
+
   void handleMarkerRecorded(HistoryEvent event) {
     MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
     String name = attributes.getMarkerName();
     if (SIDE_EFFECT_MARKER_NAME.equals(name)) {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
+    } else if (LOCAL_ACTIVITY_MARKER_NAME.equals(name)) {
+      handleLocalActivityMarker(attributes);
     } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name) && !VERSION_MARKER_NAME.equals(name)) {
       log.warn("Unexpected marker: " + event);
+    }
+  }
+
+  void handleLocalActivityMarker(MarkerRecordedEventAttributes attributes) {
+    LocalActivityMarkerData marker =
+        JsonDataConverter.getInstance()
+            .fromData(
+                attributes.getDetails(),
+                LocalActivityMarkerData.class,
+                LocalActivityMarkerData.class);
+
+    if (pendingLaTasks.containsKey(marker.activityId)) {
+      decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
+
+      OpenRequestInfo<byte[], ActivityType> scheduled = pendingLaTasks.remove(marker.activityId);
+      BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
+      completionHandle.accept(marker.result, null);
+      // TODO: Error handling
     }
   }
 
@@ -227,5 +267,26 @@ final class ClockDecisionContext {
               "Version %d of changeID %s is not supported. Supported version is between %d and %d.",
               version, changeID, minSupported, maxSupported));
     }
+  }
+
+  public Consumer<Exception> scheduleLocalActivityTask(
+      ExecuteActivityParameters params, BiConsumer<byte[], Exception> callback) {
+    final OpenRequestInfo<byte[], ActivityType> context =
+        new OpenRequestInfo<>(params.getActivityType());
+    context.setCompletionHandle(callback);
+    pendingLaTasks.put(params.getActivityId(), context);
+    unstartedLaTasks.add(params);
+    return null;
+  }
+
+  public void startUnstartedLaTasks() {
+    for (ExecuteActivityParameters params : unstartedLaTasks) {
+      laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider));
+    }
+    unstartedLaTasks.clear();
+  }
+
+  public boolean hasPendingLaTasks() {
+    return !pendingLaTasks.isEmpty();
   }
 }

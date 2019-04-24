@@ -21,12 +21,10 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
-import com.uber.cadence.internal.worker.DecisionTaskHandler;
-import com.uber.cadence.internal.worker.SingleWorkerOptions;
-import com.uber.cadence.internal.worker.SuspendableWorker;
-import com.uber.cadence.internal.worker.WorkflowWorker;
+import com.uber.cadence.internal.worker.*;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions.Func;
@@ -34,6 +32,8 @@ import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -43,9 +43,12 @@ import java.util.function.Function;
 public class SyncWorkflowWorker
     implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
 
-  private final WorkflowWorker worker;
+  private final WorkflowWorker workflowWorker;
+  private final LocalActivityWorker laWorker;
   private final POJOWorkflowImplementationFactory factory;
   private final SingleWorkerOptions options;
+  private final POJOActivityTaskHandler laTaskHandler;
+  private final ScheduledExecutorService heartbeatExecutor = Executors.newScheduledThreadPool(4);
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -64,6 +67,8 @@ public class SyncWorkflowWorker
         new POJOWorkflowImplementationFactory(
             options.getDataConverter(), workflowThreadPool, interceptorFactory, cache);
 
+    LocalActivityPollTask laPoolTask = new LocalActivityPollTask();
+
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             domain,
@@ -72,9 +77,13 @@ public class SyncWorkflowWorker
             this.options,
             stickyTaskListName,
             stickyDecisionScheduleToStartTimeout,
-            service);
+            service,
+            laPoolTask);
 
-    worker = new WorkflowWorker(service, domain, taskList, this.options, taskHandler);
+    workflowWorker = new WorkflowWorker(service, domain, taskList, this.options, taskHandler);
+    laTaskHandler =
+        new POJOActivityTaskHandler(service, domain, options.getDataConverter(), heartbeatExecutor);
+    laWorker = new LocalActivityWorker(domain, taskList, this.options, laTaskHandler, laPoolTask);
   }
 
   public void setWorkflowImplementationTypes(
@@ -86,54 +95,64 @@ public class SyncWorkflowWorker
     this.factory.addWorkflowImplementationFactory(clazz, factory);
   }
 
+  public void setLocalActivitiesImplementation(Object... activitiesImplementation) {
+    this.laTaskHandler.setActivitiesImplementation(activitiesImplementation);
+  }
+
   @Override
   public void start() {
-    worker.start();
+    workflowWorker.start();
+    laWorker.start();
   }
 
   @Override
   public boolean isStarted() {
-    return worker.isStarted();
+    return workflowWorker.isStarted() && laWorker.isStarted();
   }
 
   @Override
   public boolean isShutdown() {
-    return worker.isShutdown();
+    return workflowWorker.isShutdown() && laWorker.isShutdown();
   }
 
   @Override
   public boolean isTerminated() {
-    return worker.isTerminated();
+    return workflowWorker.isTerminated() && laWorker.isTerminated();
   }
 
   @Override
   public void shutdown() {
-    worker.shutdown();
+    laWorker.shutdown();
+    workflowWorker.shutdown();
   }
 
   @Override
   public void shutdownNow() {
-    worker.shutdownNow();
+    laWorker.shutdownNow();
+    workflowWorker.shutdownNow();
   }
 
   @Override
   public void awaitTermination(long timeout, TimeUnit unit) {
-    worker.awaitTermination(timeout, unit);
+    long timeoutMillis = InternalUtils.awaitTermination(laWorker, unit.toMillis(timeout));
+    InternalUtils.awaitTermination(workflowWorker, timeoutMillis);
   }
 
   @Override
   public void suspendPolling() {
-    worker.suspendPolling();
+    workflowWorker.suspendPolling();
+    laWorker.suspendPolling();
   }
 
   @Override
   public void resumePolling() {
-    worker.resumePolling();
+    workflowWorker.resumePolling();
+    laWorker.resumePolling();
   }
 
   @Override
   public boolean isSuspended() {
-    return worker.isSuspended();
+    return workflowWorker.isSuspended() && laWorker.isSuspended();
   }
 
   public <R> R queryWorkflowExecution(
@@ -145,7 +164,7 @@ public class SyncWorkflowWorker
       throws Exception {
     DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
-    byte[] result = worker.queryWorkflowExecution(execution, queryType, serializedArgs);
+    byte[] result = workflowWorker.queryWorkflowExecution(execution, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
   }
 
@@ -158,12 +177,12 @@ public class SyncWorkflowWorker
       throws Exception {
     DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
-    byte[] result = worker.queryWorkflowExecution(history, queryType, serializedArgs);
+    byte[] result = workflowWorker.queryWorkflowExecution(history, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
   }
 
   @Override
   public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
-    worker.accept(pollForDecisionTaskResponse);
+    workflowWorker.accept(pollForDecisionTaskResponse);
   }
 }

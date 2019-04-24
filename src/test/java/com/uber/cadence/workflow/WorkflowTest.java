@@ -111,9 +111,9 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = false;
+  private static final boolean DEBUGGER_TIMEOUTS = true;
 
-  public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
+  private static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
   private static final boolean useDockerService =
@@ -272,6 +272,7 @@ public class WorkflowTest {
     ActivityCompletionClient completionClient = workflowClient.newActivityCompletionClient();
     activitiesImpl = new TestActivitiesImpl(completionClient);
     worker.registerActivitiesImplementations(activitiesImpl);
+    worker.registerLocalActivitiesImplementations(activitiesImpl);
 
     newWorkflowOptionsBuilder(taskList);
 
@@ -3092,6 +3093,12 @@ public class WorkflowTest {
 
     String activity6(String a1, int a2, int a3, int a4, int a5, int a6);
 
+    @ActivityMethod(isLocalActivity = true)
+    String localActivity(String input);
+
+    @ActivityMethod(isLocalActivity = true)
+    String localActivity2(String input);
+
     void proc();
 
     void proc1(String input);
@@ -3231,6 +3238,16 @@ public class WorkflowTest {
     public String activity6(String a1, int a2, int a3, int a4, int a5, int a6) {
       invocations.add("activity6");
       return a1 + a2 + a3 + a4 + a5 + a6;
+    }
+
+    @Override
+    public String localActivity(String input) {
+      return "local activity: " + input;
+    }
+
+    @Override
+    public String localActivity2(String input) {
+      return "local activity 2: " + input;
     }
 
     @Override
@@ -4230,6 +4247,29 @@ public class WorkflowTest {
     Assert.assertEquals("some result", result);
   }
 
+  public static class TestLocalActivityWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      String laResult = testActivities.localActivity(taskList);
+      laResult = testActivities.localActivity2(laResult);
+      laResult = testActivities.activity2(laResult, 1);
+      System.out.println(laResult);
+      return laResult;
+    }
+  }
+
+  @Test
+  public void testLocalActivity() {
+    startWorkerFor(TestLocalActivityWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("local activity 2: local activity: " + taskList + 1, result);
+  }
+
   private static class FilteredTrace {
 
     private final List<String> impl = Collections.synchronizedList(new ArrayList<>());
@@ -4266,6 +4306,17 @@ public class WorkflowTest {
         ActivityOptions options) {
       trace.add("executeActivity " + activityName);
       return next.executeActivity(activityName, resultClass, resultType, args, options);
+    }
+
+    @Override
+    public <R> Promise<R> executeLocalActivity(
+        String activityName,
+        Class<R> resultClass,
+        Type resultType,
+        Object[] args,
+        ActivityOptions options) {
+      trace.add("executeLocalActivity " + activityName);
+      return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
     }
 
     @Override

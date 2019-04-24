@@ -540,6 +540,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public Consumer<Exception> scheduleLocalActivityTask(
+        ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public Consumer<Exception> startChildWorkflow(
         StartChildWorkflowExecutionParameters parameters,
         Consumer<WorkflowExecution> executionCallback,

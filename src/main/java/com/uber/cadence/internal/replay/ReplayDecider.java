@@ -37,6 +37,7 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEventsIterator;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
+import com.uber.cadence.internal.worker.LocalActivityPollTask;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
@@ -56,31 +57,21 @@ import org.apache.thrift.TException;
  * Implements decider that relies on replay of a workflow code. An instance of this class is created
  * per decision.
  */
-class ReplayDecider implements Decider {
+public class ReplayDecider implements Decider {
 
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
   private final DecisionsHelper decisionsHelper;
-
-  private final DecisionContextImpl context;
-
-  private IWorkflowService service;
-  private ReplayWorkflow workflow;
-
+  final DecisionContextImpl context;
+  private final IWorkflowService service;
+  private final ReplayWorkflow workflow;
   private boolean cancelRequested;
-
   private boolean completed;
-
   private WorkflowExecutionException failure;
-
   private long wakeUpTime;
-
   private Consumer<Exception> timerCancellationHandler;
-
   private final Scope metricsScope;
-
   private final long wfStartTimeNanos;
-
   private final WorkflowExecutionStartedEventAttributes startedEvent;
 
   ReplayDecider(
@@ -89,7 +80,8 @@ class ReplayDecider implements Decider {
       ReplayWorkflow workflow,
       DecisionsHelper decisionsHelper,
       Scope metricsScope,
-      boolean enableLoggingInReplay) {
+      boolean enableLoggingInReplay,
+      LocalActivityPollTask laPollTask) {
     this.service = service;
     this.workflow = workflow;
     this.decisionsHelper = decisionsHelper;
@@ -106,7 +98,7 @@ class ReplayDecider implements Decider {
 
     context =
         new DecisionContextImpl(
-            decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay);
+            decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay, laPollTask);
     context.setMetricsScope(metricsScope);
   }
 
@@ -114,7 +106,7 @@ class ReplayDecider implements Decider {
     workflow.start(event, context);
   }
 
-  private void processEvent(HistoryEvent event) throws Throwable {
+  public void processEvent(HistoryEvent event) throws Throwable {
     EventType eventType = event.getEventType();
     switch (eventType) {
       case ActivityTaskCanceled:
@@ -396,12 +388,39 @@ class ReplayDecider implements Decider {
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
         // Markers must be cached first as their data is needed when processing events.
         for (HistoryEvent event : decision.getMarkers()) {
-          processEvent(event);
+          if (!event
+              .getMarkerRecordedEventAttributes()
+              .getMarkerName()
+              .equals(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)) {
+            processEvent(event);
+          }
         }
+
         for (HistoryEvent event : decision.getEvents()) {
           processEvent(event);
         }
+
+        for (HistoryEvent event : decision.getMarkers()) {
+          if (event
+              .getMarkerRecordedEventAttributes()
+              .getMarkerName()
+              .equals(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)) {
+            processEvent(event);
+          }
+        }
+
         eventLoop();
+
+        while (context.hasPendingLaTasks()) {
+          context.startUnstartedLaTasks();
+
+          while (context.hasPendingLaTasks()) {
+            Thread.sleep(100);
+          }
+
+          eventLoop();
+        }
+
         mayBeCompleteWorkflow();
         if (decision.isReplay()) {
           decisionsHelper.notifyDecisionSent();
