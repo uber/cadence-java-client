@@ -33,7 +33,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,10 +121,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       if (stickyTaskListName == null) {
         decider = createDecider(decisionTask);
       } else {
-        decider = cache.getOrCreate(decisionTask, () -> {
-          createdNew.set(true);
-          return createDecider(decisionTask);
-        });
+        decider =
+            cache.getOrCreate(
+                decisionTask,
+                () -> {
+                  createdNew.set(true);
+                  return createDecider(decisionTask);
+                });
       }
 
       List<Decision> decisions = decider.decide(decisionTask);
@@ -182,10 +184,13 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       if (stickyTaskListName == null) {
         decider = createDecider(decisionTask);
       } else {
-        decider = cache.getOrCreate(decisionTask, () -> {
-          createdNew.set(true);
-          return createDecider(decisionTask);
-        });
+        decider =
+            cache.getOrCreate(
+                decisionTask,
+                () -> {
+                  createdNew.set(true);
+                  return createDecider(decisionTask);
+                });
       }
 
       byte[] queryResult = decider.query(decisionTask, decisionTask.getQuery());

@@ -687,6 +687,7 @@ public class DeterministicRunnerTest {
     PollForDecisionTaskResponse response = HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     cache.getOrCreate(response, () -> decider);
+    cache.addToCache(response, decider);
     d.runUntilAllBlocked();
     assertEquals(2, threadPool.getActiveCount());
 
@@ -753,6 +754,7 @@ public class DeterministicRunnerTest {
     PollForDecisionTaskResponse response = HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     cache.getOrCreate(response, () -> decider);
+    cache.addToCache(response, decider);
     d.runUntilAllBlocked();
     assertEquals(2, threadPool.getActiveCount());
 

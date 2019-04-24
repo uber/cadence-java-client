@@ -246,7 +246,9 @@ class WorkflowThreadImpl implements WorkflowThread {
             .counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION)
             .inc(1);
         if (cache != null) {
-          boolean evicted = cache.evictAnyNotInProcessing(this.runner.getDecisionContext().getContext().getRunId());
+          boolean evicted =
+              cache.evictAnyNotInProcessing(
+                  this.runner.getDecisionContext().getContext().getRunId());
           if (!evicted) {
             throw e;
           }

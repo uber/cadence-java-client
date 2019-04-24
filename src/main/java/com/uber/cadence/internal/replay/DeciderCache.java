@@ -24,7 +24,6 @@ import com.google.common.cache.LoadingCache;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.m3.tally.Scope;
-
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
@@ -58,7 +57,8 @@ public final class DeciderCache {
                 });
   }
 
-  public Decider getOrCreate(PollForDecisionTaskResponse decisionTask, Callable<Decider> deciderFunc) throws Exception {
+  public Decider getOrCreate(
+      PollForDecisionTaskResponse decisionTask, Callable<Decider> deciderFunc) throws Exception {
     String runId = decisionTask.getWorkflowExecution().getRunId();
     if (isFullHistory(decisionTask)) {
       invalidate(runId);

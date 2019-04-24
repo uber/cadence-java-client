@@ -182,7 +182,10 @@ public class StickyWorkerTest {
                 .setCacheMaximumSize(100)
                 .build());
     Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().setMaxConcurrentWorkflowExecutionSize(5).build());
+    Worker worker =
+        factory.newWorker(
+            taskListName,
+            new WorkerOptions.Builder().setMaxConcurrentWorkflowExecutionSize(5).build());
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();

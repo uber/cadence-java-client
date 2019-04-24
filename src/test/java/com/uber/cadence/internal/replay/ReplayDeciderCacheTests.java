@@ -59,10 +59,13 @@ public class ReplayDeciderCacheTests {
     assertCacheIsEmpty(replayDeciderCache, runId);
 
     // Act
-    Decider decider = replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
 
     // Assert
-    assertNotEquals(decider, replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask)));
+    assertNotEquals(
+        decider,
+        replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask)));
   }
 
   @Test
@@ -75,7 +78,8 @@ public class ReplayDeciderCacheTests {
         HistoryUtils.generateDecisionTaskWithInitialHistory(
             "domain", "taskList", "workflowType", service);
 
-    Decider decider = replayDeciderCache.getOrCreate(decisionTask1, () -> createFakeDecider(decisionTask1));
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask1, () -> createFakeDecider(decisionTask1));
     replayDeciderCache.addToCache(decisionTask1, decider);
 
     PollForDecisionTaskResponse decisionTask2 =
@@ -83,13 +87,17 @@ public class ReplayDeciderCacheTests {
             decisionTask1, "domain", "stickyTaskList", service);
 
     assertEquals(
-        decider, replayDeciderCache.getOrCreate(decisionTask2, () -> doNotCreateFakeDecider(decisionTask2)));
+        decider,
+        replayDeciderCache.getOrCreate(decisionTask2, () -> doNotCreateFakeDecider(decisionTask2)));
 
     // Act
-    Decider decider2 = replayDeciderCache.getOrCreate(decisionTask2, () -> createFakeDecider(decisionTask2));
+    Decider decider2 =
+        replayDeciderCache.getOrCreate(decisionTask2, () -> createFakeDecider(decisionTask2));
 
     // Assert
-    assertEquals(decider2, replayDeciderCache.getOrCreate(decisionTask2, () -> createFakeDecider(decisionTask2)));
+    assertEquals(
+        decider2,
+        replayDeciderCache.getOrCreate(decisionTask2, () -> createFakeDecider(decisionTask2)));
     assertSame(decider2, decider);
     service.close();
   }
@@ -113,14 +121,16 @@ public class ReplayDeciderCacheTests {
         HistoryUtils.generateDecisionTaskWithInitialHistory(
             "domain", "taskList", "workflowType", service);
 
-    Decider decider = replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
     replayDeciderCache.addToCache(decisionTask, decider);
 
     // Act
     PollForDecisionTaskResponse decisionTask2 =
         HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(
             decisionTask, "domain", "stickyTaskList", service);
-    Decider decider2 = replayDeciderCache.getOrCreate(decisionTask2, () -> doNotCreateFakeDecider(decisionTask2));
+    Decider decider2 =
+        replayDeciderCache.getOrCreate(decisionTask2, () -> doNotCreateFakeDecider(decisionTask2));
 
     // Assert
     // Wait for reporter
@@ -148,7 +158,7 @@ public class ReplayDeciderCacheTests {
         HistoryUtils.generateDecisionTaskWithPartialHistory();
 
     try {
-      replayDeciderCache.getOrCreate(decisionTask, ()->createFakeDecider(decisionTask));
+      replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
     } catch (IllegalArgumentException ex) {
 
       // Wait for reporter
@@ -182,11 +192,12 @@ public class ReplayDeciderCacheTests {
         HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     // Act
-    Decider decider = replayDeciderCache.getOrCreate(decisionTask1, ()->createFakeDecider(decisionTask1));
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask1, () -> createFakeDecider(decisionTask1));
     replayDeciderCache.addToCache(decisionTask1, decider);
-    decider = replayDeciderCache.getOrCreate(decisionTask2, ()->createFakeDecider(decisionTask2));
+    decider = replayDeciderCache.getOrCreate(decisionTask2, () -> createFakeDecider(decisionTask2));
     replayDeciderCache.addToCache(decisionTask2, decider);
-    decider = replayDeciderCache.getOrCreate(decisionTask3, ()->createFakeDecider(decisionTask3));
+    decider = replayDeciderCache.getOrCreate(decisionTask3, () -> createFakeDecider(decisionTask3));
     replayDeciderCache.addToCache(decisionTask3, decider);
 
     assertEquals(3, replayDeciderCache.size());
@@ -210,7 +221,8 @@ public class ReplayDeciderCacheTests {
         HistoryUtils.generateDecisionTaskWithInitialHistory();
 
     // Act
-    Decider decider = replayDeciderCache.getOrCreate(decisionTask1, ()->createFakeDecider(decisionTask1));
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask1, () -> createFakeDecider(decisionTask1));
     replayDeciderCache.addToCache(decisionTask1, decider);
 
     assertEquals(1, replayDeciderCache.size());
@@ -227,14 +239,15 @@ public class ReplayDeciderCacheTests {
       PollForDecisionTaskResponse decisionTask =
           new PollForDecisionTaskResponse()
               .setWorkflowExecution(new WorkflowExecution().setRunId(runId));
-      cache.getOrCreate(decisionTask, ()->doNotCreateFakeDecider(decisionTask));
+      cache.getOrCreate(decisionTask, () -> doNotCreateFakeDecider(decisionTask));
     } catch (AssertionError e) {
       ex = e;
     }
     TestCase.assertNotNull(ex);
   }
 
-  private ReplayDecider doNotCreateFakeDecider(PollForDecisionTaskResponse response) {
+  private ReplayDecider doNotCreateFakeDecider(
+      @SuppressWarnings("unused") PollForDecisionTaskResponse response) {
     fail("should not be called");
     return null;
   }
