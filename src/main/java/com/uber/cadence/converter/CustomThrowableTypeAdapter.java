@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
+class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
   private static final Logger log = LoggerFactory.getLogger(JsonDataConverter.class);
 
   /** Used to parse a stack trace line. */
