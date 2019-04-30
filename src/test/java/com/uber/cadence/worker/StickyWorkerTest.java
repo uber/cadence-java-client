@@ -92,7 +92,7 @@ public class StickyWorkerTest {
 
   @BeforeClass
   public static void setUp() {
-    if (!useDockerService) {
+    if (useDockerService) {
       service = new WorkflowServiceTChannel();
     }
   }
