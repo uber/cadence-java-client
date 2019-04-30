@@ -85,10 +85,7 @@ services:
     command: "./gradlew test"
     environment:
       - "USER=unittest"
-#      - "CADENCE_SEEDS=cadence"
       - "USE_DOCKER_SERVICE=false"
-#    depends_on:
-#      - cadence
     volumes:
       - "../../:/cadence-java-client"
     networks:

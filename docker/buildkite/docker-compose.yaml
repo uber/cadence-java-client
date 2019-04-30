@@ -1,9 +1,15 @@
-version: '3'
+version: '3.5'
+
 services:
   cassandra:
     image: cassandra:3.11
     ports:
       - "9042:9042"
+    networks:
+      services-network:
+        aliases:
+          - cassandra
+
   statsd:
     image: hopsoft/graphite-statsd
     ports:
@@ -11,6 +17,11 @@ services:
       - "2003:2003"
       - "8125:8125"
       - "8126:8126"
+    networks:
+      services-network:
+        aliases:
+          - statsd
+
   cadence:
     image: ubercadence/server:0.5.6
     ports:
@@ -24,28 +35,65 @@ services:
     depends_on:
       - cassandra
       - statsd
-
-  unit-test:
-    build:
-      context: ../../..
-      dockerfile: ./docker/buildkite/Dockerfile
-    ports:
-      - "7933:7933"
-      - "7934:7934"
-      - "7935:7935"
-      - "7939:7939"
-    environment:
-      - "CASSANDRA_SEEDS=cassandra"
-      - BUILDKITE_AGENT_ACCESS_TOKEN
-      - BUILDKITE_JOB_ID
-      - BUILDKITE_BUILD_ID
-      - BUILDKITE_BUILD_NUMBER
-    depends_on:
-      - cadence
-    volumes:
-      - ../../:/cadence-java-client
-      - /usr/bin/buildkite-agent:/usr/bin/buildkite-agent
     networks:
       services-network:
         aliases:
-          - unit-test
+          - cadence
+
+  unit-test-docker-sticky-off:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew test"
+    environment:
+      - "USER=unittest"
+      - "CADENCE_SEEDS=cadence"
+      - "USE_DOCKER_SERVICE=true"
+      - "STICKY_OFF=true"
+    depends_on:
+      - cadence
+    volumes:
+      - "../../:/cadence-java-client"
+    networks:
+      services-network:
+        aliases:
+          - unit-test-docker-sticky-off
+
+  unit-test-docker-sticky-on:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew test"
+    environment:
+      - "USER=unittest"
+      - "CADENCE_SEEDS=cadence"
+      - "USE_DOCKER_SERVICE=true"
+      - "STICKY_OFF=true"
+    depends_on:
+      - cadence
+    volumes:
+      - "../../:/cadence-java-client"
+    networks:
+      services-network:
+        aliases:
+          - unit-test-docker-sticky-off
+
+  unit-test-docker-off:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew test"
+    environment:
+      - "USER=unittest"
+      - "USE_DOCKER_SERVICE=false"
+    volumes:
+      - "../../:/cadence-java-client"
+    networks:
+      services-network:
+        aliases:
+          - unit-test-docker-off
+
+networks:
+  services-network:
+    name: services-network
+    driver: bridge
