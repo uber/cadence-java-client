@@ -554,7 +554,7 @@ Other than that, no additional limitations exist on activity implementations.
 
 # Updating Workflow Definition Deterministically
 
-As outlined in the _Workflow Impelementation Constraints_ section the workflow code has to be deterministic by taking the same
+As outlined in the _Workflow Implementation Constraints_ section the workflow code has to be deterministic by taking the same
 code path when replaying history events. Any workflow code change that affects the order in which decisions are generated breaks
 this assumption. The solution that allows updating code of already running workflows is to keep both the old and new code.
 When replaying use the code version that the events where generated with and when executing a new code path always take the 
@@ -563,7 +563,6 @@ new code.
 Use Workflow.getVersion function to return a version of code that should be executed and then use the returned value to 
 pick a correct branch. Let's look at an example.
 
-    @Override
     public void processFile(Arguments args) {
         String localName = null;
         String processedName = null;
