@@ -106,7 +106,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   public static final int DEFAULT_LOCAL_CADENCE_SERVER_PORT = 7933;
 
-  private static final String LOCALHOST = "127.0.0.1";
+  private static final String LOCALHOST = "cadence";
 
   /** Default RPC timeout used for all non long poll calls. */
   private static final long DEFAULT_RPC_TIMEOUT_MILLIS = 1000;
@@ -340,7 +340,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
    * on a default port (7933).
    */
   public WorkflowServiceTChannel() {
-    this(LOCALHOST, DEFAULT_LOCAL_CADENCE_SERVER_PORT, new ClientOptions.Builder().build());
+    this(System.getenv("CASSANDRA_SEEDS").isEmpty() ? LOCALHOST : System.getenv("CASSANDRA_SEEDS"),
+        DEFAULT_LOCAL_CADENCE_SERVER_PORT, new ClientOptions.Builder().build());
   }
 
   /**
