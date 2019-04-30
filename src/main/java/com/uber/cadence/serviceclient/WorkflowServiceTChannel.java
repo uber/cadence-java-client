@@ -342,9 +342,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
    */
   public WorkflowServiceTChannel() {
     this(
-        Strings.isNullOrEmpty(System.getenv("CASSANDRA_SEEDS"))
+        Strings.isNullOrEmpty(System.getenv("CADENCE_SEEDS"))
             ? LOCALHOST
-            : System.getenv("CASSANDRA_SEEDS"),
+            : System.getenv("CADENCE_SEEDS"),
         DEFAULT_LOCAL_CADENCE_SERVER_PORT,
         new ClientOptions.Builder().build());
   }

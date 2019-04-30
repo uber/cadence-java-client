@@ -68,7 +68,7 @@ services:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"
       - "USE_DOCKER_SERVICE=true"
-      - "STICKY_OFF=true"
+      - "STICKY_OFF=false"
     depends_on:
       - cadence
     volumes:
