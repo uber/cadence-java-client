@@ -76,9 +76,9 @@ services:
     networks:
       services-network:
         aliases:
-          - unit-test-docker-sticky-off
+          - unit-test-docker-sticky-on
 
-  unit-test-docker-off:
+  unit-test-test-service:
     build:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile-local
@@ -91,7 +91,7 @@ services:
     networks:
       services-network:
         aliases:
-          - unit-test-docker-off
+          - unit-test-test-service
 
 networks:
   services-network:
