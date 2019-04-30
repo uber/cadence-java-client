@@ -2139,7 +2139,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testNoQueryThreadLeak() {
+  public void testNoQueryThreadLeak() throws InterruptedException {
     startWorkerFor(TestNoQueryWorkflowImpl.class);
     int threadCount = ManagementFactory.getThreadMXBean().getThreadCount();
     WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
@@ -2151,6 +2151,10 @@ public class WorkflowTest {
     int queryCount = 100;
     for (int i = 0; i < queryCount; i++) {
       assertEquals("some state", client.getState());
+      if (useDockerService) {
+        // Sleep a little bit to avoid server throttling error.
+        Thread.sleep(50);
+      }
     }
     client.mySignal("Hello ");
     client.execute();
