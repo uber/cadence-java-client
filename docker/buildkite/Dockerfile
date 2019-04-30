@@ -1,7 +1,5 @@
 FROM openjdk:8-jre
 
-#COPY --from=thrift:0.9.3 /usr/local/bin/thrift /usr/local/bin/thrift
-
 ENV APACHE_THRIFT_VERSION=0.9.3
 
 RUN apt-get update && apt-get -y install build-essential && apt-get install -y wget

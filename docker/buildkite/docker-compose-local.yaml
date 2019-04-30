@@ -43,7 +43,7 @@ services:
   unit-test-docker-sticky-off:
     build:
       context: ../../
-      dockerfile: ./docker/buildkite/Dockerfile
+      dockerfile: ./docker/buildkite/Dockerfile-local
     command: "./gradlew test"
     environment:
       - "USER=unittest"
@@ -62,7 +62,7 @@ services:
   unit-test-docker-sticky-on:
     build:
       context: ../../
-      dockerfile: ./docker/buildkite/Dockerfile
+      dockerfile: ./docker/buildkite/Dockerfile-local
     command: "./gradlew test"
     environment:
       - "USER=unittest"
@@ -81,7 +81,7 @@ services:
   unit-test-docker-off:
     build:
       context: ../../
-      dockerfile: ./docker/buildkite/Dockerfile
+      dockerfile: ./docker/buildkite/Dockerfile-local
     command: "./gradlew test"
     environment:
       - "USER=unittest"
