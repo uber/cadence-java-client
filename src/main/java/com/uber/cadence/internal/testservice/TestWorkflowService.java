@@ -294,7 +294,8 @@ public final class TestWorkflowService implements IWorkflowService {
             parent,
             parentChildInitiatedEventId,
             this,
-            store);
+            store,
+            forkJoinPool);
     WorkflowExecution execution = mutableState.getExecutionId().getExecution();
     ExecutionId executionId = new ExecutionId(domain, execution);
     executionsByWorkflowId.put(workflowId, mutableState);
