@@ -15,6 +15,5 @@ RUN set -ex ;\
 	make -j2 && make install ;\
 	cd .. && rm -rf thrift-${APACHE_THRIFT_VERSION}
 
-
 RUN mkdir /cadence-java-client
 WORKDIR /cadence-java-client
