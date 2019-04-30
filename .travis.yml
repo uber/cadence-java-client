@@ -3,7 +3,7 @@ language: java
 sudo: required
 
 env:
-  - COMPOSE_FILE=docker-compose-travis.yml
+  - SKIP_DOCKER_SERVICE=true # used to skip docker service tests in WorkflowTest for now.
 
 before_install:
   - pushd /tmp
@@ -13,4 +13,3 @@ before_install:
   - ./configure --enable-libs=no --enable-tests=no --enable-tutorial=no --with-cpp=no --with-c_glib=no --with-java=yes --with-ruby=no --with-erlang=no --with-go=no --with-nodejs=no
   - make -j2 && sudo make install
   - popd
-  - docker-compose up -d
