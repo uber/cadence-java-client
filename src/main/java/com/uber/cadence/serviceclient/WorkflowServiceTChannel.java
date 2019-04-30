@@ -17,6 +17,7 @@
 
 package com.uber.cadence.serviceclient;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.DeprecateDomainRequest;
@@ -106,7 +107,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   public static final int DEFAULT_LOCAL_CADENCE_SERVER_PORT = 7933;
 
-  private static final String LOCALHOST = "cadence";
+  private static final String LOCALHOST = "127.0.0.1";
 
   /** Default RPC timeout used for all non long poll calls. */
   private static final long DEFAULT_RPC_TIMEOUT_MILLIS = 1000;
@@ -340,8 +341,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
    * on a default port (7933).
    */
   public WorkflowServiceTChannel() {
-    this(System.getenv("CASSANDRA_SEEDS").isEmpty() ? LOCALHOST : System.getenv("CASSANDRA_SEEDS"),
-        DEFAULT_LOCAL_CADENCE_SERVER_PORT, new ClientOptions.Builder().build());
+    this(
+        Strings.isNullOrEmpty(System.getenv("CASSANDRA_SEEDS"))
+            ? LOCALHOST
+            : System.getenv("CASSANDRA_SEEDS"),
+        DEFAULT_LOCAL_CADENCE_SERVER_PORT,
+        new ClientOptions.Builder().build());
   }
 
   /**

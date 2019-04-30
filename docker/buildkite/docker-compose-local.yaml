@@ -40,7 +40,7 @@ services:
         aliases:
           - cadence
 
-  unit-test:
+  unit-test-docker-sticky-off:
     build:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile
@@ -48,6 +48,8 @@ services:
     environment:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"
+      - "USE_DOCKER_SERVICE=true"
+      - "STICKY_OFF=true"
     depends_on:
       - cadence
     volumes:
@@ -55,7 +57,44 @@ services:
     networks:
       services-network:
         aliases:
-          - unit-test
+          - unit-test-docker-sticky-off
+
+  unit-test-docker-sticky-on:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew test"
+    environment:
+      - "USER=unittest"
+      - "CADENCE_SEEDS=cadence"
+      - "USE_DOCKER_SERVICE=true"
+      - "STICKY_OFF=true"
+    depends_on:
+      - cadence
+    volumes:
+      - "../../:/cadence-java-client"
+    networks:
+      services-network:
+        aliases:
+          - unit-test-docker-sticky-off
+
+  unit-test-docker-off:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew test"
+    environment:
+      - "USER=unittest"
+#      - "CADENCE_SEEDS=cadence"
+      - "USE_DOCKER_SERVICE=false"
+#    depends_on:
+#      - cadence
+    volumes:
+      - "../../:/cadence-java-client"
+    networks:
+      services-network:
+        aliases:
+          - unit-test-docker-off
 
 networks:
   services-network:

@@ -117,7 +117,7 @@ public final class TestWorkflowService implements IWorkflowService {
   // key->WorkflowId
   private final Map<WorkflowId, TestWorkflowMutableState> executionsByWorkflowId = new HashMap<>();
 
-  private final ForkJoinPool forkJoinPool = new ForkJoinPool(1);
+  private final ForkJoinPool forkJoinPool = new ForkJoinPool(4);
 
   @Override
   public void close() {
