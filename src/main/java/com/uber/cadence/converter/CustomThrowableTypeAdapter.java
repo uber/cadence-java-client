@@ -1,3 +1,20 @@
+/*
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.converter;
 
 import com.google.common.collect.ImmutableSet;
@@ -15,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
-  private static final Logger log = LoggerFactory.getLogger(JsonDataConverter.class);
+  private static final Logger log = LoggerFactory.getLogger(CustomThrowableTypeAdapter.class);
 
   /** Used to parse a stack trace line. */
   private static final String TRACE_ELEMENT_REGEXP =
@@ -54,6 +71,9 @@ class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
       }
     }
 
+    // We want to serialize the throwable and its cause separately, so that if the throwable
+    // is serializable but the cause is not, we can still serialize them correctly (i.e. we
+    // serialize the throwable correctly and convert the cause to a data converter exception).
     Throwable cause = null;
     if (throwable.getCause() != null && throwable.getCause() != throwable) {
       try {
@@ -74,6 +94,11 @@ class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
       object.add("class", new JsonPrimitive(throwable.getClass().getName()));
       object.add("stackTrace", new JsonPrimitive(sw.toString()));
     } catch (Throwable e) {
+      // In case a throwable is not serializable, we will convert it to a data converter exception.
+      // The cause of the data converter exception will indicate why the serialization failed. On
+      // the
+      // other hand, if the non-serializable throwable contains a cause, we will add it to the
+      // suppressed exceptions list.
       DataConverterException ee =
           new DataConverterException("Failure serializing exception: " + throwable.toString(), e);
       if (cause != null) {
