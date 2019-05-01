@@ -537,7 +537,7 @@ executed one thread at a time and under a global lock.
   - Call `WorkflowThread.sleep` instead of `Thread.sleep`.
   - Use `Promise` and `CompletablePromise` instead of `Future` and `CompletableFuture`.
   - Use `WorkflowQueue` instead of `BlockingQueue`.
-- Use `Workflow.getVersion` when doing any changes to the workflow code. Without this any deployment of an updated workfow code 
+- Use `Workflow.getVersion` when doing any changes to the workflow code. Without this, any deployment of an updated workfow code 
 might break already open workflows.  
 - Don’t access configuration APIs directly from a workflow because changes in the configuration might affect a workflow execution path.
 Pass it as an argument to a workflow function or use an activity to load it.
@@ -557,10 +557,10 @@ Other than that, no additional limitations exist on activity implementations.
 As outlined in the _Workflow Implementation Constraints_ section the workflow code has to be deterministic by taking the same
 code path when replaying history events. Any workflow code change that affects the order in which decisions are generated breaks
 this assumption. The solution that allows updating code of already running workflows is to keep both the old and new code.
-When replaying use the code version that the events where generated with and when executing a new code path always take the 
+When replaying, use the code version that the events were generated with and when executing a new code path always take the 
 new code.
 
-Use Workflow.getVersion function to return a version of code that should be executed and then use the returned value to 
+Use the `Workflow.getVersion` function to return a version of code that should be executed and then use the returned value to 
 pick a correct branch. Let's look at an example.
 
     public void processFile(Arguments args) {
@@ -606,7 +606,7 @@ The correct way to implement this change is:
         }
     }
  
- Later when all workflows that use the old version are completed the old branch can be removed.
+ Later, when all workflows that use the old version are completed, the old branch can be removed.
  
     public void processFile(Arguments args) {
         String localName = null;
@@ -630,6 +630,6 @@ The correct way to implement this change is:
         }
     }
  
- The id that is passed to getVersion call identifies the change. Each change is expected to have its own id. But if 
+ The ID that is passed to `getVersion` call identifies the change. Each change is expected to have its own ID. But if 
  a change spawns multiple places in the workflow code and the new code should be either executed in all of them or 
- in none then they have to share the id.
+ in none them, then they have to share the ID.
