@@ -96,8 +96,7 @@ class CustomThrowableTypeAdapter<T extends Throwable> extends TypeAdapter<T> {
     } catch (Throwable e) {
       // In case a throwable is not serializable, we will convert it to a data converter exception.
       // The cause of the data converter exception will indicate why the serialization failed. On
-      // the
-      // other hand, if the non-serializable throwable contains a cause, we will add it to the
+      // the other hand, if the non-serializable throwable contains a cause, we will add it to the
       // suppressed exceptions list.
       DataConverterException ee =
           new DataConverterException("Failure serializing exception: " + throwable.toString(), e);
