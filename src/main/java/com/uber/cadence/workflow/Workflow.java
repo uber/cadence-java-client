@@ -396,6 +396,26 @@ public final class Workflow {
   }
 
   /**
+   * Creates client stub to local activities that implement given interface.
+   *
+   * @param activityInterface interface type implemented by activities.
+   * @param options options that together with the properties of {@link
+   *     com.uber.cadence.activity.ActivityMethod} specify the activity invocation parameters.
+   */
+  public static <T> T newLocalActivityStub(Class<T> activityInterface, ActivityOptions options) {
+    return WorkflowInternal.newActivityStub(activityInterface, options);
+  }
+
+  /**
+   * Creates client stub to local activities that implement given interface. `
+   *
+   * @param activityInterface interface type implemented by activities
+   */
+  public static <T> T newLocalActivityStub(Class<T> activityInterface) {
+    return WorkflowInternal.newActivityStub(activityInterface, null);
+  }
+
+  /**
    * Creates client stub that can be used to start a child workflow that implements the given
    * interface using parent options. Use {@link #newExternalWorkflowStub(Class, String)} to get a
    * stub to signal a workflow without starting it.

@@ -147,7 +147,19 @@ public final class WorkflowInternal {
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(options, decisionContext);
+        ActivityInvocationHandler.newInstance(options, decisionContext, false);
+    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+  }
+
+  /**
+   * Creates client stub to local activities that implement given interface.
+   *
+   * @param activityInterface interface type implemented by activities
+   */
+  public static <T> T newLocalActivityStub(Class<T> activityInterface, ActivityOptions options) {
+    WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
+    InvocationHandler invocationHandler =
+        ActivityInvocationHandler.newInstance(options, decisionContext, true);
     return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
   }
 

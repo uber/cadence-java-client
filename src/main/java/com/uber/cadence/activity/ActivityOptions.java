@@ -54,7 +54,6 @@ public final class ActivityOptions {
                 ? o.getTaskList()
                 : (a.taskList().isEmpty() ? null : a.taskList()))
         .setRetryOptions(RetryOptions.merge(r, o.getRetryOptions()))
-        .setIsLocalActivity(a.isLocalActivity() || o.getIsLocalActivity())
         .validateAndBuildWithDefaults();
   }
 
@@ -72,8 +71,6 @@ public final class ActivityOptions {
 
     private RetryOptions retryOptions;
 
-    private boolean isLocalActivity;
-
     public Builder() {}
 
     /** Copy Builder fields from the options. */
@@ -87,7 +84,6 @@ public final class ActivityOptions {
       this.startToCloseTimeout = options.getStartToCloseTimeout();
       this.taskList = options.taskList;
       this.retryOptions = options.retryOptions;
-      this.isLocalActivity = options.isLocalActivity;
     }
 
     /**
@@ -146,11 +142,6 @@ public final class ActivityOptions {
       return this;
     }
 
-    public Builder setIsLocalActivity(boolean isLocalActivity) {
-      this.isLocalActivity = isLocalActivity;
-      return this;
-    }
-
     public ActivityOptions build() {
       return new ActivityOptions(
           heartbeatTimeout,
@@ -158,8 +149,7 @@ public final class ActivityOptions {
           scheduleToStartTimeout,
           startToCloseTimeout,
           taskList,
-          retryOptions,
-          isLocalActivity);
+          retryOptions);
     }
 
     public ActivityOptions validateAndBuildWithDefaults() {
@@ -196,8 +186,7 @@ public final class ActivityOptions {
           roundUpToSeconds(scheduleToStart),
           roundUpToSeconds(startToClose),
           taskList,
-          ro,
-          isLocalActivity);
+          ro);
     }
   }
 
@@ -213,16 +202,13 @@ public final class ActivityOptions {
 
   private final RetryOptions retryOptions;
 
-  private final boolean isLocalActivity;
-
   private ActivityOptions(
       Duration heartbeatTimeout,
       Duration scheduleToCloseTimeout,
       Duration scheduleToStartTimeout,
       Duration startToCloseTimeout,
       String taskList,
-      RetryOptions retryOptions,
-      boolean isLocalActivity) {
+      RetryOptions retryOptions) {
     this.heartbeatTimeout = heartbeatTimeout;
     this.scheduleToCloseTimeout = scheduleToCloseTimeout;
     if (scheduleToCloseTimeout != null) {
@@ -242,7 +228,6 @@ public final class ActivityOptions {
     }
     this.taskList = taskList;
     this.retryOptions = retryOptions;
-    this.isLocalActivity = isLocalActivity;
   }
 
   public Duration getHeartbeatTimeout() {
@@ -269,10 +254,6 @@ public final class ActivityOptions {
     return retryOptions;
   }
 
-  public boolean getIsLocalActivity() {
-    return isLocalActivity;
-  }
-
   @Override
   public String toString() {
     return "ActivityOptions{"
@@ -289,8 +270,6 @@ public final class ActivityOptions {
         + '\''
         + ", retryOptions="
         + retryOptions
-        + ", isLocalActivity='"
-        + isLocalActivity
         + '}';
   }
 
@@ -305,8 +284,7 @@ public final class ActivityOptions {
         && Objects.equals(scheduleToStartTimeout, that.scheduleToStartTimeout)
         && Objects.equals(startToCloseTimeout, that.startToCloseTimeout)
         && Objects.equals(taskList, that.taskList)
-        && Objects.equals(retryOptions, that.retryOptions)
-        && Objects.equals(isLocalActivity, that.isLocalActivity);
+        && Objects.equals(retryOptions, that.retryOptions);
   }
 
   @Override
@@ -317,8 +295,7 @@ public final class ActivityOptions {
         scheduleToStartTimeout,
         startToCloseTimeout,
         taskList,
-        retryOptions,
-        isLocalActivity);
+        retryOptions);
   }
 
   private static Duration merge(int annotationSeconds, Duration options) {

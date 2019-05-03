@@ -96,7 +96,7 @@ public class SyncWorkflowWorker
   }
 
   public void setLocalActivitiesImplementation(Object... activitiesImplementation) {
-    this.laTaskHandler.setActivitiesImplementation(activitiesImplementation);
+    this.laTaskHandler.setLocalActivitiesImplementation(activitiesImplementation);
   }
 
   @Override

@@ -272,7 +272,6 @@ public class WorkflowTest {
     ActivityCompletionClient completionClient = workflowClient.newActivityCompletionClient();
     activitiesImpl = new TestActivitiesImpl(completionClient);
     worker.registerActivitiesImplementations(activitiesImpl);
-    worker.registerLocalActivitiesImplementations(activitiesImpl);
 
     newWorkflowOptionsBuilder(taskList);
 
@@ -3093,10 +3092,8 @@ public class WorkflowTest {
 
     String activity6(String a1, int a2, int a3, int a4, int a5, int a6);
 
-    @ActivityMethod(isLocalActivity = true)
     String localActivity(String input);
 
-    @ActivityMethod(isLocalActivity = true)
     String localActivity2(String input);
 
     void proc();
@@ -4250,11 +4247,13 @@ public class WorkflowTest {
   public static class TestLocalActivityWorkflowImpl implements TestWorkflow1 {
     @Override
     public String execute(String taskList) {
-      TestActivities testActivities =
-          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      String laResult = testActivities.localActivity(taskList);
-      laResult = testActivities.localActivity2(laResult);
-      laResult = testActivities.activity2(laResult, 1);
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      String laResult = localActivities.localActivity(taskList);
+      laResult = localActivities.localActivity2(laResult);
+      TestActivities normalActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      laResult = normalActivities.activity2(laResult, 1);
       System.out.println(laResult);
       return laResult;
     }

@@ -61,8 +61,6 @@ public @interface ActivityMethod {
    */
   int heartbeatTimeoutSeconds() default 0;
 
-  boolean isLocalActivity() default false;
-
   /**
    * Task list to use when dispatching activity task to a worker. By default it is the same task
    * list name the workflow was started with.

@@ -250,24 +250,16 @@ public final class Worker {
    */
   public void registerActivitiesImplementations(Object... activityImplementations) {
     Preconditions.checkState(
-        activityWorker != null,
-        "registerActivitiesImplementations is not allowed when disableActivityWorker is set in worker options");
-    Preconditions.checkState(
         !started.get(),
         "registerActivitiesImplementations is not allowed after worker has started");
 
-    activityWorker.setActivitiesImplementation(activityImplementations);
-  }
+    if (activityWorker != null) {
+      activityWorker.setActivitiesImplementation(activityImplementations);
+    }
 
-  public void registerLocalActivitiesImplementations(Object... activityImplementations) {
-    Preconditions.checkState(
-        workflowWorker != null,
-        "registerLocalActivitiesImplementations is not allowed when disableWorkflowWorker is set in worker options");
-    Preconditions.checkState(
-        !started.get(),
-        "registerLocalActivitiesImplementations is not allowed after worker has started");
-
-    workflowWorker.setLocalActivitiesImplementation(activityImplementations);
+    if (workflowWorker != null) {
+      workflowWorker.setLocalActivitiesImplementation(activityImplementations);
+    }
   }
 
   private void start() {

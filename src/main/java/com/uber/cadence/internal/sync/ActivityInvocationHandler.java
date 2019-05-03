@@ -40,10 +40,11 @@ class ActivityInvocationHandler implements InvocationHandler {
   private final ActivityOptions options;
   private final WorkflowInterceptor activityExecutor;
   private final Map<Method, Function<Object[], Object>> methodFunctions = new HashMap<>();
+  private final boolean isLocalActivity;
 
   static InvocationHandler newInstance(
-      ActivityOptions options, WorkflowInterceptor activityExecutor) {
-    return new ActivityInvocationHandler(options, activityExecutor);
+      ActivityOptions options, WorkflowInterceptor activityExecutor, boolean isLocalActivity) {
+    return new ActivityInvocationHandler(options, activityExecutor, isLocalActivity);
   }
 
   @SuppressWarnings("unchecked")
@@ -55,9 +56,10 @@ class ActivityInvocationHandler implements InvocationHandler {
             invocationHandler);
   }
 
-  private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor, boolean isLocalActivity) {
     this.options = options;
     this.activityExecutor = activityExecutor;
+    this.isLocalActivity = isLocalActivity;
   }
 
   @Override
@@ -83,13 +85,7 @@ class ActivityInvocationHandler implements InvocationHandler {
         }
 
         ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-        ActivityStub stub;
-        if (!mergedOptions.getIsLocalActivity()) {
-          stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor::executeActivity);
-        } else {
-          stub =
-              ActivityStubImpl.newInstance(mergedOptions, activityExecutor::executeLocalActivity);
-        }
+        ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, isLocalActivity ? activityExecutor::executeLocalActivity : activityExecutor::executeActivity);
 
         function =
             (a) ->

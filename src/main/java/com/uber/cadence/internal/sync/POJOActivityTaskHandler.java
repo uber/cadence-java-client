@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BiFunction;
 
 class POJOActivityTaskHandler implements ActivityTaskHandler {
 
@@ -63,7 +64,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     this.heartbeatExecutor = heartbeatExecutor;
   }
 
-  public void addActivityImplementation(Object activity) {
+  private void addActivityImplementation(Object activity, BiFunction<Method, Object, ActivityTaskExecutor> newTaskExecutor) {
     if (activity instanceof Class) {
       throw new IllegalArgumentException("Activity object instance expected, not the class");
     }
@@ -103,13 +104,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
               activityType + " activity type is already registered with the worker");
         }
 
-        ActivityTaskExecutor implementation;
-        if (annotation != null && annotation.isLocalActivity()) {
-          implementation = new POJOLocalActivityImplementation(method, activity);
-        } else {
-          implementation = new POJOActivityImplementation(method, activity);
-        }
-
+        ActivityTaskExecutor implementation = newTaskExecutor.apply(method, activity);
         activities.put(activityType, implementation);
       }
     }
@@ -153,10 +148,17 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     return !activities.isEmpty();
   }
 
-  public void setActivitiesImplementation(Object[] activitiesImplementation) {
+  void setActivitiesImplementation(Object[] activitiesImplementation) {
     activities.clear();
     for (Object activity : activitiesImplementation) {
-      addActivityImplementation(activity);
+      addActivityImplementation(activity, POJOActivityImplementation::new);
+    }
+  }
+
+  void setLocalActivitiesImplementation(Object[] activitiesImplementation) {
+    activities.clear();
+    for (Object activity : activitiesImplementation) {
+      addActivityImplementation(activity, POJOLocalActivityImplementation::new);
     }
   }
 
