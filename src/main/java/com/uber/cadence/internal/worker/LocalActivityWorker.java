@@ -150,29 +150,42 @@ public final class LocalActivityWorker implements SuspendableWorker {
       ActivityTaskHandler.Result result =
           handler.handle(null, "", pollTask, options.getMetricsScope());
 
+      ClockDecisionContext.LocalActivityMarkerData marker;
       if (result.getTaskCompleted() != null) {
-        ClockDecisionContext.LocalActivityMarkerData marker =
+        marker =
             new ClockDecisionContext.LocalActivityMarkerData(
                 task.params.getActivityId(),
                 task.params.getActivityType().toString(),
-                result.getTaskCompleted().getResult());
-
-        byte[] markerData = JsonDataConverter.getInstance().toData(marker);
-
-        HistoryEvent event = new HistoryEvent();
-        event.setEventType(EventType.MarkerRecorded);
-        MarkerRecordedEventAttributes attributes = new MarkerRecordedEventAttributes();
-        attributes.setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME);
-        attributes.setDetails(markerData);
-        event.setMarkerRecordedEventAttributes(attributes);
-        try {
-          task.replayDecider.processEvent(event);
-        } catch (Throwable throwable) {
-          throw new Exception("fix me");
-        }
+                result.getTaskCompleted());
+      } else if (result.getTaskFailed() != null) {
+        marker =
+            new ClockDecisionContext.LocalActivityMarkerData(
+                task.params.getActivityId(),
+                task.params.getActivityType().toString(),
+                result.getTaskFailed());
+      } else {
+        marker =
+            new ClockDecisionContext.LocalActivityMarkerData(
+                task.params.getActivityId(),
+                task.params.getActivityType().toString(),
+                result.getTaskCancelled());
       }
 
-      // TODO: failure and cancellation
+      // TODO: cancellation
+
+      byte[] markerData = JsonDataConverter.getInstance().toData(marker);
+
+      HistoryEvent event = new HistoryEvent();
+      event.setEventType(EventType.MarkerRecorded);
+      MarkerRecordedEventAttributes attributes = new MarkerRecordedEventAttributes();
+      attributes.setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME);
+      attributes.setDetails(markerData);
+      event.setMarkerRecordedEventAttributes(attributes);
+      try {
+        task.replayDecider.processEvent(event);
+      } catch (Throwable throwable) {
+        throw new Exception("fix me");
+      }
     }
 
     @Override

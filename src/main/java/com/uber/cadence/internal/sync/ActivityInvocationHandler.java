@@ -56,7 +56,8 @@ class ActivityInvocationHandler implements InvocationHandler {
             invocationHandler);
   }
 
-  private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor, boolean isLocalActivity) {
+  private ActivityInvocationHandler(
+      ActivityOptions options, WorkflowInterceptor activityExecutor, boolean isLocalActivity) {
     this.options = options;
     this.activityExecutor = activityExecutor;
     this.isLocalActivity = isLocalActivity;
@@ -85,7 +86,12 @@ class ActivityInvocationHandler implements InvocationHandler {
         }
 
         ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-        ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, isLocalActivity ? activityExecutor::executeLocalActivity : activityExecutor::executeActivity);
+        ActivityStub stub =
+            ActivityStubImpl.newInstance(
+                mergedOptions,
+                isLocalActivity
+                    ? activityExecutor::executeLocalActivity
+                    : activityExecutor::executeActivity);
 
         function =
             (a) ->

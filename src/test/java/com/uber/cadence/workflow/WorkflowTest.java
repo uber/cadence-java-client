@@ -3092,10 +3092,6 @@ public class WorkflowTest {
 
     String activity6(String a1, int a2, int a3, int a4, int a5, int a6);
 
-    String localActivity(String input);
-
-    String localActivity2(String input);
-
     void proc();
 
     void proc1(String input);
@@ -3235,16 +3231,6 @@ public class WorkflowTest {
     public String activity6(String a1, int a2, int a3, int a4, int a5, int a6) {
       invocations.add("activity6");
       return a1 + a2 + a3 + a4 + a5 + a6;
-    }
-
-    @Override
-    public String localActivity(String input) {
-      return "local activity: " + input;
-    }
-
-    @Override
-    public String localActivity2(String input) {
-      return "local activity 2: " + input;
     }
 
     @Override
@@ -4249,12 +4235,23 @@ public class WorkflowTest {
     public String execute(String taskList) {
       TestActivities localActivities =
           Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      String laResult = localActivities.localActivity(taskList);
-      laResult = localActivities.localActivity2(laResult);
+      try {
+        localActivities.throwIO();
+      } catch (ActivityFailureException e) {
+        try {
+          assertTrue(e.getMessage().contains("TestActivities::throwIO"));
+          assertTrue(e.getCause() instanceof IOException);
+          assertEquals("simulated IO problem", e.getCause().getMessage());
+        } catch (AssertionError ae) {
+          // Errors cause decision to fail. But we want workflow to fail in this case.
+          throw new RuntimeException(ae);
+        }
+      }
+
+      String laResult = localActivities.activity2("test", 123);
       TestActivities normalActivities =
           Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      laResult = normalActivities.activity2(laResult, 1);
-      System.out.println(laResult);
+      laResult = normalActivities.activity2(laResult, 123);
       return laResult;
     }
   }
@@ -4266,7 +4263,7 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
-    assertEquals("local activity 2: local activity: " + taskList + 1, result);
+    assertEquals("test123123", result);
   }
 
   private static class FilteredTrace {

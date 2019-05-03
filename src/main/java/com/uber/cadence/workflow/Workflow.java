@@ -403,7 +403,7 @@ public final class Workflow {
    *     com.uber.cadence.activity.ActivityMethod} specify the activity invocation parameters.
    */
   public static <T> T newLocalActivityStub(Class<T> activityInterface, ActivityOptions options) {
-    return WorkflowInternal.newActivityStub(activityInterface, options);
+    return WorkflowInternal.newLocalActivityStub(activityInterface, options);
   }
 
   /**
@@ -412,7 +412,7 @@ public final class Workflow {
    * @param activityInterface interface type implemented by activities
    */
   public static <T> T newLocalActivityStub(Class<T> activityInterface) {
-    return WorkflowInternal.newActivityStub(activityInterface, null);
+    return WorkflowInternal.newLocalActivityStub(activityInterface, null);
   }
 
   /**

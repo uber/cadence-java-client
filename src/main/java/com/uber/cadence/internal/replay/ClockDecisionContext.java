@@ -24,6 +24,7 @@ import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.LocalActivityPollTask;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
+import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
@@ -189,16 +190,31 @@ public final class ClockDecisionContext {
     String activityId;
     String activityType;
     String errReason;
-    String errJson;
+    byte[] errJson;
     byte[] result;
     long replayTime;
     int attempt;
     Duration backoff;
 
-    public LocalActivityMarkerData(String activityId, String activityType, byte[] resultJson) {
+    public LocalActivityMarkerData(
+        String activityId, String activityType, RespondActivityTaskCompletedRequest result) {
       this.activityId = activityId;
       this.activityType = activityType;
-      this.result = resultJson;
+      this.result = result.getResult();
+    }
+
+    public LocalActivityMarkerData(
+        String activityId, String activityType, RespondActivityTaskFailedRequest result) {
+      this.activityId = activityId;
+      this.activityType = activityType;
+      this.errReason = result.getReason();
+      this.errJson = result.getDetails();
+    }
+
+    public LocalActivityMarkerData(
+        String activityId, String activityType, RespondActivityTaskCanceledRequest result) {
+      this.activityId = activityId;
+      this.activityType = activityType;
     }
   }
 
@@ -226,9 +242,24 @@ public final class ClockDecisionContext {
       decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
 
       OpenRequestInfo<byte[], ActivityType> scheduled = pendingLaTasks.remove(marker.activityId);
+
+      ActivityFailureException failure = null;
+      if (marker.errJson != null) {
+        Throwable cause =
+            JsonDataConverter.getInstance()
+                .fromData(marker.errJson, Throwable.class, Throwable.class);
+        ActivityType activityType = new ActivityType();
+        activityType.setName(marker.activityType);
+        failure =
+            new ActivityFailureException(
+                attributes.getDecisionTaskCompletedEventId(),
+                activityType,
+                marker.activityId,
+                cause);
+      }
+
       BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
-      completionHandle.accept(marker.result, null);
-      // TODO: Error handling
+      completionHandle.accept(marker.result, failure);
     }
   }
 
@@ -269,7 +300,7 @@ public final class ClockDecisionContext {
     }
   }
 
-  public Consumer<Exception> scheduleLocalActivityTask(
+  Consumer<Exception> scheduleLocalActivityTask(
       ExecuteActivityParameters params, BiConsumer<byte[], Exception> callback) {
     final OpenRequestInfo<byte[], ActivityType> context =
         new OpenRequestInfo<>(params.getActivityType());
@@ -279,14 +310,14 @@ public final class ClockDecisionContext {
     return null;
   }
 
-  public void startUnstartedLaTasks() {
+  void startUnstartedLaTasks() {
     for (ExecuteActivityParameters params : unstartedLaTasks) {
       laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider));
     }
     unstartedLaTasks.clear();
   }
 
-  public boolean hasPendingLaTasks() {
+  boolean hasPendingLaTasks() {
     return !pendingLaTasks.isEmpty();
   }
 }

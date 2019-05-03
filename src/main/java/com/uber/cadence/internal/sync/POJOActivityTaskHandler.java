@@ -64,7 +64,8 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     this.heartbeatExecutor = heartbeatExecutor;
   }
 
-  private void addActivityImplementation(Object activity, BiFunction<Method, Object, ActivityTaskExecutor> newTaskExecutor) {
+  private void addActivityImplementation(
+      Object activity, BiFunction<Method, Object, ActivityTaskExecutor> newTaskExecutor) {
     if (activity instanceof Class) {
       throw new IllegalArgumentException("Activity object instance expected, not the class");
     }
