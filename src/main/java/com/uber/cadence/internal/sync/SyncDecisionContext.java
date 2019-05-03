@@ -53,10 +53,7 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiPredicate;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,21 +129,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   private Promise<byte[]> executeActivityOnce(String name, ActivityOptions options, byte[] input) {
-    CompletablePromise<byte[]> result = Workflow.newPromise();
+    ActivityCallback callback = new ActivityCallback();
     ExecuteActivityParameters params = constructExecuteActivityParameters(name, options, input);
     Consumer<Exception> cancellationCallback =
-        context.scheduleActivityTask(
-            params,
-            (output, failure) -> {
-              if (failure != null) {
-                runner.executeInWorkflowThread(
-                    "activity failure callback",
-                    () -> result.completeExceptionally(mapActivityException(failure)));
-              } else {
-                runner.executeInWorkflowThread(
-                    "activity completion callback", () -> result.complete(output));
-              }
-            });
+        context.scheduleActivityTask(params, callback::invoke);
     CancellationScope.current()
         .getCancellationRequest()
         .thenApply(
@@ -154,7 +140,22 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               cancellationCallback.accept(new CancellationException(reason));
               return null;
             });
-    return result;
+    return callback.result;
+  }
+
+  private class ActivityCallback {
+    private CompletablePromise<byte[]> result = Workflow.newPromise();
+
+    public void invoke(byte[] output, Exception failure) {
+      if (failure != null) {
+        runner.executeInWorkflowThread(
+            "activity failure callback",
+            () -> result.completeExceptionally(mapActivityException(failure)));
+      } else {
+        runner.executeInWorkflowThread(
+            "activity completion callback", () -> result.complete(output));
+      }
+    }
   }
 
   private RuntimeException mapActivityException(Exception failure) {
@@ -216,8 +217,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Object[] args,
       ActivityOptions options) {
     RetryOptions retryOptions = options.getRetryOptions();
-    // Replays a legacy history that used the client side retry correctly
-    if (retryOptions != null && !context.isServerSideActivityRetry()) {
+    if (retryOptions != null) {
       return WorkflowRetryerInternal.retryAsync(
           retryOptions,
           () -> executeLocalActivityOnce(activityName, options, args, resultClass, resultType));
@@ -237,23 +237,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   private Promise<byte[]> executeLocalActivityOnce(
       String name, ActivityOptions options, byte[] input) {
-    CompletablePromise<byte[]> result = Workflow.newPromise();
+    ActivityCallback callback = new ActivityCallback();
     ExecuteActivityParameters params = constructExecuteActivityParameters(name, options, input);
-
     Consumer<Exception> cancellationCallback =
-        context.scheduleLocalActivityTask(
-            params,
-            (output, failure) -> {
-              System.out.println("In local activity completion callback");
-              if (failure != null) {
-                runner.executeInWorkflowThread(
-                    "activity failure callback",
-                    () -> result.completeExceptionally(mapActivityException(failure)));
-              } else {
-                runner.executeInWorkflowThread(
-                    "activity completion callback", () -> result.complete(output));
-              }
-            });
+        context.scheduleLocalActivityTask(params, callback::invoke);
     CancellationScope.current()
         .getCancellationRequest()
         .thenApply(
@@ -261,7 +248,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               cancellationCallback.accept(new CancellationException(reason));
               return null;
             });
-    return result;
+    return callback.result;
   }
 
   private ExecuteActivityParameters constructExecuteActivityParameters(

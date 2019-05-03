@@ -124,9 +124,7 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (!useDockerService) {
-      return new Object[][] {
-        {false, "TestService Sticky Off", true}, {false, "TestService Sticky On", false}
-      };
+      return new Object[][] {{false, "TestService Sticky Off", true}};
     } else {
       return new Object[][] {
         {true, "Docker Sticky " + (stickyOff ? "OFF" : "ON"), stickyOff},
@@ -434,6 +432,45 @@ public class WorkflowTest {
   @Test
   public void testActivityRetry() {
     startWorkerFor(TestActivityRetry.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().getCause() instanceof IOException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestLocalActivityRetry implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setMaximumAttempts(3)
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newLocalActivityStub(TestActivities.class, options);
+      activities.throwIO();
+
+      return "ignored";
+    }
+  }
+
+  @Test
+  public void testLocalActivityRetry() {
+    startWorkerFor(TestLocalActivityRetry.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
@@ -4250,7 +4287,7 @@ public class WorkflowTest {
 
       String laResult = localActivities.activity2("test", 123);
       TestActivities normalActivities =
-          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
       laResult = normalActivities.activity2(laResult, 123);
       return laResult;
     }
@@ -4264,6 +4301,7 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("test123123", result);
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
   private static class FilteredTrace {

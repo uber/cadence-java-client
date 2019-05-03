@@ -44,11 +44,12 @@ public final class ActivityOptions {
     }
     return new ActivityOptions.Builder()
         .setScheduleToCloseTimeout(
-            merge(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
+            mergeDuration(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
         .setScheduleToStartTimeout(
-            merge(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeout()))
-        .setStartToCloseTimeout(merge(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeout()))
-        .setHeartbeatTimeout(merge(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeout()))
+            mergeDuration(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeout()))
+        .setStartToCloseTimeout(
+            mergeDuration(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeout()))
+        .setHeartbeatTimeout(mergeDuration(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeout()))
         .setTaskList(
             o.getTaskList() != null
                 ? o.getTaskList()
@@ -298,7 +299,7 @@ public final class ActivityOptions {
         retryOptions);
   }
 
-  private static Duration merge(int annotationSeconds, Duration options) {
+  static Duration mergeDuration(int annotationSeconds, Duration options) {
     if (options == null) {
       if (annotationSeconds == 0) {
         return null;

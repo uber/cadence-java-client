@@ -400,22 +400,25 @@ public class ReplayDecider implements Decider {
           processEvent(event);
         }
 
-        for (HistoryEvent event : decision.getMarkers()) {
-          if (event
-              .getMarkerRecordedEventAttributes()
-              .getMarkerName()
-              .equals(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)) {
-            processEvent(event);
-          }
-        }
-
         eventLoop();
 
         while (context.hasPendingLaTasks()) {
-          context.startUnstartedLaTasks();
+          if (decision.isReplay()) {
+            for (HistoryEvent event : decision.getMarkers()) {
+              if (event
+                  .getMarkerRecordedEventAttributes()
+                  .getMarkerName()
+                  .equals(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)) {
+                processEvent(event);
+              }
+            }
 
-          while (context.hasPendingLaTasks()) {
-            Thread.sleep(100);
+          } else {
+            context.startUnstartedLaTasks();
+
+            while (context.hasPendingLaTasks()) {
+              Thread.sleep(100);
+            }
           }
 
           eventLoop();

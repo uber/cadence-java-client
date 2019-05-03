@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
@@ -72,7 +73,7 @@ public final class ClockDecisionContext {
   private final MarkerHandler versionHandler;
   private final LocalActivityPollTask laPollTask;
   private final Map<String, OpenRequestInfo<byte[], ActivityType>> pendingLaTasks = new HashMap<>();
-  private final List<ExecuteActivityParameters> unstartedLaTasks = new LinkedList<>();
+  private final Map<String, ExecuteActivityParameters> unstartedLaTasks = new HashMap<>();
   private ReplayDecider replayDecider;
 
   ClockDecisionContext(DecisionsHelper decisions, LocalActivityPollTask laPollTask) {
@@ -242,6 +243,7 @@ public final class ClockDecisionContext {
       decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
 
       OpenRequestInfo<byte[], ActivityType> scheduled = pendingLaTasks.remove(marker.activityId);
+      unstartedLaTasks.remove(marker.activityId);
 
       ActivityFailureException failure = null;
       if (marker.errJson != null) {
@@ -305,13 +307,16 @@ public final class ClockDecisionContext {
     final OpenRequestInfo<byte[], ActivityType> context =
         new OpenRequestInfo<>(params.getActivityType());
     context.setCompletionHandle(callback);
+    if (Strings.isNullOrEmpty(params.getActivityId())) {
+      params.setActivityId(decisions.getAndIncrementNextId());
+    }
     pendingLaTasks.put(params.getActivityId(), context);
-    unstartedLaTasks.add(params);
+    unstartedLaTasks.put(params.getActivityId(), params);
     return null;
   }
 
   void startUnstartedLaTasks() {
-    for (ExecuteActivityParameters params : unstartedLaTasks) {
+    for (ExecuteActivityParameters params : unstartedLaTasks.values()) {
       laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider));
     }
     unstartedLaTasks.clear();
