@@ -66,6 +66,8 @@ public final class ClockDecisionContext {
   private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers =
       new HashMap<>(); // key is startedEventId
   private long replayCurrentTimeMilliseconds = -1;
+  private long replayTimeUpdatedAtMillis =
+      -1; // Local time when replayCurrentTimeMilliseconds was updated.
   private boolean replaying = true;
   private final Map<Long, byte[]> sideEffectResults =
       new HashMap<>(); // Key is side effect marker eventId
@@ -84,12 +86,17 @@ public final class ClockDecisionContext {
     this.laPollTask = laPollTask;
   }
 
-  long currentTimeMillis() {
+  public long currentTimeMillis() {
     return replayCurrentTimeMilliseconds;
+  }
+
+  public long replayTimeUpdatedAtMillis() {
+    return replayTimeUpdatedAtMillis;
   }
 
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
     this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
+    this.replayTimeUpdatedAtMillis = System.currentTimeMillis();
   }
 
   void setReplayDecider(ReplayDecider replayDecider) {
@@ -193,29 +200,41 @@ public final class ClockDecisionContext {
     String errReason;
     byte[] errJson;
     byte[] result;
-    long replayTime;
+    long replayTimeMillis;
     int attempt;
     Duration backoff;
 
     public LocalActivityMarkerData(
-        String activityId, String activityType, RespondActivityTaskCompletedRequest result) {
+        String activityId,
+        String activityType,
+        long replayTimeMillis,
+        RespondActivityTaskCompletedRequest result) {
       this.activityId = activityId;
       this.activityType = activityType;
+      this.replayTimeMillis = replayTimeMillis;
       this.result = result.getResult();
     }
 
     public LocalActivityMarkerData(
-        String activityId, String activityType, RespondActivityTaskFailedRequest result) {
+        String activityId,
+        String activityType,
+        long replayTimeMillis,
+        RespondActivityTaskFailedRequest result) {
       this.activityId = activityId;
       this.activityType = activityType;
+      this.replayTimeMillis = replayTimeMillis;
       this.errReason = result.getReason();
       this.errJson = result.getDetails();
     }
 
     public LocalActivityMarkerData(
-        String activityId, String activityType, RespondActivityTaskCanceledRequest result) {
+        String activityId,
+        String activityType,
+        long replayTimeMillis,
+        RespondActivityTaskCanceledRequest result) {
       this.activityId = activityId;
       this.activityType = activityType;
+      this.replayTimeMillis = replayTimeMillis;
     }
   }
 
@@ -262,6 +281,7 @@ public final class ClockDecisionContext {
 
       BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
       completionHandle.accept(marker.result, failure);
+      setReplayCurrentTimeMilliseconds(marker.replayTimeMillis);
     }
   }
 
@@ -317,7 +337,7 @@ public final class ClockDecisionContext {
 
   void startUnstartedLaTasks() {
     for (ExecuteActivityParameters params : unstartedLaTasks.values()) {
-      laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider));
+      laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider, this));
     }
     unstartedLaTasks.clear();
   }

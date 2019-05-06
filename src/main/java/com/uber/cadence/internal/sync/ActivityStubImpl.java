@@ -37,7 +37,7 @@ class ActivityStubImpl implements ActivityStub {
   }
 
   protected final ActivityOptions options;
-  protected final ActivityExecutor activityExecutor;
+  private final ActivityExecutor activityExecutor;
 
   static ActivityStub newInstance(ActivityOptions options, ActivityExecutor activityExecutor) {
     ActivityOptions validatedOptions =

@@ -124,12 +124,15 @@ public final class LocalActivityWorker implements SuspendableWorker {
   }
 
   public static class Task {
-    ExecuteActivityParameters params;
-    ReplayDecider replayDecider;
+    final ExecuteActivityParameters params;
+    final ReplayDecider replayDecider;
+    final ClockDecisionContext ctx;
 
-    public Task(ExecuteActivityParameters params, ReplayDecider replayDecider) {
+    public Task(
+        ExecuteActivityParameters params, ReplayDecider replayDecider, ClockDecisionContext ctx) {
       this.params = params;
       this.replayDecider = replayDecider;
+      this.ctx = ctx;
     }
   }
 
@@ -151,23 +154,29 @@ public final class LocalActivityWorker implements SuspendableWorker {
           handler.handle(null, "", pollTask, options.getMetricsScope());
 
       ClockDecisionContext.LocalActivityMarkerData marker;
+      long replayTimeMillis =
+          task.ctx.currentTimeMillis()
+              + (System.currentTimeMillis() - task.ctx.replayTimeUpdatedAtMillis());
       if (result.getTaskCompleted() != null) {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
                 task.params.getActivityId(),
                 task.params.getActivityType().toString(),
+                replayTimeMillis,
                 result.getTaskCompleted());
       } else if (result.getTaskFailed() != null) {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
                 task.params.getActivityId(),
                 task.params.getActivityType().toString(),
+                replayTimeMillis,
                 result.getTaskFailed());
       } else {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
                 task.params.getActivityId(),
                 task.params.getActivityType().toString(),
+                replayTimeMillis,
                 result.getTaskCancelled());
       }
 
