@@ -259,6 +259,8 @@ public final class ClockDecisionContext {
                 LocalActivityMarkerData.class);
 
     if (pendingLaTasks.containsKey(marker.activityId)) {
+      System.out.println("handleLocalActivityMarker for activity " + marker.activityId);
+
       decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
 
       OpenRequestInfo<byte[], ActivityType> scheduled = pendingLaTasks.remove(marker.activityId);
@@ -342,7 +344,7 @@ public final class ClockDecisionContext {
     unstartedLaTasks.clear();
   }
 
-  boolean hasPendingLaTasks() {
-    return !pendingLaTasks.isEmpty();
+  int numPendingLaTasks() {
+    return pendingLaTasks.size();
   }
 }

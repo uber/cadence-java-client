@@ -134,7 +134,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
                 });
       }
 
-      List<Decision> decisions = decider.decide(decisionTask);
+      Decider.DeciderResult result = decider.decide(decisionTask);
 
       if (stickyTaskListName != null && createdNew.get()) {
         cache.addToCache(decisionTask, decider);
@@ -150,7 +150,9 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
                 + ", RunID="
                 + execution.getRunId()
                 + " completed with "
-                + WorkflowExecutionUtils.prettyPrintDecisions(decisions));
+                + WorkflowExecutionUtils.prettyPrintDecisions(result.decisions)
+                + " forceCreateNewDecisionTask "
+                + result.forceCreateNewDecisionTask);
       } else if (log.isDebugEnabled()) {
         WorkflowExecution execution = decisionTask.getWorkflowExecution();
         log.debug(
@@ -161,10 +163,12 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
                 + ", RunID="
                 + execution.getRunId()
                 + " completed with "
-                + decisions.size()
-                + " new decisions");
+                + result.decisions.size()
+                + " new decisions"
+                + " forceCreateNewDecisionTask "
+                + result.forceCreateNewDecisionTask);
       }
-      return createCompletedRequest(decisionTask, decisions);
+      return createCompletedRequest(decisionTask, result);
     } catch (Throwable e) {
       if (stickyTaskListName != null) {
         cache.invalidate(decisionTask.getWorkflowExecution().getRunId());
@@ -221,11 +225,12 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   }
 
   private Result createCompletedRequest(
-      PollForDecisionTaskResponse decisionTask, List<Decision> decisions) {
+      PollForDecisionTaskResponse decisionTask, Decider.DeciderResult result) {
     RespondDecisionTaskCompletedRequest completedRequest =
         new RespondDecisionTaskCompletedRequest();
     completedRequest.setTaskToken(decisionTask.getTaskToken());
-    completedRequest.setDecisions(decisions);
+    completedRequest.setDecisions(result.decisions);
+    completedRequest.setForceCreateNewDecisionTask(result.forceCreateNewDecisionTask);
 
     if (stickyTaskListName != null) {
       StickyExecutionAttributes attributes = new StickyExecutionAttributes();

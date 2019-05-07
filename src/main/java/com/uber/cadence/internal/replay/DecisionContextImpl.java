@@ -331,7 +331,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     workflowClock.startUnstartedLaTasks();
   }
 
-  public boolean hasPendingLaTasks() {
-    return workflowClock.hasPendingLaTasks();
+  public int numPendingLaTasks() {
+    return workflowClock.numPendingLaTasks();
   }
 }

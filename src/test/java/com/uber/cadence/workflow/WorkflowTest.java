@@ -3112,6 +3112,8 @@ public class WorkflowTest {
 
   public interface TestActivities {
 
+    String sleepActivity(long milliseconds, int input) throws InterruptedException;
+
     String activityWithDelay(long milliseconds, boolean heartbeatMoreThanOnce);
 
     String activity();
@@ -3213,6 +3215,13 @@ public class WorkflowTest {
           });
       Activity.doNotCompleteOnReturn();
       return "ignored";
+    }
+
+    @Override
+    public String sleepActivity(long milliseconds, int input) throws InterruptedException {
+      Thread.sleep(milliseconds);
+      invocations.add("sleepActivity");
+      return "sleepActivity" + input;
     }
 
     @Override
@@ -4304,6 +4313,39 @@ public class WorkflowTest {
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
   }
 
+  public static class TestLocalActivityMultiBatchWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      String result = "";
+      try {
+        for (int i = 0; i < 5; i++) {
+          result += localActivities.sleepActivity(2000, i);
+        }
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+
+      return result;
+    }
+  }
+
+  @Test
+  public void testLocalActivityMultipleBatches() {
+    startWorkerFor(TestLocalActivityMultiBatchWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(5))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+            .setTaskList(taskList)
+            .build();
+    TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, options);
+    String result = workflowStub.execute(taskList);
+    assertEquals("sleepActivity0sleepActivity1sleepActivity2sleepActivity3sleepActivity4", result);
+    assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
+  }
+
   private static class FilteredTrace {
 
     private final List<String> impl = Collections.synchronizedList(new ArrayList<>());
@@ -4316,7 +4358,7 @@ public class WorkflowTest {
       return true;
     }
 
-    public List<String> getImpl() {
+    List<String> getImpl() {
       return impl;
     }
   }

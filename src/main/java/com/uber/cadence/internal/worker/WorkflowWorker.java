@@ -298,7 +298,6 @@ public final class WorkflowWorker
           }
         }
       }
-      // Manual activity completion
     }
   }
 }
