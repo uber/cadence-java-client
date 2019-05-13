@@ -104,7 +104,7 @@ public class MetricsTest {
     int runActivity(int input);
   }
 
-  class TestActivityImpl implements TestActivity {
+  static class TestActivityImpl implements TestActivity {
     @Override
     public int runActivity(int input) {
       return input;
