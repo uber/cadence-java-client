@@ -26,29 +26,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import com.uber.cadence.ActivityType;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.Decision;
-import com.uber.cadence.DecisionType;
-import com.uber.cadence.DescribeWorkflowExecutionRequest;
-import com.uber.cadence.DescribeWorkflowExecutionResponse;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.HistoryEventFilterType;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.TaskList;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCloseStatus;
-import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
-import com.uber.cadence.WorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.WorkflowExecutionInfo;
-import com.uber.cadence.WorkflowExecutionTerminatedEventAttributes;
-import com.uber.cadence.WorkflowExecutionTimedOutEventAttributes;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.*;
 import com.uber.cadence.client.WorkflowTerminatedException;
 import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.common.RetryOptions;
@@ -711,9 +689,18 @@ public class WorkflowExecutionUtils {
       result.append(String.format(" [%s ms]", timestamp));
     }
     result.append(" ");
-    result.append(
-        prettyPrintObject(
-            getEventAttributes(event), "getFieldValue", true, INDENTATION, false, false));
+
+    if (event.getEventType() == EventType.MarkerRecorded) {
+      MarkerRecordedEventAttributes markerAttributes = event.getMarkerRecordedEventAttributes();
+      result.append("{\n").append("    MarkerName = ").append(markerAttributes.getMarkerName()).append(";\n");
+      result.append("    DecisionTaskCompletedEventId = ").append(markerAttributes.getDecisionTaskCompletedEventId()).append(";\n");
+      result.append("    Details = ").append(new String(markerAttributes.getDetails())).append(";\n  }");
+    } else {
+      result.append(
+          prettyPrintObject(
+              getEventAttributes(event), "getFieldValue", true, INDENTATION, false, false));
+    }
+
     return result.toString();
   }
 

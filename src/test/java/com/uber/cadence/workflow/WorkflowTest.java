@@ -481,6 +481,8 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    System.out.println(testEnvironment.getDiagnostics());
+
   }
 
   public static class TestActivityRetryOnTimeout implements TestWorkflow1 {
