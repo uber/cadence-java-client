@@ -256,15 +256,6 @@ public class MetricsTest {
     verify(reporter, times(1))
         .reportCounter("cadence-activity-task-completed", activityCompletionTags, 1);
 
-    Map<String, String> decisionCompletionTags =
-        new ImmutableMap.Builder<String, String>(2)
-            .put(MetricsTag.DOMAIN, WorkflowTest.DOMAIN)
-            .put(MetricsTag.TASK_LIST, taskList)
-            .put(MetricsTag.WORKFLOW_TYPE, "TestWorkflow::execute")
-            .build();
-    verify(reporter, atLeastOnce())
-        .reportCounter("cadence-decision-task-completed", decisionCompletionTags, 1);
-
     testEnvironment.close();
   }
 
