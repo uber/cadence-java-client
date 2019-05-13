@@ -262,7 +262,7 @@ public class MetricsTest {
             .put(MetricsTag.TASK_LIST, taskList)
             .put(MetricsTag.WORKFLOW_TYPE, "TestWorkflow::execute")
             .build();
-    verify(reporter, times(4))
+    verify(reporter, atLeastOnce())
         .reportCounter("cadence-decision-task-completed", decisionCompletionTags, 1);
 
     testEnvironment.close();
