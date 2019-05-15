@@ -226,9 +226,9 @@ public final class ActivityWorker implements SuspendableWorker {
         Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
         options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
-        RespondActivityTaskFailedRequest taskFailed =
-            response.getTaskFailedResult().getTaskFailedRequest();
-        if (taskFailed != null) {
+        if (response.getTaskFailedResult() != null) {
+          RespondActivityTaskFailedRequest taskFailed =
+              response.getTaskFailedResult().getTaskFailedRequest();
           ro =
               options
                   .getReportFailureRetryOptions()

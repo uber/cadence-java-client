@@ -127,7 +127,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
     activityTaskHandler =
         new POJOActivityTaskHandler(
-            null,
+            new WorkflowServiceWrapper(workflowService),
             testEnvironmentOptions.getDomain(),
             testEnvironmentOptions.getDataConverter(),
             heartbeatExecutor);
@@ -178,12 +178,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
   @Override
   public void setWorkflowService(IWorkflowService workflowService) {
-    this.workflowService = workflowService;
-    this.activityTaskHandler.setWorkflowService(workflowService);
+    IWorkflowService service = new WorkflowServiceWrapper(workflowService);
+    this.workflowService = service;
+    this.activityTaskHandler.setWorkflowService(service);
   }
 
   private class TestActivityExecutor implements WorkflowInterceptor {
 
+    @SuppressWarnings("UnusedVariable")
     private final IWorkflowService workflowService;
 
     TestActivityExecutor(IWorkflowService workflowService) {
@@ -211,8 +213,6 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
               .setWorkflowId("test-workflow-id")
               .setRunId(UUID.randomUUID().toString()));
       task.setActivityType(new ActivityType().setName(activityType));
-      @SuppressWarnings("UnusedVariable")
-      IWorkflowService service = new WorkflowServiceWrapper(workflowService);
       Result taskResult = activityTaskHandler.handle(task, NoopScope.getInstance());
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
     }
