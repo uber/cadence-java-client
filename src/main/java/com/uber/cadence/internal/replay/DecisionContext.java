@@ -83,7 +83,7 @@ public interface DecisionContext extends ReplayAware {
       ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback);
 
   Consumer<Exception> scheduleLocalActivityTask(
-      ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback);
+      ExecuteLocalActivityParameters parameters, BiConsumer<byte[], Exception> callback);
 
   /**
    * Start child workflow.

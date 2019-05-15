@@ -68,7 +68,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     this.stickyTaskListName = stickyTaskListName;
     this.stickyTaskListScheduleToStartTimeout = stickyTaskListScheduleToStartTimeout;
     this.service = Objects.requireNonNull(service);
-    this.laPollTask = Objects.requireNonNull(laPollTask);
+    this.laPollTask = laPollTask;
   }
 
   @Override

@@ -18,6 +18,7 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.ActivityType;
+import java.time.Duration;
 
 /**
  * Indicates that an activity implementation threw an unhandled exception. Contains the unhandled
@@ -25,10 +26,33 @@ import com.uber.cadence.ActivityType;
  * process or even program.
  */
 public final class ActivityFailureException extends ActivityException {
+  int attempt;
+  Duration backoff;
 
   public ActivityFailureException(
       long eventId, ActivityType activityType, String activityId, Throwable cause) {
     super(cause.getMessage(), eventId, activityType, activityId);
     initCause(cause);
+  }
+
+  public ActivityFailureException(
+      long eventId,
+      ActivityType activityType,
+      String activityId,
+      Throwable cause,
+      int attempt,
+      Duration backoff) {
+    super(cause.getMessage(), eventId, activityType, activityId);
+    initCause(cause);
+    this.attempt = attempt;
+    this.backoff = backoff;
+  }
+
+  public Duration getBackoff() {
+    return backoff;
+  }
+
+  public int getAttempt() {
+    return attempt;
   }
 }

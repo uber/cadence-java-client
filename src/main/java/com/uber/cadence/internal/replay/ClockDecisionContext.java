@@ -75,7 +75,7 @@ public final class ClockDecisionContext {
   private final MarkerHandler versionHandler;
   private final LocalActivityPollTask laPollTask;
   private final Map<String, OpenRequestInfo<byte[], ActivityType>> pendingLaTasks = new HashMap<>();
-  private final Map<String, ExecuteActivityParameters> unstartedLaTasks = new HashMap<>();
+  private final Map<String, ExecuteLocalActivityParameters> unstartedLaTasks = new HashMap<>();
   private ReplayDecider replayDecider;
 
   ClockDecisionContext(DecisionsHelper decisions, LocalActivityPollTask laPollTask) {
@@ -219,12 +219,16 @@ public final class ClockDecisionContext {
         String activityId,
         String activityType,
         long replayTimeMillis,
-        RespondActivityTaskFailedRequest result) {
+        RespondActivityTaskFailedRequest result,
+        int attempt,
+        Duration backoff) {
       this.activityId = activityId;
       this.activityType = activityType;
       this.replayTimeMillis = replayTimeMillis;
       this.errReason = result.getReason();
       this.errJson = result.getDetails();
+      this.attempt = attempt;
+      this.backoff = backoff;
     }
 
     public LocalActivityMarkerData(
@@ -278,7 +282,9 @@ public final class ClockDecisionContext {
                 attributes.getDecisionTaskCompletedEventId(),
                 activityType,
                 marker.activityId,
-                cause);
+                cause,
+                marker.attempt,
+                marker.backoff);
       }
 
       BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
@@ -325,7 +331,7 @@ public final class ClockDecisionContext {
   }
 
   Consumer<Exception> scheduleLocalActivityTask(
-      ExecuteActivityParameters params, BiConsumer<byte[], Exception> callback) {
+      ExecuteLocalActivityParameters params, BiConsumer<byte[], Exception> callback) {
     final OpenRequestInfo<byte[], ActivityType> context =
         new OpenRequestInfo<>(params.getActivityType());
     context.setCompletionHandle(callback);
@@ -338,7 +344,7 @@ public final class ClockDecisionContext {
   }
 
   void startUnstartedLaTasks() {
-    for (ExecuteActivityParameters params : unstartedLaTasks.values()) {
+    for (ExecuteLocalActivityParameters params : unstartedLaTasks.values()) {
       laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider, this));
     }
     unstartedLaTasks.clear();

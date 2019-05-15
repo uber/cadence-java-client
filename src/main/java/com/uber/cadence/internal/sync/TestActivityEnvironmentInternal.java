@@ -179,6 +179,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
   @Override
   public void setWorkflowService(IWorkflowService workflowService) {
     this.workflowService = workflowService;
+    this.activityTaskHandler.setWorkflowService(workflowService);
   }
 
   private class TestActivityExecutor implements WorkflowInterceptor {
@@ -210,10 +211,9 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
               .setWorkflowId("test-workflow-id")
               .setRunId(UUID.randomUUID().toString()));
       task.setActivityType(new ActivityType().setName(activityType));
+      @SuppressWarnings("UnusedVariable")
       IWorkflowService service = new WorkflowServiceWrapper(workflowService);
-      Result taskResult =
-          activityTaskHandler.handle(
-              service, testEnvironmentOptions.getDomain(), task, NoopScope.getInstance());
+      Result taskResult = activityTaskHandler.handle(task, NoopScope.getInstance());
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
     }
 
@@ -316,7 +316,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
             .getDataConverter()
             .fromData(taskCompleted.getResult(), resultClass, resultType);
       } else {
-        RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
+        RespondActivityTaskFailedRequest taskFailed =
+            response.getTaskFailedResult().getTaskFailedRequest();
         if (taskFailed != null) {
           String causeClassName = taskFailed.getReason();
           Class<? extends Exception> causeClass;

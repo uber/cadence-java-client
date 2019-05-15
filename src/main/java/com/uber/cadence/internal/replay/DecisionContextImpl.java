@@ -158,7 +158,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
 
   @Override
   public Consumer<Exception> scheduleLocalActivityTask(
-      ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
+      ExecuteLocalActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
     return workflowClock.scheduleLocalActivityTask(parameters, callback);
   }
 

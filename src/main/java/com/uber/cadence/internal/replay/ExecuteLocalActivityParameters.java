@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ActivityType;
+import com.uber.cadence.common.RetryOptions;
 import java.util.Arrays;
 
 public class ExecuteLocalActivityParameters {
@@ -26,6 +27,9 @@ public class ExecuteLocalActivityParameters {
   private ActivityType activityType;
   private byte[] input;
   private long scheduleToCloseTimeoutSeconds;
+  private RetryOptions retryOptions;
+  private long elapsedTime;
+  private int attempt;
 
   public ExecuteLocalActivityParameters() {}
 
@@ -181,6 +185,30 @@ public class ExecuteLocalActivityParameters {
       long scheduleToCloseTimeoutSeconds) {
     this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
     return this;
+  }
+
+  public int getAttempt() {
+    return attempt;
+  }
+
+  public void setAttempt(int attempt) {
+    this.attempt = attempt;
+  }
+
+  public RetryOptions getRetryOptions() {
+    return retryOptions;
+  }
+
+  public void setRetryOptions(RetryOptions retryOptions) {
+    this.retryOptions = retryOptions;
+  }
+
+  public long getElapsedTime() {
+    return elapsedTime;
+  }
+
+  public void setElapsedTime(long startTime) {
+    this.elapsedTime = startTime;
   }
 
   @Override

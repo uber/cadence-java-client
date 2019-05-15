@@ -38,6 +38,7 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Collection;
@@ -692,9 +693,19 @@ public class WorkflowExecutionUtils {
 
     if (event.getEventType() == EventType.MarkerRecorded) {
       MarkerRecordedEventAttributes markerAttributes = event.getMarkerRecordedEventAttributes();
-      result.append("{\n").append("    MarkerName = ").append(markerAttributes.getMarkerName()).append(";\n");
-      result.append("    DecisionTaskCompletedEventId = ").append(markerAttributes.getDecisionTaskCompletedEventId()).append(";\n");
-      result.append("    Details = ").append(new String(markerAttributes.getDetails())).append(";\n  }");
+      result
+          .append("{\n")
+          .append("    MarkerName = ")
+          .append(markerAttributes.getMarkerName())
+          .append(";\n");
+      result
+          .append("    DecisionTaskCompletedEventId = ")
+          .append(markerAttributes.getDecisionTaskCompletedEventId())
+          .append(";\n");
+      result
+          .append("    Details = ")
+          .append(new String(markerAttributes.getDetails(), Charset.defaultCharset()))
+          .append(";\n  }");
     } else {
       result.append(
           prettyPrintObject(

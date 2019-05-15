@@ -18,11 +18,13 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.*;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.ClockDecisionContext;
-import com.uber.cadence.internal.replay.ExecuteActivityParameters;
+import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
 import com.uber.cadence.internal.replay.ReplayDecider;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -124,12 +126,15 @@ public final class LocalActivityWorker implements SuspendableWorker {
   }
 
   public static class Task {
-    final ExecuteActivityParameters params;
+    final ExecuteLocalActivityParameters params;
     final ReplayDecider replayDecider;
     final ClockDecisionContext ctx;
+    long taskStartTime;
 
     public Task(
-        ExecuteActivityParameters params, ReplayDecider replayDecider, ClockDecisionContext ctx) {
+        ExecuteLocalActivityParameters params,
+        ReplayDecider replayDecider,
+        ClockDecisionContext ctx) {
       this.params = params;
       this.replayDecider = replayDecider;
       this.ctx = ctx;
@@ -146,12 +151,8 @@ public final class LocalActivityWorker implements SuspendableWorker {
 
     @Override
     public void handle(Task task) throws Exception {
-      PollForActivityTaskResponse pollTask = new PollForActivityTaskResponse();
-      pollTask.setActivityType(task.params.getActivityType());
-      pollTask.setInput(task.params.getInput());
-
-      ActivityTaskHandler.Result result =
-          handler.handle(null, "", pollTask, options.getMetricsScope());
+      task.taskStartTime = System.currentTimeMillis();
+      ActivityTaskHandler.Result result = handleLocalActivity(task);
 
       ClockDecisionContext.LocalActivityMarkerData marker;
       long replayTimeMillis =
@@ -164,13 +165,15 @@ public final class LocalActivityWorker implements SuspendableWorker {
                 task.params.getActivityType().toString(),
                 replayTimeMillis,
                 result.getTaskCompleted());
-      } else if (result.getTaskFailed() != null) {
+      } else if (result.getTaskFailedResult() != null) {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
                 task.params.getActivityId(),
                 task.params.getActivityType().toString(),
                 replayTimeMillis,
-                result.getTaskFailed());
+                result.getTaskFailedResult().getTaskFailedRequest(),
+                result.getAttempt(),
+                result.getBackoff());
       } else {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
@@ -179,8 +182,6 @@ public final class LocalActivityWorker implements SuspendableWorker {
                 replayTimeMillis,
                 result.getTaskCancelled());
       }
-
-      // TODO: cancellation
 
       byte[] markerData = JsonDataConverter.getInstance().toData(marker);
 
@@ -200,6 +201,49 @@ public final class LocalActivityWorker implements SuspendableWorker {
     @Override
     public Throwable wrapFailure(Task task, Throwable failure) {
       return new RuntimeException("Failure processing local activity task.", failure);
+    }
+
+    private ActivityTaskHandler.Result handleLocalActivity(Task task) throws InterruptedException {
+      PollForActivityTaskResponse pollTask = new PollForActivityTaskResponse();
+      pollTask.setActivityType(task.params.getActivityType());
+      pollTask.setInput(task.params.getInput());
+      pollTask.setAttempt(task.params.getAttempt());
+
+      ActivityTaskHandler.Result result = handler.handle(pollTask, options.getMetricsScope());
+      result.setAttempt(task.params.getAttempt());
+
+      if (result.getTaskCompleted() != null
+          || result.getTaskCancelled() != null
+          || task.params.getRetryOptions() == null) {
+        return result;
+      }
+
+      RetryOptions retryOptions = task.params.getRetryOptions();
+      long sleepMillis = retryOptions.calculateSleepTime(task.params.getAttempt());
+      long elapsedTask = System.currentTimeMillis() - task.taskStartTime;
+      long elapsedTotal = elapsedTask + task.params.getElapsedTime();
+      System.out.println("Elapsed task " + elapsedTask + " elapsed total " + elapsedTotal);
+      if (retryOptions.shouldRethrow(
+          result.getTaskFailedResult().getFailure(),
+          task.params.getAttempt(),
+          elapsedTotal,
+          sleepMillis)) {
+        return result;
+      } else {
+        System.out.println("Next retry backoff " + sleepMillis + "ms");
+        result.setBackoff(Duration.ofMillis(sleepMillis));
+      }
+
+      // For small backoff we do local retry. Otherwise we will schedule timer on server side.
+      if (elapsedTask + sleepMillis < task.replayDecider.getDecisionTimeoutSeconds() * 1000) {
+        System.out.println("Sleep locally for retry.");
+        Thread.sleep(sleepMillis);
+        task.params.setAttempt(task.params.getAttempt() + 1);
+        return handleLocalActivity(task);
+      } else {
+        System.out.println("Schedule server side timer for retry. attempt " + result.getAttempt());
+        return result;
+      }
     }
   }
 }

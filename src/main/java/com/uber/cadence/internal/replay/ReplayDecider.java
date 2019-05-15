@@ -509,6 +509,10 @@ public class ReplayDecider implements Decider {
     return false;
   }
 
+  public int getDecisionTimeoutSeconds() {
+    return startedEvent.getTaskStartToCloseTimeoutSeconds();
+  }
+
   @Override
   public void close() {
     workflow.close();

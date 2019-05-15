@@ -171,8 +171,7 @@ public final class ActivityWorker implements SuspendableWorker {
 
       try {
         Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
-        ActivityTaskHandler.Result response =
-            handler.handle(service, domain, task.task, options.getMetricsScope());
+        ActivityTaskHandler.Result response = handler.handle(task.task, options.getMetricsScope());
         sw.stop();
 
         sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
@@ -227,7 +226,8 @@ public final class ActivityWorker implements SuspendableWorker {
         Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
         options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
-        RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
+        RespondActivityTaskFailedRequest taskFailed =
+            response.getTaskFailedResult().getTaskFailedRequest();
         if (taskFailed != null) {
           ro =
               options

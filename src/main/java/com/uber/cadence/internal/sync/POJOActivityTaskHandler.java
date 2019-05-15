@@ -50,7 +50,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   private final ScheduledExecutorService heartbeatExecutor;
   private final Map<String, ActivityTaskExecutor> activities =
       Collections.synchronizedMap(new HashMap<>());
-  private final IWorkflowService service;
+  private IWorkflowService service;
   private final String domain;
 
   POJOActivityTaskHandler(
@@ -141,7 +141,8 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     failure = CheckedExceptionWrapper.unwrap(failure);
     result.setReason(failure.getClass().getName());
     result.setDetails(dataConverter.toData(failure));
-    return new ActivityTaskHandler.Result(null, result, null, null);
+    return new ActivityTaskHandler.Result(
+        null, new Result.TaskFailedResult(result, failure), null, null);
   }
 
   @Override
@@ -164,11 +165,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   }
 
   @Override
-  public Result handle(
-      IWorkflowService service,
-      String domain,
-      PollForActivityTaskResponse pollResponse,
-      Scope metricsScope) {
+  public Result handle(PollForActivityTaskResponse pollResponse, Scope metricsScope) {
     String activityType = pollResponse.getActivityType().getName();
     ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
     ActivityTaskExecutor activity = activities.get(activityType);
@@ -253,5 +250,9 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         return mapToActivityFailure(task.getActivityType(), e.getTargetException(), metricsScope);
       }
     }
+  }
+
+  public void setWorkflowService(IWorkflowService service) {
+    this.service = service;
   }
 }

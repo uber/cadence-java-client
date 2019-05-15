@@ -455,9 +455,9 @@ public class WorkflowTest {
               .setRetryOptions(
                   new RetryOptions.Builder()
                       .setExpiration(Duration.ofSeconds(100))
-                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setMaximumInterval(Duration.ofSeconds(20))
                       .setInitialInterval(Duration.ofSeconds(1))
-                      .setMaximumAttempts(3)
+                      .setMaximumAttempts(5)
                       .setDoNotRetry(AssertionError.class)
                       .build())
               .build();
@@ -473,16 +473,18 @@ public class WorkflowTest {
     startWorkerFor(TestLocalActivityRetry.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflow1.class,
+            newWorkflowOptionsBuilder(taskList)
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+                .build());
     try {
       workflowStub.execute(taskList);
       fail("unreachable");
     } catch (WorkflowException e) {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
-    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+    assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
     System.out.println(testEnvironment.getDiagnostics());
-
   }
 
   public static class TestActivityRetryOnTimeout implements TestWorkflow1 {

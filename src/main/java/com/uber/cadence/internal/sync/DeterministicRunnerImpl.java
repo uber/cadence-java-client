@@ -24,12 +24,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.metrics.NoopScope;
-import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
-import com.uber.cadence.internal.replay.DeciderCache;
-import com.uber.cadence.internal.replay.DecisionContext;
-import com.uber.cadence.internal.replay.ExecuteActivityParameters;
-import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
-import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.internal.replay.*;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
@@ -541,7 +536,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
     @Override
     public Consumer<Exception> scheduleLocalActivityTask(
-        ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
+        ExecuteLocalActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
       throw new UnsupportedOperationException("not implemented");
     }
 

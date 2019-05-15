@@ -216,19 +216,35 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Type resultType,
       Object[] args,
       ActivityOptions options) {
-    RetryOptions retryOptions = options.getRetryOptions();
-    if (retryOptions != null) {
-      return WorkflowRetryerInternal.retryAsync(
-          retryOptions,
-          () -> executeLocalActivityOnce(activityName, options, args, resultClass, resultType));
+    if (options.getRetryOptions() != null) {
+      options.getRetryOptions().validate();
     }
-    return executeLocalActivityOnce(activityName, options, args, resultClass, resultType);
+
+    long startTime = WorkflowInternal.currentTimeMillis();
+    return WorkflowRetryerInternal.retryAsync(
+        (attempt, currentStart) ->
+            executeLocalActivityOnce(
+                activityName,
+                options,
+                args,
+                resultClass,
+                resultType,
+                currentStart - startTime,
+                attempt),
+        1,
+        startTime);
   }
 
   private <T> Promise<T> executeLocalActivityOnce(
-      String name, ActivityOptions options, Object[] args, Class<T> returnClass, Type returnType) {
+      String name,
+      ActivityOptions options,
+      Object[] args,
+      Class<T> returnClass,
+      Type returnType,
+      long elapsed,
+      int attempt) {
     byte[] input = converter.toData(args);
-    Promise<byte[]> binaryResult = executeLocalActivityOnce(name, options, input);
+    Promise<byte[]> binaryResult = executeLocalActivityOnce(name, options, input, elapsed, attempt);
     if (returnClass == Void.TYPE) {
       return binaryResult.thenApply((r) -> null);
     }
@@ -236,9 +252,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   private Promise<byte[]> executeLocalActivityOnce(
-      String name, ActivityOptions options, byte[] input) {
+      String name, ActivityOptions options, byte[] input, long elapsed, int attempt) {
     ActivityCallback callback = new ActivityCallback();
-    ExecuteActivityParameters params = constructExecuteActivityParameters(name, options, input);
+    ExecuteLocalActivityParameters params =
+        constructExecuteLocalActivityParameters(name, options, input, elapsed, attempt);
     Consumer<Exception> cancellationCallback =
         context.scheduleLocalActivityTask(params, callback::invoke);
     CancellationScope.current()
@@ -271,6 +288,22 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     if (retryOptions != null) {
       parameters.setRetryParameters(new RetryParameters(retryOptions));
     }
+    return parameters;
+  }
+
+  private ExecuteLocalActivityParameters constructExecuteLocalActivityParameters(
+      String name, ActivityOptions options, byte[] input, long elapsed, int attempt) {
+    ExecuteLocalActivityParameters parameters = new ExecuteLocalActivityParameters();
+    parameters
+        .withActivityType(new ActivityType().setName(name))
+        .withInput(input)
+        .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds());
+    RetryOptions retryOptions = options.getRetryOptions();
+    if (retryOptions != null) {
+      parameters.setRetryOptions(retryOptions);
+    }
+    parameters.setAttempt(attempt);
+    parameters.setElapsedTime(elapsed);
     return parameters;
   }
 
