@@ -19,6 +19,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.worker.WorkerOptions;
@@ -402,7 +403,8 @@ public final class Workflow {
    * @param options options that together with the properties of {@link
    *     com.uber.cadence.activity.ActivityMethod} specify the activity invocation parameters.
    */
-  public static <T> T newLocalActivityStub(Class<T> activityInterface, ActivityOptions options) {
+  public static <T> T newLocalActivityStub(
+      Class<T> activityInterface, LocalActivityOptions options) {
     return WorkflowInternal.newLocalActivityStub(activityInterface, options);
   }
 

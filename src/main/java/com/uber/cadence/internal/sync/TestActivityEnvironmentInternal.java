@@ -76,6 +76,7 @@ import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
@@ -158,10 +159,9 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     ActivityOptions options =
         new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofDays(1)).build();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(
-            options, new TestActivityExecutor(workflowService), false);
+        ActivityInvocationHandler.newInstance(options, new TestActivityExecutor(workflowService));
     invocationHandler = new DeterministicRunnerWrapper(invocationHandler);
-    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+    return ActivityInvocationHandlerBase.newProxy(activityInterface, invocationHandler);
   }
 
   @Override
@@ -223,7 +223,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         Class<R> resultClass,
         Type resultType,
         Object[] args,
-        ActivityOptions options) {
+        LocalActivityOptions options) {
       throw new UnsupportedOperationException("not implemented");
     }
 

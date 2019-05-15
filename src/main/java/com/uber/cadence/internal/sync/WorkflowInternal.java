@@ -22,6 +22,7 @@ import static com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 import com.google.common.reflect.TypeToken;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
@@ -147,8 +148,8 @@ public final class WorkflowInternal {
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(options, decisionContext, false);
-    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+        ActivityInvocationHandler.newInstance(options, decisionContext);
+    return ActivityInvocationHandlerBase.newProxy(activityInterface, invocationHandler);
   }
 
   /**
@@ -156,15 +157,16 @@ public final class WorkflowInternal {
    *
    * @param activityInterface interface type implemented by activities
    */
-  public static <T> T newLocalActivityStub(Class<T> activityInterface, ActivityOptions options) {
+  public static <T> T newLocalActivityStub(
+      Class<T> activityInterface, LocalActivityOptions options) {
     WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(options, decisionContext, true);
-    return ActivityInvocationHandler.newProxy(activityInterface, invocationHandler);
+        LocalActivityInvocationHandler.newInstance(options, decisionContext);
+    return ActivityInvocationHandlerBase.newProxy(activityInterface, invocationHandler);
   }
 
   public static ActivityStub newUntypedActivityStub(ActivityOptions options) {
-    return ActivityStubImpl.newInstance(options, getWorkflowInterceptor()::executeActivity);
+    return ActivityStubImpl.newInstance(options, getWorkflowInterceptor());
   }
 
   @SuppressWarnings("unchecked")

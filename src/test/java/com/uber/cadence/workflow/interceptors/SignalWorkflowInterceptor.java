@@ -19,6 +19,7 @@ package com.uber.cadence.workflow.interceptors;
 
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.workflow.*;
 import java.lang.reflect.Type;
 import java.time.Duration;
@@ -61,7 +62,7 @@ public class SignalWorkflowInterceptor implements WorkflowInterceptor {
       Class<R> resultClass,
       Type resultType,
       Object[] args,
-      ActivityOptions options) {
+      LocalActivityOptions options) {
     return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
   }
 

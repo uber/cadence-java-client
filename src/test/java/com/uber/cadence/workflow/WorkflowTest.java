@@ -31,6 +31,7 @@ import com.uber.cadence.*;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -213,6 +214,18 @@ public class WorkflowTest {
           .setHeartbeatTimeout(Duration.ofSeconds(5))
           .setScheduleToStartTimeout(Duration.ofSeconds(5))
           .setStartToCloseTimeout(Duration.ofSeconds(10))
+          .build();
+    }
+  }
+
+  private static LocalActivityOptions newLocalActivityOptions1() {
+    if (DEBUGGER_TIMEOUTS) {
+      return new LocalActivityOptions.Builder()
+          .setScheduleToCloseTimeout(Duration.ofSeconds(1000))
+          .build();
+    } else {
+      return new LocalActivityOptions.Builder()
+          .setScheduleToCloseTimeout(Duration.ofSeconds(5))
           .build();
     }
   }
@@ -449,8 +462,8 @@ public class WorkflowTest {
     @Override
     @SuppressWarnings("Finally")
     public String execute(String taskList) {
-      ActivityOptions options =
-          new ActivityOptions.Builder()
+      LocalActivityOptions options =
+          new LocalActivityOptions.Builder()
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .setRetryOptions(
                   new RetryOptions.Builder()
@@ -4283,7 +4296,7 @@ public class WorkflowTest {
     @Override
     public String execute(String taskList) {
       TestActivities localActivities =
-          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
       try {
         localActivities.throwIO();
       } catch (ActivityFailureException e) {
@@ -4320,7 +4333,7 @@ public class WorkflowTest {
     @Override
     public String execute(String taskList) {
       TestActivities localActivities =
-          Workflow.newLocalActivityStub(TestActivities.class, newActivityOptions1(taskList));
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
       String result = "";
       try {
         for (int i = 0; i < 5; i++) {
@@ -4393,7 +4406,7 @@ public class WorkflowTest {
         Class<R> resultClass,
         Type resultType,
         Object[] args,
-        ActivityOptions options) {
+        LocalActivityOptions options) {
       trace.add("executeLocalActivity " + activityName);
       return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
     }

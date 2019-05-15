@@ -21,6 +21,7 @@ import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
 import com.uber.cadence.*;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.RetryParameters;
@@ -215,7 +216,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Class<R> resultClass,
       Type resultType,
       Object[] args,
-      ActivityOptions options) {
+      LocalActivityOptions options) {
     if (options.getRetryOptions() != null) {
       options.getRetryOptions().validate();
     }
@@ -237,7 +238,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   private <T> Promise<T> executeLocalActivityOnce(
       String name,
-      ActivityOptions options,
+      LocalActivityOptions options,
       Object[] args,
       Class<T> returnClass,
       Type returnType,
@@ -252,7 +253,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   private Promise<byte[]> executeLocalActivityOnce(
-      String name, ActivityOptions options, byte[] input, long elapsed, int attempt) {
+      String name, LocalActivityOptions options, byte[] input, long elapsed, int attempt) {
     ActivityCallback callback = new ActivityCallback();
     ExecuteLocalActivityParameters params =
         constructExecuteLocalActivityParameters(name, options, input, elapsed, attempt);
@@ -292,7 +293,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   private ExecuteLocalActivityParameters constructExecuteLocalActivityParameters(
-      String name, ActivityOptions options, byte[] input, long elapsed, int attempt) {
+      String name, LocalActivityOptions options, byte[] input, long elapsed, int attempt) {
     ExecuteLocalActivityParameters parameters = new ExecuteLocalActivityParameters();
     parameters
         .withActivityType(new ActivityType().setName(name))
