@@ -194,7 +194,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
       try {
         task.replayDecider.processEvent(event);
       } catch (Throwable throwable) {
-        throw new Exception("fix me");
+        throw new RuntimeException("failed to process local activity marker", throwable);
       }
     }
 

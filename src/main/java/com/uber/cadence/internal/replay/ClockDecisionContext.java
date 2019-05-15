@@ -41,6 +41,9 @@ import org.slf4j.LoggerFactory;
 /** Clock that must be used inside workflow definition code to ensure replay determinism. */
 public final class ClockDecisionContext {
 
+  private static final Logger log =
+      LoggerFactory.getLogger(ClockDecisionContext.class);
+
   private static final String SIDE_EFFECT_MARKER_NAME = "SideEffect";
   private static final String MUTABLE_SIDE_EFFECT_MARKER_NAME = "MutableSideEffect";
   public static final String VERSION_MARKER_NAME = "Version";
@@ -263,7 +266,7 @@ public final class ClockDecisionContext {
                 LocalActivityMarkerData.class);
 
     if (pendingLaTasks.containsKey(marker.activityId)) {
-      System.out.println("handleLocalActivityMarker for activity " + marker.activityId);
+      log.debug("Handle LocalActivityMarker for activity " + marker.activityId);
 
       decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
 

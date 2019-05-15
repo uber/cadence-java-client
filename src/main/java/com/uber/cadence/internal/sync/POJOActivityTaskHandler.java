@@ -252,7 +252,8 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     }
   }
 
-  public void setWorkflowService(IWorkflowService service) {
+  // This is only for unit test to mock service and set expectations.
+  void setWorkflowService(IWorkflowService service) {
     this.service = service;
   }
 }
