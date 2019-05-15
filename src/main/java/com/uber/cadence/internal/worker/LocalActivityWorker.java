@@ -222,7 +222,6 @@ public final class LocalActivityWorker implements SuspendableWorker {
       long sleepMillis = retryOptions.calculateSleepTime(task.params.getAttempt());
       long elapsedTask = System.currentTimeMillis() - task.taskStartTime;
       long elapsedTotal = elapsedTask + task.params.getElapsedTime();
-      System.out.println("Elapsed task " + elapsedTask + " elapsed total " + elapsedTotal);
       if (retryOptions.shouldRethrow(
           result.getTaskFailedResult().getFailure(),
           task.params.getAttempt(),
@@ -230,18 +229,15 @@ public final class LocalActivityWorker implements SuspendableWorker {
           sleepMillis)) {
         return result;
       } else {
-        System.out.println("Next retry backoff " + sleepMillis + "ms");
         result.setBackoff(Duration.ofMillis(sleepMillis));
       }
 
       // For small backoff we do local retry. Otherwise we will schedule timer on server side.
       if (elapsedTask + sleepMillis < task.replayDecider.getDecisionTimeoutSeconds() * 1000) {
-        System.out.println("Sleep locally for retry.");
         Thread.sleep(sleepMillis);
         task.params.setAttempt(task.params.getAttempt() + 1);
         return handleLocalActivity(task);
       } else {
-        System.out.println("Schedule server side timer for retry. attempt " + result.getAttempt());
         return result;
       }
     }

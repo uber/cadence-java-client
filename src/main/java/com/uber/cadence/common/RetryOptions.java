@@ -408,7 +408,9 @@ public final class RetryOptions {
   }
 
   public long calculateSleepTime(long attempt) {
-    double sleepMillis = Math.pow(backoffCoefficient, attempt - 1) * initialInterval.toMillis();
+    double coefficient =
+        backoffCoefficient == 0d ? DEFAULT_BACKOFF_COEFFICIENT : backoffCoefficient;
+    double sleepMillis = Math.pow(coefficient, attempt - 1) * initialInterval.toMillis();
     if (maximumInterval == null) {
       return (long) Math.min(sleepMillis, initialInterval.toMillis() * DEFAULT_MAXIMUM_MULTIPLIER);
     }
