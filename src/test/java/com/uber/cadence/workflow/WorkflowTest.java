@@ -1147,10 +1147,17 @@ public class WorkflowTest {
     workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(Void.class);
   }
 
+  private Map<String, Object> getTestMemo() {
+    Map<String, Object> memo = new HashMap<>();
+    memo.put("testKey", "testObject");
+    return memo;
+  }
+
   @Test
   public void testStart() {
     startWorkerFor(TestMultiargsWorkflowsImpl.class);
-    WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).build();
+    WorkflowOptions workflowOptions =
+        newWorkflowOptionsBuilder(taskList).setMemo(getTestMemo()).build();
     TestMultiargsWorkflowsFunc stubF =
         workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
     assertResult("func", WorkflowClient.start(stubF::func));

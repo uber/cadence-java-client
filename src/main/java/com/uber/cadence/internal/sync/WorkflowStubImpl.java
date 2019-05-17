@@ -41,6 +41,8 @@ import com.uber.cadence.internal.external.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
@@ -136,7 +138,19 @@ class WorkflowStubImpl implements WorkflowStub {
     }
     p.setInput(dataConverter.toData(args));
     p.setWorkflowType(new WorkflowType().setName(workflowType.get()));
+    p.setMemo(convertMemoFromObjectToBytes(o.getMemo()));
     return p;
+  }
+
+  private Map<String, byte[]> convertMemoFromObjectToBytes(Map<String, Object> memoFromOption) {
+    if (memoFromOption == null) {
+      return null;
+    }
+    Map<String, byte[]> memo = new HashMap<>();
+    for (Map.Entry<String, Object> item : memoFromOption.entrySet()) {
+      memo.put(item.getKey(), dataConverter.toData(item.getValue()));
+    }
+    return memo;
   }
 
   @Override
