@@ -44,3 +44,8 @@ The documentation on how to use the Cadence Java client is [here](https://cadenc
 
 Javadocs for the client API are located [here](https://www.javadoc.io/doc/com.uber.cadence/cadence-client).
 
+## Contributing
+We'd love your help in making the Cadence Java client great. Please review our [contribution guidelines](CONTRIBUTING.md).
+
+## License
+Apache License, please see [LICENSE](LICENSE) for details.
