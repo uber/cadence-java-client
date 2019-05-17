@@ -24,7 +24,7 @@ If this does not work, see instructions for running the Cadence Server at https:
 
 [CLI is avaialable as an executable or as a docker image](https://github.com/uber/cadence/blob/master/tools/cli/README.md)
 
-# Build a configuration
+## Build a configuration
 
 Add *cadence-client* as a dependency to your *pom.xml*:
 
@@ -38,7 +38,7 @@ or to *build.gradle*:
 
     compile group: 'com.uber.cadence', name: 'cadence-client', version: '2.4.1'
 
-# Documentation
+## Documentation
 
 The documentation on how to use the Cadence Java client is [here](https://cadenceworkflow.io/docs/04_javaclient/).
 
