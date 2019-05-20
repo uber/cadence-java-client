@@ -20,7 +20,7 @@ package com.uber.cadence.internal.replay;
 import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.ReplayAwareScope;
-import com.uber.cadence.internal.worker.LocalActivityPollTask;
+import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
@@ -37,9 +37,9 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
 
   private final ActivityDecisionContext activityClient;
   private final WorkflowDecisionContext workflowClient;
-  final ClockDecisionContext workflowClock;
+  private final ClockDecisionContext workflowClock;
   private final WorkflowContext workflowContext;
-  private Scope metricsScope;
+  private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
 
   DecisionContextImpl(
@@ -48,15 +48,14 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
       PollForDecisionTaskResponse decisionTask,
       WorkflowExecutionStartedEventAttributes startedAttributes,
       boolean enableLoggingInReplay,
-      LocalActivityPollTask laPollTask) {
+      Scope metricsScope,
+      Consumer<LocalActivityWorker.Task> laTaskConsumer,
+      ReplayDecider replayDecider) {
     this.activityClient = new ActivityDecisionContext(decisionsHelper);
     this.workflowContext = new WorkflowContext(domain, decisionTask, startedAttributes);
     this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
-    this.workflowClock = new ClockDecisionContext(decisionsHelper, laPollTask);
+    this.workflowClock = new ClockDecisionContext(decisionsHelper, laTaskConsumer, replayDecider);
     this.enableLoggingInReplay = enableLoggingInReplay;
-  }
-
-  public void setMetricsScope(Scope metricsScope) {
     this.metricsScope = new ReplayAwareScope(metricsScope, this, workflowClock::currentTimeMillis);
   }
 
@@ -327,11 +326,15 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     workflowClock.handleMarkerRecorded(event);
   }
 
-  public void startUnstartedLaTasks() {
+  void startUnstartedLaTasks() {
     workflowClock.startUnstartedLaTasks();
   }
 
-  public int numPendingLaTasks() {
+  int numPendingLaTasks() {
     return workflowClock.numPendingLaTasks();
+  }
+
+  void awaitTaskCompletion(Duration duration) throws InterruptedException {
+    workflowClock.awaitTaskCompletion(duration);
   }
 }

@@ -23,7 +23,6 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
-import com.uber.cadence.internal.worker.LocalActivityPollTask;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.Functions.Func;
@@ -32,6 +31,9 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -63,44 +65,47 @@ public final class ClockDecisionContext {
   }
 
   private final DecisionsHelper decisions;
-  private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers =
-      new HashMap<>(); // key is startedEventId
+  // key is startedEventId
+  private final Map<Long, OpenRequestInfo<?, Long>> scheduledTimers = new HashMap<>();
   private long replayCurrentTimeMilliseconds = -1;
-  private long replayTimeUpdatedAtMillis =
-      -1; // Local time when replayCurrentTimeMilliseconds was updated.
+  // Local time when replayCurrentTimeMilliseconds was updated.
+  private long replayTimeUpdatedAtMillis = -1;
   private boolean replaying = true;
-  private final Map<Long, byte[]> sideEffectResults =
-      new HashMap<>(); // Key is side effect marker eventId
+  // Key is side effect marker eventId
+  private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
   private final MarkerHandler mutableSideEffectHandler;
   private final MarkerHandler versionHandler;
-  private final LocalActivityPollTask laPollTask;
+  private final Consumer<LocalActivityWorker.Task> laTaskConsumer;
   private final Map<String, OpenRequestInfo<byte[], ActivityType>> pendingLaTasks = new HashMap<>();
   private final Map<String, ExecuteLocalActivityParameters> unstartedLaTasks = new HashMap<>();
-  private ReplayDecider replayDecider;
+  private final ReplayDecider replayDecider;
+  private final Lock laTaskLock = new ReentrantLock();
+  private final Condition taskCondition = laTaskLock.newCondition();
+  private boolean taskCompleted = false;
 
-  ClockDecisionContext(DecisionsHelper decisions, LocalActivityPollTask laPollTask) {
+  ClockDecisionContext(
+      DecisionsHelper decisions,
+      Consumer<LocalActivityWorker.Task> laTaskConsumer,
+      ReplayDecider replayDecider) {
     this.decisions = decisions;
     mutableSideEffectHandler =
         new MarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
     versionHandler = new MarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
-    this.laPollTask = laPollTask;
+    this.laTaskConsumer = laTaskConsumer;
+    this.replayDecider = replayDecider;
   }
 
   public long currentTimeMillis() {
     return replayCurrentTimeMilliseconds;
   }
 
-  public long replayTimeUpdatedAtMillis() {
+  private long replayTimeUpdatedAtMillis() {
     return replayTimeUpdatedAtMillis;
   }
 
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
     this.replayCurrentTimeMilliseconds = replayCurrentTimeMilliseconds;
     this.replayTimeUpdatedAtMillis = System.currentTimeMillis();
-  }
-
-  void setReplayDecider(ReplayDecider replayDecider) {
-    this.replayDecider = replayDecider;
   }
 
   boolean isReplaying() {
@@ -254,7 +259,7 @@ public final class ClockDecisionContext {
     }
   }
 
-  void handleLocalActivityMarker(MarkerRecordedEventAttributes attributes) {
+  private void handleLocalActivityMarker(MarkerRecordedEventAttributes attributes) {
     LocalActivityMarkerData marker =
         JsonDataConverter.getInstance()
             .fromData(
@@ -290,6 +295,14 @@ public final class ClockDecisionContext {
       BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
       completionHandle.accept(marker.result, failure);
       setReplayCurrentTimeMilliseconds(marker.replayTimeMillis);
+
+      laTaskLock.lock();
+      try {
+        taskCompleted = true;
+        taskCondition.signal();
+      } finally {
+        laTaskLock.unlock();
+      }
     }
   }
 
@@ -345,12 +358,30 @@ public final class ClockDecisionContext {
 
   void startUnstartedLaTasks() {
     for (ExecuteLocalActivityParameters params : unstartedLaTasks.values()) {
-      laPollTask.offer(new LocalActivityWorker.Task(params, replayDecider, this));
+      laTaskConsumer.accept(
+          new LocalActivityWorker.Task(
+              params,
+              replayDecider,
+              replayDecider.getDecisionTimeoutSeconds(),
+              this::currentTimeMillis,
+              this::replayTimeUpdatedAtMillis));
     }
     unstartedLaTasks.clear();
   }
 
   int numPendingLaTasks() {
     return pendingLaTasks.size();
+  }
+
+  void awaitTaskCompletion(Duration duration) throws InterruptedException {
+    laTaskLock.lock();
+    try {
+      while (!taskCompleted) {
+        taskCondition.awaitNanos(duration.toNanos());
+      }
+      taskCompleted = false;
+    } finally {
+      laTaskLock.unlock();
+    }
   }
 }

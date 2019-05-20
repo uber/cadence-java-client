@@ -23,10 +23,11 @@ import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.ClockDecisionContext;
 import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
-import com.uber.cadence.internal.replay.ReplayDecider;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 
 public final class LocalActivityWorker implements SuspendableWorker {
 
@@ -40,16 +41,12 @@ public final class LocalActivityWorker implements SuspendableWorker {
   private final LocalActivityPollTask laPollTask;
 
   public LocalActivityWorker(
-      String domain,
-      String taskList,
-      SingleWorkerOptions options,
-      ActivityTaskHandler handler,
-      LocalActivityPollTask laPollTask) {
+      String domain, String taskList, SingleWorkerOptions options, ActivityTaskHandler handler) {
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
     this.options = options;
     this.handler = handler;
-    this.laPollTask = Objects.requireNonNull(laPollTask);
+    this.laPollTask = new LocalActivityPollTask();
   }
 
   @Override
@@ -126,19 +123,29 @@ public final class LocalActivityWorker implements SuspendableWorker {
   }
 
   public static class Task {
-    final ExecuteLocalActivityParameters params;
-    final ReplayDecider replayDecider;
-    final ClockDecisionContext ctx;
+    private final ExecuteLocalActivityParameters params;
+    private final Consumer<HistoryEvent> eventConsumer;
+    private final LongSupplier currentTimeMillis;
+    private final LongSupplier replayTimeUpdatedAtMillis;
     long taskStartTime;
+    private final int decisionTimeoutSeconds;
 
     public Task(
         ExecuteLocalActivityParameters params,
-        ReplayDecider replayDecider,
-        ClockDecisionContext ctx) {
+        Consumer<HistoryEvent> eventConsumer,
+        int decisionTimeoutSeconds,
+        LongSupplier currentTimeMillis,
+        LongSupplier replayTimeUpdatedAtMillis) {
       this.params = params;
-      this.replayDecider = replayDecider;
-      this.ctx = ctx;
+      this.eventConsumer = eventConsumer;
+      this.currentTimeMillis = currentTimeMillis;
+      this.replayTimeUpdatedAtMillis = replayTimeUpdatedAtMillis;
+      this.decisionTimeoutSeconds = decisionTimeoutSeconds;
     }
+  }
+
+  public Consumer<LocalActivityWorker.Task> getLocalActivityTaskConsumer() {
+    return laPollTask;
   }
 
   private class TaskHandlerImpl implements PollTaskExecutor.TaskHandler<Task> {
@@ -156,8 +163,8 @@ public final class LocalActivityWorker implements SuspendableWorker {
 
       ClockDecisionContext.LocalActivityMarkerData marker;
       long replayTimeMillis =
-          task.ctx.currentTimeMillis()
-              + (System.currentTimeMillis() - task.ctx.replayTimeUpdatedAtMillis());
+          task.currentTimeMillis.getAsLong()
+              + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
       if (result.getTaskCompleted() != null) {
         marker =
             new ClockDecisionContext.LocalActivityMarkerData(
@@ -191,11 +198,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
       attributes.setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME);
       attributes.setDetails(markerData);
       event.setMarkerRecordedEventAttributes(attributes);
-      try {
-        task.replayDecider.processEvent(event);
-      } catch (Throwable throwable) {
-        throw new RuntimeException("failed to process local activity marker", throwable);
-      }
+      task.eventConsumer.accept(event);
     }
 
     @Override
@@ -233,7 +236,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
       }
 
       // For small backoff we do local retry. Otherwise we will schedule timer on server side.
-      if (elapsedTask + sleepMillis < task.replayDecider.getDecisionTimeoutSeconds() * 1000) {
+      if (elapsedTask + sleepMillis < task.decisionTimeoutSeconds * 1000) {
         Thread.sleep(sleepMillis);
         task.params.setAttempt(task.params.getAttempt() + 1);
         return handleLocalActivity(task);

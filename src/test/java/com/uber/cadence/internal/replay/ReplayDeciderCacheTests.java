@@ -307,6 +307,6 @@ public class ReplayDeciderCacheTests {
         new DecisionsHelper(response),
         new WorkerOptions.Builder().build().getMetricsScope(),
         false,
-        null);
+        (a) -> {});
   }
 }

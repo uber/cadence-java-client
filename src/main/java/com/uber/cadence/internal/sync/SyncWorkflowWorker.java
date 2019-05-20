@@ -67,7 +67,9 @@ public class SyncWorkflowWorker
         new POJOWorkflowImplementationFactory(
             options.getDataConverter(), workflowThreadPool, interceptorFactory, cache);
 
-    LocalActivityPollTask laPoolTask = new LocalActivityPollTask();
+    laTaskHandler =
+        new POJOActivityTaskHandler(service, domain, options.getDataConverter(), heartbeatExecutor);
+    laWorker = new LocalActivityWorker(domain, taskList, this.options, laTaskHandler);
 
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
@@ -78,12 +80,9 @@ public class SyncWorkflowWorker
             stickyTaskListName,
             stickyDecisionScheduleToStartTimeout,
             service,
-            laPoolTask);
+            laWorker.getLocalActivityTaskConsumer());
 
     workflowWorker = new WorkflowWorker(service, domain, taskList, this.options, taskHandler);
-    laTaskHandler =
-        new POJOActivityTaskHandler(service, domain, options.getDataConverter(), heartbeatExecutor);
-    laWorker = new LocalActivityWorker(domain, taskList, this.options, laTaskHandler, laPoolTask);
   }
 
   public void setWorkflowImplementationTypes(

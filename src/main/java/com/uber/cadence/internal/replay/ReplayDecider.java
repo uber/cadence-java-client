@@ -36,7 +36,7 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEventsIterator;
 import com.uber.cadence.internal.worker.DecisionTaskWithHistoryIterator;
-import com.uber.cadence.internal.worker.LocalActivityPollTask;
+import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
@@ -54,7 +54,7 @@ import org.apache.thrift.TException;
  * Implements decider that relies on replay of a workflow code. An instance of this class is created
  * per decision.
  */
-public class ReplayDecider implements Decider {
+class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
@@ -78,7 +78,7 @@ public class ReplayDecider implements Decider {
       DecisionsHelper decisionsHelper,
       Scope metricsScope,
       boolean enableLoggingInReplay,
-      LocalActivityPollTask laPollTask) {
+      Consumer<LocalActivityWorker.Task> laTaskConsumer) {
     this.service = service;
     this.workflow = workflow;
     this.decisionsHelper = decisionsHelper;
@@ -95,15 +95,21 @@ public class ReplayDecider implements Decider {
 
     context =
         new DecisionContextImpl(
-            decisionsHelper, domain, decisionTask, startedEvent, enableLoggingInReplay, laPollTask);
-    context.setMetricsScope(metricsScope);
+            decisionsHelper,
+            domain,
+            decisionTask,
+            startedEvent,
+            enableLoggingInReplay,
+            metricsScope,
+            laTaskConsumer,
+            this);
   }
 
   private void handleWorkflowExecutionStarted(HistoryEvent event) throws Exception {
     workflow.start(event, context);
   }
 
-  public void processEvent(HistoryEvent event) throws Throwable {
+  private void processEvent(HistoryEvent event) throws Throwable {
     EventType eventType = event.getEventType();
     switch (eventType) {
       case ActivityTaskCanceled:
@@ -348,9 +354,9 @@ public class ReplayDecider implements Decider {
   }
 
   @Override
-  public DeciderResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
+  public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
     boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
-    return new DeciderResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
+    return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
   }
 
   private boolean decideImpl(PollForDecisionTaskResponse decisionTask, Functions.Proc query)
@@ -378,7 +384,9 @@ public class ReplayDecider implements Decider {
                 historyHelper.getPreviousStartedEventId()));
       }
 
+      int count = 0;
       while (iterator.hasNext()) {
+        System.out.println("batch " + count++);
         DecisionEvents decision = iterator.next();
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
@@ -444,7 +452,7 @@ public class ReplayDecider implements Decider {
     if (decision.isReplay()) {
       return replayLocalActivities(decision);
     } else {
-      return executeLocalActivities(startTime, decisionTimeoutSecs, decision);
+      return executeLocalActivities(startTime, decisionTimeoutSecs);
     }
   }
 
@@ -480,14 +488,18 @@ public class ReplayDecider implements Decider {
     return false;
   }
 
-  private boolean executeLocalActivities(
-      long startTime, int decisionTimeoutSecs, DecisionEvents decision)
-      throws InterruptedException {
+  private boolean executeLocalActivities(long startTime, int decisionTimeoutSecs) {
+    Duration maxProcessingTime = Duration.ofSeconds((long) (0.8 * decisionTimeoutSecs));
+
     while (context.numPendingLaTasks() > 0) {
       context.startUnstartedLaTasks();
 
-      while (context.numPendingLaTasks() > 0) {
-        Thread.sleep(100);
+      Duration processingTime = Duration.ofMillis(System.currentTimeMillis() - startTime);
+      Duration maxWaitAllowed = maxProcessingTime.minus(processingTime);
+      try {
+        context.awaitTaskCompletion(maxWaitAllowed);
+      } catch (InterruptedException e) {
+        return true;
       }
 
       eventLoop();
@@ -497,16 +509,15 @@ public class ReplayDecider implements Decider {
       }
 
       // Break local activity processing loop if we almost reach decision task timeout.
-      Duration processingTime = Duration.ofMillis(System.currentTimeMillis() - startTime);
-      Duration maxProcessingTime = Duration.ofSeconds((long) (0.8 * decisionTimeoutSecs));
-      if (!decision.isReplay() && processingTime.compareTo(maxProcessingTime) > 0) {
+      processingTime = Duration.ofMillis(System.currentTimeMillis() - startTime);
+      if (processingTime.compareTo(maxProcessingTime) > 0) {
         return true;
       }
     }
     return false;
   }
 
-  public int getDecisionTimeoutSeconds() {
+  int getDecisionTimeoutSeconds() {
     return startedEvent.getTaskStartToCloseTimeoutSeconds();
   }
 
@@ -520,6 +531,17 @@ public class ReplayDecider implements Decider {
     AtomicReference<byte[]> result = new AtomicReference<>();
     decideImpl(response, () -> result.set(workflow.query(query)));
     return result.get();
+  }
+
+  @Override
+  public void accept(HistoryEvent event) {
+    try {
+      processEvent(event);
+    } catch (Throwable throwable) {
+      throw new RuntimeException(
+          "failed to process event type=" + event.getEventType() + ", id=" + event.getEventId(),
+          throwable);
+    }
   }
 
   private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {

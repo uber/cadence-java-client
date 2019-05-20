@@ -17,18 +17,23 @@
 
 package com.uber.cadence.internal.worker;
 
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.function.Consumer;
 import org.apache.thrift.TException;
 
-public class LocalActivityPollTask implements Poller.PollTask<LocalActivityWorker.Task> {
-  ConcurrentLinkedQueue<LocalActivityWorker.Task> pendingTasks = new ConcurrentLinkedQueue<>();
+final class LocalActivityPollTask
+    implements Poller.PollTask<LocalActivityWorker.Task>, Consumer<LocalActivityWorker.Task> {
+  private static final int QUEUE_SIZE = 1000;
+  private Queue<LocalActivityWorker.Task> pendingTasks = new ArrayBlockingQueue<>(QUEUE_SIZE);
 
   @Override
   public LocalActivityWorker.Task poll() throws TException {
     return pendingTasks.poll();
   }
 
-  public void offer(LocalActivityWorker.Task task) {
+  @Override
+  public void accept(LocalActivityWorker.Task task) {
     pendingTasks.offer(task);
   }
 }
