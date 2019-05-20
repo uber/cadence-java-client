@@ -3128,7 +3128,7 @@ public class WorkflowTest {
 
   public interface TestActivities {
 
-    String sleepActivity(long milliseconds, int input) throws InterruptedException;
+    String sleepActivity(long milliseconds, int input);
 
     String activityWithDelay(long milliseconds, boolean heartbeatMoreThanOnce);
 
@@ -3234,8 +3234,12 @@ public class WorkflowTest {
     }
 
     @Override
-    public String sleepActivity(long milliseconds, int input) throws InterruptedException {
-      Thread.sleep(milliseconds);
+    public String sleepActivity(long milliseconds, int input) {
+      try {
+        Thread.sleep(milliseconds);
+      } catch (InterruptedException e) {
+        throw Activity.wrap(new RuntimeException("interrupted"));
+      }
       invocations.add("sleepActivity");
       return "sleepActivity" + input;
     }
@@ -4335,14 +4339,9 @@ public class WorkflowTest {
       TestActivities localActivities =
           Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
       String result = "";
-      try {
-        for (int i = 0; i < 5; i++) {
-          result += localActivities.sleepActivity(2000, i);
-        }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+      for (int i = 0; i < 5; i++) {
+        result += localActivities.sleepActivity(2000, i);
       }
-
       return result;
     }
   }
@@ -4360,6 +4359,50 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("sleepActivity0sleepActivity1sleepActivity2sleepActivity3sleepActivity4", result);
     assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
+  }
+
+  public static class TestParallelLocalActivityExecutionWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
+      List<Promise<String>> results = new ArrayList<>(4);
+      for (int i = 1; i <= 4; i++) {
+        results.add(Async.function(localActivities::sleepActivity, (long) 1000 * i, i));
+      }
+
+      Promise<String> result2 =
+          Async.function(
+              () -> {
+                String result = "";
+                for (int i = 0; i < 3; i++) {
+                  result += localActivities.sleepActivity(1000, 21);
+                }
+                return result;
+              });
+
+      return results.get(0).get()
+          + results.get(1).get()
+          + results.get(2).get()
+          + results.get(3).get()
+          + result2.get();
+    }
+  }
+
+  @Test
+  public void testParallelLocalActivityExecutionWorkflow() {
+    startWorkerFor(TestParallelLocalActivityExecutionWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(5))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+            .setTaskList(taskList)
+            .build();
+    TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, options);
+    String result = workflowStub.execute(taskList);
+    assertEquals(
+        "sleepActivity1sleepActivity2sleepActivity3sleepActivity4sleepActivity21sleepActivity21sleepActivity21",
+        result);
   }
 
   private static class FilteredTrace {

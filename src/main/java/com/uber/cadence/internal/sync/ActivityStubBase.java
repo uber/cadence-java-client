@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Defaults;
-import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.Promise;
@@ -26,15 +25,6 @@ import java.lang.reflect.Type;
 
 /** Supports calling activity by name and arguments without its strongly typed interface. */
 abstract class ActivityStubBase implements ActivityStub {
-
-  interface ActivityExecutor {
-    <R> Promise<R> executeActivity(
-        String activityName,
-        Class<R> resultClass,
-        Type resultType,
-        Object[] args,
-        ActivityOptions options);
-  }
 
   @Override
   public <T> T execute(String activityName, Class<T> resultClass, Object... args) {

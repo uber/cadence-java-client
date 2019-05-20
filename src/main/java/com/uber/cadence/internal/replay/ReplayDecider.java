@@ -384,9 +384,7 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
                 historyHelper.getPreviousStartedEventId()));
       }
 
-      int count = 0;
       while (iterator.hasNext()) {
-        System.out.println("batch " + count++);
         DecisionEvents decision = iterator.next();
         context.setReplaying(decision.isReplay());
         context.setReplayCurrentTimeMilliseconds(decision.getReplayCurrentTimeMilliseconds());
