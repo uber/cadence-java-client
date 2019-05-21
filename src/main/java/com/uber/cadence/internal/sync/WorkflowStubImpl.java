@@ -32,6 +32,7 @@ import com.uber.cadence.client.WorkflowQueryException;
 import com.uber.cadence.client.WorkflowServiceException;
 import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.SignalWithStartWorkflowExecutionParameters;
 import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
@@ -148,7 +149,11 @@ class WorkflowStubImpl implements WorkflowStub {
     }
     Map<String, byte[]> memo = new HashMap<>();
     for (Map.Entry<String, Object> item : memoFromOption.entrySet()) {
-      memo.put(item.getKey(), dataConverter.toData(item.getValue()));
+      try {
+        memo.put(item.getKey(), dataConverter.toData(item.getValue()));
+      } catch (DataConverterException e) {
+        throw new DataConverterException("Cannot serialize memo for key " + item.getKey(), e.getCause());
+      }
     }
     return memo;
   }

@@ -194,7 +194,7 @@ public final class ChildWorkflowOptions {
       return this;
     }
 
-    /** Specifies additional information in result of list workflow. */
+    /** Specifies additional non-indexed information in result of list workflow. */
     public Builder setMemo(Map<String, Object> memo) {
       this.memo = memo;
       return this;
@@ -370,7 +370,7 @@ public final class ChildWorkflowOptions {
         + ", cronSchedule="
         + cronSchedule
         + ", memo='"
-        + memo.toString()
+        + memo
         + '\''
         + '}';
   }

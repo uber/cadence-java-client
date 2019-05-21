@@ -375,7 +375,7 @@ public final class StartWorkflowExecutionParameters {
         + cronSchedule
         + '\''
         + ", memo='"
-        + memo.toString()
+        + memo
         + '\''
         + '}';
   }
