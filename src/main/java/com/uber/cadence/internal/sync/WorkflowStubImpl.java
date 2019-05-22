@@ -152,7 +152,8 @@ class WorkflowStubImpl implements WorkflowStub {
       try {
         memo.put(item.getKey(), dataConverter.toData(item.getValue()));
       } catch (DataConverterException e) {
-        throw new DataConverterException("Cannot serialize memo for key " + item.getKey(), e.getCause());
+        throw new DataConverterException(
+            "Cannot serialize memo for key " + item.getKey(), e.getCause());
       }
     }
     return memo;
