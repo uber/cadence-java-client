@@ -84,7 +84,8 @@ public interface ActivityTaskHandler {
       IWorkflowService service,
       String domain,
       PollForActivityTaskResponse activityTask,
-      Scope metricsScope);
+      Scope metricsScope,
+      String taskList);
 
   /** True if this handler handles at least one activity type. */
   boolean isAnyTypeSupported();
