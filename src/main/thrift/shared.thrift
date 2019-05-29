@@ -187,6 +187,8 @@ enum DecisionTaskFailedCause {
   FORCE_CLOSE_DECISION,
   FAILOVER_CLOSE_DECISION,
   BAD_SIGNAL_INPUT_SIZE,
+  RESET_WORKFLOW,
+  BAD_BINARY,
 }
 
 enum CancelExternalWorkflowExecutionFailedCause {
@@ -407,7 +409,9 @@ struct WorkflowExecutionStartedEventAttributes {
   56: optional string continuedFailureReason
   57: optional binary continuedFailureDetails
   58: optional binary lastCompletionResult
+  59: optional string originalExecutionRunId // This is the runID when the WorkflowExecutionStarted event is written.
   60: optional string identity
+  61: optional string firstExecutionRunId // This is the very first runID along the chain of ContinueAsNew and Reset.
   70: optional RetryPolicy retryPolicy
   80: optional i32 attempt
   90: optional i64 (js.type = "Long") expirationTimestamp
@@ -483,6 +487,11 @@ struct DecisionTaskFailedEventAttributes {
   30: optional DecisionTaskFailedCause cause
   35: optional binary details
   40: optional string identity
+  50: optional string reason
+  // for reset workflow
+  60: optional string baseRunId
+  70: optional string newRunId
+  80: optional i64 (js.type = "Long") forkEventVersion
 }
 
 struct ActivityTaskScheduledEventAttributes {

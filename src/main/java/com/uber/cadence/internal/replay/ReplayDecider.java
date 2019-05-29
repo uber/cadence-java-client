@@ -234,6 +234,7 @@ class ReplayDecider implements Decider {
         decisionsHelper.handleCancelTimerFailed(event);
         break;
       case DecisionTaskFailed:
+        context.handleDecisionTaskFailed(event);
         break;
     }
   }
