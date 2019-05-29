@@ -3730,6 +3730,7 @@ public class WorkflowTest {
         "executeActivity customActivity1");
   }
 
+  static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
   public static class TestGetVersionWithoutDecisionEventWorkflowImpl implements TestWorkflowSignaled {
 
     CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
@@ -3740,8 +3741,8 @@ public class WorkflowTest {
         if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
           // Execute getVersion in non-replay mode.
           getVersionExecuted.add("getVersionWithoutDecisionEvent");
-          boolean result = signalReceived.get();
-          System.out.println(result);
+          executionStarted.complete(true);
+          signalReceived.get();
         } else {
           // Execute getVersion in replay mode. In this case we have no decision event, only a signal.
           int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
@@ -3766,15 +3767,16 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testGetVersionWithoutDecisionEvent() {
+  public void testGetVersionWithoutDecisionEvent() throws Exception {
     Assume.assumeTrue("skipping as there will be no replay", disableStickyExecution);
+    executionStarted = new CompletableFuture<>();
     getVersionExecuted.remove("getVersionWithoutDecisionEvent");
     startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
     TestWorkflowSignaled workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
     WorkflowClient.start(workflowStub::execute);
-    sleep(Duration.ofSeconds(3));
+    executionStarted.get();
     workflowStub.signal1("test signal");
     String result = workflowStub.execute();
     assertEquals("result 1", result);
