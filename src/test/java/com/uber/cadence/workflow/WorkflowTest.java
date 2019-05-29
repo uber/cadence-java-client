@@ -3761,7 +3761,6 @@ public class WorkflowTest {
 
     @Override
     public void signal1(String arg) {
-      System.out.println("signal received");
       signalReceived.complete(true);
     }
   }
@@ -3775,6 +3774,7 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(
             TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
     WorkflowClient.start(workflowStub::execute);
+    sleep(Duration.ofSeconds(3));
     workflowStub.signal1("test signal");
     String result = workflowStub.execute();
     assertEquals("result 1", result);
