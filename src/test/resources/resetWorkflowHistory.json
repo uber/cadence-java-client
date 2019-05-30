@@ -1,0 +1,567 @@
+[
+  {
+    "eventId": 1,
+    "timestamp": 1559170525186673900,
+    "eventType": "WorkflowExecutionStarted",
+    "version": -24,
+    "taskId": 1048576,
+    "workflowExecutionStartedEventAttributes": {
+      "workflowType": {
+        "name": "TestWorkflow1::execute"
+      },
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "input": "IldvcmtmbG93VGVzdC10ZXN0V29ya2Zsb3dSZXNldFtEb2NrZXIgU3RpY2t5IE9GRl0tMGM1YTFiMmItODM4MC00Y2ZjLWJhMzQtYWQyNzEyZmRiNDY0Ig==",
+      "executionStartToCloseTimeoutSeconds": 1000,
+      "taskStartToCloseTimeoutSeconds": 60,
+      "originalExecutionRunId": "7165be5a-0769-4564-b60b-7c1a34213ca9",
+      "identity": "",
+      "attempt": 0,
+      "firstDecisionTaskBackoffSeconds": 0
+    }
+  },
+  {
+    "eventId": 2,
+    "timestamp": 1559170525186852400,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048577,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 3,
+    "timestamp": 1559170525214630300,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048582,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 2,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "b68acf6d-365b-4615-a3a4-167dbf23efc5"
+    }
+  },
+  {
+    "eventId": 4,
+    "timestamp": 1559170525383325800,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048585,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 2,
+      "startedEventId": 3,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 5,
+    "timestamp": 1559170525383427500,
+    "eventType": "StartChildWorkflowExecutionInitiated",
+    "version": -24,
+    "taskId": 1048586,
+    "startChildWorkflowExecutionInitiatedEventAttributes": {
+      "domain": "UnitTest",
+      "workflowId": "576a434e-e03c-315a-ac45-4de5f5ccfefd",
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "executionStartToCloseTimeoutSeconds": 1000,
+      "taskStartToCloseTimeoutSeconds": 10,
+      "childPolicy": "TERMINATE",
+      "decisionTaskCompletedEventId": 4,
+      "workflowIdReusePolicy": "AllowDuplicateFailedOnly"
+    }
+  },
+  {
+    "eventId": 6,
+    "timestamp": 1559170525410748300,
+    "eventType": "ChildWorkflowExecutionStarted",
+    "version": -24,
+    "taskId": 1048588,
+    "childWorkflowExecutionStartedEventAttributes": {
+      "domain": "UnitTest",
+      "initiatedEventId": 5,
+      "workflowExecution": {
+        "workflowId": "576a434e-e03c-315a-ac45-4de5f5ccfefd",
+        "runId": "29302546-2859-422b-bc34-39a454e7510e"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      }
+    }
+  },
+  {
+    "eventId": 7,
+    "timestamp": 1559170525410791300,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048591,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 8,
+    "timestamp": 1559170525452204700,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048594,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 7,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "07c3cd40-dba7-46e9-bd60-2b7ac16ba2c5"
+    }
+  },
+  {
+    "eventId": 9,
+    "timestamp": 1559170525483518400,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048597,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 7,
+      "startedEventId": 8,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 10,
+    "timestamp": 1559170525530893000,
+    "eventType": "ChildWorkflowExecutionCompleted",
+    "version": -24,
+    "taskId": 1048598,
+    "childWorkflowExecutionCompletedEventAttributes": {
+      "result": "ImZ1bmMi",
+      "domain": "UnitTest",
+      "workflowExecution": {
+        "workflowId": "576a434e-e03c-315a-ac45-4de5f5ccfefd",
+        "runId": "29302546-2859-422b-bc34-39a454e7510e"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "initiatedEventId": 5,
+      "startedEventId": 6
+    }
+  },
+  {
+    "eventId": 11,
+    "timestamp": 1559170525530933000,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048601,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 12,
+    "timestamp": 1559170525548221800,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048604,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 11,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "74d1d9a5-7a77-41aa-83d0-6fe5287d65f8"
+    }
+  },
+  {
+    "eventId": 13,
+    "timestamp": 1559170627229067400,
+    "eventType": "DecisionTaskFailed",
+    "version": -24,
+    "taskId": 1048684,
+    "decisionTaskFailedEventAttributes": {
+      "scheduledEventId": 11,
+      "startedEventId": 12,
+      "cause": "RESET_WORKFLOW",
+      "identity": "history-service",
+      "reason": "test",
+      "baseRunId": "7165be5a-0769-4564-b60b-7c1a34213ca9",
+      "newRunId": "2b046437-876f-4673-ba8c-4299aa60f8d0",
+      "forkEventVersion": -24
+    }
+  },
+  {
+    "eventId": 14,
+    "timestamp": 1559170627229142400,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048685,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 15,
+    "timestamp": 1559170627256466100,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048690,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 14,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "2e9d738e-9c33-492f-8519-7d4a88af39ca"
+    }
+  },
+  {
+    "eventId": 16,
+    "timestamp": 1559170627287267700,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048693,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 14,
+      "startedEventId": 15,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 17,
+    "timestamp": 1559170627287344000,
+    "eventType": "StartChildWorkflowExecutionInitiated",
+    "version": -24,
+    "taskId": 1048694,
+    "startChildWorkflowExecutionInitiatedEventAttributes": {
+      "domain": "UnitTest",
+      "workflowId": "6a816d3a-d48e-3b40-8a18-25931f8876ab",
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "executionStartToCloseTimeoutSeconds": 1000,
+      "taskStartToCloseTimeoutSeconds": 10,
+      "childPolicy": "TERMINATE",
+      "decisionTaskCompletedEventId": 16,
+      "workflowIdReusePolicy": "AllowDuplicateFailedOnly"
+    }
+  },
+  {
+    "eventId": 18,
+    "timestamp": 1559170627312749300,
+    "eventType": "ChildWorkflowExecutionStarted",
+    "version": -24,
+    "taskId": 1048696,
+    "childWorkflowExecutionStartedEventAttributes": {
+      "domain": "UnitTest",
+      "initiatedEventId": 17,
+      "workflowExecution": {
+        "workflowId": "6a816d3a-d48e-3b40-8a18-25931f8876ab",
+        "runId": "e807537d-e8b7-481f-aca3-885edbf6ef0a"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      }
+    }
+  },
+  {
+    "eventId": 19,
+    "timestamp": 1559170627312806600,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048699,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 20,
+    "timestamp": 1559170627370791300,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048702,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 19,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "f4bcbcde-39d7-474d-a5c7-68729abe1c8f"
+    }
+  },
+  {
+    "eventId": 21,
+    "timestamp": 1559170627403674800,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048705,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 19,
+      "startedEventId": 20,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 22,
+    "timestamp": 1559170627388947100,
+    "eventType": "ChildWorkflowExecutionCompleted",
+    "version": -24,
+    "taskId": 1048706,
+    "childWorkflowExecutionCompletedEventAttributes": {
+      "result": "ImZ1bmMi",
+      "domain": "UnitTest",
+      "workflowExecution": {
+        "workflowId": "6a816d3a-d48e-3b40-8a18-25931f8876ab",
+        "runId": "e807537d-e8b7-481f-aca3-885edbf6ef0a"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "initiatedEventId": 17,
+      "startedEventId": 18
+    }
+  },
+  {
+    "eventId": 23,
+    "timestamp": 1559170627403718600,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048710,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 24,
+    "timestamp": 1559170627420506800,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048713,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 23,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "65e305bf-f160-4efd-b982-31d012af7086"
+    }
+  },
+  {
+    "eventId": 25,
+    "timestamp": 1559170708323594800,
+    "eventType": "DecisionTaskFailed",
+    "version": -24,
+    "taskId": 1048743,
+    "decisionTaskFailedEventAttributes": {
+      "scheduledEventId": 23,
+      "startedEventId": 24,
+      "cause": "RESET_WORKFLOW",
+      "identity": "history-service",
+      "reason": "test",
+      "baseRunId": "2b046437-876f-4673-ba8c-4299aa60f8d0",
+      "newRunId": "8ad033be-278d-49d8-bf3e-72af5a507a14",
+      "forkEventVersion": -24
+    }
+  },
+  {
+    "eventId": 26,
+    "timestamp": 1559170708323681500,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048744,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 27,
+    "timestamp": 1559170708349413600,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048749,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 26,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "233efe54-cc05-48f6-b0e6-ef45cfe8754c"
+    }
+  },
+  {
+    "eventId": 28,
+    "timestamp": 1559170708386651800,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048752,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 26,
+      "startedEventId": 27,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 29,
+    "timestamp": 1559170708386933000,
+    "eventType": "StartChildWorkflowExecutionInitiated",
+    "version": -24,
+    "taskId": 1048753,
+    "startChildWorkflowExecutionInitiatedEventAttributes": {
+      "domain": "UnitTest",
+      "workflowId": "51cd5a12-8d70-3750-9d9e-b80b58e5791e",
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "executionStartToCloseTimeoutSeconds": 1000,
+      "taskStartToCloseTimeoutSeconds": 10,
+      "childPolicy": "TERMINATE",
+      "decisionTaskCompletedEventId": 28,
+      "workflowIdReusePolicy": "AllowDuplicateFailedOnly"
+    }
+  },
+  {
+    "eventId": 30,
+    "timestamp": 1559170708409337400,
+    "eventType": "ChildWorkflowExecutionStarted",
+    "version": -24,
+    "taskId": 1048757,
+    "childWorkflowExecutionStartedEventAttributes": {
+      "domain": "UnitTest",
+      "initiatedEventId": 29,
+      "workflowExecution": {
+        "workflowId": "51cd5a12-8d70-3750-9d9e-b80b58e5791e",
+        "runId": "a8667182-4853-42b5-ac35-e21ccfd6a06c"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      }
+    }
+  },
+  {
+    "eventId": 31,
+    "timestamp": 1559170708409376500,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048760,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 32,
+    "timestamp": 1559170708456793400,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048770,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 31,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "d2026da0-9fe1-40b1-b350-26cba3032c96"
+    }
+  },
+  {
+    "eventId": 33,
+    "timestamp": 1559170708481343900,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048778,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 31,
+      "startedEventId": 32,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 34,
+    "timestamp": 1559170708554151200,
+    "eventType": "ChildWorkflowExecutionCompleted",
+    "version": -24,
+    "taskId": 1048779,
+    "childWorkflowExecutionCompletedEventAttributes": {
+      "result": "ImZ1bmMi",
+      "domain": "UnitTest",
+      "workflowExecution": {
+        "workflowId": "51cd5a12-8d70-3750-9d9e-b80b58e5791e",
+        "runId": "a8667182-4853-42b5-ac35-e21ccfd6a06c"
+      },
+      "workflowType": {
+        "name": "TestMultiargsWorkflowsFunc::func"
+      },
+      "initiatedEventId": 29,
+      "startedEventId": 30
+    }
+  },
+  {
+    "eventId": 35,
+    "timestamp": 1559170708554179800,
+    "eventType": "DecisionTaskScheduled",
+    "version": -24,
+    "taskId": 1048782,
+    "decisionTaskScheduledEventAttributes": {
+      "taskList": {
+        "name": "WorkflowTest-testWorkflowReset[Docker Sticky OFF]-0c5a1b2b-8380-4cfc-ba34-ad2712fdb464"
+      },
+      "startToCloseTimeoutSeconds": 60,
+      "attempt": 0
+    }
+  },
+  {
+    "eventId": 36,
+    "timestamp": 1559170708565197300,
+    "eventType": "DecisionTaskStarted",
+    "version": -24,
+    "taskId": 1048785,
+    "decisionTaskStartedEventAttributes": {
+      "scheduledEventId": 35,
+      "identity": "29898@meiliang-C02XQ1JRJGH6",
+      "requestId": "f67e4c01-853b-4da2-8ec3-008d458bf42f"
+    }
+  },
+  {
+    "eventId": 37,
+    "timestamp": 1559170708626025600,
+    "eventType": "DecisionTaskCompleted",
+    "version": -24,
+    "taskId": 1048788,
+    "decisionTaskCompletedEventAttributes": {
+      "scheduledEventId": 35,
+      "startedEventId": 36,
+      "identity": "29898@meiliang-C02XQ1JRJGH6"
+    }
+  },
+  {
+    "eventId": 38,
+    "timestamp": 1559170708626052500,
+    "eventType": "WorkflowExecutionCompleted",
+    "version": -24,
+    "taskId": 1048789,
+    "workflowExecutionCompletedEventAttributes": {
+      "result": "ImRvbmUi",
+      "decisionTaskCompletedEventId": 37
+    }
+  }
+]
