@@ -315,6 +315,7 @@ public final class StartWorkflowExecutionParameters {
     parameters.setTaskStartToCloseTimeoutSeconds(getSeconds(options.getTaskStartToCloseTimeout()));
     parameters.setTaskList(options.getTaskList());
     parameters.setChildPolicy(options.getChildPolicy());
+    parameters.setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy());
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       RetryParameters rp = new RetryParameters();
