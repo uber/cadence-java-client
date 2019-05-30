@@ -111,21 +111,21 @@ public class WorkflowTest {
    * When set to true increases test, activity and workflow timeouts to large values to support
    * stepping through code in a debugger without timing out.
    */
-  private static final boolean DEBUGGER_TIMEOUTS = true;
+  private static final boolean DEBUGGER_TIMEOUTS = false;
 
   public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
-  private static final boolean useDockerService = true;
-//      Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
+  private static final boolean useDockerService =
+      Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
 
-  private static final boolean stickyOff = true; //Boolean.parseBoolean(System.getenv("STICKY_OFF"));
+  private static final boolean stickyOff = Boolean.parseBoolean(System.getenv("STICKY_OFF"));
 
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (!useDockerService) {
       return new Object[][] {
-        {false, "TestService Sticky Off", true},
+        {false, "TestService Sticky Off", true}, {false, "TestService Sticky On", false}
       };
     } else {
       return new Object[][] {
@@ -138,7 +138,7 @@ public class WorkflowTest {
 
   @Rule
   public Timeout globalTimeout =
-      Timeout.seconds(DEBUGGER_TIMEOUTS ? 5000 : !useDockerService ? 15 : 30);
+      Timeout.seconds(DEBUGGER_TIMEOUTS ? 500 : !useDockerService ? 15 : 30);
 
   @Rule
   public TestWatcher watchman =
@@ -4260,8 +4260,6 @@ public class WorkflowTest {
   }
 
   public static class TestWorkflowResetReplayWorkflow implements TestWorkflow1 {
-    Random random = Workflow.newRandom();
-
     @Override
     public String execute(String taskList) {
       ChildWorkflowOptions workflowOptions =
@@ -4280,7 +4278,7 @@ public class WorkflowTest {
               .build();
 
       for (int i = 0; i < 10; i++) {
-        if (random.nextDouble() > 0.5) {
+        if (Workflow.newRandom().nextDouble() > 0.5) {
           Workflow.getLogger("test").info("Execute child workflow");
           TestMultiargsWorkflowsFunc stubF =
               Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
@@ -4298,24 +4296,25 @@ public class WorkflowTest {
 
   @Test
   public void testWorkflowReset() throws Exception {
-    startWorkerFor(TestWorkflowResetReplayWorkflow.class, TestMultiargsWorkflowsImpl.class);
-    TestWorkflow1 workflowStub =
-        workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
-    workflowStub.execute(taskList);
-
-    try {
-      Thread.sleep(60000000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-
-//    // Avoid executing 4 times
-//    if (!testName.getMethodName().equals("testWorkflowReset[Docker Sticky OFF]")) {
-//      return;
+    // Leave the following code to generate history.
+//    startWorkerFor(TestWorkflowResetReplayWorkflow.class, TestMultiargsWorkflowsImpl.class);
+//    TestWorkflow1 workflowStub =
+//        workflowClient.newWorkflowStub(
+//            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+//    workflowStub.execute(taskList);
+//
+//    try {
+//      Thread.sleep(60000000);
+//    } catch (InterruptedException e) {
+//      e.printStackTrace();
 //    }
-//    WorkflowReplayer.replayWorkflowExecutionFromResource(
-//        "resetWorkflowHistory.json", TestWorkflowResetReplayWorkflow.class);
+
+    // Avoid executing 4 times
+    if (!testName.getMethodName().equals("testWorkflowReset[Docker Sticky OFF]")) {
+      return;
+    }
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "resetWorkflowHistory.json", TestWorkflowResetReplayWorkflow.class);
   }
 
   private static class FilteredTrace {
