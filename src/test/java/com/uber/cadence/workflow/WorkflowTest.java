@@ -4260,37 +4260,36 @@ public class WorkflowTest {
   }
 
   public static class TestWorkflowResetReplayWorkflow implements TestWorkflow1 {
+    Random random = Workflow.newRandom();
 
     @Override
     public String execute(String taskList) {
-//      ChildWorkflowOptions workflowOptions =
-//          new ChildWorkflowOptions.Builder()
-//              .setTaskList(taskList)
-//              .setRetryOptions(new RetryOptions.Builder().setMaximumAttempts(3).setInitialInterval(Duration.ofSeconds(1)).build())
-//              .build();
+      ChildWorkflowOptions workflowOptions =
+          new ChildWorkflowOptions.Builder()
+              .setTaskList(taskList)
+              .setRetryOptions(new RetryOptions.Builder().setMaximumAttempts(3).setInitialInterval(Duration.ofSeconds(1)).build())
+              .build();
 
-      for (int i = 0; i < 3; i++) {
-//        TestMultiargsWorkflowsFunc stubF =
-//            Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
-//        stubF.func();
-        ActivityOptions options =
-            new ActivityOptions.Builder()
-                .setTaskList(taskList)
-                .setHeartbeatTimeout(Duration.ofSeconds(5))
-                .setScheduleToCloseTimeout(Duration.ofSeconds(5))
-                .setScheduleToStartTimeout(Duration.ofSeconds(5))
-                .setStartToCloseTimeout(Duration.ofSeconds(10))
-                .setRetryOptions(
-                    new RetryOptions.Builder()
-                        .setExpiration(Duration.ofSeconds(100))
-                        .setMaximumInterval(Duration.ofSeconds(1))
-                        .setInitialInterval(Duration.ofSeconds(1))
-                        .setMaximumAttempts(3)
-                        .setDoNotRetry(AssertionError.class)
-                        .build())
-                .build();
-        TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
-        activities.activity();
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setHeartbeatTimeout(Duration.ofSeconds(5))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+              .setScheduleToStartTimeout(Duration.ofSeconds(5))
+              .setStartToCloseTimeout(Duration.ofSeconds(10))
+              .build();
+
+      for (int i = 0; i < 10; i++) {
+        if (random.nextDouble() > 0.5) {
+          Workflow.getLogger("test").info("Execute child workflow");
+          TestMultiargsWorkflowsFunc stubF =
+              Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+          stubF.func();
+        } else {
+          Workflow.getLogger("test").info("Execute activity");
+          TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+          activities.activity();
+        }
       }
 
       return "done";
