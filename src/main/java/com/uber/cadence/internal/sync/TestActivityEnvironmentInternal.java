@@ -210,9 +210,9 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
           activityTaskHandler.handle(
               service,
               testEnvironmentOptions.getDomain(),
+              options.getTaskList(),
               task,
-              NoopScope.getInstance(),
-              "unit-test");
+              NoopScope.getInstance());
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
     }
 

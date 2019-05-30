@@ -154,9 +154,9 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   public Result handle(
       IWorkflowService service,
       String domain,
+      String taskList,
       PollForActivityTaskResponse pollResponse,
-      Scope metricsScope,
-      String taskList) {
+      Scope metricsScope) {
     String activityType = pollResponse.getActivityType().getName();
     ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse, taskList);
     POJOActivityImplementation activity = activities.get(activityType);
