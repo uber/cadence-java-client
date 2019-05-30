@@ -22,7 +22,7 @@
 - Add TBase and TEnum type adapter for JsonDataConverter
 - Cron child workflow
 
-## v2.3.1   
+## v2.3.1
 - Added support for SignalWithStart Service API
 - Expose methods in TChannel service to allow user to add headers in Thrift request
 
