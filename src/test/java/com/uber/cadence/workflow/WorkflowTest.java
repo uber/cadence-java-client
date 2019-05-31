@@ -408,7 +408,7 @@ public class WorkflowTest {
           new ActivityOptions.Builder()
               .setTaskList(taskList)
               .setHeartbeatTimeout(Duration.ofSeconds(5))
-              .setScheduleToCloseTimeout(Duration.ofSeconds(1))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
               .setRetryOptions(
                   new RetryOptions.Builder()
                       .setMaximumInterval(Duration.ofSeconds(1))
@@ -454,7 +454,7 @@ public class WorkflowTest {
           new ActivityOptions.Builder()
               .setTaskList(taskList)
               .setHeartbeatTimeout(Duration.ofSeconds(5))
-              .setScheduleToCloseTimeout(Duration.ofSeconds(1))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
               .setRetryOptions(
                   new RetryOptions.Builder()
                       .setExpiration(Duration.ofSeconds(3))
