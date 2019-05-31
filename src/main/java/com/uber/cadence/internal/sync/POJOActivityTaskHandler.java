@@ -165,9 +165,10 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   }
 
   @Override
-  public Result handle(PollForActivityTaskResponse pollResponse, Scope metricsScope) {
+  public Result handle(
+      String taskList, PollForActivityTaskResponse pollResponse, Scope metricsScope) {
     String activityType = pollResponse.getActivityType().getName();
-    ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
+    ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse, taskList);
     ActivityTaskExecutor activity = activities.get(activityType);
     if (activity == null) {
       String knownTypes = Joiner.on(", ").join(activities.keySet());

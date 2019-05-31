@@ -212,7 +212,8 @@ public final class LocalActivityWorker implements SuspendableWorker {
       pollTask.setInput(task.params.getInput());
       pollTask.setAttempt(task.params.getAttempt());
 
-      ActivityTaskHandler.Result result = handler.handle(pollTask, options.getMetricsScope());
+      ActivityTaskHandler.Result result =
+          handler.handle("local-activity", pollTask, options.getMetricsScope());
       result.setAttempt(task.params.getAttempt());
 
       if (result.getTaskCompleted() != null

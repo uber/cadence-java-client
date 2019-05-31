@@ -31,6 +31,7 @@ import com.uber.cadence.*;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
@@ -49,6 +50,7 @@ import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
@@ -1282,6 +1284,32 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testMemo() {
+    if (testEnvironment != null) {
+      String testMemoKey = "testKey";
+      String testMemoValue = "testValue";
+      Map<String, Object> memo = new HashMap<>();
+      memo.put(testMemoKey, testMemoValue);
+
+      startWorkerFor(TestMultiargsWorkflowsImpl.class);
+      WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).setMemo(memo).build();
+      TestMultiargsWorkflowsFunc stubF =
+          workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+      WorkflowExecution executionF = WorkflowClient.start(stubF::func);
+
+      GetWorkflowExecutionHistoryResponse historyResp =
+          WorkflowExecutionUtils.getHistoryPage(
+              new byte[] {}, testEnvironment.getWorkflowService(), DOMAIN, executionF);
+      HistoryEvent startEvent = historyResp.history.getEvents().get(0);
+      Memo memoFromEvent = startEvent.workflowExecutionStartedEventAttributes.getMemo();
+      byte[] memoBytes = memoFromEvent.getFields().get(testMemoKey).array();
+      String memoRetrieved =
+          JsonDataConverter.getInstance().fromData(memoBytes, String.class, String.class);
+      assertEquals(testMemoValue, memoRetrieved);
+    }
+  }
+
+  @Test
   public void testExecute() throws ExecutionException, InterruptedException {
     startWorkerFor(TestMultiargsWorkflowsImpl.class);
     WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).build();
@@ -1344,6 +1372,35 @@ public class WorkflowTest {
     assertEquals("1234", stubP4.query());
     assertEquals("12345", stubP5.query());
     assertEquals("123456", stubP6.query());
+  }
+
+  @Test
+  public void testWorkflowIdResuePolicy() {
+    startWorkerFor(TestMultiargsWorkflowsImpl.class);
+
+    // Without setting WorkflowIdReusePolicy, the semantics is to get result for the previous run.
+    String workflowID = UUID.randomUUID().toString();
+    WorkflowOptions workflowOptions =
+        newWorkflowOptionsBuilder(taskList).setWorkflowId(workflowID).build();
+    TestMultiargsWorkflowsFunc1 stubF1_1 =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc1.class, workflowOptions);
+    assertEquals(1, stubF1_1.func1(1));
+    TestMultiargsWorkflowsFunc1 stubF1_2 =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc1.class, workflowOptions);
+    assertEquals(1, stubF1_2.func1(2));
+
+    // Setting WorkflowIdReusePolicy to AllowDuplicate will trigger new run.
+    workflowOptions =
+        newWorkflowOptionsBuilder(taskList)
+            .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
+            .setWorkflowId(workflowID)
+            .build();
+    TestMultiargsWorkflowsFunc1 stubF1_3 =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc1.class, workflowOptions);
+    assertEquals(2, stubF1_3.func1(2));
+
+    // Setting WorkflowIdReusePolicy to RejectDuplicate or AllowDuplicateFailedOnly does not work as
+    // expected. See https://github.com/uber/cadence-java-client/issues/295.
   }
 
   public static class TestChildAsyncWorkflow implements TestWorkflow1 {
@@ -3343,6 +3400,8 @@ public class WorkflowTest {
 
     @Override
     public void heartbeatAndThrowIO() {
+      ActivityTask task = Activity.getTask();
+      assertEquals(task.getAttempt(), heartbeatCounter.get());
       invocations.add("throwIO");
       Optional<Integer> heartbeatDetails = Activity.getHeartbeatDetails(int.class);
       assertEquals(heartbeatCounter.get(), (int) heartbeatDetails.orElse(0));
@@ -3765,6 +3824,61 @@ public class WorkflowTest {
         "sleep PT1S",
         "getVersion",
         "executeActivity customActivity1");
+  }
+
+  static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
+
+  public static class TestGetVersionWithoutDecisionEventWorkflowImpl
+      implements TestWorkflowSignaled {
+
+    CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
+
+    @Override
+    public String execute() {
+      try {
+        if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
+          // Execute getVersion in non-replay mode.
+          getVersionExecuted.add("getVersionWithoutDecisionEvent");
+          executionStarted.complete(true);
+          signalReceived.get();
+        } else {
+          // Execute getVersion in replay mode. In this case we have no decision event, only a
+          // signal.
+          int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+          if (version == Workflow.DEFAULT_VERSION) {
+            signalReceived.get();
+            return "result 1";
+          } else {
+            return "result 2";
+          }
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("failed to get from signal");
+      }
+
+      throw new RuntimeException("unreachable");
+    }
+
+    @Override
+    public void signal1(String arg) {
+      signalReceived.complete(true);
+    }
+  }
+
+  @Test
+  public void testGetVersionWithoutDecisionEvent() throws Exception {
+    Assume.assumeTrue("skipping as there will be no replay", disableStickyExecution);
+    executionStarted = new CompletableFuture<>();
+    getVersionExecuted.remove("getVersionWithoutDecisionEvent");
+    startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
+    TestWorkflowSignaled workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
+    WorkflowClient.start(workflowStub::execute);
+    executionStarted.get();
+    workflowStub.signal1("test signal");
+    String result = workflowStub.execute();
+    assertEquals("result 1", result);
   }
 
   // The following test covers the scenario where getVersion call is removed before a

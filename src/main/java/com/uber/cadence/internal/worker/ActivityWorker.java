@@ -21,11 +21,14 @@ import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.logging.LoggerTag;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
+import com.uber.m3.util.ImmutableMap;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -157,25 +160,30 @@ public final class ActivityWorker implements SuspendableWorker {
 
     @Override
     public void handle(MeasurableActivityTask task) throws Exception {
-      options
-          .getMetricsScope()
+      Scope metricsScope =
+          options
+              .getMetricsScope()
+              .tagged(
+                  ImmutableMap.of(MetricsTag.ACTIVITY_TYPE, task.task.getActivityType().getName()));
+      metricsScope
           .timer(MetricsType.TASK_LIST_QUEUE_LATENCY)
           .record(
               Duration.ofNanos(
                   task.task.getStartedTimestamp() - task.task.getScheduledTimestamp()));
 
+      // The following tags are for logging.
       MDC.put(LoggerTag.ACTIVITY_ID, task.task.getActivityId());
       MDC.put(LoggerTag.ACTIVITY_TYPE, task.task.getActivityType().getName());
       MDC.put(LoggerTag.WORKFLOW_ID, task.task.getWorkflowExecution().getWorkflowId());
       MDC.put(LoggerTag.RUN_ID, task.task.getWorkflowExecution().getRunId());
 
       try {
-        Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
-        ActivityTaskHandler.Result response = handler.handle(task.task, options.getMetricsScope());
+        Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
+        ActivityTaskHandler.Result response = handler.handle(taskList, task.task, metricsScope);
         sw.stop();
 
-        sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task.task, response);
+        sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
+        sendReply(task.task, response, metricsScope);
         sw.stop();
 
         task.markDone();
@@ -184,8 +192,8 @@ public final class ActivityWorker implements SuspendableWorker {
             new RespondActivityTaskCanceledRequest();
         cancelledRequest.setDetails(
             String.valueOf(e.getMessage()).getBytes(StandardCharsets.UTF_8));
-        Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task.task, new Result(null, null, cancelledRequest, null));
+        Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
+        sendReply(task.task, new Result(null, null, cancelledRequest, null), metricsScope);
         sw.stop();
       } finally {
         MDC.remove(LoggerTag.ACTIVITY_ID);
@@ -210,7 +218,8 @@ public final class ActivityWorker implements SuspendableWorker {
           failure);
     }
 
-    private void sendReply(PollForActivityTaskResponse task, ActivityTaskHandler.Result response)
+    private void sendReply(
+        PollForActivityTaskResponse task, ActivityTaskHandler.Result response, Scope metricsScope)
         throws TException {
       RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
@@ -224,7 +233,7 @@ public final class ActivityWorker implements SuspendableWorker {
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
         Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
-        options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
+        metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
         if (response.getTaskFailedResult() != null) {
           RespondActivityTaskFailedRequest taskFailed =
@@ -240,7 +249,7 @@ public final class ActivityWorker implements SuspendableWorker {
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
           Retryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
-          options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
+          metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
@@ -255,7 +264,7 @@ public final class ActivityWorker implements SuspendableWorker {
                         EntityNotExistsError.class,
                         DomainNotActiveError.class);
             Retryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
-            options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
+            metricsScope.counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
           }
         }
       }

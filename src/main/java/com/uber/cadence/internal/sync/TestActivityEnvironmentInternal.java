@@ -213,7 +213,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
               .setWorkflowId("test-workflow-id")
               .setRunId(UUID.randomUUID().toString()));
       task.setActivityType(new ActivityType().setName(activityType));
-      Result taskResult = activityTaskHandler.handle(task, NoopScope.getInstance());
+      Result taskResult =
+          activityTaskHandler.handle(options.getTaskList(), task, NoopScope.getInstance());
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
     }
 

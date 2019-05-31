@@ -37,7 +37,7 @@ googleJavaFormat {
 }
 
 group = 'com.uber.cadence'
-version = '2.4.1'
+version = '2.4.2'
 
 description = """Uber Cadence Java Client"""
 
@@ -100,6 +100,10 @@ if (JavaVersion.current().isJava8Compatible()) {
             options.addStringOption('Xdoclint:none', '-quiet')
         }
     }
+}
+
+javadoc {
+    options.encoding = 'UTF-8'
 }
 
 task javadocJar(type: Jar) {

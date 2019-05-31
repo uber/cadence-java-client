@@ -117,7 +117,7 @@ public interface ActivityTaskHandler {
    * @param activityTask activity task which is response to PollForActivityTask call.
    * @return One of the possible decision task replies.
    */
-  Result handle(PollForActivityTaskResponse activityTask, Scope metricsScope);
+  Result handle(String taskList, PollForActivityTaskResponse activityTask, Scope metricsScope);
 
   /** True if this handler handles at least one activity type. */
   boolean isAnyTypeSupported();
