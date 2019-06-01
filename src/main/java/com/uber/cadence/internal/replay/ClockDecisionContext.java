@@ -18,7 +18,15 @@
 package com.uber.cadence.internal.replay;
 
 import com.google.common.base.Strings;
-import com.uber.cadence.*;
+import com.uber.cadence.ActivityType;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.MarkerRecordedEventAttributes;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
+import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
+import com.uber.cadence.StartTimerDecisionAttributes;
+import com.uber.cadence.TimerCanceledEventAttributes;
+import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
@@ -28,7 +36,9 @@ import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;

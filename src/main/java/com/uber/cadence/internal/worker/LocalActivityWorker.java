@@ -17,7 +17,10 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.*;
+import com.uber.cadence.EventType;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.MarkerRecordedEventAttributes;
+import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.MetricsType;
