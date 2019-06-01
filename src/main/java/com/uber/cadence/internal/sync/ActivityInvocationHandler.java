@@ -41,7 +41,7 @@ class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
   }
 
   @Override
-  Function<Object[], Object> getActivityFunc(
+  protected Function<Object[], Object> getActivityFunc(
       Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
     Function<Object[], Object> function;
     ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);

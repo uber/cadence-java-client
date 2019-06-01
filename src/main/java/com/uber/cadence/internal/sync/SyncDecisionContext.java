@@ -19,13 +19,23 @@ package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
-import com.uber.cadence.*;
+import com.uber.cadence.ActivityType;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.RetryParameters;
-import com.uber.cadence.internal.replay.*;
+import com.uber.cadence.internal.replay.ActivityTaskFailedException;
+import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
+import com.uber.cadence.internal.replay.ChildWorkflowTaskFailedException;
+import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters;
+import com.uber.cadence.internal.replay.DecisionContext;
+import com.uber.cadence.internal.replay.ExecuteActivityParameters;
+import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
+import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
+import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
@@ -54,7 +64,10 @@ import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.*;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

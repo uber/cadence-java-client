@@ -76,6 +76,6 @@ abstract class ActivityInvocationHandlerBase implements InvocationHandler {
     return getValueOrDefault(function.apply(args), method.getReturnType());
   }
 
-  abstract Function<Object[], Object> getActivityFunc(
+  protected abstract Function<Object[], Object> getActivityFunc(
       Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName);
 }

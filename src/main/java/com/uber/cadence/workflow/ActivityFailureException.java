@@ -26,12 +26,12 @@ import java.time.Duration;
  * process or even program.
  */
 public final class ActivityFailureException extends ActivityException {
-  int attempt;
-  Duration backoff;
+  private int attempt;
+  private Duration backoff;
 
   public ActivityFailureException(
       long eventId, ActivityType activityType, String activityId, Throwable cause) {
-    super(cause.getMessage(), eventId, activityType, activityId);
+    super("ActivityFailureException", eventId, activityType, activityId);
     initCause(cause);
   }
 
@@ -42,7 +42,11 @@ public final class ActivityFailureException extends ActivityException {
       Throwable cause,
       int attempt,
       Duration backoff) {
-    super(cause.getMessage(), eventId, activityType, activityId);
+    super(
+        "ActivityFailureException Attempt=\"" + attempt + "\", Backoff=\"" + backoff,
+        eventId,
+        activityType,
+        activityId);
     initCause(cause);
     this.attempt = attempt;
     this.backoff = backoff;

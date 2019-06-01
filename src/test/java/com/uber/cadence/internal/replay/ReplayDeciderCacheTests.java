@@ -258,7 +258,7 @@ public class ReplayDeciderCacheTests {
         "domain",
         new ReplayWorkflow() {
           @Override
-          public void start(HistoryEvent event, DecisionContext context) throws Exception {}
+          public void start(HistoryEvent event, DecisionContext context) {}
 
           @Override
           public void handleSignal(String signalName, byte[] input, long eventId) {}

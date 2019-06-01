@@ -105,11 +105,11 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
             this);
   }
 
-  private void handleWorkflowExecutionStarted(HistoryEvent event) throws Exception {
+  private void handleWorkflowExecutionStarted(HistoryEvent event) {
     workflow.start(event, context);
   }
 
-  private void processEvent(HistoryEvent event) throws Throwable {
+  private void processEvent(HistoryEvent event) {
     EventType eventType = event.getEventType();
     switch (eventType) {
       case ActivityTaskCanceled:
@@ -359,6 +359,8 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
     return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
   }
 
+  // Returns boolean to indicate whether we need to force create new decision task for local
+  // activity heartbeating.
   private boolean decideImpl(PollForDecisionTaskResponse decisionTask, Functions.Proc query)
       throws Throwable {
     boolean forceCreateNewDecisionTask = false;
@@ -533,13 +535,7 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   @Override
   public void accept(HistoryEvent event) {
-    try {
-      processEvent(event);
-    } catch (Throwable throwable) {
-      throw new RuntimeException(
-          "failed to process event type=" + event.getEventType() + ", id=" + event.getEventId(),
-          throwable);
-    }
+    processEvent(event);
   }
 
   private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {

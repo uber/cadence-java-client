@@ -42,7 +42,7 @@ class LocalActivityInvocationHandler extends ActivityInvocationHandlerBase {
   }
 
   @Override
-  Function<Object[], Object> getActivityFunc(
+  protected Function<Object[], Object> getActivityFunc(
       Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
     Function<Object[], Object> function;
     LocalActivityOptions mergedOptions =
