@@ -43,6 +43,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
@@ -83,7 +84,7 @@ public final class ClockDecisionContext {
   private final Map<Long, byte[]> sideEffectResults = new HashMap<>();
   private final MarkerHandler mutableSideEffectHandler;
   private final MarkerHandler versionHandler;
-  private final Consumer<LocalActivityWorker.Task> laTaskConsumer;
+  private final BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller;
   private final Map<String, OpenRequestInfo<byte[], ActivityType>> pendingLaTasks = new HashMap<>();
   private final Map<String, ExecuteLocalActivityParameters> unstartedLaTasks = new HashMap<>();
   private final ReplayDecider replayDecider;
@@ -93,13 +94,13 @@ public final class ClockDecisionContext {
 
   ClockDecisionContext(
       DecisionsHelper decisions,
-      Consumer<LocalActivityWorker.Task> laTaskConsumer,
+      BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller,
       ReplayDecider replayDecider) {
     this.decisions = decisions;
     mutableSideEffectHandler =
         new MarkerHandler(decisions, MUTABLE_SIDE_EFFECT_MARKER_NAME, () -> replaying);
     versionHandler = new MarkerHandler(decisions, VERSION_MARKER_NAME, () -> replaying);
-    this.laTaskConsumer = laTaskConsumer;
+    this.laTaskPoller = laTaskPoller;
     this.replayDecider = replayDecider;
   }
 
@@ -319,17 +320,26 @@ public final class ClockDecisionContext {
     return null;
   }
 
-  void startUnstartedLaTasks() {
+  boolean startUnstartedLaTasks(Duration maxWaitAllowed) {
+    long startTime = System.currentTimeMillis();
     for (ExecuteLocalActivityParameters params : unstartedLaTasks.values()) {
-      laTaskConsumer.accept(
-          new LocalActivityWorker.Task(
-              params,
-              replayDecider,
-              replayDecider.getDecisionTimeoutSeconds(),
-              this::currentTimeMillis,
-              this::replayTimeUpdatedAtMillis));
+      long currTime = System.currentTimeMillis();
+      maxWaitAllowed = maxWaitAllowed.minus(Duration.ofMillis(currTime - startTime));
+      boolean applied =
+          laTaskPoller.apply(
+              new LocalActivityWorker.Task(
+                  params,
+                  replayDecider,
+                  replayDecider.getDecisionTimeoutSeconds(),
+                  this::currentTimeMillis,
+                  this::replayTimeUpdatedAtMillis),
+              maxWaitAllowed);
+      if (!applied) {
+        return false;
+      }
     }
     unstartedLaTasks.clear();
+    return true;
   }
 
   int numPendingLaTasks() {

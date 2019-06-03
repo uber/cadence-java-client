@@ -17,15 +17,19 @@
 
 package com.uber.cadence.internal.worker;
 
-import java.util.Queue;
+import java.time.Duration;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.function.Consumer;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import org.apache.thrift.TException;
 
 final class LocalActivityPollTask
-    implements Poller.PollTask<LocalActivityWorker.Task>, Consumer<LocalActivityWorker.Task> {
+    implements Poller.PollTask<LocalActivityWorker.Task>,
+        BiFunction<LocalActivityWorker.Task, Duration, Boolean> {
   private static final int QUEUE_SIZE = 1000;
-  private Queue<LocalActivityWorker.Task> pendingTasks = new ArrayBlockingQueue<>(QUEUE_SIZE);
+  private BlockingQueue<LocalActivityWorker.Task> pendingTasks =
+      new ArrayBlockingQueue<>(QUEUE_SIZE);
 
   @Override
   public LocalActivityWorker.Task poll() throws TException {
@@ -33,7 +37,12 @@ final class LocalActivityPollTask
   }
 
   @Override
-  public void accept(LocalActivityWorker.Task task) {
-    pendingTasks.offer(task);
+  public Boolean apply(LocalActivityWorker.Task task, Duration maxWaitAllowed) {
+    try {
+      pendingTasks.offer(task, maxWaitAllowed.toMillis(), TimeUnit.MILLISECONDS);
+      return true;
+    } catch (InterruptedException e) {
+      return false;
+    }
   }
 }

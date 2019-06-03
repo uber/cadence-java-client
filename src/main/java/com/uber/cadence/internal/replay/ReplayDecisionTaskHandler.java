@@ -34,7 +34,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +50,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
   private final Duration stickyTaskListScheduleToStartTimeout;
   private IWorkflowService service;
   private String stickyTaskListName;
-  private final Consumer<LocalActivityWorker.Task> laPollTask;
+  private final BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller;
 
   public ReplayDecisionTaskHandler(
       String domain,
@@ -60,7 +60,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       String stickyTaskListName,
       Duration stickyTaskListScheduleToStartTimeout,
       IWorkflowService service,
-      Consumer<LocalActivityWorker.Task> laTaskConsumer) {
+      BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller) {
     this.domain = domain;
     this.workflowFactory = asyncWorkflowFactory;
     this.cache = cache;
@@ -69,7 +69,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     this.stickyTaskListName = stickyTaskListName;
     this.stickyTaskListScheduleToStartTimeout = stickyTaskListScheduleToStartTimeout;
     this.service = Objects.requireNonNull(service);
-    this.laPollTask = laTaskConsumer;
+    this.laTaskPoller = laTaskPoller;
   }
 
   @Override
@@ -271,6 +271,6 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
         decisionsHelper,
         metricsScope,
         enableLoggingInReplay,
-        laPollTask);
+        laTaskPoller);
   }
 }

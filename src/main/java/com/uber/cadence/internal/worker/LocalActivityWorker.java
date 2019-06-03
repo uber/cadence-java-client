@@ -30,6 +30,7 @@ import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
@@ -148,7 +149,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
     }
   }
 
-  public Consumer<LocalActivityWorker.Task> getLocalActivityTaskConsumer() {
+  public BiFunction<Task, Duration, Boolean> getLocalActivityTaskPoller() {
     return laPollTask;
   }
 

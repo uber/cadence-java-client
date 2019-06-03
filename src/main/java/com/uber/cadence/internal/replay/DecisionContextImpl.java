@@ -31,6 +31,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 final class DecisionContextImpl implements DecisionContext, HistoryEventHandler {
@@ -49,12 +50,12 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
       WorkflowExecutionStartedEventAttributes startedAttributes,
       boolean enableLoggingInReplay,
       Scope metricsScope,
-      Consumer<LocalActivityWorker.Task> laTaskConsumer,
+      BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller,
       ReplayDecider replayDecider) {
     this.activityClient = new ActivityDecisionContext(decisionsHelper);
     this.workflowContext = new WorkflowContext(domain, decisionTask, startedAttributes);
     this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
-    this.workflowClock = new ClockDecisionContext(decisionsHelper, laTaskConsumer, replayDecider);
+    this.workflowClock = new ClockDecisionContext(decisionsHelper, laTaskPoller, replayDecider);
     this.enableLoggingInReplay = enableLoggingInReplay;
     this.metricsScope = new ReplayAwareScope(metricsScope, this, workflowClock::currentTimeMillis);
   }
@@ -326,8 +327,8 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     workflowClock.handleMarkerRecorded(event);
   }
 
-  void startUnstartedLaTasks() {
-    workflowClock.startUnstartedLaTasks();
+  boolean startUnstartedLaTasks(Duration maxWaitAllowed) {
+    return workflowClock.startUnstartedLaTasks(maxWaitAllowed);
   }
 
   int numPendingLaTasks() {

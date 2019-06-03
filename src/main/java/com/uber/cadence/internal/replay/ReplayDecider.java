@@ -50,6 +50,7 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
 
@@ -62,7 +63,7 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
   private final DecisionsHelper decisionsHelper;
-  final DecisionContextImpl context;
+  private final DecisionContextImpl context;
   private final IWorkflowService service;
   private final ReplayWorkflow workflow;
   private boolean cancelRequested;
@@ -81,7 +82,7 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
       DecisionsHelper decisionsHelper,
       Scope metricsScope,
       boolean enableLoggingInReplay,
-      Consumer<LocalActivityWorker.Task> laTaskConsumer) {
+      BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller) {
     this.service = service;
     this.workflow = workflow;
     this.decisionsHelper = decisionsHelper;
@@ -104,7 +105,7 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
             startedEvent,
             enableLoggingInReplay,
             metricsScope,
-            laTaskConsumer,
+            laTaskPoller,
             this);
   }
 
@@ -491,14 +492,21 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
     return false;
   }
 
+  // Return whether we would need a new decision task immediately.
   private boolean executeLocalActivities(long startTime, int decisionTimeoutSecs) {
     Duration maxProcessingTime = Duration.ofSeconds((long) (0.8 * decisionTimeoutSecs));
 
     while (context.numPendingLaTasks() > 0) {
-      context.startUnstartedLaTasks();
-
       Duration processingTime = Duration.ofMillis(System.currentTimeMillis() - startTime);
       Duration maxWaitAllowed = maxProcessingTime.minus(processingTime);
+
+      boolean started = context.startUnstartedLaTasks(maxWaitAllowed);
+      if (!started) {
+        // We were not able to send the current batch of la tasks before deadline.
+        // Return true to indicate that we need a new decision task immediately.
+        return true;
+      }
+
       try {
         context.awaitTaskCompletion(maxWaitAllowed);
       } catch (InterruptedException e) {

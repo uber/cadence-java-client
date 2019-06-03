@@ -84,7 +84,7 @@ public class SyncWorkflowWorker
             stickyTaskListName,
             stickyDecisionScheduleToStartTimeout,
             service,
-            laWorker.getLocalActivityTaskConsumer());
+            laWorker.getLocalActivityTaskPoller());
 
     workflowWorker = new WorkflowWorker(service, domain, taskList, this.options, taskHandler);
   }
