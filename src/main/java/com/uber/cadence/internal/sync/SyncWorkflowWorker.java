@@ -50,7 +50,7 @@ public class SyncWorkflowWorker
   private final WorkflowWorker workflowWorker;
   private final LocalActivityWorker laWorker;
   private final POJOWorkflowImplementationFactory factory;
-  private final SingleWorkerOptions options;
+  private final DataConverter dataConverter;
   private final POJOActivityTaskHandler laTaskHandler;
   private final ScheduledExecutorService heartbeatExecutor = Executors.newScheduledThreadPool(4);
 
@@ -59,34 +59,36 @@ public class SyncWorkflowWorker
       String domain,
       String taskList,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      SingleWorkerOptions options,
+      SingleWorkerOptions workflowOptions,
+      SingleWorkerOptions localActivityOptions,
       DeciderCache cache,
       String stickyTaskListName,
       Duration stickyDecisionScheduleToStartTimeout,
       ThreadPoolExecutor workflowThreadPool) {
     Objects.requireNonNull(workflowThreadPool);
-    this.options = options;
+    this.dataConverter = workflowOptions.getDataConverter();
 
     factory =
         new POJOWorkflowImplementationFactory(
-            options.getDataConverter(), workflowThreadPool, interceptorFactory, cache);
+            workflowOptions.getDataConverter(), workflowThreadPool, interceptorFactory, cache);
 
     laTaskHandler =
-        new POJOActivityTaskHandler(service, domain, options.getDataConverter(), heartbeatExecutor);
-    laWorker = new LocalActivityWorker(domain, taskList, this.options, laTaskHandler);
+        new POJOActivityTaskHandler(
+            service, domain, localActivityOptions.getDataConverter(), heartbeatExecutor);
+    laWorker = new LocalActivityWorker(domain, taskList, localActivityOptions, laTaskHandler);
 
     DecisionTaskHandler taskHandler =
         new ReplayDecisionTaskHandler(
             domain,
             factory,
             cache,
-            this.options,
+            workflowOptions,
             stickyTaskListName,
             stickyDecisionScheduleToStartTimeout,
             service,
             laWorker.getLocalActivityTaskPoller());
 
-    workflowWorker = new WorkflowWorker(service, domain, taskList, this.options, taskHandler);
+    workflowWorker = new WorkflowWorker(service, domain, taskList, workflowOptions, taskHandler);
   }
 
   public void setWorkflowImplementationTypes(
@@ -165,7 +167,6 @@ public class SyncWorkflowWorker
       Type resultType,
       Object[] args)
       throws Exception {
-    DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = workflowWorker.queryWorkflowExecution(execution, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);
@@ -178,7 +179,6 @@ public class SyncWorkflowWorker
       Type resultType,
       Object[] args)
       throws Exception {
-    DataConverter dataConverter = options.getDataConverter();
     byte[] serializedArgs = dataConverter.toData(args);
     byte[] result = workflowWorker.queryWorkflowExecution(history, queryType, serializedArgs);
     return dataConverter.fromData(result, resultClass, resultType);

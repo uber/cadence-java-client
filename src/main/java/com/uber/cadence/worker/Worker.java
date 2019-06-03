@@ -113,6 +113,8 @@ public final class Worker {
             : new SyncActivityWorker(service, domain, taskList, activityOptions);
 
     SingleWorkerOptions workflowOptions = toWorkflowOptions(this.options, domain, taskList);
+    SingleWorkerOptions localActivityOptions =
+        toLocalActivityOptions(this.options, domain, taskList);
     workflowWorker =
         this.options.isDisableWorkflowWorker()
             ? null
@@ -122,6 +124,7 @@ public final class Worker {
                 taskList,
                 this.options.getInterceptorFactory(),
                 workflowOptions,
+                localActivityOptions,
                 this.cache,
                 this.stickyTaskListName,
                 stickyDecisionScheduleToStartTimeout,
@@ -161,6 +164,25 @@ public final class Worker {
         .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
         .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
         .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorkflowExecutionSize())
+        .setMetricsScope(options.getMetricsScope().tagged(tags))
+        .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .build();
+  }
+
+  private static SingleWorkerOptions toLocalActivityOptions(
+      WorkerOptions options, String domain, String taskList) {
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, domain)
+            .put(MetricsTag.TASK_LIST, taskList)
+            .build();
+    return new SingleWorkerOptions.Builder()
+        .setDataConverter(options.getDataConverter())
+        .setIdentity(options.getIdentity())
+        .setPollerOptions(options.getWorkflowPollerOptions())
+        .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
+        .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
+        .setTaskExecutorThreadPoolSize(options.getMaxConcurrentLocalActivityExecutionSize())
         .setMetricsScope(options.getMetricsScope().tagged(tags))
         .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
         .build();
