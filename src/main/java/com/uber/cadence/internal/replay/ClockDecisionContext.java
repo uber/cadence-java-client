@@ -21,14 +21,12 @@ import com.google.common.base.Strings;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
-import com.uber.cadence.RespondActivityTaskCanceledRequest;
-import com.uber.cadence.RespondActivityTaskCompletedRequest;
-import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.StartTimerDecisionAttributes;
 import com.uber.cadence.TimerCanceledEventAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.common.LocalActivityMarkerData;
 import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
@@ -209,54 +207,6 @@ public final class ClockDecisionContext {
     return mutableSideEffectHandler.handle(id, converter, func);
   }
 
-  public static class LocalActivityMarkerData {
-    String activityId;
-    String activityType;
-    String errReason;
-    byte[] errJson;
-    byte[] result;
-    long replayTimeMillis;
-    int attempt;
-    Duration backoff;
-
-    public LocalActivityMarkerData(
-        String activityId,
-        String activityType,
-        long replayTimeMillis,
-        RespondActivityTaskCompletedRequest result) {
-      this.activityId = activityId;
-      this.activityType = activityType;
-      this.replayTimeMillis = replayTimeMillis;
-      this.result = result.getResult();
-    }
-
-    public LocalActivityMarkerData(
-        String activityId,
-        String activityType,
-        long replayTimeMillis,
-        RespondActivityTaskFailedRequest result,
-        int attempt,
-        Duration backoff) {
-      this.activityId = activityId;
-      this.activityType = activityType;
-      this.replayTimeMillis = replayTimeMillis;
-      this.errReason = result.getReason();
-      this.errJson = result.getDetails();
-      this.attempt = attempt;
-      this.backoff = backoff;
-    }
-
-    public LocalActivityMarkerData(
-        String activityId,
-        String activityType,
-        long replayTimeMillis,
-        RespondActivityTaskCanceledRequest result) {
-      this.activityId = activityId;
-      this.activityType = activityType;
-      this.replayTimeMillis = replayTimeMillis;
-    }
-  }
-
   void handleMarkerRecorded(HistoryEvent event) {
     MarkerRecordedEventAttributes attributes = event.getMarkerRecordedEventAttributes();
     String name = attributes.getMarkerName();
@@ -277,34 +227,37 @@ public final class ClockDecisionContext {
                 LocalActivityMarkerData.class,
                 LocalActivityMarkerData.class);
 
-    if (pendingLaTasks.containsKey(marker.activityId)) {
-      log.debug("Handle LocalActivityMarker for activity " + marker.activityId);
+    if (pendingLaTasks.containsKey(marker.getActivityId())) {
+      log.debug("Handle LocalActivityMarker for activity " + marker.getActivityId());
 
       decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
 
-      OpenRequestInfo<byte[], ActivityType> scheduled = pendingLaTasks.remove(marker.activityId);
-      unstartedLaTasks.remove(marker.activityId);
+      OpenRequestInfo<byte[], ActivityType> scheduled =
+          pendingLaTasks.remove(marker.getActivityId());
+      unstartedLaTasks.remove(marker.getActivityId());
 
-      ActivityFailureException failure = null;
-      if (marker.errJson != null) {
+      Exception failure = null;
+      if (marker.getIsCancelled()) {
+        failure = new CancellationException(marker.getErrReason());
+      } else if (marker.getErrJson() != null) {
         Throwable cause =
             JsonDataConverter.getInstance()
-                .fromData(marker.errJson, Throwable.class, Throwable.class);
+                .fromData(marker.getErrJson(), Throwable.class, Throwable.class);
         ActivityType activityType = new ActivityType();
-        activityType.setName(marker.activityType);
+        activityType.setName(marker.getActivityType());
         failure =
             new ActivityFailureException(
                 attributes.getDecisionTaskCompletedEventId(),
                 activityType,
-                marker.activityId,
+                marker.getActivityId(),
                 cause,
-                marker.attempt,
-                marker.backoff);
+                marker.getAttempt(),
+                marker.getBackoff());
       }
 
       BiConsumer<byte[], Exception> completionHandle = scheduled.getCompletionCallback();
-      completionHandle.accept(marker.result, failure);
-      setReplayCurrentTimeMilliseconds(marker.replayTimeMillis);
+      completionHandle.accept(marker.getResult(), failure);
+      setReplayCurrentTimeMilliseconds(marker.getReplayTimeMillis());
 
       laTaskLock.lock();
       try {

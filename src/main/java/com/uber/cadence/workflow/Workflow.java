@@ -397,7 +397,11 @@ public final class Workflow {
   }
 
   /**
-   * Creates client stub to local activities that implement given interface.
+   * Creates client stub to local activities that implement given interface. A local activity is
+   * similar to a regular activity, but with some key differences: 1. Local activity is scheduled
+   * and run by the workflow worker locally. 2. Local activity does not need Cadence server to
+   * schedule activity task and does not rely on activity worker. 3. Local activity is for short
+   * living activities (usually finishes within seconds). 4. Local activity cannot heartbeat.
    *
    * @param activityInterface interface type implemented by activities.
    * @param options options that together with the properties of {@link
@@ -409,7 +413,7 @@ public final class Workflow {
   }
 
   /**
-   * Creates client stub to local activities that implement given interface. `
+   * Creates client stub to local activities that implement given interface.
    *
    * @param activityInterface interface type implemented by activities
    */

@@ -23,6 +23,7 @@ import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.common.LocalActivityMarkerData;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.ClockDecisionContext;
 import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
@@ -164,36 +165,25 @@ public final class LocalActivityWorker implements SuspendableWorker {
       task.taskStartTime = System.currentTimeMillis();
       ActivityTaskHandler.Result result = handleLocalActivity(task);
 
-      ClockDecisionContext.LocalActivityMarkerData marker;
+      LocalActivityMarkerData.Builder markerBuilder = new LocalActivityMarkerData.Builder();
+      markerBuilder.setActivityId(task.params.getActivityId());
+      markerBuilder.setActivityType(task.params.getActivityType());
       long replayTimeMillis =
           task.currentTimeMillis.getAsLong()
               + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
+      markerBuilder.setReplayTimeMillis(replayTimeMillis);
+
       if (result.getTaskCompleted() != null) {
-        marker =
-            new ClockDecisionContext.LocalActivityMarkerData(
-                task.params.getActivityId(),
-                task.params.getActivityType().toString(),
-                replayTimeMillis,
-                result.getTaskCompleted());
+        markerBuilder.setResult(result.getTaskCompleted().getResult());
       } else if (result.getTaskFailedResult() != null) {
-        marker =
-            new ClockDecisionContext.LocalActivityMarkerData(
-                task.params.getActivityId(),
-                task.params.getActivityType().toString(),
-                replayTimeMillis,
-                result.getTaskFailedResult().getTaskFailedRequest(),
-                result.getAttempt(),
-                result.getBackoff());
+        markerBuilder.setTaskFailedRequest(result.getTaskFailedResult().getTaskFailedRequest());
+        markerBuilder.setAttempt(result.getAttempt());
+        markerBuilder.setBackoff(result.getBackoff());
       } else {
-        marker =
-            new ClockDecisionContext.LocalActivityMarkerData(
-                task.params.getActivityId(),
-                task.params.getActivityType().toString(),
-                replayTimeMillis,
-                result.getTaskCancelled());
+        markerBuilder.setTaskCancelledRequest(result.getTaskCancelled());
       }
 
-      byte[] markerData = JsonDataConverter.getInstance().toData(marker);
+      byte[] markerData = JsonDataConverter.getInstance().toData(markerBuilder.build());
 
       HistoryEvent event = new HistoryEvent();
       event.setEventType(EventType.MarkerRecorded);
