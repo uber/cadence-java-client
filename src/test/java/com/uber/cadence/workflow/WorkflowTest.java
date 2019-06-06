@@ -410,7 +410,7 @@ public class WorkflowTest {
         "executeActivity TestActivities::activity2");
   }
 
-  public static class TestActivityRetry implements TestWorkflow1 {
+  public static class TestActivityRetryWithMaxAttempts implements TestWorkflow1 {
 
     @Override
     @SuppressWarnings("Finally")
@@ -419,12 +419,9 @@ public class WorkflowTest {
           new ActivityOptions.Builder()
               .setTaskList(taskList)
               .setHeartbeatTimeout(Duration.ofSeconds(5))
-              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
-              .setScheduleToStartTimeout(Duration.ofSeconds(5))
-              .setStartToCloseTimeout(Duration.ofSeconds(10))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -437,7 +434,7 @@ public class WorkflowTest {
         activities.heartbeatAndThrowIO();
       } finally {
         if (Workflow.currentTimeMillis() - start < 2000) {
-          throw new RuntimeException("Activity retried without delay");
+          fail("Activity retried without delay");
         }
       }
       return "ignored";
@@ -445,8 +442,54 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testActivityRetry() {
-    startWorkerFor(TestActivityRetry.class);
+  public void testActivityRetryWithMaxAttempts() {
+    startWorkerFor(TestActivityRetryWithMaxAttempts.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().getCause() instanceof IOException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestActivityRetryWithExpiration implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setHeartbeatTimeout(Duration.ofSeconds(5))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(3))
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.heartbeatAndThrowIO();
+      } finally {
+        if (Workflow.currentTimeMillis() - start < 2000) {
+          fail("Activity retried without delay");
+        }
+      }
+      return "ignored";
+    }
+  }
+
+  @Test
+  public void testActivityRetryWithExiration() {
+    startWorkerFor(TestActivityRetryWithExpiration.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
