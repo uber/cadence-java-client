@@ -4562,6 +4562,58 @@ public class WorkflowTest {
         result);
   }
 
+  private static CompletableFuture<Boolean> signalSentForSignalOrderingWorkflowTest;
+
+  public interface SignalOrderingWorkflow {
+    @WorkflowMethod
+    List<String> run();
+
+    @SignalMethod(name = "testSignal")
+    void signal(String s);
+  }
+
+  public static class SignalOrderingWorkflowImpl implements SignalOrderingWorkflow {
+    private List<String> signals = new ArrayList<>();
+
+    @Override
+    public List<String> run() {
+      try {
+        signalSentForSignalOrderingWorkflowTest.get();
+      } catch (Exception e) {
+        throw new RuntimeException("interrupted");
+      }
+      Workflow.await(() -> !signals.isEmpty());
+      return signals;
+    }
+
+    @Override
+    public void signal(String s) {
+      signals.add(s);
+    }
+  }
+
+  @Test
+  public void testSignalOrderingWorkflow() {
+    signalSentForSignalOrderingWorkflowTest = new CompletableFuture<>();
+    startWorkerFor(SignalOrderingWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(1))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(10))
+            .setTaskList(taskList)
+            .build();
+    SignalOrderingWorkflow workflowStub =
+        workflowClient.newWorkflowStub(SignalOrderingWorkflow.class, options);
+    WorkflowClient.start(workflowStub::run);
+    workflowStub.signal("test1");
+    workflowStub.signal("test2");
+    workflowStub.signal("test3");
+    signalSentForSignalOrderingWorkflowTest.complete(true);
+    List<String> result = workflowStub.run();
+    List<String> expected = Arrays.asList("test1", "test2", "test3");
+    assertEquals(expected, result);
+  }
+
   private static class FilteredTrace {
 
     private final List<String> impl = Collections.synchronizedList(new ArrayList<>());
