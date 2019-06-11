@@ -90,21 +90,11 @@ public final class SingleWorkerOptions {
 
     public SingleWorkerOptions build() {
       if (reportCompletionRetryOptions == null) {
-        reportCompletionRetryOptions =
-            new RetryOptions.Builder()
-                .setInitialInterval(Duration.ofMillis(50))
-                .setMaximumInterval(Duration.ofSeconds(10))
-                .setExpiration(Duration.ofMinutes(1))
-                .build();
+        reportCompletionRetryOptions = RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
       }
 
       if (reportFailureRetryOptions == null) {
-        reportFailureRetryOptions =
-            new RetryOptions.Builder()
-                .setInitialInterval(Duration.ofMillis(50))
-                .setMaximumInterval(Duration.ofSeconds(10))
-                .setExpiration(Duration.ofMinutes(1))
-                .build();
+        reportFailureRetryOptions = RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
       }
 
       if (pollerOptions == null) {
