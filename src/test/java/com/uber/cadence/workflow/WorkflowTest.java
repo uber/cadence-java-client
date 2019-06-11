@@ -4569,8 +4569,6 @@ public class WorkflowTest {
         result);
   }
 
-  private static CompletableFuture<Boolean> signalSentForSignalOrderingWorkflowTest;
-
   public interface SignalOrderingWorkflow {
     @WorkflowMethod
     List<String> run();
@@ -4584,12 +4582,7 @@ public class WorkflowTest {
 
     @Override
     public List<String> run() {
-      try {
-        signalSentForSignalOrderingWorkflowTest.get();
-      } catch (Exception e) {
-        throw new RuntimeException("interrupted");
-      }
-      Workflow.await(() -> !signals.isEmpty());
+      Workflow.await(() -> signals.size() == 3);
       return signals;
     }
 
@@ -4601,7 +4594,6 @@ public class WorkflowTest {
 
   @Test
   public void testSignalOrderingWorkflow() {
-    signalSentForSignalOrderingWorkflowTest = new CompletableFuture<>();
     startWorkerFor(SignalOrderingWorkflowImpl.class);
     WorkflowOptions options =
         new WorkflowOptions.Builder()
@@ -4612,10 +4604,24 @@ public class WorkflowTest {
     SignalOrderingWorkflow workflowStub =
         workflowClient.newWorkflowStub(SignalOrderingWorkflow.class, options);
     WorkflowClient.start(workflowStub::run);
+
+    // Suspend polling so that all the signals will be received in the same decision task.
+    if (useExternalService) {
+      workerFactory.suspendPolling();
+    } else {
+      testEnvironment.getWorkerFactory().suspendPolling();
+    }
+
     workflowStub.signal("test1");
     workflowStub.signal("test2");
     workflowStub.signal("test3");
-    signalSentForSignalOrderingWorkflowTest.complete(true);
+
+    if (useExternalService) {
+      workerFactory.resumePolling();
+    } else {
+      testEnvironment.getWorkerFactory().resumePolling();
+    }
+
     List<String> result = workflowStub.run();
     List<String> expected = Arrays.asList("test1", "test2", "test3");
     assertEquals(expected, result);
