@@ -36,9 +36,7 @@ import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
-
 import java.util.concurrent.CancellationException;
-
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +92,9 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setResult(convertedResult);
       request.setTaskToken(taskToken);
       try {
-        Retryer.retry(RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, () -> service.RespondActivityTaskCompleted(request));
+        Retryer.retry(
+            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            () -> service.RespondActivityTaskCompleted(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
@@ -136,7 +136,9 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setDetails(dataConverter.toData(failure));
       request.setTaskToken(taskToken);
       try {
-        Retryer.retry(RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, () -> service.RespondActivityTaskFailed(request));
+        Retryer.retry(
+            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            () -> service.RespondActivityTaskFailed(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
@@ -151,7 +153,9 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setWorkflowID(execution.getWorkflowId());
       request.setRunID(execution.getRunId());
       try {
-        Retryer.retry(RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, () -> service.RespondActivityTaskFailedByID(request));
+        Retryer.retry(
+            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            () -> service.RespondActivityTaskFailedByID(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_BY_ID_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);

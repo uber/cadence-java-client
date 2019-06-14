@@ -43,10 +43,11 @@ public final class RetryOptions {
   private static final int DEFAULT_MAXIMUM_MULTIPLIER = 100;
 
   static {
-    RetryOptions.Builder roBuilder = new RetryOptions.Builder()
-        .setInitialInterval(RETRY_SERVICE_OPERATION_INITIAL_INTERVAL)
-        .setExpiration(RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL)
-        .setBackoffCoefficient(RETRY_SERVICE_OPERATION_BACKOFF);
+    RetryOptions.Builder roBuilder =
+        new RetryOptions.Builder()
+            .setInitialInterval(RETRY_SERVICE_OPERATION_INITIAL_INTERVAL)
+            .setExpiration(RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL)
+            .setBackoffCoefficient(RETRY_SERVICE_OPERATION_BACKOFF);
 
     Duration maxInterval = RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL.dividedBy(10);
     if (maxInterval.compareTo(RETRY_SERVICE_OPERATION_INITIAL_INTERVAL) < 0) {

@@ -1517,8 +1517,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   @Override
   public StartWorkflowExecutionResponse SignalWithStartWorkflowExecution(
-      SignalWithStartWorkflowExecutionRequest signalWithStartRequest)
-      throws TException {
+      SignalWithStartWorkflowExecutionRequest signalWithStartRequest) throws TException {
     return measureRemoteCall(
         ServiceMethod.SIGNAL_WITH_START_WORKFLOW_EXECUTION,
         () -> signalWithStartWorkflowExecution(signalWithStartRequest));
