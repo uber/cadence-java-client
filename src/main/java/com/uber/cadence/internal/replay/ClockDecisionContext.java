@@ -192,7 +192,7 @@ public final class ClockDecisionContext {
         throw new Error("sideEffect function failed", e);
       }
     }
-    decisions.recordMarker(SIDE_EFFECT_MARKER_NAME, result);
+    decisions.recordMarker(SIDE_EFFECT_MARKER_NAME, null, result);
     return result;
   }
 
@@ -221,17 +221,13 @@ public final class ClockDecisionContext {
   }
 
   private void handleLocalActivityMarker(MarkerRecordedEventAttributes attributes) {
-    LocalActivityMarkerData marker =
-        JsonDataConverter.getInstance()
-            .fromData(
-                attributes.getDetails(),
-                LocalActivityMarkerData.class,
-                LocalActivityMarkerData.class);
+    LocalActivityMarkerData marker = LocalActivityMarkerData.fromEventAttributes(attributes);
 
     if (pendingLaTasks.containsKey(marker.getActivityId())) {
       log.debug("Handle LocalActivityMarker for activity " + marker.getActivityId());
 
-      decisions.recordMarker(LOCAL_ACTIVITY_MARKER_NAME, attributes.getDetails());
+      decisions.recordMarker(
+          LOCAL_ACTIVITY_MARKER_NAME, marker.getHeader(), attributes.getDetails());
 
       OpenRequestInfo<byte[], ActivityType> scheduled =
           pendingLaTasks.remove(marker.getActivityId());

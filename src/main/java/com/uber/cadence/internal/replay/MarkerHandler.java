@@ -159,6 +159,6 @@ class MarkerHandler {
     MarkerData dataObject = new MarkerData(id, eventId, data, accessCount);
     byte[] details = converter.toData(dataObject);
     mutableMarkerResults.put(id, new MarkerResult(data));
-    decisions.recordMarker(markerName, details);
+    decisions.recordMarker(markerName, null, details);
   }
 }

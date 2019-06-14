@@ -17,41 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.ActivityTaskCancelRequestedEventAttributes;
-import com.uber.cadence.ActivityTaskCanceledEventAttributes;
-import com.uber.cadence.ActivityTaskScheduledEventAttributes;
-import com.uber.cadence.ActivityTaskStartedEventAttributes;
-import com.uber.cadence.CancelWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionTerminatedEventAttributes;
-import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
-import com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.Decision;
-import com.uber.cadence.DecisionType;
-import com.uber.cadence.EventType;
-import com.uber.cadence.ExternalWorkflowExecutionCancelRequestedEventAttributes;
-import com.uber.cadence.FailWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.RecordMarkerDecisionAttributes;
-import com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes;
-import com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.RequestCancelExternalWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
-import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes;
-import com.uber.cadence.StartTimerDecisionAttributes;
-import com.uber.cadence.TaskList;
-import com.uber.cadence.TimerCanceledEventAttributes;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.WorkflowType;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
@@ -526,11 +492,14 @@ class DecisionsHelper {
     addDecision(decisionId, new CompleteWorkflowStateMachine(decisionId, decision));
   }
 
-  void recordMarker(String markerName, byte[] details) {
+  void recordMarker(String markerName, Header header, byte[] details) {
     // no need to call addAllMissingVersionMarker here as all the callers are already doing it.
 
     RecordMarkerDecisionAttributes marker =
-        new RecordMarkerDecisionAttributes().setMarkerName(markerName).setDetails(details);
+        new RecordMarkerDecisionAttributes()
+            .setMarkerName(markerName)
+            .setHeader(header)
+            .setDetails(details);
     Decision decision =
         new Decision()
             .setDecisionType(DecisionType.RecordMarker)
