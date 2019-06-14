@@ -27,7 +27,6 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.LocalActivityMarkerData;
-import com.uber.cadence.internal.replay.MarkerHandler.MarkerData;
 import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.workflow.ActivityFailureException;
@@ -267,10 +266,10 @@ public final class ClockDecisionContext {
   }
 
   int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
-    Predicate<byte[]> changeIdEquals =
-        (bytesInEvent) -> {
-          MarkerData markerData =
-              converter.fromData(bytesInEvent, MarkerData.class, MarkerData.class);
+    Predicate<MarkerRecordedEventAttributes> changeIdEquals =
+        (attributes) -> {
+          MarkerHandler.MarkerInterface markerData =
+              MarkerHandler.MarkerInterface.fromEventAttributes(attributes, converter);
           return markerData.getId().equals(changeId);
         };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
