@@ -73,10 +73,13 @@ class MarkerHandler {
       if (attributes.getHeader() != null
           && attributes.getHeader().getFields() != null
           && attributes.getHeader().getFields().containsKey(MUTABLE_MARKER_HEADER_KEY)) {
+        ByteBuffer byteBuffer = attributes.getHeader().getFields().get(MUTABLE_MARKER_HEADER_KEY);
+        byte[] bytes = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytes);
         MarkerData.MarkerHeader header =
             JsonDataConverter.getInstance()
                 .fromData(
-                    attributes.getHeader().getFields().get(MUTABLE_MARKER_HEADER_KEY).array(),
+                    bytes,
                     MarkerData.MarkerHeader.class,
                     MarkerData.MarkerHeader.class);
         return new MarkerData(header, attributes.getDetails());
