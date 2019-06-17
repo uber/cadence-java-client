@@ -776,15 +776,15 @@ public class WorkflowTest {
   }
 
   /**
-   * Tests that history created before marker header change is backwards compatible
-   * with old markers generated without headers.
+   * Tests that history created before marker header change is backwards compatible with old markers
+   * generated without headers.
    */
   @Test
   public void testMutableSideEffectReplay() throws Exception {
     // Avoid executing 4 times
-//    if (!testName.getMethodName().equals("testAsyncActivityRetryReplay[Docker Sticky OFF]")) {
-//      return;
-//    }
+    if (!testName.getMethodName().equals("testAsyncActivityRetryReplay[Docker Sticky OFF]")) {
+      return;
+    }
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testMutableSideEffectBackwardCompatibility.json", TestMutableSideEffectWorkflowImpl.class);
   }

@@ -39,7 +39,6 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
-import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
@@ -62,7 +61,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Collection;
@@ -783,9 +781,23 @@ public class WorkflowExecutionUtils {
       return String.valueOf(((WorkflowType) object).getName());
     }
     if (Map.Entry.class.isAssignableFrom(clz)) {
-      result.append(prettyPrintObject(((Map.Entry) object).getKey(), methodToSkip, skipNullsAndEmptyCollections, "", skipLevel, printTypeName));
+      result.append(
+          prettyPrintObject(
+              ((Map.Entry) object).getKey(),
+              methodToSkip,
+              skipNullsAndEmptyCollections,
+              "",
+              skipLevel,
+              printTypeName));
       result.append("=");
-      result.append(prettyPrintObject(((Map.Entry) object).getValue(), methodToSkip, skipNullsAndEmptyCollections, "", skipLevel, printTypeName));
+      result.append(
+          prettyPrintObject(
+              ((Map.Entry) object).getValue(),
+              methodToSkip,
+              skipNullsAndEmptyCollections,
+              "",
+              skipLevel,
+              printTypeName));
       return result.toString();
     }
     if (Map.class.isAssignableFrom(clz)) {
@@ -795,7 +807,9 @@ public class WorkflowExecutionUtils {
       for (Object entry : ((Map) object).entrySet()) {
         result.append(prefix);
         prefix = ", ";
-        result.append(prettyPrintObject(entry, methodToSkip, skipNullsAndEmptyCollections, "", skipLevel, printTypeName));
+        result.append(
+            prettyPrintObject(
+                entry, methodToSkip, skipNullsAndEmptyCollections, "", skipLevel, printTypeName));
       }
 
       result.append(" }");

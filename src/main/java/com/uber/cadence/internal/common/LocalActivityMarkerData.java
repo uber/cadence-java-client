@@ -197,16 +197,10 @@ public final class LocalActivityMarkerData {
   public static LocalActivityMarkerData fromEventAttributes(
       MarkerRecordedEventAttributes attributes) {
     ByteBuffer byteBuffer = attributes.getHeader().getFields().get(LOCAL_ACTIVITY_HEADER_KEY);
-    byte[] bytes = new byte[byteBuffer.remaining()];
-    byteBuffer.mark();
-    byteBuffer.get(bytes);
-    byteBuffer.rewind();
+    byte[] bytes = org.apache.thrift.TBaseHelper.byteBufferToByteArray(byteBuffer);
     LocalActivityMarkerHeader header =
         JsonDataConverter.getInstance()
-            .fromData(
-                bytes,
-                LocalActivityMarkerHeader.class,
-                LocalActivityMarkerHeader.class);
+            .fromData(bytes, LocalActivityMarkerHeader.class, LocalActivityMarkerHeader.class);
     return new LocalActivityMarkerData(header, attributes.getDetails());
   }
 }
