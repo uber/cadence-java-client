@@ -146,6 +146,9 @@ public final class LocalActivityMarkerData {
   private LocalActivityMarkerData(LocalActivityMarkerHeader headers, byte[] result) {
     this.headers = headers;
     this.result = result;
+    if (headers == null) {
+      System.out.println("test");
+    }
   }
 
   public String getActivityId() {
@@ -195,7 +198,9 @@ public final class LocalActivityMarkerData {
       MarkerRecordedEventAttributes attributes) {
     ByteBuffer byteBuffer = attributes.getHeader().getFields().get(LOCAL_ACTIVITY_HEADER_KEY);
     byte[] bytes = new byte[byteBuffer.remaining()];
+    byteBuffer.mark();
     byteBuffer.get(bytes);
+    byteBuffer.rewind();
     LocalActivityMarkerHeader header =
         JsonDataConverter.getInstance()
             .fromData(
