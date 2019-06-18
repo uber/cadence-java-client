@@ -22,7 +22,6 @@ import com.uber.cadence.Header;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.m3.util.ImmutableMap;
 import java.nio.ByteBuffer;
@@ -76,8 +75,7 @@ class MarkerHandler {
         ByteBuffer byteBuffer = attributes.getHeader().getFields().get(MUTABLE_MARKER_HEADER_KEY);
         byte[] bytes = org.apache.thrift.TBaseHelper.byteBufferToByteArray(byteBuffer);
         MarkerData.MarkerHeader header =
-            JsonDataConverter.getInstance()
-                .fromData(bytes, MarkerData.MarkerHeader.class, MarkerData.MarkerHeader.class);
+            converter.fromData(bytes, MarkerData.MarkerHeader.class, MarkerData.MarkerHeader.class);
         return new MarkerData(header, attributes.getDetails());
       }
 
@@ -133,8 +131,8 @@ class MarkerHandler {
       return header.accessCount;
     }
 
-    Header getHeader() {
-      byte[] headerData = JsonDataConverter.getInstance().toData(header);
+    Header getHeader(DataConverter converter) {
+      byte[] headerData = converter.toData(header);
       Header header = new Header();
       header.setFields(ImmutableMap.of(MUTABLE_MARKER_HEADER_KEY, ByteBuffer.wrap(headerData)));
       return header;
@@ -211,7 +209,7 @@ class MarkerHandler {
       Optional<byte[]> data = getMarkerDataFromHistory(eventId, id, accessCount, converter);
       if (data.isPresent()) {
         // Need to insert marker to ensure that eventId is incremented
-        recordMutableMarker(id, eventId, data.get(), accessCount);
+        recordMutableMarker(id, eventId, data.get(), accessCount, converter);
         return data;
       }
       return stored;
@@ -219,7 +217,7 @@ class MarkerHandler {
     Optional<byte[]> toStore = func.apply(stored);
     if (toStore.isPresent()) {
       byte[] data = toStore.get();
-      recordMutableMarker(id, eventId, data, accessCount);
+      recordMutableMarker(id, eventId, data, accessCount, converter);
       return toStore;
     }
     return stored;
@@ -247,9 +245,10 @@ class MarkerHandler {
     return Optional.of(markerData.getData());
   }
 
-  private void recordMutableMarker(String id, long eventId, byte[] data, int accessCount) {
+  private void recordMutableMarker(
+      String id, long eventId, byte[] data, int accessCount, DataConverter converter) {
     MarkerData marker = new MarkerData(id, eventId, data, accessCount);
     mutableMarkerResults.put(id, new MarkerResult(data));
-    decisions.recordMarker(markerName, marker.getHeader(), data);
+    decisions.recordMarker(markerName, marker.getHeader(converter), data);
   }
 }
