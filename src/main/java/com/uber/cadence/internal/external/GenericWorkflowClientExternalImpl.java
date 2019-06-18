@@ -32,7 +32,6 @@ import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.*;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -127,7 +126,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     try {
       result =
           Retryer.retryWithResult(
-              RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
               () -> service.StartWorkflowExecution(request));
     } catch (WorkflowExecutionAlreadyStartedError e) {
       throw e;
@@ -178,7 +177,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setWorkflowExecution(execution);
     try {
       Retryer.retry(
-          RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
           () -> service.SignalWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
@@ -227,7 +226,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     try {
       result =
           Retryer.retryWithResult(
-              RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
               () -> service.SignalWithStartWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
@@ -245,7 +244,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setWorkflowExecution(execution);
     try {
       Retryer.retry(
-          RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
           () -> service.RequestCancelWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
@@ -266,7 +265,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     try {
       QueryWorkflowResponse response =
           Retryer.retryWithResult(
-              RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
               () -> service.QueryWorkflow(request));
       return response.getQueryResult();
     } catch (TException e) {
@@ -290,7 +289,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     //        request.setChildPolicy(terminateParameters.getChildPolicy());
     try {
       Retryer.retry(
-          RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
           () -> service.TerminateWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);

@@ -30,7 +30,6 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -93,7 +92,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setTaskToken(taskToken);
       try {
         Retryer.retry(
-            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
             () -> service.RespondActivityTaskCompleted(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
@@ -137,7 +136,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setTaskToken(taskToken);
       try {
         Retryer.retry(
-            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
             () -> service.RespondActivityTaskFailed(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
@@ -154,7 +153,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setRunID(execution.getRunId());
       try {
         Retryer.retry(
-            RetryOptions.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
             () -> service.RespondActivityTaskFailedByID(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_BY_ID_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {

@@ -18,13 +18,6 @@
 package com.uber.cadence.common;
 
 import com.google.common.base.Defaults;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.CancellationAlreadyRequestedError;
-import com.uber.cadence.DomainAlreadyExistsError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.QueryFailedError;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ChildWorkflowFailureException;
 import java.time.Duration;
@@ -34,36 +27,9 @@ import java.util.List;
 import java.util.Objects;
 
 public final class RetryOptions {
-  public static final RetryOptions DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
 
-  private static final Duration RETRY_SERVICE_OPERATION_INITIAL_INTERVAL = Duration.ofMillis(20);
-  private static final Duration RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL = Duration.ofMinutes(1);
-  private static final double RETRY_SERVICE_OPERATION_BACKOFF = 1.2;
   private static final double DEFAULT_BACKOFF_COEFFICIENT = 2.0;
   private static final int DEFAULT_MAXIMUM_MULTIPLIER = 100;
-
-  static {
-    RetryOptions.Builder roBuilder =
-        new RetryOptions.Builder()
-            .setInitialInterval(RETRY_SERVICE_OPERATION_INITIAL_INTERVAL)
-            .setExpiration(RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL)
-            .setBackoffCoefficient(RETRY_SERVICE_OPERATION_BACKOFF);
-
-    Duration maxInterval = RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL.dividedBy(10);
-    if (maxInterval.compareTo(RETRY_SERVICE_OPERATION_INITIAL_INTERVAL) < 0) {
-      maxInterval = RETRY_SERVICE_OPERATION_INITIAL_INTERVAL;
-    }
-    roBuilder.setMaximumInterval(maxInterval);
-    roBuilder.setDoNotRetry(
-        BadRequestError.class,
-        EntityNotExistsError.class,
-        WorkflowExecutionAlreadyStartedError.class,
-        DomainAlreadyExistsError.class,
-        QueryFailedError.class,
-        DomainNotActiveError.class,
-        CancellationAlreadyRequestedError.class);
-    DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS = roBuilder.validateBuildWithDefaults();
-  }
 
   /**
    * Merges annotation with explicitly provided RetryOptions. If there is conflict RetryOptions
