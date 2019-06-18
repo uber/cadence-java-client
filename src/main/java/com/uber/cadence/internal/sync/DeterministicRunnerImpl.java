@@ -28,6 +28,7 @@ import com.uber.cadence.internal.replay.ContinueAsNewWorkflowExecutionParameters
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.internal.replay.ExecuteActivityParameters;
+import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
 import com.uber.cadence.workflow.Functions.Func;
@@ -48,7 +49,13 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
@@ -195,23 +202,34 @@ class DeterministicRunnerImpl implements DeterministicRunner {
       outerLoop:
       do {
         threadsToAdd.clear();
-        for (NamedRunnable nr : toExecuteInWorkflowThread) {
-          WorkflowThread thread =
-              new WorkflowThreadImpl(
-                  false,
-                  threadPool,
-                  this,
-                  nr.name,
-                  false,
-                  runnerCancellationScope,
-                  nr.runnable,
-                  cache);
+
+        if (!toExecuteInWorkflowThread.isEmpty()) {
+          List<WorkflowThread> callbackThreads = new ArrayList<>(toExecuteInWorkflowThread.size());
+          for (NamedRunnable nr : toExecuteInWorkflowThread) {
+            WorkflowThread thread =
+                new WorkflowThreadImpl(
+                    false,
+                    threadPool,
+                    this,
+                    nr.name,
+                    false,
+                    runnerCancellationScope,
+                    nr.runnable,
+                    cache);
+            callbackThreads.add(thread);
+          }
+
           // It is important to prepend threads as there are callbacks
           // like signals that have to run before any other threads.
           // Otherwise signal might be never processed if it was received
           // after workflow decided to close.
-          threads.addFirst(thread);
+          // Adding the callbacks in the same order as they appear in history.
+
+          for (int i = callbackThreads.size() - 1; i >= 0; i--) {
+            threads.addFirst(callbackThreads.get(i));
+          }
         }
+
         toExecuteInWorkflowThread.clear();
         progress = false;
         Iterator<WorkflowThread> ci = threads.iterator();
@@ -536,6 +554,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public Consumer<Exception> scheduleActivityTask(
         ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Consumer<Exception> scheduleLocalActivityTask(
+        ExecuteLocalActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
       throw new UnsupportedOperationException("not implemented");
     }
 

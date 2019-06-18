@@ -31,6 +31,8 @@ import com.uber.cadence.*;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
+import com.uber.cadence.activity.ActivityTask;
+import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -48,6 +50,7 @@ import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
@@ -113,7 +116,7 @@ public class WorkflowTest {
    */
   private static final boolean DEBUGGER_TIMEOUTS = false;
 
-  public static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
+  private static final String ANNOTATION_TASK_LIST = "WorkflowTest-testExecute[Docker]";
 
   private TracingWorkflowInterceptorFactory tracer;
   private static final boolean useDockerService =
@@ -124,9 +127,7 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (!useDockerService) {
-      return new Object[][] {
-        {false, "TestService Sticky Off", true}, {false, "TestService Sticky On", false}
-      };
+      return new Object[][] {{false, "TestService Sticky Off", true}};
     } else {
       return new Object[][] {
         {true, "Docker Sticky " + (stickyOff ? "OFF" : "ON"), stickyOff},
@@ -215,6 +216,18 @@ public class WorkflowTest {
           .setHeartbeatTimeout(Duration.ofSeconds(5))
           .setScheduleToStartTimeout(Duration.ofSeconds(5))
           .setStartToCloseTimeout(Duration.ofSeconds(10))
+          .build();
+    }
+  }
+
+  private static LocalActivityOptions newLocalActivityOptions1() {
+    if (DEBUGGER_TIMEOUTS) {
+      return new LocalActivityOptions.Builder()
+          .setScheduleToCloseTimeout(Duration.ofSeconds(1000))
+          .build();
+    } else {
+      return new LocalActivityOptions.Builder()
+          .setScheduleToCloseTimeout(Duration.ofSeconds(5))
           .build();
     }
   }
@@ -397,7 +410,7 @@ public class WorkflowTest {
         "executeActivity TestActivities::activity2");
   }
 
-  public static class TestActivityRetry implements TestWorkflow1 {
+  public static class TestActivityRetryWithMaxAttempts implements TestWorkflow1 {
 
     @Override
     @SuppressWarnings("Finally")
@@ -406,12 +419,9 @@ public class WorkflowTest {
           new ActivityOptions.Builder()
               .setTaskList(taskList)
               .setHeartbeatTimeout(Duration.ofSeconds(5))
-              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
-              .setScheduleToStartTimeout(Duration.ofSeconds(5))
-              .setStartToCloseTimeout(Duration.ofSeconds(10))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
               .setRetryOptions(
                   new RetryOptions.Builder()
-                      .setExpiration(Duration.ofSeconds(100))
                       .setMaximumInterval(Duration.ofSeconds(1))
                       .setInitialInterval(Duration.ofSeconds(1))
                       .setMaximumAttempts(3)
@@ -424,7 +434,7 @@ public class WorkflowTest {
         activities.heartbeatAndThrowIO();
       } finally {
         if (Workflow.currentTimeMillis() - start < 2000) {
-          throw new RuntimeException("Activity retried without delay");
+          fail("Activity retried without delay");
         }
       }
       return "ignored";
@@ -432,8 +442,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testActivityRetry() {
-    startWorkerFor(TestActivityRetry.class);
+  public void testActivityRetryWithMaxAttempts() {
+    startWorkerFor(TestActivityRetryWithMaxAttempts.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
@@ -444,6 +454,95 @@ public class WorkflowTest {
       assertTrue(e.getCause().getCause() instanceof IOException);
     }
     assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestActivityRetryWithExpiration implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      ActivityOptions options =
+          new ActivityOptions.Builder()
+              .setTaskList(taskList)
+              .setHeartbeatTimeout(Duration.ofSeconds(5))
+              .setScheduleToCloseTimeout(Duration.ofSeconds(3))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(3))
+                      .setMaximumInterval(Duration.ofSeconds(1))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class, options);
+      long start = Workflow.currentTimeMillis();
+      try {
+        activities.heartbeatAndThrowIO();
+      } finally {
+        if (Workflow.currentTimeMillis() - start < 2000) {
+          fail("Activity retried without delay");
+        }
+      }
+      return "ignored";
+    }
+  }
+
+  @Test
+  public void testActivityRetryWithExiration() {
+    startWorkerFor(TestActivityRetryWithExpiration.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().getCause() instanceof IOException);
+    }
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestLocalActivityRetry implements TestWorkflow1 {
+
+    @Override
+    @SuppressWarnings("Finally")
+    public String execute(String taskList) {
+      LocalActivityOptions options =
+          new LocalActivityOptions.Builder()
+              .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setExpiration(Duration.ofSeconds(100))
+                      .setMaximumInterval(Duration.ofSeconds(20))
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .setMaximumAttempts(5)
+                      .setDoNotRetry(AssertionError.class)
+                      .build())
+              .build();
+      TestActivities activities = Workflow.newLocalActivityStub(TestActivities.class, options);
+      activities.throwIO();
+
+      return "ignored";
+    }
+  }
+
+  @Test
+  public void testLocalActivityRetry() {
+    startWorkerFor(TestLocalActivityRetry.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class,
+            newWorkflowOptionsBuilder(taskList)
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+                .build());
+    try {
+      workflowStub.execute(taskList);
+      fail("unreachable");
+    } catch (WorkflowException e) {
+      assertTrue(e.getCause().getCause() instanceof IOException);
+    }
+    assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
+    assertEquals("last attempt", 5, activitiesImpl.getLastAttempt());
   }
 
   public static class TestActivityRetryOnTimeout implements TestWorkflow1 {
@@ -1226,6 +1325,32 @@ public class WorkflowTest {
     assertEquals("1234", stubP4.query());
     assertEquals("12345", stubP5.query());
     assertEquals("123456", stubP6.query());
+  }
+
+  @Test
+  public void testMemo() {
+    if (testEnvironment != null) {
+      String testMemoKey = "testKey";
+      String testMemoValue = "testValue";
+      Map<String, Object> memo = new HashMap<>();
+      memo.put(testMemoKey, testMemoValue);
+
+      startWorkerFor(TestMultiargsWorkflowsImpl.class);
+      WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).setMemo(memo).build();
+      TestMultiargsWorkflowsFunc stubF =
+          workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+      WorkflowExecution executionF = WorkflowClient.start(stubF::func);
+
+      GetWorkflowExecutionHistoryResponse historyResp =
+          WorkflowExecutionUtils.getHistoryPage(
+              new byte[] {}, testEnvironment.getWorkflowService(), DOMAIN, executionF);
+      HistoryEvent startEvent = historyResp.history.getEvents().get(0);
+      Memo memoFromEvent = startEvent.workflowExecutionStartedEventAttributes.getMemo();
+      byte[] memoBytes = memoFromEvent.getFields().get(testMemoKey).array();
+      String memoRetrieved =
+          JsonDataConverter.getInstance().fromData(memoBytes, String.class, String.class);
+      assertEquals(testMemoValue, memoRetrieved);
+    }
   }
 
   @Test
@@ -3104,6 +3229,8 @@ public class WorkflowTest {
 
   public interface TestActivities {
 
+    String sleepActivity(long milliseconds, int input);
+
     String activityWithDelay(long milliseconds, boolean heartbeatMoreThanOnce);
 
     String activity();
@@ -3166,6 +3293,7 @@ public class WorkflowTest {
     final AtomicInteger heartbeatCounter = new AtomicInteger();
     private final ThreadPoolExecutor executor =
         new ThreadPoolExecutor(0, 100, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
+    int lastAttempt;
 
     private TestActivitiesImpl(ActivityCompletionClient completionClient) {
       this.completionClient = completionClient;
@@ -3205,6 +3333,17 @@ public class WorkflowTest {
           });
       Activity.doNotCompleteOnReturn();
       return "ignored";
+    }
+
+    @Override
+    public String sleepActivity(long milliseconds, int input) {
+      try {
+        Thread.sleep(milliseconds);
+      } catch (InterruptedException e) {
+        throw Activity.wrap(new RuntimeException("interrupted"));
+      }
+      invocations.add("sleepActivity");
+      return "sleepActivity" + input;
     }
 
     @Override
@@ -3306,6 +3445,8 @@ public class WorkflowTest {
 
     @Override
     public void heartbeatAndThrowIO() {
+      ActivityTask task = Activity.getTask();
+      assertEquals(task.getAttempt(), heartbeatCounter.get());
       invocations.add("throwIO");
       Optional<Integer> heartbeatDetails = Activity.getHeartbeatDetails(int.class);
       assertEquals(heartbeatCounter.get(), (int) heartbeatDetails.orElse(0));
@@ -3320,6 +3461,7 @@ public class WorkflowTest {
 
     @Override
     public void throwIO() {
+      lastAttempt = Activity.getTask().getAttempt();
       invocations.add("throwIO");
       try {
         throw new IOException("simulated IO problem");
@@ -3347,6 +3489,10 @@ public class WorkflowTest {
     @Override
     public List<UUID> activityUUIDList(List<UUID> arg) {
       return arg;
+    }
+
+    public int getLastAttempt() {
+      return lastAttempt;
     }
   }
 
@@ -3728,6 +3874,61 @@ public class WorkflowTest {
         "sleep PT1S",
         "getVersion",
         "executeActivity customActivity1");
+  }
+
+  static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
+
+  public static class TestGetVersionWithoutDecisionEventWorkflowImpl
+      implements TestWorkflowSignaled {
+
+    CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
+
+    @Override
+    public String execute() {
+      try {
+        if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
+          // Execute getVersion in non-replay mode.
+          getVersionExecuted.add("getVersionWithoutDecisionEvent");
+          executionStarted.complete(true);
+          signalReceived.get();
+        } else {
+          // Execute getVersion in replay mode. In this case we have no decision event, only a
+          // signal.
+          int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+          if (version == Workflow.DEFAULT_VERSION) {
+            signalReceived.get();
+            return "result 1";
+          } else {
+            return "result 2";
+          }
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("failed to get from signal");
+      }
+
+      throw new RuntimeException("unreachable");
+    }
+
+    @Override
+    public void signal1(String arg) {
+      signalReceived.complete(true);
+    }
+  }
+
+  @Test
+  public void testGetVersionWithoutDecisionEvent() throws Exception {
+    Assume.assumeTrue("skipping as there will be no replay", disableStickyExecution);
+    executionStarted = new CompletableFuture<>();
+    getVersionExecuted.remove("getVersionWithoutDecisionEvent");
+    startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
+    TestWorkflowSignaled workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
+    WorkflowClient.start(workflowStub::execute);
+    executionStarted.get();
+    workflowStub.signal1("test signal");
+    String result = workflowStub.execute();
+    assertEquals("result 1", result);
   }
 
   // The following test covers the scenario where getVersion call is removed before a
@@ -4259,6 +4460,173 @@ public class WorkflowTest {
     Assert.assertEquals("some result", result);
   }
 
+  public static class TestLocalActivityWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
+      try {
+        localActivities.throwIO();
+      } catch (ActivityFailureException e) {
+        try {
+          assertTrue(e.getMessage().contains("TestActivities::throwIO"));
+          assertTrue(e.getCause() instanceof IOException);
+          assertEquals("simulated IO problem", e.getCause().getMessage());
+        } catch (AssertionError ae) {
+          // Errors cause decision to fail. But we want workflow to fail in this case.
+          throw new RuntimeException(ae);
+        }
+      }
+
+      String laResult = localActivities.activity2("test", 123);
+      TestActivities normalActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      laResult = normalActivities.activity2(laResult, 123);
+      return laResult;
+    }
+  }
+
+  @Test
+  public void testLocalActivity() {
+    startWorkerFor(TestLocalActivityWorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("test123123", result);
+    assertEquals(activitiesImpl.toString(), 3, activitiesImpl.invocations.size());
+  }
+
+  public static class TestLocalActivityMultiBatchWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
+      String result = "";
+      for (int i = 0; i < 5; i++) {
+        result += localActivities.sleepActivity(2000, i);
+      }
+      return result;
+    }
+  }
+
+  @Test
+  public void testLocalActivityMultipleBatches() {
+    startWorkerFor(TestLocalActivityMultiBatchWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(5))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+            .setTaskList(taskList)
+            .build();
+    TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, options);
+    String result = workflowStub.execute(taskList);
+    assertEquals("sleepActivity0sleepActivity1sleepActivity2sleepActivity3sleepActivity4", result);
+    assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
+  }
+
+  public static class TestParallelLocalActivityExecutionWorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
+      List<Promise<String>> results = new ArrayList<>(4);
+      for (int i = 1; i <= 4; i++) {
+        results.add(Async.function(localActivities::sleepActivity, (long) 1000 * i, i));
+      }
+
+      Promise<String> result2 =
+          Async.function(
+              () -> {
+                String result = "";
+                for (int i = 0; i < 3; i++) {
+                  result += localActivities.sleepActivity(1000, 21);
+                }
+                return result;
+              });
+
+      return results.get(0).get()
+          + results.get(1).get()
+          + results.get(2).get()
+          + results.get(3).get()
+          + result2.get();
+    }
+  }
+
+  @Test
+  public void testParallelLocalActivityExecutionWorkflow() {
+    startWorkerFor(TestParallelLocalActivityExecutionWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(5))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(5))
+            .setTaskList(taskList)
+            .build();
+    TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, options);
+    String result = workflowStub.execute(taskList);
+    assertEquals(
+        "sleepActivity1sleepActivity2sleepActivity3sleepActivity4sleepActivity21sleepActivity21sleepActivity21",
+        result);
+  }
+
+  public interface SignalOrderingWorkflow {
+    @WorkflowMethod
+    List<String> run();
+
+    @SignalMethod(name = "testSignal")
+    void signal(String s);
+  }
+
+  public static class SignalOrderingWorkflowImpl implements SignalOrderingWorkflow {
+    private List<String> signals = new ArrayList<>();
+
+    @Override
+    public List<String> run() {
+      Workflow.await(() -> signals.size() == 3);
+      return signals;
+    }
+
+    @Override
+    public void signal(String s) {
+      signals.add(s);
+    }
+  }
+
+  @Test
+  public void testSignalOrderingWorkflow() {
+    startWorkerFor(SignalOrderingWorkflowImpl.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(1))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(10))
+            .setTaskList(taskList)
+            .build();
+    SignalOrderingWorkflow workflowStub =
+        workflowClient.newWorkflowStub(SignalOrderingWorkflow.class, options);
+    WorkflowClient.start(workflowStub::run);
+
+    // Suspend polling so that all the signals will be received in the same decision task.
+    if (useExternalService) {
+      workerFactory.suspendPolling();
+    } else {
+      testEnvironment.getWorkerFactory().suspendPolling();
+    }
+
+    workflowStub.signal("test1");
+    workflowStub.signal("test2");
+    workflowStub.signal("test3");
+
+    if (useExternalService) {
+      workerFactory.resumePolling();
+    } else {
+      testEnvironment.getWorkerFactory().resumePolling();
+    }
+
+    List<String> result = workflowStub.run();
+    List<String> expected = Arrays.asList("test1", "test2", "test3");
+    assertEquals(expected, result);
+  }
+
   public static class TestWorkflowResetReplayWorkflow implements TestWorkflow1 {
     @Override
     public String execute(String taskList) {
@@ -4329,7 +4697,7 @@ public class WorkflowTest {
       return true;
     }
 
-    public List<String> getImpl() {
+    List<String> getImpl() {
       return impl;
     }
   }
@@ -4353,6 +4721,17 @@ public class WorkflowTest {
         ActivityOptions options) {
       trace.add("executeActivity " + activityName);
       return next.executeActivity(activityName, resultClass, resultType, args, options);
+    }
+
+    @Override
+    public <R> Promise<R> executeLocalActivity(
+        String activityName,
+        Class<R> resultClass,
+        Type resultType,
+        Object[] args,
+        LocalActivityOptions options) {
+      trace.add("executeLocalActivity " + activityName);
+      return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
     }
 
     @Override
