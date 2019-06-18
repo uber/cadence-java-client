@@ -2696,9 +2696,9 @@ public class WorkflowTest {
    */
   @Test
   public void testChildWorkflowRetryReplay() throws Exception {
-    if (!testName.getMethodName().equals("testChildWorkflowRetryReplay[Docker Sticky OFF]")) {
-      return;
-    }
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", stickyOff);
+
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testChildWorkflowRetryHistory.json", TestChildWorkflowRetryWorkflow.class);
   }
@@ -4682,9 +4682,9 @@ public class WorkflowTest {
     //    }
 
     // Avoid executing 4 times
-    if (!testName.getMethodName().equals("testWorkflowReset[Docker Sticky OFF]")) {
-      return;
-    }
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", stickyOff);
+
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "resetWorkflowHistory.json", TestWorkflowResetReplayWorkflow.class);
   }
