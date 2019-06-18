@@ -127,7 +127,7 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (!useDockerService) {
-      return new Object[][] {{false, "TestService Sticky Off", true}};
+      return new Object[][] {{false, "TestService Sticky OFF", true}};
     } else {
       return new Object[][] {
         {true, "Docker Sticky " + (stickyOff ? "OFF" : "ON"), stickyOff},
@@ -768,9 +768,9 @@ public class WorkflowTest {
   @Test
   public void testAsyncActivityRetryReplay() throws Exception {
     // Avoid executing 4 times
-    if (!testName.getMethodName().equals("testAsyncActivityRetryReplay[Docker Sticky OFF]")) {
-      return;
-    }
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", stickyOff);
+
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testAsyncActivityRetryHistory.json", TestAsyncActivityRetry.class);
   }
@@ -4633,7 +4633,11 @@ public class WorkflowTest {
       ChildWorkflowOptions workflowOptions =
           new ChildWorkflowOptions.Builder()
               .setTaskList(taskList)
-              .setRetryOptions(new RetryOptions.Builder().setMaximumAttempts(3).setInitialInterval(Duration.ofSeconds(1)).build())
+              .setRetryOptions(
+                  new RetryOptions.Builder()
+                      .setMaximumAttempts(3)
+                      .setInitialInterval(Duration.ofSeconds(1))
+                      .build())
               .build();
 
       ActivityOptions options =
@@ -4665,17 +4669,17 @@ public class WorkflowTest {
   @Test
   public void testWorkflowReset() throws Exception {
     // Leave the following code to generate history.
-//    startWorkerFor(TestWorkflowResetReplayWorkflow.class, TestMultiargsWorkflowsImpl.class);
-//    TestWorkflow1 workflowStub =
-//        workflowClient.newWorkflowStub(
-//            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
-//    workflowStub.execute(taskList);
-//
-//    try {
-//      Thread.sleep(60000000);
-//    } catch (InterruptedException e) {
-//      e.printStackTrace();
-//    }
+    //    startWorkerFor(TestWorkflowResetReplayWorkflow.class, TestMultiargsWorkflowsImpl.class);
+    //    TestWorkflow1 workflowStub =
+    //        workflowClient.newWorkflowStub(
+    //            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    //    workflowStub.execute(taskList);
+    //
+    //    try {
+    //      Thread.sleep(60000000);
+    //    } catch (InterruptedException e) {
+    //      e.printStackTrace();
+    //    }
 
     // Avoid executing 4 times
     if (!testName.getMethodName().equals("testWorkflowReset[Docker Sticky OFF]")) {

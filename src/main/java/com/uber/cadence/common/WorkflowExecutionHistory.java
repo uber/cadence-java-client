@@ -49,7 +49,7 @@ public final class WorkflowExecutionHistory {
     GsonBuilder gsonBuilder = new GsonBuilder();
     gsonBuilder.registerTypeAdapter(ByteBuffer.class, new ByteBufferJsonDeserializer());
     Gson gson = gsonBuilder.create();
-    Type eventsType = new TypeToken<List<HistoryEvent>>(){}.getType();
+    Type eventsType = new TypeToken<List<HistoryEvent>>() {}.getType();
     List<HistoryEvent> events = gson.fromJson(serialized, eventsType);
     checkHistory(events);
     return new WorkflowExecutionHistory(events);
@@ -76,7 +76,9 @@ public final class WorkflowExecutionHistory {
   }
 
   public WorkflowExecution getWorkflowExecution() {
-    return new WorkflowExecution().setWorkflowId("workflow_id_in_replay").setRunId("run_id_in_replay");
+    return new WorkflowExecution()
+        .setWorkflowId("workflow_id_in_replay")
+        .setRunId("run_id_in_replay");
   }
 
   public List<HistoryEvent> getEvents() {
