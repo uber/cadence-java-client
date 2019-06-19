@@ -229,7 +229,7 @@ public final class ClockDecisionContext {
       log.debug("Handle LocalActivityMarker for activity " + marker.getActivityId());
 
       decisions.recordMarker(
-          LOCAL_ACTIVITY_MARKER_NAME, marker.getHeader(), attributes.getDetails());
+          LOCAL_ACTIVITY_MARKER_NAME, marker.getHeader(dataConverter), attributes.getDetails());
 
       OpenRequestInfo<byte[], ActivityType> scheduled =
           pendingLaTasks.remove(marker.getActivityId());

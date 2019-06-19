@@ -190,7 +190,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
       MarkerRecordedEventAttributes attributes =
           new MarkerRecordedEventAttributes()
               .setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)
-              .setHeader(marker.getHeader())
+              .setHeader(marker.getHeader(options.getDataConverter()))
               .setDetails(marker.getResult());
       event.setMarkerRecordedEventAttributes(attributes);
       task.eventConsumer.accept(event);

@@ -24,7 +24,6 @@ import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.m3.util.ImmutableMap;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -188,8 +187,8 @@ public final class LocalActivityMarkerData {
     return headers.isCancelled;
   }
 
-  public Header getHeader() {
-    byte[] headerData = JsonDataConverter.getInstance().toData(headers);
+  public Header getHeader(DataConverter converter) {
+    byte[] headerData = converter.toData(headers);
     Header header = new Header();
     header.setFields(ImmutableMap.of(LOCAL_ACTIVITY_HEADER_KEY, ByteBuffer.wrap(headerData)));
     return header;
