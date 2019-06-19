@@ -127,7 +127,9 @@ public class WorkflowTest {
   @Parameters(name = "{1}")
   public static Object[] data() {
     if (!useDockerService) {
-      return new Object[][] {{false, "TestService Sticky OFF", true}};
+      return new Object[][] {
+        {false, "TestService Sticky OFF", true}, {false, "TestService Sticky ON", false}
+      };
     } else {
       return new Object[][] {
         {true, "Docker Sticky " + (stickyOff ? "OFF" : "ON"), stickyOff},
@@ -4581,6 +4583,67 @@ public class WorkflowTest {
     assertEquals(
         "sleepActivity1sleepActivity2sleepActivity3sleepActivity4sleepActivity21sleepActivity21sleepActivity21",
         result);
+  }
+
+  public interface TestWorkflowQuery {
+
+    @WorkflowMethod()
+    String execute(String taskList);
+
+    @QueryMethod()
+    String query();
+  }
+
+  public static final class TestLocalActivityAndQueryWorkflow implements TestWorkflowQuery {
+
+    String message = "initial value";
+
+    @Override
+    public String execute(String taskList) {
+
+      // Make sure decider is in the cache when we execute local activites.
+      TestActivities activities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      activities.activity();
+
+      TestActivities localActivities =
+          Workflow.newLocalActivityStub(TestActivities.class, newLocalActivityOptions1());
+      for (int i = 0; i < 3; i++) {
+        localActivities.sleepActivity(1000, i);
+        message = "run" + i;
+      }
+      return "done";
+    }
+
+    @Override
+    public String query() {
+      return message;
+    }
+  }
+
+  @Test
+  public void testLocalActivityAndQuery() throws InterruptedException {
+    startWorkerFor(TestLocalActivityAndQueryWorkflow.class);
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setExecutionStartToCloseTimeout(Duration.ofMinutes(5))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(10))
+            .setTaskList(taskList)
+            .build();
+    TestWorkflowQuery workflowStub =
+        workflowClient.newWorkflowStub(TestWorkflowQuery.class, options);
+    WorkflowClient.start(workflowStub::execute, taskList);
+
+    Thread.sleep(500);
+
+    String queryResult = workflowStub.query();
+    log.info("query result: " + queryResult);
+
+    String result = workflowStub.execute(taskList);
+    log.info("workflow output: " + result);
+
+    System.out.println(testEnvironment.getDiagnostics());
+    System.out.println(activitiesImpl.invocations);
   }
 
   public interface SignalOrderingWorkflow {
