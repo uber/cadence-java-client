@@ -215,7 +215,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           ctx -> {
             long scheduledEventId = decision.getData().scheduledEventId;
             decision.action(StateMachines.Action.START, ctx, pollRequest, 0);
-            ctx.addTimer(startRequest.getTaskStartToCloseTimeoutSeconds(),
+            ctx.addTimer(
+                startRequest.getTaskStartToCloseTimeoutSeconds(),
                 () -> timeoutDecisionTask(scheduledEventId),
                 "DecisionTask StartToCloseTimeout");
           });

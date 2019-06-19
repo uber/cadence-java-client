@@ -4634,6 +4634,9 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(TestWorkflowQuery.class, options);
     WorkflowClient.start(workflowStub::execute, taskList);
 
+    // Sleep for a while before querying, so that the first decision task is processed and cache is
+    // populated.
+    // This also makes sure that the query lands when the local activities are executing.
     Thread.sleep(500);
 
     String queryResult = workflowStub.query();
