@@ -4637,13 +4637,17 @@ public class WorkflowTest {
     Thread.sleep(500);
 
     String queryResult = workflowStub.query();
-    log.info("query result: " + queryResult);
+
+    if (disableStickyExecution) {
+      assertEquals("initial value", queryResult);
+    } else {
+      assertEquals("run2", queryResult);
+    }
 
     String result = workflowStub.execute(taskList);
     log.info("workflow output: " + result);
 
-    System.out.println(testEnvironment.getDiagnostics());
-    System.out.println(activitiesImpl.invocations);
+    activitiesImpl.assertInvocations("activity", "sleepActivity", "sleepActivity", "sleepActivity");
   }
 
   public interface SignalOrderingWorkflow {
