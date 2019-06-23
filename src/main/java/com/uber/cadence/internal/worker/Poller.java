@@ -118,12 +118,12 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public boolean isShutdown() {
-    return pollExecutor.isShutdown();
+    return pollExecutor.isShutdown() && taskExecutor.isShutdown();
   }
 
   @Override
   public boolean isTerminated() {
-    return pollExecutor.isTerminated();
+    return pollExecutor.isTerminated() && taskExecutor.isTerminated();
   }
 
   @Override

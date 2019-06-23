@@ -231,10 +231,12 @@ class WorkflowThreadImpl implements WorkflowThread {
     }
     context.setStatus(Status.RUNNING);
 
-    getDecisionContext()
-        .getMetricsScope()
-        .gauge(MetricsType.WORKFLOW_ACTIVE_THREAD_COUNT)
-        .update(((ThreadPoolExecutor) threadPool).getActiveCount());
+    if (System.currentTimeMillis() % 10 == 0) {
+      getDecisionContext()
+          .getMetricsScope()
+          .gauge(MetricsType.WORKFLOW_ACTIVE_THREAD_COUNT)
+          .update(((ThreadPoolExecutor) threadPool).getActiveCount());
+    }
 
     while (true) {
       try {

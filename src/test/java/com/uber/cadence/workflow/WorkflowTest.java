@@ -4537,6 +4537,8 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("sleepActivity0sleepActivity1sleepActivity2sleepActivity3sleepActivity4", result);
     assertEquals(activitiesImpl.toString(), 5, activitiesImpl.invocations.size());
+
+    System.out.println(System.currentTimeMillis());
   }
 
   public static class TestParallelLocalActivityExecutionWorkflowImpl implements TestWorkflow1 {
