@@ -29,12 +29,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class HistoryHelper {
-
-  private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
   /**
    * Events of a single decision. It includes all new events in the history since the last decision
@@ -242,9 +238,6 @@ class HistoryHelper {
               replay,
               replayCurrentTimeMilliseconds,
               nextDecisionEventId);
-      if (log.isTraceEnabled()) {
-        log.trace("DecisionEventsIterator next=" + result);
-      }
       return result;
     }
   }
