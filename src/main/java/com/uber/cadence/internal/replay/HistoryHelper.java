@@ -242,7 +242,9 @@ class HistoryHelper {
               replay,
               replayCurrentTimeMilliseconds,
               nextDecisionEventId);
-      log.debug("DecisionEventsIterator next=" + result);
+      if (log.isTraceEnabled()) {
+        log.trace("DecisionEventsIterator next=" + result);
+      }
       return result;
     }
   }

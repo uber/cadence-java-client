@@ -144,7 +144,9 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public void shutdownNow() {
-    log.info("shutdownNow poller=" + this.pollerOptions.getPollThreadNamePrefix());
+    if (log.isInfoEnabled()) {
+      log.info("shutdownNow poller=" + this.pollerOptions.getPollThreadNamePrefix());
+    }
     if (!isStarted()) {
       return;
     }
