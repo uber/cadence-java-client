@@ -154,8 +154,8 @@ public final class ClockDecisionContext {
       if (scheduled != null) {
         // Server doesn't guarantee that the timer fire timestamp is larger or equal of the
         // expected fire time. So fix the time or timer firing will be ignored.
-        long firingTime = scheduled.getUserContext().longValue();
-        if (firingTime < currentTimeMillis()) {
+        long firingTime = scheduled.getUserContext();
+        if (replayCurrentTimeMilliseconds < firingTime) {
           setReplayCurrentTimeMilliseconds(firingTime);
         }
         BiConsumer<?, Exception> completionCallback = scheduled.getCompletionCallback();
