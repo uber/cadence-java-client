@@ -461,11 +461,17 @@ class WorkflowThreadImpl implements WorkflowThread {
     /** @return true if condition matched or timed out */
     @Override
     public Boolean get() {
+      log.info("get start");
       boolean result = unblockCondition.get();
       if (result) {
+        log.info("get start result==true");
+
         return true;
       }
+
       timedOut = WorkflowInternal.currentTimeMillis() >= blockedUntil;
+      log.info("get timedOut=" + timedOut + ", current=" + WorkflowInternal.currentTimeMillis() + ", blockedUntil=" + blockedUntil);
+
       return timedOut;
     }
   }
