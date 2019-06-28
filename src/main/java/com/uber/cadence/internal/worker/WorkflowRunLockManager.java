@@ -47,10 +47,14 @@ final class WorkflowRunLockManager {
   private final Lock mapLock = new ReentrantLock();
   private final HashMap<String, CountableLock> perRunLock = new HashMap<>();
 
-  // This method returns a lock that can be used to serialize decision task processing for a
-  // particular workflow
-  // run. This is used to make sure that query tasks and real decision tasks are serialized when
-  // sticky is on.
+  /**
+   * This method returns a lock that can be used to serialize decision task processing for a
+   * particular workflow run. This is used to make sure that query tasks and real decision tasks are
+   * serialized when sticky is on.
+   *
+   * @param runId
+   * @return a lock to be used during decision task processing
+   */
   Lock getLockForLocking(String runId) {
     mapLock.lock();
 
