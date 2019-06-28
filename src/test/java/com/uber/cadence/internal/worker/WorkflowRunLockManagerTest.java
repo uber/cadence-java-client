@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,25 +36,29 @@ public class WorkflowRunLockManagerTest {
 
   @Test
   public void lockAndUnlockTest() throws ExecutionException, InterruptedException {
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    ConcurrentLinkedQueue<Integer> finishedTasks = new ConcurrentLinkedQueue<>();
-    Future<?> f1 = executor.submit(() -> finishedTasks.add(processTask("test", 1)));
+    ExecutorService executor = Executors.newFixedThreadPool(4);
+    ConcurrentLinkedQueue<String> finishedTasks = new ConcurrentLinkedQueue<>();
+    Future<?> f1 = executor.submit(() -> finishedTasks.add(processTask("run1", 1)));
     Thread.sleep(100);
-    Future<?> f2 = executor.submit(() -> finishedTasks.add(processTask("test", 2)));
+    Future<?> f3 = executor.submit(() -> finishedTasks.add(processTask("run1", 2)));
+    Future<?> f2 = executor.submit(() -> finishedTasks.add(processTask("run2", 1)));
     Thread.sleep(100);
-    Future<?> f3 = executor.submit(() -> finishedTasks.add(processTask("test", 3)));
+    Future<?> f4 = executor.submit(() -> finishedTasks.add(processTask("run1", 3)));
+
     f1.get();
     f2.get();
     f3.get();
+    f4.get();
+
     log.info("All done.");
     assertEquals(0, runLockManager.totalLocks());
-    Integer[] expectedTasks = {1, 2, 3};
-    Integer[] processedTasks = new Integer[3];
+    String[] expectedTasks = {"run1.1", "run2.1", "run1.2", "run1.3"};
+    String[] processedTasks = new String[4];
     assertArrayEquals(expectedTasks, finishedTasks.toArray(processedTasks));
   }
 
-  private int processTask(String runId, int taskId) {
-    ReentrantLock runLock = runLockManager.getLockForLocking(runId);
+  private String processTask(String runId, int taskId) {
+    Lock runLock = runLockManager.getLockForLocking(runId);
     runLock.lock();
 
     log.info("Got lock runId " + runId + " taskId " + taskId);
@@ -66,6 +70,6 @@ public class WorkflowRunLockManagerTest {
       runLockManager.unlock(runId);
     }
     log.info("Finished processing runId " + runId + " taskId " + taskId);
-    return taskId;
+    return runId + "." + taskId;
   }
 }

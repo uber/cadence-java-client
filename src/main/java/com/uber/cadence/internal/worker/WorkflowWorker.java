@@ -47,7 +47,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
@@ -247,7 +247,7 @@ public final class WorkflowWorker
       MDC.put(LoggerTag.WORKFLOW_TYPE, task.getWorkflowType().getName());
       MDC.put(LoggerTag.RUN_ID, task.getWorkflowExecution().getRunId());
 
-      ReentrantLock runLock = null;
+      Lock runLock = null;
       if (!Strings.isNullOrEmpty(stickyTaskListName)) {
         runLock = runLocks.getLockForLocking(task.getWorkflowExecution().getRunId());
         runLock.lock();

@@ -18,18 +18,14 @@
 package com.uber.cadence.internal.worker;
 
 import java.util.HashMap;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 final class WorkflowRunLockManager {
 
   private static class CountableLock {
-    private ReentrantLock lock;
-    private int count;
-
-    CountableLock() {
-      this.lock = new ReentrantLock();
-      this.count = 1;
-    }
+    private final Lock lock = new ReentrantLock();
+    private int count = 1;
 
     void incrementCount() {
       count++;
@@ -43,25 +39,28 @@ final class WorkflowRunLockManager {
       return count;
     }
 
-    ReentrantLock getLock() {
+    Lock getLock() {
       return lock;
     }
   }
 
-  private final ReentrantLock mapLock = new ReentrantLock();
+  private final Lock mapLock = new ReentrantLock();
   private final HashMap<String, CountableLock> perRunLock = new HashMap<>();
 
-  ReentrantLock getLockForLocking(String runId) {
+  // This method returns a lock that can be used to serialize decision task processing for a
+  // particular workflow
+  // run. This is used to make sure that query tasks and real decision tasks are serialized when
+  // sticky is on.
+  Lock getLockForLocking(String runId) {
     mapLock.lock();
 
     try {
-      CountableLock cl;
-      if (perRunLock.containsKey(runId)) {
-        cl = perRunLock.get(runId);
-        cl.incrementCount();
-      } else {
+      CountableLock cl = perRunLock.get(runId);
+      if (cl == null) {
         cl = new CountableLock();
         perRunLock.put(runId, cl);
+      } else {
+        cl.incrementCount();
       }
 
       return cl.getLock();
