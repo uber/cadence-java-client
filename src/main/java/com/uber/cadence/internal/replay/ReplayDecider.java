@@ -51,8 +51,6 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
@@ -77,7 +75,6 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
   private final Scope metricsScope;
   private final long wfStartTimeNanos;
   private final WorkflowExecutionStartedEventAttributes startedEvent;
-  private Lock inProcessing = new ReentrantLock();
 
   ReplayDecider(
       IWorkflowService service,
@@ -356,14 +353,8 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   @Override
   public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
-    inProcessing.lock();
-
-    try {
-      boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
-      return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
-    } finally {
-      inProcessing.unlock();
-    }
+    boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
+    return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
   }
 
   // Returns boolean to indicate whether we need to force create new decision task for local
@@ -547,15 +538,9 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   @Override
   public byte[] query(PollForDecisionTaskResponse response, WorkflowQuery query) throws Throwable {
-    inProcessing.lock();
-
-    try {
-      AtomicReference<byte[]> result = new AtomicReference<>();
-      decideImpl(response, () -> result.set(workflow.query(query)));
-      return result.get();
-    } finally {
-      inProcessing.unlock();
-    }
+    AtomicReference<byte[]> result = new AtomicReference<>();
+    decideImpl(response, () -> result.set(workflow.query(query)));
+    return result.get();
   }
 
   @Override
