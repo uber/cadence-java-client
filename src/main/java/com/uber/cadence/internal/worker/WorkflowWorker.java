@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
@@ -63,6 +64,7 @@ public final class WorkflowWorker
   private final String domain;
   private final String taskList;
   private final SingleWorkerOptions options;
+  private final String stickyTaskListName;
   private final WorkflowRunLockManager runLocks = new WorkflowRunLockManager();
 
   public WorkflowWorker(
@@ -70,11 +72,13 @@ public final class WorkflowWorker
       String domain,
       String taskList,
       SingleWorkerOptions options,
-      DecisionTaskHandler handler) {
+      DecisionTaskHandler handler,
+      String stickyTaskListName) {
     this.service = Objects.requireNonNull(service);
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
+    this.stickyTaskListName = stickyTaskListName;
 
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
@@ -243,8 +247,11 @@ public final class WorkflowWorker
       MDC.put(LoggerTag.WORKFLOW_TYPE, task.getWorkflowType().getName());
       MDC.put(LoggerTag.RUN_ID, task.getWorkflowExecution().getRunId());
 
-      ReentrantLock runLock = runLocks.getLockForLocking(task.getWorkflowExecution().getRunId());
-      runLock.lock();
+      ReentrantLock runLock = null;
+      if (!Strings.isNullOrEmpty(stickyTaskListName)) {
+        runLock = runLocks.getLockForLocking(task.getWorkflowExecution().getRunId());
+        runLock.lock();
+      }
 
       try {
         Stopwatch sw = metricsScope.timer(MetricsType.DECISION_EXECUTION_LATENCY).start();
@@ -260,7 +267,10 @@ public final class WorkflowWorker
         MDC.remove(LoggerTag.WORKFLOW_ID);
         MDC.remove(LoggerTag.WORKFLOW_TYPE);
         MDC.remove(LoggerTag.RUN_ID);
-        runLocks.unlock(task.getWorkflowExecution().getRunId());
+
+        if (runLock != null) {
+          runLocks.unlock(task.getWorkflowExecution().getRunId());
+        }
       }
     }
 
