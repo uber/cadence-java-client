@@ -375,4 +375,12 @@ final class WorkflowDecisionContext {
       }
     }
   }
+
+  long getScheduleTimeMillis() {
+    return workflowContext.getScheduleTimeMillis();
+  }
+
+  long getExecutionTimeMillis() {
+    return workflowContext.getExecutionTimeMillis();
+  }
 }

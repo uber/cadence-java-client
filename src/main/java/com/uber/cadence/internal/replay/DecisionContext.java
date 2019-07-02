@@ -179,4 +179,10 @@ public interface DecisionContext extends ReplayAware {
 
   /** @return replay safe UUID */
   UUID randomUUID();
+
+  /** @return schedule time of the workflow execution. */
+  long getScheduleTimeMillis();
+
+  /** @return start time of the workflow execution. */
+  long getExecutionTimeMillis();
 }

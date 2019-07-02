@@ -17,7 +17,12 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.*;
+import com.uber.cadence.ChildPolicy;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowType;
+import java.util.concurrent.TimeUnit;
 
 final class WorkflowContext {
 
@@ -130,5 +135,15 @@ final class WorkflowContext {
 
   String getCurrentRunId() {
     return currentRunId;
+  }
+
+  long getScheduleTimeMillis() {
+    return TimeUnit.NANOSECONDS.toMillis(
+        decisionTask.getHistory().getEvents().get(0).getTimestamp());
+  }
+
+  long getExecutionTimeMillis() {
+    return TimeUnit.NANOSECONDS.toMillis(
+        decisionTask.getHistory().getEvents().get(1).getTimestamp());
   }
 }

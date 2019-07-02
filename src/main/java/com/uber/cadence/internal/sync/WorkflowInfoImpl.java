@@ -64,4 +64,14 @@ final class WorkflowInfoImpl implements WorkflowInfo {
   public ChildPolicy getChildPolicy() {
     return context.getChildPolicy();
   }
+
+  @Override
+  public long getScheduleTimeMillis() {
+    return context.getScheduleTimeMillis();
+  }
+
+  @Override
+  public long getExecutionTimeMillis() {
+    return context.getExecutionTimeMillis();
+  }
 }

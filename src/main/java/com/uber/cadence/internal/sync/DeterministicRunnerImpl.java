@@ -648,5 +648,15 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     public UUID randomUUID() {
       return UUID.randomUUID();
     }
+
+    @Override
+    public long getScheduleTimeMillis() {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public long getExecutionTimeMillis() {
+      throw new UnsupportedOperationException("not implemented");
+    }
   }
 }
