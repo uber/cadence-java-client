@@ -57,9 +57,13 @@ final class ActivityPollTask implements Poller.PollTask<ActivityWorker.Measurabl
     pollRequest.setDomain(domain);
     pollRequest.setIdentity(options.getIdentity());
     pollRequest.setTaskList(new TaskList().setName(taskList));
-    TaskListMetadata metadata = new TaskListMetadata();
-    metadata.setMaxTasksPerSecond(options.getTaskListActivitiesPerSecond());
-    pollRequest.setTaskListMetadata(metadata);
+
+    if (options.getTaskListActivitiesPerSecond() > 0) {
+      TaskListMetadata metadata = new TaskListMetadata();
+      metadata.setMaxTasksPerSecond(options.getTaskListActivitiesPerSecond());
+      pollRequest.setTaskListMetadata(metadata);
+    }
+
     if (log.isDebugEnabled()) {
       log.debug("poll request begin: " + pollRequest);
     }
