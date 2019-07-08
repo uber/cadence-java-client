@@ -26,6 +26,7 @@ import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.internal.common.RetryParameters;
 import com.uber.cadence.internal.replay.ActivityTaskFailedException;
 import com.uber.cadence.internal.replay.ActivityTaskTimeoutException;
@@ -83,7 +84,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
   private final byte[] lastCompletionResult;
 
-  public SyncDecisionContext(
+  @FunctionalInterface
+  public interface ActivityExecutor {
+    Promise<byte[]> getResult(byte[] input);
+  }
+
+  SyncDecisionContext(
       DecisionContext context,
       DataConverter converter,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
@@ -127,19 +133,51 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     if (retryOptions != null && !context.isServerSideActivityRetry()) {
       return WorkflowRetryerInternal.retryAsync(
           retryOptions,
-          () -> executeActivityOnce(activityName, options, args, resultClass, resultType));
+          () ->
+              executeActivityOnce(
+                  activityName,
+                  args,
+                  resultClass,
+                  resultType,
+                  input -> executeActivityOnce(activityName, options, input)));
     }
-    return executeActivityOnce(activityName, options, args, resultClass, resultType);
+    return executeActivityOnce(
+        activityName,
+        args,
+        resultClass,
+        resultType,
+        input -> executeActivityOnce(activityName, options, input));
   }
 
   private <T> Promise<T> executeActivityOnce(
-      String name, ActivityOptions options, Object[] args, Class<T> returnClass, Type returnType) {
-    byte[] input = converter.toData(args);
-    Promise<byte[]> binaryResult = executeActivityOnce(name, options, input);
+      String name,
+      Object[] args,
+      Class<T> returnClass,
+      Type returnType,
+      ActivityExecutor executor) {
+    byte[] input;
+    try {
+      input = converter.toData(args);
+    } catch (DataConverterException e) {
+      CompletablePromise<T> result = Workflow.newPromise();
+      result.completeExceptionally(
+          new ActivityFailureException(new ActivityType().setName(name), e));
+      return result;
+    }
+
+    Promise<byte[]> binaryResult = executor.getResult(input);
+
     if (returnClass == Void.TYPE) {
       return binaryResult.thenApply((r) -> null);
     }
-    return binaryResult.thenApply((r) -> converter.fromData(r, returnClass, returnType));
+    return binaryResult.thenApply(
+        (r) -> {
+          try {
+            return converter.fromData(r, returnClass, returnType);
+          } catch (DataConverterException e) {
+            throw new ActivityFailureException(new ActivityType().setName(name), e);
+          }
+        });
   }
 
   private Promise<byte[]> executeActivityOnce(String name, ActivityOptions options, byte[] input) {
@@ -237,32 +275,16 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     long startTime = WorkflowInternal.currentTimeMillis();
     return WorkflowRetryerInternal.retryAsync(
         (attempt, currentStart) ->
-            executeLocalActivityOnce(
+            executeActivityOnce(
                 activityName,
-                options,
                 args,
                 resultClass,
                 resultType,
-                currentStart - startTime,
-                attempt),
+                input ->
+                    executeLocalActivityOnce(
+                        activityName, options, input, currentStart - startTime, attempt)),
         1,
         startTime);
-  }
-
-  private <T> Promise<T> executeLocalActivityOnce(
-      String name,
-      LocalActivityOptions options,
-      Object[] args,
-      Class<T> returnClass,
-      Type returnType,
-      long elapsed,
-      int attempt) {
-    byte[] input = converter.toData(args);
-    Promise<byte[]> binaryResult = executeLocalActivityOnce(name, options, input, elapsed, attempt);
-    if (returnClass == Void.TYPE) {
-      return binaryResult.thenApply((r) -> null);
-    }
-    return binaryResult.thenApply((r) -> converter.fromData(r, returnClass, returnType));
   }
 
   private Promise<byte[]> executeLocalActivityOnce(

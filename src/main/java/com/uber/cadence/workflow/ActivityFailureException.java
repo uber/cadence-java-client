@@ -29,6 +29,11 @@ public final class ActivityFailureException extends ActivityException {
   private int attempt;
   private Duration backoff;
 
+  public ActivityFailureException(ActivityType activityType, Throwable cause) {
+    super("ActivityFailureException", -1, activityType, "");
+    initCause(cause);
+  }
+
   public ActivityFailureException(
       long eventId, ActivityType activityType, String activityId, Throwable cause) {
     super("ActivityFailureException", eventId, activityType, activityId);
