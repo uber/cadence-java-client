@@ -28,7 +28,9 @@ import com.google.gson.TypeAdapterFactory;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.google.protobuf.GeneratedMessageV3;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
@@ -88,6 +90,11 @@ public final class JsonDataConverter implements DataConverter {
     try {
       if (values.length == 1) {
         Object value = values[0];
+        if (value instanceof GeneratedMessageV3) {
+          GeneratedMessageV3 protoObj = (GeneratedMessageV3) value;
+          return protoObj.toByteArray();
+        }
+
         String json = gson.toJson(value);
         return json.getBytes(StandardCharsets.UTF_8);
       }
@@ -101,12 +108,18 @@ public final class JsonDataConverter implements DataConverter {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public <T> T fromData(byte[] content, Class<T> valueClass, Type valueType)
       throws DataConverterException {
     if (content == null) {
       return null;
     }
     try {
+      if (GeneratedMessageV3.class.isAssignableFrom(valueClass)) {
+        Method m = valueClass.getMethod("parseFrom", byte[].class);
+        return (T) m.invoke(null, content);
+      }
+
       return gson.fromJson(new String(content, StandardCharsets.UTF_8), valueType);
     } catch (Exception e) {
       throw new DataConverterException(content, new Type[] {valueType}, e);
