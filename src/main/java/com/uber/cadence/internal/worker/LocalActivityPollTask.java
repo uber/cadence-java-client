@@ -36,7 +36,7 @@ final class LocalActivityPollTask
     try {
       return pendingTasks.take();
     } catch (InterruptedException e) {
-      throw new RuntimeException("local activity poll task interrupted");
+      throw new RuntimeException("local activity poll task interrupted", e);
     }
   }
 
