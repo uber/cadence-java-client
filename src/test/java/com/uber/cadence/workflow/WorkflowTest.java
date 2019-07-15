@@ -4936,8 +4936,7 @@ public class WorkflowTest {
 
   public static class TestCompensationWorkflowImpl implements TestCompensationWorkflow {
     @Override
-    public void compensate() {
-    }
+    public void compensate() {}
   }
 
   public static class TestSagaWorkflowImpl implements TestWorkflow1 {
@@ -4964,9 +4963,10 @@ public class WorkflowTest {
         saga.addCompensation(() -> compensationWorkflow.compensate());
 
         testActivities.throwIO();
-        saga.addCompensation(() -> {
-          throw new RuntimeException("unreachable");
-        });
+        saga.addCompensation(
+            () -> {
+              throw new RuntimeException("unreachable");
+            });
       } catch (Exception e) {
         saga.compensate();
       }
@@ -4976,9 +4976,13 @@ public class WorkflowTest {
 
   @Test
   public void testSaga() {
-    startWorkerFor(TestSagaWorkflowImpl.class, TestMultiargsWorkflowsFuncImpl.class, TestCompensationWorkflowImpl.class);
+    startWorkerFor(
+        TestSagaWorkflowImpl.class,
+        TestMultiargsWorkflowsFuncImpl.class,
+        TestCompensationWorkflowImpl.class);
     TestWorkflow1 sagaWorkflow =
-        workflowClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     sagaWorkflow.execute(taskList);
     tracer.setExpected(
         "executeActivity customActivity1",
