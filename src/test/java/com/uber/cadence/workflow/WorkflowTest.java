@@ -4921,6 +4921,73 @@ public class WorkflowTest {
     }
   }
 
+  public interface TestCompensationWorkflow {
+    @WorkflowMethod
+    void compensate();
+  }
+
+  public static class TestMultiargsWorkflowsFuncImpl implements TestMultiargsWorkflowsFunc {
+
+    @Override
+    public String func() {
+      return "done";
+    }
+  }
+
+  public static class TestCompensationWorkflowImpl implements TestCompensationWorkflow {
+    @Override
+    public void compensate() {
+    }
+  }
+
+  public static class TestSagaWorkflowImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+
+      ChildWorkflowOptions workflowOptions =
+          new ChildWorkflowOptions.Builder().setTaskList(taskList).build();
+      TestMultiargsWorkflowsFunc stubF1 =
+          Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+
+      Saga saga = new Saga(false);
+      try {
+        testActivities.activity1(10);
+        saga.addCompensation(() -> testActivities.activity1(-10));
+
+        stubF1.func();
+
+        TestCompensationWorkflow compensationWorkflow =
+            Workflow.newChildWorkflowStub(TestCompensationWorkflow.class, workflowOptions);
+        saga.addCompensation(() -> compensationWorkflow.compensate());
+
+        testActivities.throwIO();
+        saga.addCompensation(() -> {
+          throw new RuntimeException("unreachable");
+        });
+      } catch (ActivityFailureException e) {
+        saga.compensate();
+      }
+      return "done";
+    }
+  }
+
+  @Test
+  public void testSaga() {
+    startWorkerFor(TestSagaWorkflowImpl.class, TestMultiargsWorkflowsFuncImpl.class, TestCompensationWorkflowImpl.class);
+    TestWorkflow1 sagaWorkflow =
+        workflowClient.newWorkflowStub(TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    sagaWorkflow.execute(taskList);
+    tracer.setExpected(
+        "executeActivity customActivity1",
+        "executeChildWorkflow TestMultiargsWorkflowsFunc::func",
+        "executeActivity TestActivities::throwIO",
+        "executeChildWorkflow TestCompensationWorkflow::compensate",
+        "executeActivity customActivity1");
+  }
+
   private static class TracingWorkflowInterceptor implements WorkflowInterceptor {
 
     private final FilteredTrace trace;
