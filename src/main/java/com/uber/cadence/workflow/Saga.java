@@ -17,7 +17,6 @@ public final class Saga {
     compensations.addFirst(func);
   }
 
-
   public void compensate() {
     if (parallelCompensation) {
       List<Promise<Void>> results = new ArrayList<>();

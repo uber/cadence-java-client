@@ -4967,7 +4967,7 @@ public class WorkflowTest {
         saga.addCompensation(() -> {
           throw new RuntimeException("unreachable");
         });
-      } catch (ActivityFailureException e) {
+      } catch (Exception e) {
         saga.compensate();
       }
       return "done";
