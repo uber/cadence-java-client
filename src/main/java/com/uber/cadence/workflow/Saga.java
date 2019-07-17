@@ -17,13 +17,12 @@
 
 package com.uber.cadence.workflow;
 
-import com.uber.cadence.client.BatchRequest;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Saga implements BatchRequest {
+public final class Saga {
   private final Options options;
-  private final List<Functions.Func<Promise>> requests = new ArrayList<>();
+  private final List<Functions.Func<Promise>> compensationOps = new ArrayList<>();
 
   public static final class Options {
     private final boolean parallelCompensation;
@@ -54,6 +53,12 @@ public final class Saga implements BatchRequest {
     }
   }
 
+  public static class CompensationException extends RuntimeException {
+    public CompensationException(Throwable cause) {
+      super("Exception from saga compensate", cause);
+    }
+  }
+
   public Saga(Options options) {
     this.options = options;
   }
@@ -61,17 +66,17 @@ public final class Saga implements BatchRequest {
   public void compensate() {
     if (options.parallelCompensation) {
       List<Promise> results = new ArrayList<>();
-      for (Functions.Func<Promise> f : requests) {
+      for (Functions.Func<Promise> f : compensationOps) {
         results.add(f.apply());
       }
 
-      RuntimeException sagaException = null;
+      CompensationException sagaException = null;
       for (Promise p : results) {
         try {
           p.get();
         } catch (Exception e) {
           if (sagaException == null) {
-            sagaException = new RuntimeException("Exception from saga compensate", e);
+            sagaException = new CompensationException(e);
           } else {
             sagaException.addSuppressed(e);
           }
@@ -82,8 +87,8 @@ public final class Saga implements BatchRequest {
         throw sagaException;
       }
     } else {
-      for (int i = requests.size() - 1; i >= 0; i--) {
-        Functions.Func<Promise> f = requests.get(i);
+      for (int i = compensationOps.size() - 1; i >= 0; i--) {
+        Functions.Func<Promise> f = compensationOps.get(i);
         try {
           Promise result = f.apply();
           result.get();
@@ -96,91 +101,213 @@ public final class Saga implements BatchRequest {
     }
   }
 
-  @Override
-  public void add(Functions.Proc request) {
-    requests.add(() -> Async.procedure(request));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   */
+  public void addCompensation(Functions.Proc operation) {
+    compensationOps.add(() -> Async.procedure(operation));
   }
 
-  @Override
-  public <A1> void add(Functions.Proc1<A1> request, A1 arg1) {
-    requests.add(() -> Async.procedure(request, arg1));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   */
+  public <A1> void addCompensation(Functions.Proc1<A1> operation, A1 arg1) {
+    compensationOps.add(() -> Async.procedure(operation, arg1));
   }
 
-  @Override
-  public <A1, A2> void add(Functions.Proc2<A1, A2> request, A1 arg1, A2 arg2) {
-    requests.add(() -> Async.procedure(request, arg1, arg2));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   */
+  public <A1, A2> void addCompensation(Functions.Proc2<A1, A2> operation, A1 arg1, A2 arg2) {
+    compensationOps.add(() -> Async.procedure(operation, arg1, arg2));
   }
 
-  @Override
-  public <A1, A2, A3> void add(Functions.Proc3<A1, A2, A3> request, A1 arg1, A2 arg2, A3 arg3) {
-    requests.add(() -> Async.procedure(request, arg1, arg2, arg3));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   */
+  public <A1, A2, A3> void addCompensation(
+      Functions.Proc3<A1, A2, A3> operation, A1 arg1, A2 arg2, A3 arg3) {
+    compensationOps.add(() -> Async.procedure(operation, arg1, arg2, arg3));
   }
 
-  @Override
-  public <A1, A2, A3, A4> void add(
-      Functions.Proc4<A1, A2, A3, A4> request, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    requests.add(() -> Async.procedure(request, arg1, arg2, arg3, arg4));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   */
+  public <A1, A2, A3, A4> void addCompensation(
+      Functions.Proc4<A1, A2, A3, A4> operation, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    compensationOps.add(() -> Async.procedure(operation, arg1, arg2, arg3, arg4));
   }
 
-  @Override
-  public <A1, A2, A3, A4, A5> void add(
-      Functions.Proc5<A1, A2, A3, A4, A5> request, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-    requests.add(() -> Async.procedure(request, arg1, arg2, arg3, arg4, arg5));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   * @param arg5 fifth operation function parameter
+   */
+  public <A1, A2, A3, A4, A5> void addCompensation(
+      Functions.Proc5<A1, A2, A3, A4, A5> operation, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    compensationOps.add(() -> Async.procedure(operation, arg1, arg2, arg3, arg4, arg5));
   }
 
-  @Override
-  public <A1, A2, A3, A4, A5, A6> void add(
-      Functions.Proc6<A1, A2, A3, A4, A5, A6> request,
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   * @param arg5 fifth operation function parameter
+   * @param arg6 sixth operation function parameter
+   */
+  public <A1, A2, A3, A4, A5, A6> void addCompensation(
+      Functions.Proc6<A1, A2, A3, A4, A5, A6> operation,
       A1 arg1,
       A2 arg2,
       A3 arg3,
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    requests.add(() -> Async.procedure(request, arg1, arg2, arg3, arg4, arg5, arg6));
+    compensationOps.add(() -> Async.procedure(operation, arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  @Override
-  public void add(Functions.Func<?> request) {
-    requests.add(() -> Async.function(request));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   */
+  public void addCompensation(Functions.Func<?> operation) {
+    compensationOps.add(() -> Async.function(operation));
   }
 
-  @Override
-  public <A1> void add(Functions.Func1<A1, ?> request, A1 arg1) {
-    requests.add(() -> Async.function(request, arg1));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   */
+  public <A1> void addCompensation(Functions.Func1<A1, ?> operation, A1 arg1) {
+    compensationOps.add(() -> Async.function(operation, arg1));
   }
 
-  @Override
-  public <A1, A2> void add(Functions.Func2<A1, A2, ?> request, A1 arg1, A2 arg2) {
-    requests.add(() -> Async.function(request, arg1, arg2));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   */
+  public <A1, A2> void addCompensation(Functions.Func2<A1, A2, ?> operation, A1 arg1, A2 arg2) {
+    compensationOps.add(() -> Async.function(operation, arg1, arg2));
   }
 
-  @Override
-  public <A1, A2, A3> void add(Functions.Func3<A1, A2, A3, ?> request, A1 arg1, A2 arg2, A3 arg3) {
-    requests.add(() -> Async.function(request, arg1, arg2, arg3));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   */
+  public <A1, A2, A3> void addCompensation(
+      Functions.Func3<A1, A2, A3, ?> operation, A1 arg1, A2 arg2, A3 arg3) {
+    compensationOps.add(() -> Async.function(operation, arg1, arg2, arg3));
   }
 
-  @Override
-  public <A1, A2, A3, A4> void add(
-      Functions.Func4<A1, A2, A3, A4, ?> request, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
-    requests.add(() -> Async.function(request, arg1, arg2, arg3, arg4));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   */
+  public <A1, A2, A3, A4> void addCompensation(
+      Functions.Func4<A1, A2, A3, A4, ?> operation, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    compensationOps.add(() -> Async.function(operation, arg1, arg2, arg3, arg4));
   }
 
-  @Override
-  public <A1, A2, A3, A4, A5> void add(
-      Functions.Func5<A1, A2, A3, A4, A5, ?> request, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
-    requests.add(() -> Async.function(request, arg1, arg2, arg3, arg4, arg5));
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   * @param arg5 fifth operation function parameter
+   */
+  public <A1, A2, A3, A4, A5> void addCompensation(
+      Functions.Func5<A1, A2, A3, A4, A5, ?> operation,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5) {
+    compensationOps.add(() -> Async.function(operation, arg1, arg2, arg3, arg4, arg5));
   }
 
-  @Override
-  public <A1, A2, A3, A4, A5, A6> void add(
-      Functions.Func6<A1, A2, A3, A4, A5, A6, ?> request,
+  /**
+   * Add compensation operation for saga, which will be executed in the reverse order if {@link
+   * Saga#compensate()} is called.
+   *
+   * @param operation to be executed during compensation.
+   * @param arg1 first operation function parameter
+   * @param arg2 second operation function parameter
+   * @param arg3 third operation function parameter
+   * @param arg4 fourth operation function parameter
+   * @param arg5 fifth operation function parameter
+   * @param arg6 sixth operation function parameter
+   */
+  public <A1, A2, A3, A4, A5, A6> void addCompensation(
+      Functions.Func6<A1, A2, A3, A4, A5, A6, ?> operation,
       A1 arg1,
       A2 arg2,
       A3 arg3,
       A4 arg4,
       A5 arg5,
       A6 arg6) {
-    requests.add(() -> Async.function(request, arg1, arg2, arg3, arg4, arg5, arg6));
+    compensationOps.add(() -> Async.function(operation, arg1, arg2, arg3, arg4, arg5, arg6));
   }
 }

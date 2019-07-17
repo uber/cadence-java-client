@@ -4961,16 +4961,16 @@ public class WorkflowTest {
               new Saga.Options.Builder().setParallelCompensation(parallelCompensation).build());
       try {
         testActivities.activity1(10);
-        saga.add(testActivities::activity2, "compensate", -10);
+        saga.addCompensation(testActivities::activity2, "compensate", -10);
 
         stubF1.func();
 
         TestCompensationWorkflow compensationWorkflow =
             Workflow.newChildWorkflowStub(TestCompensationWorkflow.class, workflowOptions);
-        saga.add(compensationWorkflow::compensate);
+        saga.addCompensation(compensationWorkflow::compensate);
 
         testActivities.throwIO();
-        saga.add(
+        saga.addCompensation(
             () -> {
               throw new RuntimeException("unreachable");
             });
