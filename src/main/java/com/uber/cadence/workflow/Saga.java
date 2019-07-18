@@ -37,11 +37,28 @@ public final class Saga {
       private boolean parallelCompensation = true;
       private boolean continueWithError = true;
 
+      /**
+       * This decides if the compensation operations are run in parallel. If parallelCompensation is
+       * false, then the compensation operations will be run the reverse order as they are added.
+       *
+       * @param parallelCompensation
+       * @return option builder
+       */
       public Builder setParallelCompensation(boolean parallelCompensation) {
         this.parallelCompensation = parallelCompensation;
         return this;
       }
 
+      /**
+       * continueWithError gives user the option to bail out of compensation operations if exception
+       * is thrown while running them. This is useful only when parallelCompensation is false. If
+       * parallel compensation is set to true, then all the compensation operations will be fired no
+       * matter what and caller will receive exceptions back if there's any.
+       *
+       * @param continueWithError whether to proceed with the next compensation operation if the
+       *     previous throws exception. This only applies to sequential compensation.
+       * @return option builder
+       */
       public Builder setContinueWithError(boolean continueWithError) {
         this.continueWithError = continueWithError;
         return this;
