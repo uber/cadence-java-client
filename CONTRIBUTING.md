@@ -7,8 +7,9 @@ This doc is intended for contributors to `cadence-java-client` (hopefully that's
 ## Development Environment
 
 * Java 8.
-* Gradle build tool
+* Gradle build tool 4.5.1
 * Docker
+* Apache Thrift 0.9.3
 
 ## Licence headers
 

@@ -22,6 +22,7 @@ import com.google.common.reflect.TypeToken;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
+import com.uber.cadence.activity.ActivityHelper;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.common.MethodRetry;
@@ -92,9 +93,16 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       if (i.getType().getTypeName().startsWith("org.mockito")) {
         continue;
       }
+
       for (Method method : i.getRawType().getMethods()) {
         ActivityMethod annotation = method.getAnnotation(ActivityMethod.class);
         String activityType;
+
+        ActivityHelper helper = i.getRawType().getAnnotation(ActivityHelper.class);
+        if (helper != null) {
+          continue;
+        }
+
         if (annotation != null && !annotation.name().isEmpty()) {
           activityType = annotation.name();
         } else {
