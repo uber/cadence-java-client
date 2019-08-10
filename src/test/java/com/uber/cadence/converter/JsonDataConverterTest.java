@@ -17,7 +17,8 @@
 
 package com.uber.cadence.converter;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import com.uber.cadence.EventType;
 import com.uber.cadence.History;
@@ -161,6 +162,23 @@ public class JsonDataConverterTest {
     Object[] fromConverted = converter.fromDataArray(converted, String.class, TestData.class);
     assertEquals(new String(converted, StandardCharsets.UTF_8), "abc", fromConverted[0]);
     assertEquals(new String(converted, StandardCharsets.UTF_8), testData, fromConverted[1]);
+  }
+
+  @Test
+  public void testProto() {
+    TestProtos.Person person =
+        TestProtos.Person.newBuilder()
+            .setName("abc")
+            .setId(1)
+            .setEmail("abc@def.com")
+            .addPhones(TestProtos.Person.PhoneNumber.newBuilder().setNumber("123456").build())
+            .build();
+    TestProtos.AddressBook book = TestProtos.AddressBook.newBuilder().addPeople(person).build();
+    byte[] converted = converter.toData(book);
+
+    TestProtos.AddressBook fromConverted =
+        converter.fromData(converted, TestProtos.AddressBook.class, TestProtos.AddressBook.class);
+    assertEquals(book, fromConverted);
   }
 
   public static void foo(List<UUID> arg) {}
