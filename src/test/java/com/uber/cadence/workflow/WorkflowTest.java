@@ -74,6 +74,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -4117,6 +4118,13 @@ public class WorkflowTest {
       fail("unreachable");
     } catch (WorkflowTimedOutException e) {
       // expected to timeout as workflow is going get blocked.
+    }
+
+    ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
+    for (ThreadInfo thread : threads) {
+      if (thread.getThreadName().contains("workflow-root")) {
+        fail("workflow thread not cleaned up after non deterministic error");
+      }
     }
   }
 
