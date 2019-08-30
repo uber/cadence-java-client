@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.Memo;
+import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
@@ -74,9 +75,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1386,6 +1389,74 @@ public class WorkflowTest {
       String memoRetrieved =
           JsonDataConverter.getInstance().fromData(memoBytes, String.class, String.class);
       assertEquals(testMemoValue, memoRetrieved);
+    }
+  }
+
+  @Test
+  public void testSearchAttributes() {
+    if (testEnvironment != null) {
+      String testKeyString = "CustomKeywordField";
+      String testValueString = "testKeyword";
+      String testKeyInteger = "CustomIntField";
+      Integer testValueInteger = 1;
+      String testKeyDateTime = "CustomDateTimeField";
+      LocalDateTime testValueDateTime = LocalDateTime.now();
+      String testKeyBool = "CustomBoolField";
+      Boolean testValueBool = true;
+      String testKeyDouble = "CustomDoubleField";
+      Double testValueDouble = 1.23;
+
+      // add more type to test
+      Map<String, Object> searchAttr = new HashMap<>();
+      searchAttr.put(testKeyString, testValueString);
+      searchAttr.put(testKeyInteger, testValueInteger);
+      searchAttr.put(testKeyDateTime, testValueDateTime);
+      searchAttr.put(testKeyBool, testValueBool);
+      searchAttr.put(testKeyDouble, testValueDouble);
+
+      startWorkerFor(TestMultiargsWorkflowsImpl.class);
+      WorkflowOptions workflowOptions =
+          newWorkflowOptionsBuilder(taskList).setSearchAttributes(searchAttr).build();
+      TestMultiargsWorkflowsFunc stubF =
+          workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+      WorkflowExecution executionF = WorkflowClient.start(stubF::func);
+
+      GetWorkflowExecutionHistoryResponse historyResp =
+          WorkflowExecutionUtils.getHistoryPage(
+              new byte[] {}, testEnvironment.getWorkflowService(), DOMAIN, executionF);
+      HistoryEvent startEvent = historyResp.history.getEvents().get(0);
+      SearchAttributes searchAttrFromEvent =
+          startEvent.workflowExecutionStartedEventAttributes.getSearchAttributes();
+
+      byte[] searchAttrStringBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyString).array();
+      String retrievedString =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrStringBytes, String.class, String.class);
+      assertEquals(testValueString, retrievedString);
+      byte[] searchAttrIntegerBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyInteger).array();
+      Integer retrievedInteger =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrIntegerBytes, Integer.class, Integer.class);
+      assertEquals(testValueInteger, retrievedInteger);
+      byte[] searchAttrDateTimeBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyDateTime).array();
+      LocalDateTime retrievedDateTime =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrDateTimeBytes, LocalDateTime.class, LocalDateTime.class);
+      assertEquals(testValueDateTime, retrievedDateTime);
+      byte[] searchAttrBoolBytes = searchAttrFromEvent.getIndexedFields().get(testKeyBool).array();
+      Boolean retrievedBool =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrBoolBytes, Boolean.class, Boolean.class);
+      assertEquals(testValueBool, retrievedBool);
+      byte[] searchAttrDoubleBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyDouble).array();
+      Double retrievedDouble =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrDoubleBytes, Double.class, Double.class);
+      assertEquals(testValueDouble, retrievedDouble);
     }
   }
 
@@ -4106,7 +4177,7 @@ public class WorkflowTest {
     startWorkerFor(DeterminismFailingWorkflowImpl.class);
     WorkflowOptions options =
         new WorkflowOptions.Builder()
-            .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
             .setTaskList(taskList)
             .build();
@@ -4118,6 +4189,16 @@ public class WorkflowTest {
     } catch (WorkflowTimedOutException e) {
       // expected to timeout as workflow is going get blocked.
     }
+
+    int workflowRootThreads = 0;
+    ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
+    for (ThreadInfo thread : threads) {
+      if (thread.getThreadName().contains("workflow-root")) {
+        workflowRootThreads++;
+      }
+    }
+
+    assertTrue("workflow threads might leak", workflowRootThreads < 10);
   }
 
   @Test
