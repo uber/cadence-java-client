@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 class WorkflowThreadImpl implements WorkflowThread {
+  private static final RateLimiter metricsRateLimiter = RateLimiter.create(1);
 
   /**
    * Runnable passed to the thread that wraps a runnable passed to the WorkflowThreadImpl
@@ -100,7 +102,9 @@ class WorkflowThreadImpl implements WorkflowThread {
         if (!isCancelRequested()) {
           threadContext.setUnhandledException(e);
         }
-        log.debug(String.format("Workflow thread \"%s\" run cancelled", name));
+        if (log.isDebugEnabled()) {
+          log.debug(String.format("Workflow thread \"%s\" run cancelled", name));
+        }
       } catch (Throwable e) {
         if (log.isWarnEnabled() && !root) {
           StringWriter sw = new StringWriter();
@@ -231,35 +235,36 @@ class WorkflowThreadImpl implements WorkflowThread {
     }
     context.setStatus(Status.RUNNING);
 
-    getDecisionContext()
-        .getMetricsScope()
-        .gauge(MetricsType.WORKFLOW_ACTIVE_THREAD_COUNT)
-        .update(((ThreadPoolExecutor) threadPool).getActiveCount());
-
-    try {
-      taskFuture = threadPool.submit(task);
-      return;
-    } catch (RejectedExecutionException e) {
+    if (metricsRateLimiter.tryAcquire(1)) {
       getDecisionContext()
           .getMetricsScope()
-          .counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION)
-          .inc(1);
-      try {
-        if (cache != null) {
-          cache.evictAny(this.runner.getDecisionContext().getContext().getRunId());
-        }
-      } catch (InterruptedException e1) {
-        log.warn("Unable to evict cache", e1);
-      }
+          .gauge(MetricsType.WORKFLOW_ACTIVE_THREAD_COUNT)
+          .update(((ThreadPoolExecutor) threadPool).getActiveCount());
     }
 
-    try {
-      taskFuture = threadPool.submit(task);
-    } catch (RejectedExecutionException e) {
-      throw new Error(
-          "Not enough threads to execute workflows. "
-              + "If this message appears consistently either WorkerOptions.maxConcurrentWorkflowExecutionSize "
-              + "should be decreased or WorkerOptions.maxWorkflowThreads increased.");
+    while (true) {
+      try {
+        taskFuture = threadPool.submit(task);
+        return;
+      } catch (RejectedExecutionException e) {
+        getDecisionContext()
+            .getMetricsScope()
+            .counter(MetricsType.STICKY_CACHE_THREAD_FORCED_EVICTION)
+            .inc(1);
+        if (cache != null) {
+          boolean evicted =
+              cache.evictAnyNotInProcessing(
+                  this.runner.getDecisionContext().getContext().getRunId());
+          if (!evicted) {
+            // Note here we need to throw error, not exception. Otherwise it will be
+            // translated to workflow execution exception and instead of failing the
+            // decision we will be failing the workflow.
+            throw new WorkflowRejectedExecutionError(e);
+          }
+        } else {
+          throw new WorkflowRejectedExecutionError(e);
+        }
+      }
     }
   }
 

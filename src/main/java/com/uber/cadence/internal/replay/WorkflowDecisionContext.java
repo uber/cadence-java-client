@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes;
 import com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes;
@@ -147,6 +148,11 @@ final class WorkflowDecisionContext {
     if (retryParameters != null) {
       attributes.setRetryPolicy(retryParameters.toRetryPolicy());
     }
+
+    if (!Strings.isNullOrEmpty(parameters.getCronSchedule())) {
+      attributes.setCronSchedule(parameters.getCronSchedule());
+    }
+
     long initiatedEventId = decisions.startChildWorkflowExecution(attributes);
     final OpenChildWorkflowRequestInfo context =
         new OpenChildWorkflowRequestInfo(executionCallback);
@@ -213,8 +219,7 @@ final class WorkflowDecisionContext {
 
   /** Replay safe UUID */
   UUID randomUUID() {
-    WorkflowExecution workflowExecution = workflowContext.getWorkflowExecution();
-    String runId = workflowExecution.getRunId();
+    String runId = workflowContext.getCurrentRunId();
     String id = runId + ":" + decisions.getAndIncrementNextId();
     byte[] bytes = id.getBytes(StandardCharsets.UTF_8);
     return UUID.nameUUIDFromBytes(bytes);

@@ -21,11 +21,14 @@ import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.logging.LoggerTag;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
+import com.uber.m3.util.ImmutableMap;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -35,7 +38,7 @@ import org.slf4j.MDC;
 
 public final class ActivityWorker implements SuspendableWorker {
 
-  private static final String POLL_THREAD_NAME_PREFIX = "Poller taskList=";
+  private static final String POLL_THREAD_NAME_PREFIX = "Activity Poller taskList=";
 
   private SuspendableWorker poller = new NoopSuspendableWorker();
   private final ActivityTaskHandler handler;
@@ -50,38 +53,31 @@ public final class ActivityWorker implements SuspendableWorker {
       String taskList,
       SingleWorkerOptions options,
       ActivityTaskHandler handler) {
-    Objects.requireNonNull(service);
-    Objects.requireNonNull(domain);
-    Objects.requireNonNull(taskList);
-    this.service = service;
-    this.domain = domain;
-    this.taskList = taskList;
-    this.options = options;
+    this.service = Objects.requireNonNull(service);
+    this.domain = Objects.requireNonNull(domain);
+    this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
+
+    PollerOptions pollerOptions = options.getPollerOptions();
+    if (pollerOptions.getPollThreadNamePrefix() == null) {
+      pollerOptions =
+          new PollerOptions.Builder(pollerOptions)
+              .setPollThreadNamePrefix(
+                  POLL_THREAD_NAME_PREFIX + "\"" + taskList + "\", domain=\"" + domain + "\"")
+              .build();
+    }
+    this.options = new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
   }
 
   @Override
   public void start() {
     if (handler.isAnyTypeSupported()) {
-      PollerOptions pollerOptions = options.getPollerOptions();
-      if (pollerOptions.getPollThreadNamePrefix() == null) {
-        pollerOptions =
-            new PollerOptions.Builder(pollerOptions)
-                .setPollThreadNamePrefix(
-                    POLL_THREAD_NAME_PREFIX
-                        + "\""
-                        + taskList
-                        + "\", domain=\""
-                        + domain
-                        + "\", type=\"activity\"")
-                .build();
-      }
       poller =
           new Poller<>(
               options.getIdentity(),
               new ActivityPollTask(service, domain, taskList, options),
               new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
-              pollerOptions,
+              options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
@@ -157,26 +153,30 @@ public final class ActivityWorker implements SuspendableWorker {
 
     @Override
     public void handle(MeasurableActivityTask task) throws Exception {
-      options
-          .getMetricsScope()
+      Scope metricsScope =
+          options
+              .getMetricsScope()
+              .tagged(
+                  ImmutableMap.of(MetricsTag.ACTIVITY_TYPE, task.task.getActivityType().getName()));
+      metricsScope
           .timer(MetricsType.TASK_LIST_QUEUE_LATENCY)
           .record(
               Duration.ofNanos(
                   task.task.getStartedTimestamp() - task.task.getScheduledTimestamp()));
 
+      // The following tags are for logging.
       MDC.put(LoggerTag.ACTIVITY_ID, task.task.getActivityId());
       MDC.put(LoggerTag.ACTIVITY_TYPE, task.task.getActivityType().getName());
       MDC.put(LoggerTag.WORKFLOW_ID, task.task.getWorkflowExecution().getWorkflowId());
       MDC.put(LoggerTag.RUN_ID, task.task.getWorkflowExecution().getRunId());
 
       try {
-        Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
-        ActivityTaskHandler.Result response =
-            handler.handle(service, domain, task.task, options.getMetricsScope());
+        Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
+        ActivityTaskHandler.Result response = handler.handle(taskList, task.task, metricsScope);
         sw.stop();
 
-        sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task.task, response);
+        sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
+        sendReply(task.task, response, metricsScope);
         sw.stop();
 
         task.markDone();
@@ -185,8 +185,8 @@ public final class ActivityWorker implements SuspendableWorker {
             new RespondActivityTaskCanceledRequest();
         cancelledRequest.setDetails(
             String.valueOf(e.getMessage()).getBytes(StandardCharsets.UTF_8));
-        Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task.task, new Result(null, null, cancelledRequest, null));
+        Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
+        sendReply(task.task, new Result(null, null, cancelledRequest, null), metricsScope);
         sw.stop();
       } finally {
         MDC.remove(LoggerTag.ACTIVITY_ID);
@@ -211,7 +211,8 @@ public final class ActivityWorker implements SuspendableWorker {
           failure);
     }
 
-    private void sendReply(PollForActivityTaskResponse task, ActivityTaskHandler.Result response)
+    private void sendReply(
+        PollForActivityTaskResponse task, ActivityTaskHandler.Result response, Scope metricsScope)
         throws TException {
       RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
@@ -225,10 +226,11 @@ public final class ActivityWorker implements SuspendableWorker {
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
         Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
-        options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
+        metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
-        RespondActivityTaskFailedRequest taskFailed = response.getTaskFailed();
-        if (taskFailed != null) {
+        if (response.getTaskFailedResult() != null) {
+          RespondActivityTaskFailedRequest taskFailed =
+              response.getTaskFailedResult().getTaskFailedRequest();
           ro =
               options
                   .getReportFailureRetryOptions()
@@ -240,7 +242,7 @@ public final class ActivityWorker implements SuspendableWorker {
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
           Retryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
-          options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
+          metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
@@ -255,7 +257,7 @@ public final class ActivityWorker implements SuspendableWorker {
                         EntityNotExistsError.class,
                         DomainNotActiveError.class);
             Retryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
-            options.getMetricsScope().counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
+            metricsScope.counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
           }
         }
       }

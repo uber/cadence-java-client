@@ -17,18 +17,14 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.google.common.base.Defaults;
 import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
 
-/** Supports calling activity by name and arguments without its strongly typed interface. */
-class ActivityStubImpl implements ActivityStub {
-
-  private final ActivityOptions options;
+public class ActivityStubImpl extends ActivityStubBase {
+  protected final ActivityOptions options;
   private final WorkflowInterceptor activityExecutor;
 
   static ActivityStub newInstance(ActivityOptions options, WorkflowInterceptor activityExecutor) {
@@ -37,37 +33,9 @@ class ActivityStubImpl implements ActivityStub {
     return new ActivityStubImpl(validatedOptions, activityExecutor);
   }
 
-  private ActivityStubImpl(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  ActivityStubImpl(ActivityOptions options, WorkflowInterceptor activityExecutor) {
     this.options = options;
     this.activityExecutor = activityExecutor;
-  }
-
-  @Override
-  public <T> T execute(String activityName, Class<T> resultClass, Object... args) {
-    return execute(activityName, resultClass, resultClass, args);
-  }
-
-  @Override
-  public <T> T execute(String activityName, Class<T> resultClass, Type resultType, Object... args) {
-    Promise<T> result = executeAsync(activityName, resultClass, resultType, args);
-    if (AsyncInternal.isAsync()) {
-      AsyncInternal.setAsyncResult(result);
-      return Defaults.defaultValue(resultClass);
-    }
-    try {
-      return result.get();
-    } catch (ActivityException e) {
-      // Reset stack to the current one. Otherwise it is very confusing to see a stack of
-      // an event handling method.
-      StackTraceElement[] currentStackTrace = Thread.currentThread().getStackTrace();
-      e.setStackTrace(currentStackTrace);
-      throw e;
-    }
-  }
-
-  @Override
-  public <R> Promise<R> executeAsync(String activityName, Class<R> resultClass, Object... args) {
-    return executeAsync(activityName, resultClass, resultClass, args);
   }
 
   @Override

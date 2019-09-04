@@ -69,17 +69,17 @@ import org.slf4j.LoggerFactory;
 @RunWith(Parameterized.class)
 public class StickyWorkerTest {
 
-  private static final boolean skipDockerService =
-      Boolean.parseBoolean(System.getenv("SKIP_DOCKER_SERVICE"));
+  private static final boolean useDockerService =
+      Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
 
   @Parameterized.Parameter public boolean useExternalService;
 
   @Parameterized.Parameters(name = "{1}")
   public static Object[] data() {
-    if (skipDockerService) {
+    if (!useDockerService) {
       return new Object[][] {{false, "TestService"}};
     } else {
-      return new Object[][] {{true, "Docker"}, {false, "TestService"}};
+      return new Object[][] {{true, "Docker"}};
     }
   }
 
@@ -92,7 +92,7 @@ public class StickyWorkerTest {
 
   @BeforeClass
   public static void setUp() {
-    if (!skipDockerService) {
+    if (useDockerService) {
       service = new WorkflowServiceTChannel();
     }
   }
@@ -157,6 +157,64 @@ public class StickyWorkerTest {
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
     verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+
+    // Finish Workflow
+    wrapper.close();
+  }
+
+  @Test
+  public void workflowCacheEvictionDueToThreads() {
+    // Arrange
+    String taskListName = "workflowCacheEvictionDueToThreads";
+
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+        new RootScopeBuilder()
+            .reporter(reporter)
+            .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
+
+    TestEnvironmentWrapper wrapper =
+        new TestEnvironmentWrapper(
+            new Worker.FactoryOptions.Builder()
+                .setDisableStickyExecution(false)
+                .setMetricScope(scope)
+                .setMaxWorkflowThreadCount(10)
+                .setCacheMaximumSize(100)
+                .build());
+    Worker.Factory factory = wrapper.getWorkerFactory();
+    Worker worker =
+        factory.newWorker(
+            taskListName,
+            new WorkerOptions.Builder().setMaxConcurrentWorkflowExecutionSize(5).build());
+    worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
+    worker.registerActivitiesImplementations(new ActivitiesImpl());
+    factory.start();
+
+    WorkflowOptions workflowOptions =
+        new WorkflowOptions.Builder()
+            .setTaskList(taskListName)
+            .setExecutionStartToCloseTimeout(Duration.ofDays(30))
+            .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
+            .build();
+
+    int count = 100;
+    ActivitiesWorkflow[] workflows = new ActivitiesWorkflow[count];
+    WorkflowParams w = new WorkflowParams();
+    w.CadenceSleep = Duration.ofSeconds(1);
+    w.ChainSequence = 2;
+    w.ConcurrentCount = 1;
+    w.PayloadSizeBytes = 10;
+    w.TaskListName = taskListName;
+    for (int i = 0; i < count; i++) {
+      ActivitiesWorkflow workflow =
+          wrapper.getWorkflowClient().newWorkflowStub(ActivitiesWorkflow.class, workflowOptions);
+      workflows[i] = workflow;
+      WorkflowClient.start(workflow::execute, w);
+    }
+
+    for (int i = 0; i < count; i++) {
+      workflows[i].execute(w);
+    }
 
     // Finish Workflow
     wrapper.close();

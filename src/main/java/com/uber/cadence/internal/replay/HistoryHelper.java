@@ -29,12 +29,8 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class HistoryHelper {
-
-  private static final Logger log = LoggerFactory.getLogger(HistoryHelper.class);
 
   /**
    * Events of a single decision. It includes all new events in the history since the last decision
@@ -78,16 +74,8 @@ class HistoryHelper {
       return events;
     }
 
-    public List<HistoryEvent> getDecisionEvents() {
+    List<HistoryEvent> getDecisionEvents() {
       return decisionEvents;
-    }
-
-    HistoryEvent getDecisionEvent(long eventId) {
-      int index = (int) (eventId - nextDecisionEventId);
-      if (index < 0 || index >= decisionEvents.size()) {
-        throw new IllegalArgumentException("No decision event found at eventId=" + eventId);
-      }
-      return decisionEvents.get(index);
     }
 
     Optional<HistoryEvent> getOptionalDecisionEvent(long eventId) {
@@ -250,7 +238,6 @@ class HistoryHelper {
               replay,
               replayCurrentTimeMilliseconds,
               nextDecisionEventId);
-      log.debug("DecisionEventsIterator next=" + result);
       return result;
     }
   }

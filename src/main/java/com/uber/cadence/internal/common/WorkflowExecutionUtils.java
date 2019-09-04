@@ -60,6 +60,7 @@ import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Collection;
@@ -195,6 +196,7 @@ public class WorkflowExecutionUtils {
       r.setExecution(workflowExecution);
       r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
       r.setNextPageToken(pageToken);
+      r.setWaitForNewEvent(true);
       try {
         response =
             Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
@@ -714,6 +716,7 @@ public class WorkflowExecutionUtils {
     result.append(
         prettyPrintObject(
             getEventAttributes(event), "getFieldValue", true, INDENTATION, false, false));
+
     return result.toString();
   }
 
@@ -763,7 +766,10 @@ public class WorkflowExecutionUtils {
     if (clz.equals(byte[].class)) {
       return new String((byte[]) object, UTF_8);
     }
-
+    if (ByteBuffer.class.isAssignableFrom(clz)) {
+      byte[] bytes = org.apache.thrift.TBaseHelper.byteBufferToByteArray((ByteBuffer) object);
+      return new String(bytes, UTF_8);
+    }
     if (clz.equals(Date.class)) {
       return String.valueOf(object);
     }
@@ -776,9 +782,40 @@ public class WorkflowExecutionUtils {
     if (clz.equals(WorkflowType.class)) {
       return String.valueOf(((WorkflowType) object).getName());
     }
-
+    if (Map.Entry.class.isAssignableFrom(clz)) {
+      result.append(
+          prettyPrintObject(
+              ((Map.Entry) object).getKey(),
+              methodToSkip,
+              skipNullsAndEmptyCollections,
+              "",
+              skipLevel,
+              printTypeName));
+      result.append("=");
+      result.append(
+          prettyPrintObject(
+              ((Map.Entry) object).getValue(),
+              methodToSkip,
+              skipNullsAndEmptyCollections,
+              "",
+              skipLevel,
+              printTypeName));
+      return result.toString();
+    }
     if (Map.class.isAssignableFrom(clz)) {
-      return String.valueOf(object);
+      result.append("{ ");
+
+      String prefix = "";
+      for (Object entry : ((Map) object).entrySet()) {
+        result.append(prefix);
+        prefix = ", ";
+        result.append(
+            prettyPrintObject(
+                entry, methodToSkip, skipNullsAndEmptyCollections, "", skipLevel, printTypeName));
+      }
+
+      result.append(" }");
+      return result.toString();
     }
     if (Collection.class.isAssignableFrom(clz)) {
       return String.valueOf(object);
@@ -965,6 +1002,8 @@ public class WorkflowExecutionUtils {
         return EventType.StartChildWorkflowExecutionInitiated;
       case SignalExternalWorkflowExecution:
         return EventType.SignalExternalWorkflowExecutionInitiated;
+      case UpsertWorkflowSearchAttributes:
+        return EventType.UpsertWorkflowSearchAttributes;
     }
     throw new IllegalArgumentException("Unknown decisionType");
   }

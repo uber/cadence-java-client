@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public final class StartWorkflowExecutionParameters {
@@ -49,6 +50,10 @@ public final class StartWorkflowExecutionParameters {
   private RetryParameters retryParameters;
 
   private String cronSchedule;
+
+  private Map<String, byte[]> memo;
+
+  private Map<String, byte[]> searchAttributes;
 
   /**
    * Returns the value of the WorkflowId property for this object.
@@ -292,6 +297,22 @@ public final class StartWorkflowExecutionParameters {
     this.cronSchedule = cronSchedule;
   }
 
+  public Map<String, byte[]> getMemo() {
+    return memo;
+  }
+
+  public void setMemo(Map<String, byte[]> memo) {
+    this.memo = memo;
+  }
+
+  public Map<String, byte[]> getSearchAttributes() {
+    return searchAttributes;
+  }
+
+  public void setSearchAttributes(Map<String, byte[]> searchAttributes) {
+    this.searchAttributes = searchAttributes;
+  }
+
   public StartWorkflowExecutionParameters withRetryParameters(RetryParameters retryParameters) {
     this.retryParameters = retryParameters;
     return this;
@@ -304,6 +325,7 @@ public final class StartWorkflowExecutionParameters {
     parameters.setTaskStartToCloseTimeoutSeconds(getSeconds(options.getTaskStartToCloseTimeout()));
     parameters.setTaskList(options.getTaskList());
     parameters.setChildPolicy(options.getChildPolicy());
+    parameters.setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy());
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       RetryParameters rp = new RetryParameters();
@@ -363,6 +385,12 @@ public final class StartWorkflowExecutionParameters {
         + ", cronSchedule='"
         + cronSchedule
         + '\''
+        + ", memo='"
+        + memo
+        + '\''
+        + ", searchAttributes='"
+        + searchAttributes
+        + '\''
         + '}';
   }
 
@@ -380,7 +408,9 @@ public final class StartWorkflowExecutionParameters {
         && childPolicy == that.childPolicy
         && workflowIdReusePolicy == that.workflowIdReusePolicy
         && Objects.equals(retryParameters, that.retryParameters)
-        && Objects.equals(cronSchedule, that.cronSchedule);
+        && Objects.equals(cronSchedule, that.cronSchedule)
+        && Objects.equals(memo, that.memo)
+        && Objects.equals(searchAttributes, that.searchAttributes);
   }
 
   @Override
@@ -395,7 +425,9 @@ public final class StartWorkflowExecutionParameters {
             childPolicy,
             workflowIdReusePolicy,
             retryParameters,
-            cronSchedule);
+            cronSchedule,
+            memo,
+            searchAttributes);
     result = 31 * result + Arrays.hashCode(input);
     return result;
   }

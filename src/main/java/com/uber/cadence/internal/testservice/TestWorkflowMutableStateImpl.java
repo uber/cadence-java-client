@@ -216,9 +216,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             long scheduledEventId = decision.getData().scheduledEventId;
             decision.action(StateMachines.Action.START, ctx, pollRequest, 0);
             ctx.addTimer(
-                stickyExecutionAttributes != null
-                    ? stickyExecutionAttributes.getScheduleToStartTimeoutSeconds()
-                    : startRequest.getTaskStartToCloseTimeoutSeconds(),
+                startRequest.getTaskStartToCloseTimeoutSeconds(),
                 () -> timeoutDecisionTask(scheduledEventId),
                 "DecisionTask StartToCloseTimeout");
           });
@@ -274,7 +272,9 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               workflow.getState() == StateMachines.State.COMPLETED
                   || workflow.getState() == StateMachines.State.FAILED
                   || workflow.getState() == StateMachines.State.CANCELED;
-          if (!completed && (ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty())) {
+          if (!completed
+              && ((ctx.isNeedDecision() || !this.concurrentToDecision.isEmpty())
+                  || request.isForceCreateNewDecisionTask())) {
             scheduleDecision(ctx);
           }
           this.concurrentToDecision.clear();
@@ -344,23 +344,47 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         processRecordMarker(ctx, d.getRecordMarkerDecisionAttributes(), decisionTaskCompletedId);
         break;
       case RequestCancelExternalWorkflowExecution:
-        throw new InternalServiceError(
-            "Decision " + d.getDecisionType() + " is not yet " + "implemented");
+        processRequestCancelExternalWorkflowExecution(
+            ctx, d.getRequestCancelExternalWorkflowExecutionDecisionAttributes());
+        break;
+      case UpsertWorkflowSearchAttributes:
+        // TODO: https://github.com/uber/cadence-java-client/issues/360
+        break;
     }
+  }
+
+  private void processRequestCancelExternalWorkflowExecution(
+      RequestContext ctx, RequestCancelExternalWorkflowExecutionDecisionAttributes attr) {
+    ForkJoinPool.commonPool()
+        .execute(
+            () -> {
+              RequestCancelWorkflowExecutionRequest request =
+                  new RequestCancelWorkflowExecutionRequest();
+              WorkflowExecution workflowExecution = new WorkflowExecution();
+              workflowExecution.setWorkflowId(attr.workflowId);
+              request.setWorkflowExecution(workflowExecution);
+              request.setDomain(ctx.getDomain());
+              try {
+                service.RequestCancelWorkflowExecution(request);
+              } catch (Exception e) {
+                log.error("Failure to request cancel external workflow", e);
+              }
+            });
   }
 
   private void processRecordMarker(
       RequestContext ctx, RecordMarkerDecisionAttributes attr, long decisionTaskCompletedId)
       throws BadRequestError {
-    MarkerRecordedEventAttributes marker = new MarkerRecordedEventAttributes();
-    if (attr.isSetDetails()) {
-      marker.setDetails(attr.getDetails());
-    }
     if (!attr.isSetMarkerName()) {
       throw new BadRequestError("marker name is required");
     }
-    marker.setMarkerName(attr.getMarkerName());
-    marker.setDecisionTaskCompletedEventId(decisionTaskCompletedId);
+
+    MarkerRecordedEventAttributes marker =
+        new MarkerRecordedEventAttributes()
+            .setMarkerName(attr.getMarkerName())
+            .setHeader(attr.getHeader())
+            .setDetails(attr.getDetails())
+            .setDecisionTaskCompletedEventId(decisionTaskCompletedId);
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.MarkerRecorded)

@@ -17,20 +17,37 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.*;
+import com.google.common.base.Strings;
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.DomainNotActiveError;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
+import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.common.WorkflowExecutionHistory;
-import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
+import com.uber.m3.util.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
@@ -41,58 +58,52 @@ public final class WorkflowWorker
   private static final String POLL_THREAD_NAME_PREFIX = "Workflow Poller taskList=";
 
   private SuspendableWorker poller = new NoopSuspendableWorker();
-  private final PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
+  private PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
   private final DecisionTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
   private final SingleWorkerOptions options;
+  private final String stickyTaskListName;
+  private final WorkflowRunLockManager runLocks = new WorkflowRunLockManager();
 
   public WorkflowWorker(
       IWorkflowService service,
       String domain,
       String taskList,
       SingleWorkerOptions options,
-      DecisionTaskHandler handler) {
-    Objects.requireNonNull(service);
-    Objects.requireNonNull(domain);
-    Objects.requireNonNull(taskList);
-    this.service = service;
-    this.domain = domain;
-    this.taskList = taskList;
-    this.options = options;
+      DecisionTaskHandler handler,
+      String stickyTaskListName) {
+    this.service = Objects.requireNonNull(service);
+    this.domain = Objects.requireNonNull(domain);
+    this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
-    pollTaskExecutor =
-        new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
+    this.stickyTaskListName = stickyTaskListName;
+
+    PollerOptions pollerOptions = options.getPollerOptions();
+    if (pollerOptions.getPollThreadNamePrefix() == null) {
+      pollerOptions =
+          new PollerOptions.Builder(pollerOptions)
+              .setPollThreadNamePrefix(
+                  POLL_THREAD_NAME_PREFIX + "\"" + taskList + "\", domain=\"" + domain + "\"")
+              .build();
+    }
+    this.options = new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
   }
 
   @Override
   public void start() {
     if (handler.isAnyTypeSupported()) {
-      PollerOptions pollerOptions = options.getPollerOptions();
-      if (pollerOptions.getPollThreadNamePrefix() == null) {
-        pollerOptions =
-            new PollerOptions.Builder(pollerOptions)
-                .setPollThreadNamePrefix(
-                    POLL_THREAD_NAME_PREFIX
-                        + "\""
-                        + taskList
-                        + "\", domain=\""
-                        + domain
-                        + "\", type=\"workflow\"")
-                .build();
-      }
-      SingleWorkerOptions workerOptions =
-          new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
-
+      pollTaskExecutor =
+          new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
       poller =
           new Poller<>(
               options.getIdentity(),
               new WorkflowPollTask(
                   service, domain, taskList, options.getMetricsScope(), options.getIdentity()),
               pollTaskExecutor,
-              pollerOptions,
-              workerOptions.getMetricsScope());
+              options.getPollerOptions(),
+              options.getMetricsScope());
       poller.start();
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
@@ -110,7 +121,7 @@ public final class WorkflowWorker
 
   @Override
   public boolean isTerminated() {
-    return pollTaskExecutor.isTerminated() && poller.isTerminated();
+    return poller.isTerminated();
   }
 
   public byte[] queryWorkflowExecution(WorkflowExecution exec, String queryType, byte[] args)
@@ -119,7 +130,7 @@ public final class WorkflowWorker
         WorkflowExecutionUtils.getHistoryPage(null, service, domain, exec);
     History history = historyResponse.getHistory();
     WorkflowExecutionHistory workflowExecutionHistory =
-        new WorkflowExecutionHistory(exec.getWorkflowId(), exec.getRunId(), history.getEvents());
+        new WorkflowExecutionHistory(history.getEvents());
     return queryWorkflowExecution(
         queryType, args, workflowExecutionHistory, historyResponse.getNextPageToken());
   }
@@ -192,9 +203,8 @@ public final class WorkflowWorker
     if (!poller.isStarted()) {
       return;
     }
-    long timeoutMillis = unit.toMillis(timeout);
-    timeoutMillis = InternalUtils.awaitTermination(poller, timeoutMillis);
-    InternalUtils.awaitTermination(pollTaskExecutor, timeoutMillis);
+
+    poller.awaitTermination(timeout, unit);
   }
 
   @Override
@@ -228,24 +238,39 @@ public final class WorkflowWorker
 
     @Override
     public void handle(PollForDecisionTaskResponse task) throws Exception {
+      Scope metricsScope =
+          options
+              .getMetricsScope()
+              .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, task.getWorkflowType().getName()));
+
       MDC.put(LoggerTag.WORKFLOW_ID, task.getWorkflowExecution().getWorkflowId());
       MDC.put(LoggerTag.WORKFLOW_TYPE, task.getWorkflowType().getName());
       MDC.put(LoggerTag.RUN_ID, task.getWorkflowExecution().getRunId());
+
+      Lock runLock = null;
+      if (!Strings.isNullOrEmpty(stickyTaskListName)) {
+        runLock = runLocks.getLockForLocking(task.getWorkflowExecution().getRunId());
+        runLock.lock();
+      }
+
       try {
-        Stopwatch sw =
-            options.getMetricsScope().timer(MetricsType.DECISION_EXECUTION_LATENCY).start();
+        Stopwatch sw = metricsScope.timer(MetricsType.DECISION_EXECUTION_LATENCY).start();
         DecisionTaskHandler.Result response = handler.handleDecisionTask(task);
         sw.stop();
 
-        sw = options.getMetricsScope().timer(MetricsType.DECISION_RESPONSE_LATENCY).start();
+        sw = metricsScope.timer(MetricsType.DECISION_RESPONSE_LATENCY).start();
         sendReply(service, task.getTaskToken(), response);
         sw.stop();
 
-        options.getMetricsScope().counter(MetricsType.DECISION_TASK_COMPLETED_COUNTER).inc(1);
+        metricsScope.counter(MetricsType.DECISION_TASK_COMPLETED_COUNTER).inc(1);
       } finally {
         MDC.remove(LoggerTag.WORKFLOW_ID);
         MDC.remove(LoggerTag.WORKFLOW_TYPE);
         MDC.remove(LoggerTag.RUN_ID);
+
+        if (runLock != null) {
+          runLocks.unlock(task.getWorkflowExecution().getRunId());
+        }
       }
     }
 
@@ -298,7 +323,6 @@ public final class WorkflowWorker
           }
         }
       }
-      // Manual activity completion
     }
   }
 }

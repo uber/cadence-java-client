@@ -17,42 +17,22 @@
 
 package com.uber.cadence.internal.sync;
 
-import static com.uber.cadence.internal.common.InternalUtils.getValueOrDefault;
-
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.MethodRetry;
-import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
 import com.uber.cadence.workflow.ActivityStub;
-import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
-/** Dynamic implementation of a strongly typed child workflow interface. */
-class ActivityInvocationHandler implements InvocationHandler {
-
+class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
   private final ActivityOptions options;
   private final WorkflowInterceptor activityExecutor;
-  private final Map<Method, Function<Object[], Object>> methodFunctions = new HashMap<>();
 
   static InvocationHandler newInstance(
       ActivityOptions options, WorkflowInterceptor activityExecutor) {
     return new ActivityInvocationHandler(options, activityExecutor);
-  }
-
-  @SuppressWarnings("unchecked")
-  static <T> T newProxy(Class<T> activityInterface, InvocationHandler invocationHandler) {
-    return (T)
-        Proxy.newProxyInstance(
-            WorkflowInternal.class.getClassLoader(),
-            new Class<?>[] {activityInterface, AsyncMarker.class},
-            invocationHandler);
   }
 
   private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor) {
@@ -61,38 +41,14 @@ class ActivityInvocationHandler implements InvocationHandler {
   }
 
   @Override
-  public Object invoke(Object proxy, Method method, Object[] args) {
-    Function<Object[], Object> function = methodFunctions.get(method);
-    if (function == null) {
-      try {
-        if (method.equals(Object.class.getMethod("toString"))) {
-          // TODO: activity info
-          return "ActivityInvocationHandler";
-        }
-        if (!method.getDeclaringClass().isInterface()) {
-          throw new IllegalArgumentException(
-              "Interface type is expected: " + method.getDeclaringClass());
-        }
-        MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
-        ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
-        String activityName;
-        if (activityMethod == null || activityMethod.name().isEmpty()) {
-          activityName = InternalUtils.getSimpleName(method);
-        } else {
-          activityName = activityMethod.name();
-        }
+  protected Function<Object[], Object> getActivityFunc(
+      Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
+    Function<Object[], Object> function;
+    ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
+    ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
 
-        ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-        ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
-        function =
-            (a) ->
-                stub.execute(
-                    activityName, method.getReturnType(), method.getGenericReturnType(), a);
-        methodFunctions.put(method, function);
-      } catch (NoSuchMethodException e) {
-        throw Workflow.wrap(e);
-      }
-    }
-    return getValueOrDefault(function.apply(args), method.getReturnType());
+    function =
+        (a) -> stub.execute(activityName, method.getReturnType(), method.getGenericReturnType(), a);
+    return function;
   }
 }

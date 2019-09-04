@@ -46,7 +46,7 @@ import java.util.concurrent.CompletableFuture;
  * and then calling a method annotated with {@literal @}{@link WorkflowMethod}.
  *
  * <pre><code>
- * WorkflowClient workflowClient = WorkflowClient.newClient(cadenceServiceHost, cadenceServicePort, domain);
+ * WorkflowClient workflowClient = WorkflowClient.newInstance(cadenceServiceHost, cadenceServicePort, domain);
  * // Create a workflow stub.
  * FileProcessingWorkflow workflow = workflowClient.newWorkflowStub(FileProcessingWorkflow.class);
  * </code></pre>
@@ -70,7 +70,7 @@ import java.util.concurrent.CompletableFuture;
  *
  * <pre><code>
  * // Returns as soon as the workflow starts.
- * WorkflowExecution workflowExecution = WorkflowClient.asyncStart(workflow::processFile, workflowArgs);
+ * WorkflowExecution workflowExecution = WorkflowClient.start(workflow::processFile, workflowArgs);
  *
  * System.out.println("Started process file workflow with workflowId=\"" + workflowExecution.getWorkflowId()
  *                     + "\" and runId=\"" + workflowExecution.getRunId() + "\"");
@@ -728,4 +728,7 @@ public interface WorkflowClient {
       A6 arg6) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
+
+  /** Closes the workflow client and the underlying IWorkflowService when this method is called. */
+  void close();
 }

@@ -20,6 +20,7 @@ package com.uber.cadence.internal.worker;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
@@ -29,20 +30,15 @@ public final class SingleWorkerOptions {
   public static final class Builder {
 
     private String identity;
-
     private DataConverter dataConverter;
-
     private int taskExecutorThreadPoolSize = 100;
-
+    private double taskListActivitiesPerSecond;
     private PollerOptions pollerOptions;
-
     /** TODO: Dynamic expiration based on activity timeout */
     private RetryOptions reportCompletionRetryOptions;
 
     private RetryOptions reportFailureRetryOptions;
-
     private Scope metricsScope;
-
     private boolean enableLoggingInReplay;
 
     public Builder() {}
@@ -51,6 +47,7 @@ public final class SingleWorkerOptions {
       this.identity = options.getIdentity();
       this.dataConverter = options.getDataConverter();
       this.pollerOptions = options.getPollerOptions();
+      this.taskListActivitiesPerSecond = options.getTaskListActivitiesPerSecond();
       this.taskExecutorThreadPoolSize = options.getTaskExecutorThreadPoolSize();
       this.reportCompletionRetryOptions = options.getReportCompletionRetryOptions();
       this.reportFailureRetryOptions = options.getReportFailureRetryOptions();
@@ -88,23 +85,28 @@ public final class SingleWorkerOptions {
       return this;
     }
 
+    public Builder setTaskListActivitiesPerSecond(double taskListActivitiesPerSecond) {
+      this.taskListActivitiesPerSecond = taskListActivitiesPerSecond;
+      return this;
+    }
+
+    public Builder setReportCompletionRetryOptions(RetryOptions reportCompletionRetryOptions) {
+      this.reportCompletionRetryOptions = reportCompletionRetryOptions;
+      return this;
+    }
+
+    public Builder setReportFailureRetryOptions(RetryOptions reportFailureRetryOptions) {
+      this.reportFailureRetryOptions = reportFailureRetryOptions;
+      return this;
+    }
+
     public SingleWorkerOptions build() {
       if (reportCompletionRetryOptions == null) {
-        reportCompletionRetryOptions =
-            new RetryOptions.Builder()
-                .setInitialInterval(Duration.ofMillis(50))
-                .setMaximumInterval(Duration.ofSeconds(10))
-                .setExpiration(Duration.ofMinutes(1))
-                .build();
+        reportCompletionRetryOptions = Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
       }
 
       if (reportFailureRetryOptions == null) {
-        reportFailureRetryOptions =
-            new RetryOptions.Builder()
-                .setInitialInterval(Duration.ofMillis(50))
-                .setMaximumInterval(Duration.ofSeconds(10))
-                .setExpiration(Duration.ofMinutes(1))
-                .build();
+        reportFailureRetryOptions = Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
       }
 
       if (pollerOptions == null) {
@@ -128,44 +130,30 @@ public final class SingleWorkerOptions {
           identity,
           dataConverter,
           taskExecutorThreadPoolSize,
+          taskListActivitiesPerSecond,
           pollerOptions,
           reportCompletionRetryOptions,
           reportFailureRetryOptions,
           metricsScope,
           enableLoggingInReplay);
     }
-
-    public Builder setReportCompletionRetryOptions(RetryOptions reportCompletionRetryOptions) {
-      this.reportCompletionRetryOptions = reportCompletionRetryOptions;
-      return this;
-    }
-
-    public Builder setReportFailureRetryOptions(RetryOptions reportFailureRetryOptions) {
-      this.reportFailureRetryOptions = reportFailureRetryOptions;
-      return this;
-    }
   }
 
   private final String identity;
-
   private final DataConverter dataConverter;
-
   private final int taskExecutorThreadPoolSize;
-
+  private final double taskListActivitiesPerSecond;
   private final PollerOptions pollerOptions;
-
   private final RetryOptions reportCompletionRetryOptions;
-
   private final RetryOptions reportFailureRetryOptions;
-
   private final Scope metricsScope;
-
   private final boolean enableLoggingInReplay;
 
   private SingleWorkerOptions(
       String identity,
       DataConverter dataConverter,
       int taskExecutorThreadPoolSize,
+      double taskListActivitiesPerSecond,
       PollerOptions pollerOptions,
       RetryOptions reportCompletionRetryOptions,
       RetryOptions reportFailureRetryOptions,
@@ -174,6 +162,7 @@ public final class SingleWorkerOptions {
     this.identity = identity;
     this.dataConverter = dataConverter;
     this.taskExecutorThreadPoolSize = taskExecutorThreadPoolSize;
+    this.taskListActivitiesPerSecond = taskListActivitiesPerSecond;
     this.pollerOptions = pollerOptions;
     this.reportCompletionRetryOptions = reportCompletionRetryOptions;
     this.reportFailureRetryOptions = reportFailureRetryOptions;
@@ -189,20 +178,24 @@ public final class SingleWorkerOptions {
     return dataConverter;
   }
 
-  public int getTaskExecutorThreadPoolSize() {
+  int getTaskExecutorThreadPoolSize() {
     return taskExecutorThreadPoolSize;
   }
 
-  public PollerOptions getPollerOptions() {
+  PollerOptions getPollerOptions() {
     return pollerOptions;
   }
 
-  public RetryOptions getReportCompletionRetryOptions() {
+  RetryOptions getReportCompletionRetryOptions() {
     return reportCompletionRetryOptions;
   }
 
-  public RetryOptions getReportFailureRetryOptions() {
+  RetryOptions getReportFailureRetryOptions() {
     return reportFailureRetryOptions;
+  }
+
+  double getTaskListActivitiesPerSecond() {
+    return taskListActivitiesPerSecond;
   }
 
   public Scope getMetricsScope() {

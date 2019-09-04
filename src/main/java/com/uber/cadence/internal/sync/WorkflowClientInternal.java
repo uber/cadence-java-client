@@ -50,6 +50,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
   private final ManualActivityCompletionClientFactory manualActivityCompletionClientFactory;
   private final DataConverter dataConverter;
   private final WorkflowClientInterceptor[] interceptors;
+  private final IWorkflowService workflowService;
 
   /**
    * Creates worker that connects to the local instance of the Cadence Service that listens on a
@@ -67,7 +68,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
    * default port (7933).
    *
    * @param domain domain that worker uses to poll.
-   * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
+   * @param options Options (like {@link com.uber.cadence.converter.DataConverter} override) for
    *     configuring client.
    */
   public static WorkflowClient newInstance(String domain, WorkflowClientOptions options) {
@@ -94,7 +95,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
    * @param host of the Cadence Service endpoint
    * @param port of the Cadence Service endpoint
    * @param domain domain that worker uses to poll.
-   * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
+   * @param options Options (like {@link com.uber.cadence.converter.DataConverter} override) for
    *     configuring client.
    */
   public static WorkflowClient newInstance(
@@ -117,7 +118,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
    *
    * @param service client to the Cadence Service endpoint.
    * @param domain domain that worker uses to poll.
-   * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
+   * @param options Options (like {@link com.uber.cadence.converter.DataConverter} override) for
    *     configuring client.
    */
   public static WorkflowClient newInstance(
@@ -130,6 +131,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     if (options == null) {
       options = new WorkflowClientOptions.Builder().build();
     }
+    this.workflowService = service;
     this.genericClient =
         new GenericWorkflowClientExternalImpl(service, domain, options.getMetricsScope());
     this.dataConverter = options.getDataConverter();
@@ -448,5 +450,10 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A5 arg5,
       A6 arg6) {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
+  @Override
+  public void close() {
+    this.workflowService.close();
   }
 }

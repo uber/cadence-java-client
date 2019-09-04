@@ -17,9 +17,19 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.*;
+import com.uber.cadence.ChildPolicy;
+import com.uber.cadence.DecisionTaskFailedCause;
+import com.uber.cadence.DecisionTaskFailedEventAttributes;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.ReplayAwareScope;
+import com.uber.cadence.internal.worker.LocalActivityWorker;
+import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
@@ -30,20 +40,20 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class DecisionContextImpl implements DecisionContext, HistoryEventHandler {
 
+  private static final Logger log = LoggerFactory.getLogger(DecisionContextImpl.class);
+
   private final ActivityDecisionContext activityClient;
-
   private final WorkflowDecisionContext workflowClient;
-
   private final ClockDecisionContext workflowClock;
-
   private final WorkflowContext workflowContext;
-
-  private Scope metricsScope;
-
+  private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
 
   DecisionContextImpl(
@@ -51,16 +61,18 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
       String domain,
       PollForDecisionTaskResponse decisionTask,
       WorkflowExecutionStartedEventAttributes startedAttributes,
-      boolean enableLoggingInReplay) {
+      SingleWorkerOptions options,
+      BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller,
+      ReplayDecider replayDecider) {
     this.activityClient = new ActivityDecisionContext(decisionsHelper);
     this.workflowContext = new WorkflowContext(domain, decisionTask, startedAttributes);
     this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
-    this.workflowClock = new ClockDecisionContext(decisionsHelper);
-    this.enableLoggingInReplay = enableLoggingInReplay;
-  }
-
-  public void setMetricsScope(Scope metricsScope) {
-    this.metricsScope = new ReplayAwareScope(metricsScope, this, workflowClock::currentTimeMillis);
+    this.workflowClock =
+        new ClockDecisionContext(
+            decisionsHelper, laTaskPoller, replayDecider, options.getDataConverter());
+    this.enableLoggingInReplay = options.getEnableLoggingInReplay();
+    this.metricsScope =
+        new ReplayAwareScope(options.getMetricsScope(), this, workflowClock::currentTimeMillis);
   }
 
   @Override
@@ -160,6 +172,12 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
+  public Consumer<Exception> scheduleLocalActivityTask(
+      ExecuteLocalActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
+    return workflowClock.scheduleLocalActivityTask(parameters, callback);
+  }
+
+  @Override
   public Consumer<Exception> startChildWorkflow(
       StartChildWorkflowExecutionParameters parameters,
       Consumer<WorkflowExecution> executionCallback,
@@ -197,7 +215,15 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
 
   void setReplayCurrentTimeMilliseconds(long replayCurrentTimeMilliseconds) {
     if (replayCurrentTimeMilliseconds < workflowClock.currentTimeMillis()) {
-      throw new IllegalArgumentException("workflow clock moved back");
+      if (log.isWarnEnabled()) {
+        log.warn(
+            "Trying to set workflow clock back from "
+                + workflowClock.currentTimeMillis()
+                + " to "
+                + replayCurrentTimeMilliseconds
+                + ". This will be a no-op.");
+      }
+      return;
     }
     workflowClock.setReplayCurrentTimeMilliseconds(replayCurrentTimeMilliseconds);
   }
@@ -322,5 +348,24 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public void handleMarkerRecorded(HistoryEvent event) {
     workflowClock.handleMarkerRecorded(event);
+  }
+
+  public void handleDecisionTaskFailed(HistoryEvent event) {
+    DecisionTaskFailedEventAttributes attr = event.getDecisionTaskFailedEventAttributes();
+    if (attr != null && attr.getCause() == DecisionTaskFailedCause.RESET_WORKFLOW) {
+      workflowContext.setCurrentRunId(attr.getNewRunId());
+    }
+  }
+
+  boolean startUnstartedLaTasks(Duration maxWaitAllowed) {
+    return workflowClock.startUnstartedLaTasks(maxWaitAllowed);
+  }
+
+  int numPendingLaTasks() {
+    return workflowClock.numPendingLaTasks();
+  }
+
+  void awaitTaskCompletion(Duration duration) throws InterruptedException {
+    workflowClock.awaitTaskCompletion(duration);
   }
 }
