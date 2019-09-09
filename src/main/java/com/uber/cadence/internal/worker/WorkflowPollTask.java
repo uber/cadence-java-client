@@ -104,7 +104,7 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     metricScope.counter(MetricsType.DECISION_POLL_SUCCEED_COUNTER).inc(1);
     metricScope
         .timer(MetricsType.DECISION_SCHEDULED_TO_START_LATENCY)
-        .record(Duration.ofNanos(System.nanoTime() - result.scheduledTimestamp));
+        .record(Duration.ofNanos(result.getStartedTimestamp() - result.getScheduledTimestamp()));
     sw.stop();
     return result;
   }
