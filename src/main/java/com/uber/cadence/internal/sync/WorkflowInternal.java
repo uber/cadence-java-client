@@ -169,6 +169,10 @@ public final class WorkflowInternal {
     return ActivityStubImpl.newInstance(options, getWorkflowInterceptor());
   }
 
+  public static ActivityStub newUntypedLocalActivityStub(LocalActivityOptions options) {
+    return LocalActivityStubImpl.newInstance(options, getWorkflowInterceptor());
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> T newChildWorkflowStub(
       Class<T> workflowInterface, ChildWorkflowOptions options) {
@@ -294,6 +298,11 @@ public final class WorkflowInternal {
 
   public static CancellationScope newCancellationScope(boolean detached, Runnable runnable) {
     return new CancellationScopeImpl(detached, runnable);
+  }
+
+  public static CancellationScope newCancellationScope(
+      boolean detached, Functions.Proc1<CancellationScope> proc) {
+    return new CancellationScopeImpl(detached, proc);
   }
 
   public static CancellationScopeImpl currentCancellationScope() {
