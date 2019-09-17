@@ -124,7 +124,6 @@ public class MetricsType {
 
   public static final String UNHANDLED_SIGNALS_COUNTER =
       CADENCE_METRICS_PREFIX + "unhandled-signals";
-
   public static final String CORRUPTED_SIGNALS_COUNTER =
       CADENCE_METRICS_PREFIX + "corrupted-signals";
 
