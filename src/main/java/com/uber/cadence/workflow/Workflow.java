@@ -99,7 +99,7 @@ import org.slf4j.Logger;
  * <p>Calling a method on this interface invokes an activity that implements this method. An
  * activity invocation synchronously blocks until the activity completes, fails, or times out. Even
  * if activity execution takes a few months, the workflow code still sees it as a single synchronous
- * invocation. Isn't it great? I doesn't matter what happens to the processes that host the
+ * invocation. Isn't it great? It doesn't matter what happens to the processes that host the
  * workflow. The business logic code just sees a single method call.
  *
  * <pre><code>
@@ -225,7 +225,8 @@ import org.slf4j.Logger;
  *                         activities.deleteLocalFile(processedName);
  *                     }
  *                 }
- *             });
+ *             }
+ *          ).run();
  *     }
  * }
  * }</pre>
@@ -388,7 +389,7 @@ public final class Workflow {
   }
 
   /**
-   * Creates client stub to activities that implement given interface.
+   * Creates non typed client stub to activities. Allows executing activities by their string name.
    *
    * @param options specify the activity invocation parameters.
    */
@@ -419,6 +420,16 @@ public final class Workflow {
    */
   public static <T> T newLocalActivityStub(Class<T> activityInterface) {
     return WorkflowInternal.newLocalActivityStub(activityInterface, null);
+  }
+
+  /**
+   * Creates non typed client stub to local activities. Allows executing activities by their string
+   * name.
+   *
+   * @param options specify the local activity invocation parameters.
+   */
+  public static ActivityStub newUntypedLocalActivityStub(LocalActivityOptions options) {
+    return WorkflowInternal.newUntypedLocalActivityStub(options);
   }
 
   /**
@@ -581,6 +592,21 @@ public final class Workflow {
    * blocking after the current scope is cancelled use a scope created through {@link
    * #newDetachedCancellationScope(Runnable)}.
    *
+   * <p>Example of running activities in parallel and cancelling them after a specified timeout.
+   *
+   * <pre><code>
+   *     List<Promise<String>> results = new ArrayList<>();
+   *     CancellationScope scope = Workflow.newDetachedCancellationScope(() -> {
+   *        Async.function(activities::a1);
+   *        Async.function(activities::a2);
+   *     });
+   *     scope.run(); // returns immediately as the activities are invoked asynchronously
+   *     Workflow.sleep(Duration.ofHours(1));
+   *     // Cancels any activity in the scope that is still running
+   *     scope.cancel("one hour passed");
+   *
+   * </code></pre>
+   *
    * @param runnable parameter to wrap in a cancellation scope.
    * @return wrapped parameter.
    */
@@ -589,7 +615,52 @@ public final class Workflow {
   }
 
   /**
-   * Creates a CancellationScope that is not linked to a parent scope.
+   * Wraps a procedure in a CancellationScope. The procedure receives the wrapping CancellationScope
+   * as a parameter. Useful when cancellation is requested from within the wrapped code. The
+   * following example cancels the sibling activity on any failure.
+   *
+   * <pre><code>
+   *               Workflow.newCancellationScope(
+   *                   (scope) -> {
+   *                     Promise<Void> p1 = Async.proc(activities::a1).exceptionally(ex->
+   *                        {
+   *                           scope.cancel("a1 failed");
+   *                           return null;
+   *                        });
+   *
+   *                     Promise<Void> p2 = Async.proc(activities::a2).exceptionally(ex->
+   *                        {
+   *                           scope.cancel("a2 failed");
+   *                           return null;
+   *                        });
+   *                     Promise.allOf(p1, p2).get();
+   *                   })
+   *               .run();
+   * </code></pre>
+   *
+   * @param proc code to wrap in the cancellation scope
+   * @return wrapped proc
+   */
+  public static CancellationScope newCancellationScope(Functions.Proc1<CancellationScope> proc) {
+    return WorkflowInternal.newCancellationScope(false, proc);
+  }
+
+  /**
+   * Creates a CancellationScope that is not linked to a parent scope. {@link
+   * CancellationScope#run()} must be called to execute the code the scope wraps. The detached scope
+   * is needed to execute cleanup code after a workflow is cancelled which cancels the root scope
+   * that wraps the @WorkflowMethod invocation. Here is an example usage:
+   *
+   * <pre><code>
+   *  try {
+   *     // workflow logic
+   *  } catch (CancellationException e) {
+   *     CancellationScope detached = Workflow.newDetachedCancellationScope(() -> {
+   *         // cleanup logic
+   *     });
+   *     detached.run();
+   *  }
+   * </code></pre>
    *
    * @param runnable parameter to wrap in a cancellation scope.
    * @return wrapped parameter.

@@ -543,6 +543,7 @@ class StateMachines {
     }
     a.setLastCompletionResult(data.lastCompletionResult);
     a.setMemo(request.getMemo());
+    a.setSearchAttributes((request.getSearchAttributes()));
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.WorkflowExecutionStarted)

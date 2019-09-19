@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.Memo;
+import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
@@ -74,9 +75,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1386,6 +1389,74 @@ public class WorkflowTest {
       String memoRetrieved =
           JsonDataConverter.getInstance().fromData(memoBytes, String.class, String.class);
       assertEquals(testMemoValue, memoRetrieved);
+    }
+  }
+
+  @Test
+  public void testSearchAttributes() {
+    if (testEnvironment != null) {
+      String testKeyString = "CustomKeywordField";
+      String testValueString = "testKeyword";
+      String testKeyInteger = "CustomIntField";
+      Integer testValueInteger = 1;
+      String testKeyDateTime = "CustomDateTimeField";
+      LocalDateTime testValueDateTime = LocalDateTime.now();
+      String testKeyBool = "CustomBoolField";
+      Boolean testValueBool = true;
+      String testKeyDouble = "CustomDoubleField";
+      Double testValueDouble = 1.23;
+
+      // add more type to test
+      Map<String, Object> searchAttr = new HashMap<>();
+      searchAttr.put(testKeyString, testValueString);
+      searchAttr.put(testKeyInteger, testValueInteger);
+      searchAttr.put(testKeyDateTime, testValueDateTime);
+      searchAttr.put(testKeyBool, testValueBool);
+      searchAttr.put(testKeyDouble, testValueDouble);
+
+      startWorkerFor(TestMultiargsWorkflowsImpl.class);
+      WorkflowOptions workflowOptions =
+          newWorkflowOptionsBuilder(taskList).setSearchAttributes(searchAttr).build();
+      TestMultiargsWorkflowsFunc stubF =
+          workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+      WorkflowExecution executionF = WorkflowClient.start(stubF::func);
+
+      GetWorkflowExecutionHistoryResponse historyResp =
+          WorkflowExecutionUtils.getHistoryPage(
+              new byte[] {}, testEnvironment.getWorkflowService(), DOMAIN, executionF);
+      HistoryEvent startEvent = historyResp.history.getEvents().get(0);
+      SearchAttributes searchAttrFromEvent =
+          startEvent.workflowExecutionStartedEventAttributes.getSearchAttributes();
+
+      byte[] searchAttrStringBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyString).array();
+      String retrievedString =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrStringBytes, String.class, String.class);
+      assertEquals(testValueString, retrievedString);
+      byte[] searchAttrIntegerBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyInteger).array();
+      Integer retrievedInteger =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrIntegerBytes, Integer.class, Integer.class);
+      assertEquals(testValueInteger, retrievedInteger);
+      byte[] searchAttrDateTimeBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyDateTime).array();
+      LocalDateTime retrievedDateTime =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrDateTimeBytes, LocalDateTime.class, LocalDateTime.class);
+      assertEquals(testValueDateTime, retrievedDateTime);
+      byte[] searchAttrBoolBytes = searchAttrFromEvent.getIndexedFields().get(testKeyBool).array();
+      Boolean retrievedBool =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrBoolBytes, Boolean.class, Boolean.class);
+      assertEquals(testValueBool, retrievedBool);
+      byte[] searchAttrDoubleBytes =
+          searchAttrFromEvent.getIndexedFields().get(testKeyDouble).array();
+      Double retrievedDouble =
+          JsonDataConverter.getInstance()
+              .fromData(searchAttrDoubleBytes, Double.class, Double.class);
+      assertEquals(testValueDouble, retrievedDouble);
     }
   }
 
@@ -4110,7 +4181,7 @@ public class WorkflowTest {
     startWorkerFor(DeterminismFailingWorkflowImpl.class);
     WorkflowOptions options =
         new WorkflowOptions.Builder()
-            .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+            .setExecutionStartToCloseTimeout(Duration.ofSeconds(10))
             .setTaskStartToCloseTimeout(Duration.ofSeconds(1))
             .setTaskList(taskList)
             .build();
@@ -4122,6 +4193,16 @@ public class WorkflowTest {
     } catch (WorkflowTimedOutException e) {
       // expected to timeout as workflow is going get blocked.
     }
+
+    int workflowRootThreads = 0;
+    ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
+    for (ThreadInfo thread : threads) {
+      if (thread.getThreadName().contains("workflow-root")) {
+        workflowRootThreads++;
+      }
+    }
+
+    assertTrue("workflow threads might leak", workflowRootThreads < 10);
   }
 
   @Test
@@ -4368,6 +4449,61 @@ public class WorkflowTest {
 
     String result = workflowStub.execute(taskList);
     assertTrue(result.contains("NonSerializableException"));
+  }
+
+  public interface NonDeserializableArgumentsActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 5)
+    void execute(int arg);
+  }
+
+  public static class NonDeserializableExceptionActivityImpl
+      implements NonDeserializableArgumentsActivity {
+
+    @Override
+    public void execute(int arg) {}
+  }
+
+  public static class TestNonSerializableArgumentsInActivityWorkflow implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      StringBuilder result = new StringBuilder();
+      ActivityStub activity =
+          Workflow.newUntypedActivityStub(
+              new ActivityOptions.Builder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                  .build());
+      ActivityStub localActivity =
+          Workflow.newUntypedLocalActivityStub(
+              new LocalActivityOptions.Builder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                  .build());
+      try {
+        activity.execute("NonDeserializableArgumentsActivity::execute", Void.class, "boo");
+      } catch (ActivityFailureException e) {
+        result.append(e.getCause().getClass().getSimpleName());
+      }
+      result.append("-");
+      try {
+        localActivity.execute("NonDeserializableArgumentsActivity::execute", Void.class, "boo");
+      } catch (ActivityFailureException e) {
+        result.append(e.getCause().getClass().getSimpleName());
+      }
+      return result.toString();
+    }
+  }
+
+  @Test
+  public void testNonSerializableArgumentsInActivity() {
+    worker.registerActivitiesImplementations(new NonDeserializableExceptionActivityImpl());
+    startWorkerFor(TestNonSerializableArgumentsInActivityWorkflow.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+
+    String result = workflowStub.execute(taskList);
+    assertEquals("DataConverterException-DataConverterException", result);
   }
 
   public interface NonSerializableExceptionChildWorkflow {
@@ -4923,6 +5059,99 @@ public class WorkflowTest {
     List<String> getImpl() {
       return impl;
     }
+  }
+
+  public interface TestCompensationWorkflow {
+    @WorkflowMethod
+    void compensate();
+  }
+
+  public static class TestMultiargsWorkflowsFuncImpl implements TestMultiargsWorkflowsFunc {
+
+    @Override
+    public String func() {
+      return "done";
+    }
+  }
+
+  public static class TestCompensationWorkflowImpl implements TestCompensationWorkflow {
+    @Override
+    public void compensate() {}
+  }
+
+  public interface TestSagaWorkflow {
+    @WorkflowMethod
+    String execute(String taskList, boolean parallelCompensation);
+  }
+
+  public static class TestSagaWorkflowImpl implements TestSagaWorkflow {
+
+    @Override
+    public String execute(String taskList, boolean parallelCompensation) {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+
+      ChildWorkflowOptions workflowOptions =
+          new ChildWorkflowOptions.Builder().setTaskList(taskList).build();
+      TestMultiargsWorkflowsFunc stubF1 =
+          Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+
+      Saga saga =
+          new Saga(
+              new Saga.Options.Builder().setParallelCompensation(parallelCompensation).build());
+      try {
+        testActivities.activity1(10);
+        saga.addCompensation(testActivities::activity2, "compensate", -10);
+
+        stubF1.func();
+
+        TestCompensationWorkflow compensationWorkflow =
+            Workflow.newChildWorkflowStub(TestCompensationWorkflow.class, workflowOptions);
+        saga.addCompensation(compensationWorkflow::compensate);
+
+        testActivities.throwIO();
+        saga.addCompensation(
+            () -> {
+              throw new RuntimeException("unreachable");
+            });
+      } catch (Exception e) {
+        saga.compensate();
+      }
+      return "done";
+    }
+  }
+
+  @Test
+  public void testSaga() {
+    startWorkerFor(
+        TestSagaWorkflowImpl.class,
+        TestMultiargsWorkflowsFuncImpl.class,
+        TestCompensationWorkflowImpl.class);
+    TestSagaWorkflow sagaWorkflow =
+        workflowClient.newWorkflowStub(
+            TestSagaWorkflow.class, newWorkflowOptionsBuilder(taskList).build());
+    sagaWorkflow.execute(taskList, false);
+    tracer.setExpected(
+        "executeActivity customActivity1",
+        "executeChildWorkflow TestMultiargsWorkflowsFunc::func",
+        "executeActivity TestActivities::throwIO",
+        "executeChildWorkflow TestCompensationWorkflow::compensate",
+        "executeActivity TestActivities::activity2");
+  }
+
+  @Test
+  public void testSagaParallelCompensation() {
+    startWorkerFor(
+        TestSagaWorkflowImpl.class,
+        TestMultiargsWorkflowsFuncImpl.class,
+        TestCompensationWorkflowImpl.class);
+    TestSagaWorkflow sagaWorkflow =
+        workflowClient.newWorkflowStub(
+            TestSagaWorkflow.class, newWorkflowOptionsBuilder(taskList).build());
+    sagaWorkflow.execute(taskList, true);
+    assertTrue(
+        tracer.getTrace().contains("executeChildWorkflow TestCompensationWorkflow::compensate"));
+    assertTrue(tracer.getTrace().contains("executeActivity TestActivities::activity2"));
   }
 
   private static class TracingWorkflowInterceptor implements WorkflowInterceptor {

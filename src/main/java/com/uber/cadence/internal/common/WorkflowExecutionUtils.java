@@ -196,6 +196,7 @@ public class WorkflowExecutionUtils {
       r.setExecution(workflowExecution);
       r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
       r.setNextPageToken(pageToken);
+      r.setWaitForNewEvent(true);
       try {
         response =
             Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
@@ -1001,6 +1002,8 @@ public class WorkflowExecutionUtils {
         return EventType.StartChildWorkflowExecutionInitiated;
       case SignalExternalWorkflowExecution:
         return EventType.SignalExternalWorkflowExecutionInitiated;
+      case UpsertWorkflowSearchAttributes:
+        return EventType.UpsertWorkflowSearchAttributes;
     }
     throw new IllegalArgumentException("Unknown decisionType");
   }

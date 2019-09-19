@@ -1,5 +1,15 @@
 # Changelog
 
+## v2.5.2
+- Add saga class that helps user to implement saga pattern in Cadence
+- Add activity tasklist rate limiter option to worker options
+
+## v2.5.1
+- Fix busy loop in local activity poller if there is no task
+- Fix an issue in get history timeout
+- Lock decider while processing
+- Timer firing fix
+
 ## v2.5.0
 - Local activities
 - Make sure signals are applied in the same order as they appear in history
