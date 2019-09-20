@@ -17,7 +17,14 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.*;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
+import com.uber.cadence.WorkflowType;
+import com.uber.cadence.QueryWorkflowResponse;
+import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.client.DuplicateWorkflowException;
 import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowFailureException;
@@ -29,7 +36,12 @@ import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.common.*;
+import com.uber.cadence.internal.common.CheckedExceptionWrapper;
+import com.uber.cadence.internal.common.SignalWithStartWorkflowExecutionParameters;
+import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
+import com.uber.cadence.internal.common.WorkflowExecutionFailedException;
+import com.uber.cadence.internal.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternal;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
@@ -45,7 +57,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-// This looks like the the implementation for WorkflowStub
 class WorkflowStubImpl implements WorkflowStub {
 
   private final GenericWorkflowClientExternal genericClient;
