@@ -339,12 +339,21 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   @Override
-  public <R> QueryResponse<R> query(String queryType, Class<R> resultClass, QueryRejectCondition queryRejectCondition, Object... args) {
+  public <R> QueryResponse<R> query(
+      String queryType,
+      Class<R> resultClass,
+      QueryRejectCondition queryRejectCondition,
+      Object... args) {
     return query(queryType, resultClass, resultClass, queryRejectCondition, args);
   }
 
   @Override
-  public <R> QueryResponse<R> query(String queryType, Class<R> resultClass, Type resultType, QueryRejectCondition queryRejectCondition, Object... args) {
+  public <R> QueryResponse<R> query(
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      QueryRejectCondition queryRejectCondition,
+      Object... args) {
     checkStarted();
     QueryWorkflowParameters p = new QueryWorkflowParameters();
     p.setInput(dataConverter.toData(args));
@@ -354,7 +363,8 @@ class WorkflowStubImpl implements WorkflowStub {
     try {
       QueryWorkflowResponse result = genericClient.queryWorkflow(p);
       if (result.queryRejected == null) {
-        return new QueryResponse<R>().withResult(dataConverter.fromData(result.getQueryResult(), resultClass, resultType));
+        return new QueryResponse<R>()
+            .withResult(dataConverter.fromData(result.getQueryResult(), resultClass, resultType));
       } else {
         return new QueryResponse<R>().withQueryRejected(result.getQueryRejected());
       }
@@ -373,8 +383,6 @@ class WorkflowStubImpl implements WorkflowStub {
       throw e;
     }
   }
-
-
 
   @Override
   public void cancel() {

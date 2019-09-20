@@ -94,7 +94,8 @@ public class QueryWorkflowParameters implements Cloneable {
     this.queryRejectCondition = queryRejectCondition;
   }
 
-  public QueryWorkflowParameters withQueryRejectCondition(QueryRejectCondition queryRejectCondition) {
+  public QueryWorkflowParameters withQueryRejectCondition(
+      QueryRejectCondition queryRejectCondition) {
     this.queryRejectCondition = queryRejectCondition;
     return this;
   }

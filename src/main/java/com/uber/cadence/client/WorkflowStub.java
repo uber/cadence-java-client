@@ -20,7 +20,6 @@ package com.uber.cadence.client;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.common.QueryResponse;
-
 import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -34,7 +33,6 @@ import java.util.function.Supplier;
  * WorkflowClient#newUntypedWorkflowStub(String, WorkflowOptions)} or {@link
  * WorkflowClient#newUntypedWorkflowStub(WorkflowExecution, Optional)}.
  */
-
 
 // this defines the interface for workflowStub
 public interface WorkflowStub {
@@ -130,11 +128,18 @@ public interface WorkflowStub {
 
   <R> R query(String queryType, Class<R> resultClass, Type resultType, Object... args);
 
-  <R> QueryResponse<?> query(String queryType, Class<R> resultClass, QueryRejectCondition queryRejectCondition, Object... args);
+  <R> QueryResponse<R> query(
+      String queryType,
+      Class<R> resultClass,
+      QueryRejectCondition queryRejectCondition,
+      Object... args);
 
-  <R> QueryResponse<?> query(String queryType, Class<R> resultClass, Type resultType, QueryRejectCondition queryRejectCondition, Object... args);
-
-
+  <R> QueryResponse<R> query(
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      QueryRejectCondition queryRejectCondition,
+      Object... args);
 
   /** Request cancellation. */
   void cancel();
