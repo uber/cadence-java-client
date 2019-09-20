@@ -34,7 +34,6 @@ import java.util.function.Supplier;
  * WorkflowClient#newUntypedWorkflowStub(WorkflowExecution, Optional)}.
  */
 
-// this defines the interface for workflowStub
 public interface WorkflowStub {
 
   /**
