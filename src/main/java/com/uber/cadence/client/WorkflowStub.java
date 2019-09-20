@@ -33,7 +33,6 @@ import java.util.function.Supplier;
  * WorkflowClient#newUntypedWorkflowStub(String, WorkflowOptions)} or {@link
  * WorkflowClient#newUntypedWorkflowStub(WorkflowExecution, Optional)}.
  */
-
 public interface WorkflowStub {
 
   /**
