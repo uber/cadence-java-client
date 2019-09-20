@@ -840,12 +840,21 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public <R> QueryResponse<R> query(String queryType, Class<R> resultClass, QueryRejectCondition queryRejectCondition, Object... args) {
+      public <R> QueryResponse<R> query(
+          String queryType,
+          Class<R> resultClass,
+          QueryRejectCondition queryRejectCondition,
+          Object... args) {
         return next.query(queryType, resultClass, queryRejectCondition, args);
       }
 
       @Override
-      public <R> QueryResponse<R> query(String queryType, Class<R> resultClass, Type resultType, QueryRejectCondition queryRejectCondition, Object... args) {
+      public <R> QueryResponse<R> query(
+          String queryType,
+          Class<R> resultClass,
+          Type resultType,
+          QueryRejectCondition queryRejectCondition,
+          Object... args) {
         return next.query(queryType, resultClass, resultType, queryRejectCondition, args);
       }
 
