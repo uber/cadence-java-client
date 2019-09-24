@@ -374,10 +374,10 @@ class WorkflowStubImpl implements WorkflowStub {
     try {
       QueryWorkflowResponse result = genericClient.queryWorkflow(p);
       if (result.queryRejected == null) {
-        return new QueryResponse<R>()
-            .withResult(dataConverter.fromData(result.getQueryResult(), resultClass, resultType));
+        return new QueryResponse<>(
+            null, dataConverter.fromData(result.getQueryResult(), resultClass, resultType));
       } else {
-        return new QueryResponse<R>().withQueryRejected(result.getQueryRejected());
+        return new QueryResponse<>(result.getQueryRejected(), null);
       }
 
     } catch (RuntimeException e) {
