@@ -526,6 +526,10 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       throw new BadRequestError("Required field WorkflowType is not set on decision.");
     }
 
+    if (a.getChildPolicy() == null) {
+      throw new BadRequestError("Required field ChildPolicy is not set on decision.");
+    }
+
     // Inherit tasklist from parent workflow execution if not provided on decision
     if (a.getTaskList() == null || a.getTaskList().getName().isEmpty()) {
       a.setTaskList(startRequest.getTaskList());
@@ -1386,6 +1390,20 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   @Override
   public QueryWorkflowResponse query(QueryWorkflowRequest queryRequest) throws TException {
     QueryId queryId = new QueryId(executionId);
+
+    Optional<WorkflowExecutionCloseStatus> optCloseStatus = getCloseStatus();
+    if (optCloseStatus.isPresent() && queryRequest.getQueryRejectCondition() != null) {
+      WorkflowExecutionCloseStatus closeStatus = optCloseStatus.get();
+      boolean rejectNotOpen =
+          queryRequest.getQueryRejectCondition() == QueryRejectCondition.NOT_OPEN;
+      boolean rejectNotCompletedCleanly =
+          queryRequest.getQueryRejectCondition() == QueryRejectCondition.NOT_COMPLETED_CLEANLY
+              && closeStatus != WorkflowExecutionCloseStatus.COMPLETED;
+      if (rejectNotOpen || rejectNotCompletedCleanly) {
+        return new QueryWorkflowResponse()
+            .setQueryRejected(new QueryRejected().setCloseStatus(closeStatus));
+      }
+    }
 
     PollForDecisionTaskResponse task =
         new PollForDecisionTaskResponse()
