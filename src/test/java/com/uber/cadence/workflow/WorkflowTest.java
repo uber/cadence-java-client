@@ -3258,20 +3258,24 @@ public class WorkflowTest {
 
       lastCompletionResult = Workflow.getLastCompletionResult(String.class);
 
+      SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss.SSS");
+
+      Date scheduleTime = new Date(Workflow.getWorkflowInfo().getScheduleTimeMillis());
+      log.info("TestWorkflowWithCronScheduleImpl scheduled at " + sdf.format(scheduleTime));
+
+      Date now = new Date(Workflow.currentTimeMillis());
+      log.info("TestWorkflowWithCronScheduleImpl run at " + sdf.format(now));
+
       AtomicInteger count = retryCount.get(testName);
       if (count == null) {
         count = new AtomicInteger();
         retryCount.put(testName, count);
       }
       int c = count.incrementAndGet();
-
       if (c == 3) {
         throw new RuntimeException("simulated error");
       }
 
-      SimpleDateFormat sdf = new SimpleDateFormat("MMM dd,yyyy HH:mm:ss.SSS");
-      Date now = new Date(Workflow.currentTimeMillis());
-      log.debug("TestWorkflowWithCronScheduleImpl run at " + sdf.format(now));
       return "run " + c;
     }
   }

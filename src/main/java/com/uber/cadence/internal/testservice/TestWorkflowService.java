@@ -207,8 +207,16 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest) throws TException {
+    int backoffIntervalSecs =
+        TestWorkflowMutableStateImpl.getBackoffIntervalSeconds(
+            store::currentTimeMillis, startRequest.getCronSchedule());
+
     return startWorkflowExecutionImpl(
-        startRequest, 0, Optional.empty(), OptionalLong.empty(), Optional.empty());
+        startRequest,
+        backoffIntervalSecs,
+        Optional.empty(),
+        OptionalLong.empty(),
+        Optional.empty());
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
@@ -501,10 +509,7 @@ public final class TestWorkflowService implements IWorkflowService {
 
   @Override
   public StartWorkflowExecutionResponse SignalWithStartWorkflowExecution(
-      SignalWithStartWorkflowExecutionRequest r)
-      throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-          DomainNotActiveError, LimitExceededError, WorkflowExecutionAlreadyStartedError,
-          TException {
+      SignalWithStartWorkflowExecutionRequest r) throws TException {
     ExecutionId executionId = new ExecutionId(r.getDomain(), r.getWorkflowId(), null);
     TestWorkflowMutableState mutableState = getMutableState(executionId, false);
     SignalWorkflowExecutionRequest signalRequest =
@@ -535,8 +540,16 @@ public final class TestWorkflowService implements IWorkflowService {
             .setCronSchedule(r.getCronSchedule())
             .setRequestId(r.getRequestId())
             .setIdentity(r.getIdentity());
+
+    int backoffIntervalSecs =
+        TestWorkflowMutableStateImpl.getBackoffIntervalSeconds(
+            store::currentTimeMillis, startRequest.getCronSchedule());
     return startWorkflowExecutionImpl(
-        startRequest, 0, Optional.empty(), OptionalLong.empty(), Optional.of(signalRequest));
+        startRequest,
+        backoffIntervalSecs,
+        Optional.empty(),
+        OptionalLong.empty(),
+        Optional.of(signalRequest));
   }
 
   // TODO: https://github.com/uber/cadence-java-client/issues/359

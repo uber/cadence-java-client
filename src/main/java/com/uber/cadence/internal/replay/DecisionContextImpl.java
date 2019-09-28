@@ -86,6 +86,16 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
+  public long getScheduleTimeMillis() {
+    return workflowClient.getScheduleTimeMillis();
+  }
+
+  @Override
+  public long getExecutionTimeMillis() {
+    return workflowClient.getExecutionTimeMillis();
+  }
+
+  @Override
   public Random newRandom() {
     return workflowClient.newRandom();
   }

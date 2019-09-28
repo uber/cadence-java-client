@@ -888,21 +888,8 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       WorkflowData data,
       byte[] lastCompletionResult)
       throws InternalServiceError, BadRequestError {
-    CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
-    CronParser parser = new CronParser(cronDefinition);
-    Cron cron = parser.parse(data.cronSchedule);
-
-    Instant i = Instant.ofEpochMilli(store.currentTimeMillis());
-    ZonedDateTime now = ZonedDateTime.ofInstant(i, ZoneOffset.UTC);
-
-    ExecutionTime executionTime = ExecutionTime.forCron(cron);
-    Optional<Duration> backoff = executionTime.timeToNextExecution(now);
-    int backoffIntervalSeconds = (int) backoff.get().getSeconds();
-
-    if (backoffIntervalSeconds == 0) {
-      backoff = executionTime.timeToNextExecution(now.plusSeconds(1));
-      backoffIntervalSeconds = (int) backoff.get().getSeconds() + 1;
-    }
+    int backoffIntervalSeconds =
+        getBackoffIntervalSeconds(store::currentTimeMillis, data.cronSchedule);
 
     ContinueAsNewWorkflowExecutionDecisionAttributes continueAsNewAttr =
         new ContinueAsNewWorkflowExecutionDecisionAttributes()
@@ -930,6 +917,29 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
             parent,
             parentChildInitiatedEventId);
     continuedAsNewEventAttributes.setNewExecutionRunId(runId);
+  }
+
+  static int getBackoffIntervalSeconds(LongSupplier currTimeMillis, String cronSchedule) {
+    if (Strings.isNullOrEmpty(cronSchedule)) {
+      return 0;
+    }
+
+    CronDefinition cronDefinition = CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX);
+    CronParser parser = new CronParser(cronDefinition);
+    Cron cron = parser.parse(cronSchedule);
+
+    Instant i = Instant.ofEpochMilli(currTimeMillis.getAsLong());
+    ZonedDateTime now = ZonedDateTime.ofInstant(i, ZoneOffset.UTC);
+
+    ExecutionTime executionTime = ExecutionTime.forCron(cron);
+    Optional<Duration> backoff = executionTime.timeToNextExecution(now);
+    int backoffIntervalSeconds = (int) backoff.get().getSeconds();
+
+    if (backoffIntervalSeconds == 0) {
+      backoff = executionTime.timeToNextExecution(now.plusSeconds(1));
+      backoffIntervalSeconds = (int) backoff.get().getSeconds() + 1;
+    }
+    return backoffIntervalSeconds;
   }
 
   private void processCancelWorkflowExecution(

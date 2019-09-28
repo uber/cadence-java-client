@@ -35,4 +35,8 @@ public interface WorkflowInfo {
   Duration getExecutionStartToCloseTimeout();
 
   ChildPolicy getChildPolicy();
+
+  long getScheduleTimeMillis();
+
+  long getExecutionTimeMillis();
 }

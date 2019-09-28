@@ -485,9 +485,13 @@ class StateMachines {
         .execute(
             () -> {
               try {
+                int backoffIntervalSecs =
+                    TestWorkflowMutableStateImpl.getBackoffIntervalSeconds(
+                        data.service::currentTimeMillis, startChild.getCronSchedule());
+
                 data.service.startWorkflowExecutionImpl(
                     startChild,
-                    0,
+                    backoffIntervalSecs,
                     Optional.of(ctx.getWorkflowMutableState()),
                     OptionalLong.of(data.initiatedEventId),
                     Optional.empty());
