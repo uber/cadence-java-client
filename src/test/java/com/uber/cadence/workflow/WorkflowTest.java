@@ -5199,7 +5199,7 @@ public class WorkflowTest {
     }
 
     // Wait for decision task retry to finish.
-    Thread.sleep(3000);
+    Thread.sleep(5000);
 
     int workflowThreads = 0;
     ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
@@ -5209,7 +5209,7 @@ public class WorkflowTest {
       }
     }
 
-    assertTrue("workflow threads might leak", workflowThreads < 10);
+    assertTrue("workflow threads might leak, #workflowThreads = " + workflowThreads, workflowThreads < 20);
   }
 
   private static class TracingWorkflowInterceptor implements WorkflowInterceptor {
