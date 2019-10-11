@@ -5216,17 +5216,20 @@ public class WorkflowTest {
   @Test
   public void testExceptionInSignal() throws InterruptedException {
     startWorkerFor(TestSignalExceptionWorkflowImpl.class);
-    TestWorkflowSignaled signalWorkflow = workflowClient.newWorkflowStub(
-        TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
+    TestWorkflowSignaled signalWorkflow =
+        workflowClient.newWorkflowStub(
+            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
     CompletableFuture<String> result = WorkflowClient.execute(signalWorkflow::execute);
     signalWorkflow.signal1("test");
     try {
       result.get(1, TimeUnit.SECONDS);
+      fail("not reachable");
     } catch (Exception e) {
       // exception expected here.
     }
 
-    // Suspend polling so that decision tasks are not retried. Otherwise it will affect our thread count.
+    // Suspend polling so that decision tasks are not retried. Otherwise it will affect our thread
+    // count.
     if (useExternalService) {
       workerFactory.suspendPolling();
     } else {
@@ -5244,7 +5247,8 @@ public class WorkflowTest {
       }
     }
 
-    assertTrue("workflow threads might leak, #workflowThreads = " + workflowThreads, workflowThreads < 20);
+    assertTrue(
+        "workflow threads might leak, #workflowThreads = " + workflowThreads, workflowThreads < 20);
   }
 
   private static class TracingWorkflowInterceptor implements WorkflowInterceptor {
