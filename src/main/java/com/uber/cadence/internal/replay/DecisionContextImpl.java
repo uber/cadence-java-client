@@ -24,6 +24,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.TimerFiredEventAttributes;
+import com.uber.cadence.UpsertWorkflowSearchAttributesEventAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
@@ -383,6 +384,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
 
   @Override
   public void handleUpsertSearchAttributes(HistoryEvent event) {
-    workflowClock.handleUpsertSearchAttributesEvent(event);
+    UpsertWorkflowSearchAttributesEventAttributes attr =
+        event.getUpsertWorkflowSearchAttributesEventAttributes();
+    if (attr != null) {
+      SearchAttributes searchAttributes = attr.getSearchAttributes();
+      workflowContext.mergeSearchAttributes(searchAttributes);
+    }
   }
 }

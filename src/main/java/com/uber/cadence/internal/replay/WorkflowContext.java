@@ -146,8 +146,7 @@ final class WorkflowContext {
       return;
     }
     if (this.searchAttributes == null) {
-      this.searchAttributes = new SearchAttributes();
-      this.searchAttributes.setIndexedFields(new HashMap<String, ByteBuffer>());
+      this.searchAttributes = newSearchAttributes();
     }
     Map<String, ByteBuffer> current = this.searchAttributes.getIndexedFields();
     searchAttributes
@@ -156,5 +155,11 @@ final class WorkflowContext {
             (k, v) -> {
               current.put(k, v);
             });
+  }
+
+  private SearchAttributes newSearchAttributes() {
+    SearchAttributes result = new SearchAttributes();
+    result.setIndexedFields(new HashMap<String, ByteBuffer>());
+    return result;
   }
 }
