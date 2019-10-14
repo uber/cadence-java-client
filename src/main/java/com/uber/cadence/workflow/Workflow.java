@@ -1198,7 +1198,7 @@ public final class Workflow {
    *
    *     Map<String, Object> attr2 = new HashMap<>();
    *     attr2.put("CustomIntField", 2);
-   *     attr2.put("CustomKeywordField", "key");
+   *     attr2.put("CustomKeywordField", "Seattle");
    *     Workflow.upsertSearchAttributes(attr2);
    * </pre></code> will eventually have search attributes as:
    *
@@ -1206,7 +1206,7 @@ public final class Workflow {
    *     {
    *       "CustomIntField": 2,
    *       "CustomBoolField": true,
-   *       "CustomKeywordField": "seattle",
+   *       "CustomKeywordField": "Seattle",
    *     }
    * </pre></code>
    *

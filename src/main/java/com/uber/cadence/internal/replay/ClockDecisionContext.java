@@ -222,7 +222,7 @@ public final class ClockDecisionContext {
     decisions.upsertSearchAttributes(searchAttributes);
   }
 
-  void handleUpsertSearchAttributes(HistoryEvent event) {
+  void handleUpsertSearchAttributesEvent(HistoryEvent event) {
     // todo: update workflow info
   }
 

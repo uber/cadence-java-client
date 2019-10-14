@@ -377,6 +377,6 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
 
   @Override
   public void handleUpsertSearchAttributes(HistoryEvent event) {
-    workflowClock.handleUpsertSearchAttributes(event);
+    workflowClock.handleUpsertSearchAttributesEvent(event);
   }
 }
