@@ -167,6 +167,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
+  public SearchAttributes getSearchAttributes() {
+    return workflowContext.getSearchAttributes();
+  }
+
+  @Override
   public Consumer<Exception> scheduleActivityTask(
       ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
     return activityClient.scheduleActivityTask(parameters, callback);
@@ -373,6 +378,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public void upsertSearchAttributes(SearchAttributes searchAttributes) {
     workflowClock.upsertSearchAttributes(searchAttributes);
+    workflowContext.mergeSearchAttributes(searchAttributes);
   }
 
   @Override
