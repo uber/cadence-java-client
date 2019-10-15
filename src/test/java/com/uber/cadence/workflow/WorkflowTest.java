@@ -183,7 +183,7 @@ public class WorkflowTest {
         }
       };
 
-  @Parameter public boolean useExternalService = true;
+  @Parameter public boolean useExternalService;
 
   @Parameter(1)
   public String testType;
