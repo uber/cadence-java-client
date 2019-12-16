@@ -20,9 +20,14 @@ package com.uber.cadence.internal.worker;
 import com.uber.cadence.internal.common.BackoffThrottler;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.m3.tally.Scope;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -52,7 +57,13 @@ public final class Poller<T> implements SuspendableWorker {
   private Throttler pollRateThrottler;
 
   private Thread.UncaughtExceptionHandler uncaughtExceptionHandler =
-      (t, e) -> log.error("Failure in thread " + t.getName(), e);
+      (t, e) -> {
+        if (e instanceof WorkflowServiceTChannel.TimeoutException) {
+          log.warn("Failure in thread " + t.getName(), e);
+        } else {
+          log.error("Failure in thread " + t.getName(), e);
+        }
+      };
 
   public Poller(
       String identity,

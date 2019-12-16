@@ -100,6 +100,7 @@ import com.uber.tchannel.api.SubChannel;
 import com.uber.tchannel.api.TChannel;
 import com.uber.tchannel.api.TFuture;
 import com.uber.tchannel.api.errors.TChannelError;
+import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
@@ -373,6 +374,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final TChannel tChannel;
   private final SubChannel subChannel;
 
+  public static class TimeoutException extends TException {
+    public TimeoutException(String message) {
+      super("Rpc timed out: " + message);
+    }
+  }
+
   /**
    * Creates Cadence client that connects to the local instance of the Cadence Service that listens
    * on a default port (7933).
@@ -540,7 +547,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private void throwOnRpcError(ThriftResponse<?> response) throws TException {
     if (response.isError()) {
-      throw new TException("Rpc error:" + response.getError());
+      if (response.getError().getErrorType() == ErrorType.Timeout) {
+        throw new TimeoutException(response.getError().getMessage());
+      } else {
+        throw new TException("Rpc error:" + response.getError());
+      }
     }
   }
 
