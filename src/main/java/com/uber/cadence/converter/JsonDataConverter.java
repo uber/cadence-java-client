@@ -18,13 +18,7 @@
 package com.uber.cadence.converter;
 
 import com.google.common.base.Defaults;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
@@ -49,7 +43,6 @@ public final class JsonDataConverter implements DataConverter {
   private static final String JSON_CONVERTER_TYPE = "JSON";
   private static final String CLASS_NAME_FIELD_NAME = "className";
   private final Gson gson;
-  private final JsonParser parser = new JsonParser();
 
   public static DataConverter getInstance() {
     return INSTANCE;
@@ -128,7 +121,7 @@ public final class JsonDataConverter implements DataConverter {
         return new Object[] {result};
       }
 
-      JsonElement element = parser.parse(new String(content, StandardCharsets.UTF_8));
+      JsonElement element = JsonParser.parseString(new String(content, StandardCharsets.UTF_8));
       JsonArray array;
       if (element instanceof JsonArray) {
         array = element.getAsJsonArray();
