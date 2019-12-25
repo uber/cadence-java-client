@@ -128,7 +128,7 @@ def ossrhUsername = hasProperty('ossrhUsername') ? property('ossrhUsername') : '
 def ossrhPassword = hasProperty('ossrhPassword') ? property('ossrhPassword') : ''
 
 publishing {
-    mavenCustom(MavenPublication) {	
+    maven(MavenPublication) {	
        pom.withXml {	
            asNode().with {	
                appendNode('packaging', 'jar')	
