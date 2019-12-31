@@ -26,6 +26,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RetryParameters;
@@ -58,6 +59,7 @@ import com.uber.m3.tally.Scope;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -386,6 +388,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
             .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
             .setRetryParameters(retryParameters)
             .setCronSchedule(options.getCronSchedule())
+            .setContext(extractContextsAndConvertToBytes(options.getContextPropagators()))
             .build();
     CompletablePromise<byte[]> result = Workflow.newPromise();
     Consumer<Exception> cancellationCallback =
@@ -409,6 +412,18 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               cancellationCallback.accept(new CancellationException(reason));
               return null;
             });
+    return result;
+  }
+
+  private Map<String, byte[]> extractContextsAndConvertToBytes(
+      List<ContextPropagator> contextPropagators) {
+    if (contextPropagators == null) {
+      return null;
+    }
+    Map<String, byte[]> result = new HashMap<>();
+    for (ContextPropagator propagator : contextPropagators) {
+      result.putAll(propagator.getCurrentContext());
+    }
     return result;
   }
 

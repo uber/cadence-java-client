@@ -24,8 +24,10 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.OptionsUtils;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -56,6 +58,7 @@ public final class ChildWorkflowOptions {
         .setCronSchedule(OptionsUtils.merge(cronAnnotation, o.getCronSchedule(), String.class))
         .setMemo(o.getMemo())
         .setSearchAttributes(o.getSearchAttributes())
+        .setContextPropagators(o.getContextPropagators())
         .validateAndBuildWithDefaults();
   }
 
@@ -83,6 +86,8 @@ public final class ChildWorkflowOptions {
 
     private Map<String, Object> searchAttributes;
 
+    private List<ContextPropagator> contextPropagators;
+
     public Builder() {}
 
     public Builder(ChildWorkflowOptions source) {
@@ -100,6 +105,7 @@ public final class ChildWorkflowOptions {
       this.cronSchedule = source.getCronSchedule();
       this.memo = source.getMemo();
       this.searchAttributes = source.getSearchAttributes();
+      this.contextPropagators = source.getContextPropagators();
     }
 
     /**
@@ -210,6 +216,12 @@ public final class ChildWorkflowOptions {
       return this;
     }
 
+    /** Specifies the list of context propagators to use during this workflow. */
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     public ChildWorkflowOptions build() {
       return new ChildWorkflowOptions(
           domain,
@@ -222,7 +234,8 @@ public final class ChildWorkflowOptions {
           childPolicy,
           cronSchedule,
           memo,
-          searchAttributes);
+          searchAttributes,
+          contextPropagators);
     }
 
     public ChildWorkflowOptions validateAndBuildWithDefaults() {
@@ -237,7 +250,8 @@ public final class ChildWorkflowOptions {
           childPolicy,
           cronSchedule,
           memo,
-          searchAttributes);
+          searchAttributes,
+          contextPropagators);
     }
   }
 
@@ -263,6 +277,8 @@ public final class ChildWorkflowOptions {
 
   private final Map<String, Object> searchAttributes;
 
+  private List<ContextPropagator> contextPropagators;
+
   private ChildWorkflowOptions(
       String domain,
       String workflowId,
@@ -274,7 +290,8 @@ public final class ChildWorkflowOptions {
       ChildPolicy childPolicy,
       String cronSchedule,
       Map<String, Object> memo,
-      Map<String, Object> searchAttributes) {
+      Map<String, Object> searchAttributes,
+      List<ContextPropagator> contextPropagators) {
     this.domain = domain;
     this.workflowId = workflowId;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
@@ -286,6 +303,7 @@ public final class ChildWorkflowOptions {
     this.cronSchedule = cronSchedule;
     this.memo = memo;
     this.searchAttributes = searchAttributes;
+    this.contextPropagators = contextPropagators;
   }
 
   public String getDomain() {
@@ -332,6 +350,10 @@ public final class ChildWorkflowOptions {
     return searchAttributes;
   }
 
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -348,7 +370,8 @@ public final class ChildWorkflowOptions {
         && childPolicy == that.childPolicy
         && Objects.equals(cronSchedule, that.cronSchedule)
         && Objects.equals(memo, that.memo)
-        && Objects.equals(searchAttributes, that.searchAttributes);
+        && Objects.equals(searchAttributes, that.searchAttributes)
+        && Objects.equals(contextPropagators, that.contextPropagators);
   }
 
   @Override
@@ -364,7 +387,8 @@ public final class ChildWorkflowOptions {
         childPolicy,
         cronSchedule,
         memo,
-        searchAttributes);
+        searchAttributes,
+        contextPropagators);
   }
 
   @Override
@@ -396,6 +420,8 @@ public final class ChildWorkflowOptions {
         + '\''
         + ", searchAttributes='"
         + searchAttributes
+        + ", contextPropagators='"
+        + contextPropagators
         + '\''
         + '}';
   }

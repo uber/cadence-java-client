@@ -67,7 +67,9 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
       BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller,
       ReplayDecider replayDecider) {
     this.activityClient = new ActivityDecisionContext(decisionsHelper);
-    this.workflowContext = new WorkflowContext(domain, decisionTask, startedAttributes);
+    this.workflowContext =
+        new WorkflowContext(
+            domain, decisionTask, startedAttributes, options.getContextPropagators());
     this.workflowClient = new WorkflowDecisionContext(decisionsHelper, workflowContext);
     this.workflowClock =
         new ClockDecisionContext(
@@ -170,6 +172,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public SearchAttributes getSearchAttributes() {
     return workflowContext.getSearchAttributes();
+  }
+
+  @Override
+  public void propagateContext() {
+    workflowContext.propagateContext();
   }
 
   @Override

@@ -30,9 +30,11 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -65,6 +67,7 @@ public final class WorkflowOptions {
         .setCronSchedule(OptionsUtils.merge(cronAnnotation, o.getCronSchedule(), String.class))
         .setMemo(o.getMemo())
         .setSearchAttributes(o.getSearchAttributes())
+        .setContextPropagators(o.getContextPropagators())
         .validateBuildWithDefaults();
   }
 
@@ -90,6 +93,8 @@ public final class WorkflowOptions {
 
     private Map<String, Object> searchAttributes;
 
+    private List<ContextPropagator> contextPropagators;
+
     public Builder() {}
 
     public Builder(WorkflowOptions o) {
@@ -106,6 +111,7 @@ public final class WorkflowOptions {
       this.cronSchedule = o.cronSchedule;
       this.memo = o.memo;
       this.searchAttributes = o.searchAttributes;
+      this.contextPropagators = o.contextPropagators;
     }
 
     /**
@@ -208,6 +214,12 @@ public final class WorkflowOptions {
       return this;
     }
 
+    /** Specifies the list of context propagators to use during this workflow. */
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     public WorkflowOptions build() {
       return new WorkflowOptions(
           workflowId,
@@ -219,7 +231,8 @@ public final class WorkflowOptions {
           retryOptions,
           cronSchedule,
           memo,
-          searchAttributes);
+          searchAttributes,
+          contextPropagators);
     }
 
     /**
@@ -266,7 +279,8 @@ public final class WorkflowOptions {
           retryOptions,
           cronSchedule,
           memo,
-          searchAttributes);
+          searchAttributes,
+          contextPropagators);
     }
   }
 
@@ -290,6 +304,8 @@ public final class WorkflowOptions {
 
   private Map<String, Object> searchAttributes;
 
+  private List<ContextPropagator> contextPropagators;
+
   private WorkflowOptions(
       String workflowId,
       WorkflowIdReusePolicy workflowIdReusePolicy,
@@ -300,7 +316,8 @@ public final class WorkflowOptions {
       RetryOptions retryOptions,
       String cronSchedule,
       Map<String, Object> memo,
-      Map<String, Object> searchAttributes) {
+      Map<String, Object> searchAttributes,
+      List<ContextPropagator> contextPropagators) {
     this.workflowId = workflowId;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.executionStartToCloseTimeout = executionStartToCloseTimeout;
@@ -311,6 +328,7 @@ public final class WorkflowOptions {
     this.cronSchedule = cronSchedule;
     this.memo = memo;
     this.searchAttributes = searchAttributes;
+    this.contextPropagators = contextPropagators;
   }
 
   public String getWorkflowId() {
@@ -353,6 +371,10 @@ public final class WorkflowOptions {
     return searchAttributes;
   }
 
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -367,7 +389,8 @@ public final class WorkflowOptions {
         && Objects.equals(retryOptions, that.retryOptions)
         && Objects.equals(cronSchedule, that.cronSchedule)
         && Objects.equals(memo, that.memo)
-        && Objects.equals(searchAttributes, that.searchAttributes);
+        && Objects.equals(searchAttributes, that.searchAttributes)
+        && Objects.equals(contextPropagators, that.contextPropagators);
   }
 
   @Override
@@ -382,7 +405,8 @@ public final class WorkflowOptions {
         retryOptions,
         cronSchedule,
         memo,
-        searchAttributes);
+        searchAttributes,
+        contextPropagators);
   }
 
   @Override
@@ -412,6 +436,8 @@ public final class WorkflowOptions {
         + '\''
         + ", searchAttributes='"
         + searchAttributes
+        + ", contextPropagators='"
+        + contextPropagators
         + '\''
         + '}';
   }

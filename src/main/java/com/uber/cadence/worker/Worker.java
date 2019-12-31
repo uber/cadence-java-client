@@ -148,6 +148,7 @@ public final class Worker implements Suspendable {
         .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
         .setMetricsScope(options.getMetricsScope().tagged(tags))
         .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .setContextPropagators(options.getContextPropagators())
         .build();
   }
 
@@ -167,6 +168,7 @@ public final class Worker implements Suspendable {
         .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorkflowExecutionSize())
         .setMetricsScope(options.getMetricsScope().tagged(tags))
         .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .setContextPropagators(options.getContextPropagators())
         .build();
   }
 
@@ -186,6 +188,7 @@ public final class Worker implements Suspendable {
         .setTaskExecutorThreadPoolSize(options.getMaxConcurrentLocalActivityExecutionSize())
         .setMetricsScope(options.getMetricsScope().tagged(tags))
         .setEnableLoggingInReplay(options.getEnableLoggingInReplay())
+        .setContextPropagators(options.getContextPropagators())
         .build();
   }
 

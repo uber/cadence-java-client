@@ -563,6 +563,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public void propagateContext() {
+      // Noop
+    }
+
+    @Override
     public Consumer<Exception> scheduleActivityTask(
         ExecuteActivityParameters parameters, BiConsumer<byte[], Exception> callback) {
       throw new UnsupportedOperationException("not implemented");

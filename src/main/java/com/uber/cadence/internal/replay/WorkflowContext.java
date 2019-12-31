@@ -18,8 +18,10 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.*;
+import com.uber.cadence.context.ContextPropagator;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 final class WorkflowContext {
@@ -33,16 +35,19 @@ final class WorkflowContext {
   // as in this particular part of the history.
   private String currentRunId;
   private SearchAttributes searchAttributes;
+  private List<ContextPropagator> contextPropagators;
 
   WorkflowContext(
       String domain,
       PollForDecisionTaskResponse decisionTask,
-      WorkflowExecutionStartedEventAttributes startedAttributes) {
+      WorkflowExecutionStartedEventAttributes startedAttributes,
+      List<ContextPropagator> contextPropagators) {
     this.domain = domain;
     this.decisionTask = decisionTask;
     this.startedAttributes = startedAttributes;
     this.currentRunId = startedAttributes.getOriginalExecutionRunId();
     this.searchAttributes = startedAttributes.getSearchAttributes();
+    this.contextPropagators = contextPropagators;
   }
 
   WorkflowExecution getWorkflowExecution() {
@@ -139,6 +144,29 @@ final class WorkflowContext {
 
   SearchAttributes getSearchAttributes() {
     return searchAttributes;
+  }
+
+  void propagateContext() {
+    if (contextPropagators == null || contextPropagators.isEmpty()) {
+      return;
+    }
+
+    Header headers = startedAttributes.getHeader();
+    if (headers == null) {
+      return;
+    }
+
+    Map<String, byte[]> headerData = new HashMap<>();
+    headers
+        .getFields()
+        .forEach(
+            (k, v) -> {
+              headerData.put(k, org.apache.thrift.TBaseHelper.byteBufferToByteArray(v));
+            });
+
+    for (ContextPropagator propagator : contextPropagators) {
+      propagator.setCurrentContext(headerData);
+    }
   }
 
   void mergeSearchAttributes(SearchAttributes searchAttributes) {

@@ -78,6 +78,10 @@ class WorkflowThreadImpl implements WorkflowThread {
       MDC.put(LoggerTag.RUN_ID, decisionContext.getRunId());
       MDC.put(LoggerTag.TASK_LIST, decisionContext.getTaskList());
       MDC.put(LoggerTag.DOMAIN, decisionContext.getDomain());
+
+      // Process all the context propagators
+      decisionContext.propagateContext();
+
       try {
         // initialYield blocks thread until the first runUntilBlocked is called.
         // Otherwise r starts executing without control of the sync.

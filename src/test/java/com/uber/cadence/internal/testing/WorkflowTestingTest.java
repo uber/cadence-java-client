@@ -43,19 +43,24 @@ import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.testing.SimulatedTimeoutException;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.ActivityTimeoutException;
 import com.uber.cadence.workflow.Async;
+import com.uber.cadence.workflow.ChildWorkflowOptions;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -70,6 +75,7 @@ import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class WorkflowTestingTest {
   private static final Logger log = LoggerFactory.getLogger(WorkflowTestingTest.class);
@@ -728,5 +734,103 @@ public class WorkflowTestingTest {
     } catch (WorkflowException e) {
       assertTrue(e.getCause() instanceof ChildWorkflowTimedOutException);
     }
+  }
+
+  public static class TestContextPropagator implements ContextPropagator {
+
+    @Override
+    public Map<String, byte[]> getCurrentContext() {
+      String testKey = MDC.get("test");
+      return Collections.singletonMap("test", testKey.getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Override
+    public void setCurrentContext(Map<String, byte[]> context) {
+      String value = new String(context.get("test"), StandardCharsets.UTF_8);
+      MDC.put("test", value);
+    }
+  }
+
+  public static class ContextPropagationWorkflowImpl implements TestWorkflow {
+
+    @Override
+    public String workflow1(String input) {
+      // The test value should be in the MDC
+      return MDC.get("test");
+    }
+  }
+
+  @Test
+  public void testWorkflowContextPropagation() {
+    Worker worker =
+        testEnvironment.newWorker(
+            TASK_LIST,
+            builder ->
+                builder.setContextPropagators(
+                    Collections.singletonList(new TestContextPropagator())));
+    worker.registerWorkflowImplementationTypes(ContextPropagationWorkflowImpl.class);
+    testEnvironment.start();
+    MDC.put("test", "testing123");
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+            .build();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
+    String result = workflow.workflow1("input1");
+    assertEquals("testing123", result);
+  }
+
+  public static class ContextPropagationParentWorkflowImpl implements ParentWorkflow {
+
+    @Override
+    public String workflow(String input) {
+      // Get the MDC value
+      String mdcValue = MDC.get("test");
+
+      // Fire up a child workflow
+      ChildWorkflowOptions options =
+          new ChildWorkflowOptions.Builder()
+              .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+              .build();
+      ChildWorkflow child = Workflow.newChildWorkflowStub(ChildWorkflow.class, options);
+
+      String result = child.workflow(mdcValue, Workflow.getWorkflowInfo().getWorkflowId());
+      return result;
+    }
+
+    @Override
+    public void signal(String value) {}
+  }
+
+  public static class ContextPropagationChildWorkflowImpl implements ChildWorkflow {
+
+    @Override
+    public String workflow(String input, String parentId) {
+      String mdcValue = MDC.get("test");
+      return input + mdcValue;
+    }
+  }
+
+  @Test
+  public void testChildWorkflowContextPropagation() {
+    Worker worker =
+        testEnvironment.newWorker(
+            TASK_LIST,
+            builder ->
+                builder.setContextPropagators(
+                    Collections.singletonList(new TestContextPropagator())));
+    worker.registerWorkflowImplementationTypes(
+        ContextPropagationParentWorkflowImpl.class, ContextPropagationChildWorkflowImpl.class);
+    testEnvironment.start();
+    MDC.put("test", "testing123");
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+            .build();
+    ParentWorkflow workflow = client.newWorkflowStub(ParentWorkflow.class, options);
+    String result = workflow.workflow("input1");
+    assertEquals("testing123testing123", result);
   }
 }

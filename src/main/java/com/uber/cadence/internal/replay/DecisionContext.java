@@ -80,6 +80,9 @@ public interface DecisionContext extends ReplayAware {
    */
   SearchAttributes getSearchAttributes();
 
+  /** Propagates the context */
+  void propagateContext();
+
   /**
    * Used to dynamically schedule an activity for execution
    *

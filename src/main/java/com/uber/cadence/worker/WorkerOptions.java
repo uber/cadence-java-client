@@ -18,6 +18,7 @@
 package com.uber.cadence.worker;
 
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.NoopScope;
@@ -25,6 +26,7 @@ import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.m3.tally.Scope;
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -50,6 +52,7 @@ public final class WorkerOptions {
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
     private Scope metricsScope;
     private boolean enableLoggingInReplay;
+    private List<ContextPropagator> contextPropagators;
 
     /**
      * When set to true doesn't poll on workflow task list even if there are registered workflows
@@ -187,6 +190,12 @@ public final class WorkerOptions {
       return this;
     }
 
+    /** Specifies the list of context propagators to use during this workflow. */
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     /**
      * Optional: Sets the rate limiting on number of activities that can be executed per second.
      * This is managed by the server and controls activities per second for your entire tasklist.
@@ -227,7 +236,8 @@ public final class WorkerOptions {
           reportWorkflowFailureRetryOptions,
           interceptorFactory,
           metricsScope,
-          enableLoggingInReplay);
+          enableLoggingInReplay,
+          contextPropagators);
     }
   }
 
@@ -249,6 +259,7 @@ public final class WorkerOptions {
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
+  private List<ContextPropagator> contextPropagators;
 
   private WorkerOptions(
       boolean disableWorkflowWorker,
@@ -268,7 +279,8 @@ public final class WorkerOptions {
       RetryOptions reportWorkflowFailureRetryOptions,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       Scope metricsScope,
-      boolean enableLoggingInReplay) {
+      boolean enableLoggingInReplay,
+      List<ContextPropagator> contextPropagators) {
     this.disableWorkflowWorker = disableWorkflowWorker;
     this.disableActivityWorker = disableActivityWorker;
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
@@ -287,6 +299,7 @@ public final class WorkerOptions {
     this.interceptorFactory = interceptorFactory;
     this.metricsScope = metricsScope;
     this.enableLoggingInReplay = enableLoggingInReplay;
+    this.contextPropagators = contextPropagators;
   }
 
   public boolean isDisableWorkflowWorker() {
@@ -355,6 +368,14 @@ public final class WorkerOptions {
 
   public boolean getEnableLoggingInReplay() {
     return enableLoggingInReplay;
+  }
+
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
+  }
+
+  public void setContextPropagators(List<ContextPropagator> contextPropagators) {
+    this.contextPropagators = contextPropagators;
   }
 
   @Override

@@ -22,6 +22,7 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.common.RetryParameters;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 
 public final class StartChildWorkflowExecutionParameters {
@@ -51,6 +52,8 @@ public final class StartChildWorkflowExecutionParameters {
     private RetryParameters retryParameters;
 
     private String cronSchedule;
+
+    private Map<String, byte[]> context;
 
     public Builder setDomain(String domain) {
       this.domain = domain;
@@ -113,6 +116,11 @@ public final class StartChildWorkflowExecutionParameters {
       return this;
     }
 
+    public Builder setContext(Map<String, byte[]> context) {
+      this.context = context;
+      return this;
+    }
+
     public StartChildWorkflowExecutionParameters build() {
       return new StartChildWorkflowExecutionParameters(
           domain,
@@ -126,7 +134,8 @@ public final class StartChildWorkflowExecutionParameters {
           childPolicy,
           workflowIdReusePolicy,
           retryParameters,
-          cronSchedule);
+          cronSchedule,
+          context);
     }
   }
 
@@ -154,6 +163,8 @@ public final class StartChildWorkflowExecutionParameters {
 
   private final String cronSchedule;
 
+  private Map<String, byte[]> context;
+
   private StartChildWorkflowExecutionParameters(
       String domain,
       byte[] input,
@@ -166,7 +177,8 @@ public final class StartChildWorkflowExecutionParameters {
       ChildPolicy childPolicy,
       WorkflowIdReusePolicy workflowIdReusePolicy,
       RetryParameters retryParameters,
-      String cronSchedule) {
+      String cronSchedule,
+      Map<String, byte[]> context) {
     this.domain = domain;
     this.input = input;
     this.control = control;
@@ -179,6 +191,7 @@ public final class StartChildWorkflowExecutionParameters {
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.retryParameters = retryParameters;
     this.cronSchedule = cronSchedule;
+    this.context = context;
   }
 
   public String getDomain() {
@@ -229,6 +242,10 @@ public final class StartChildWorkflowExecutionParameters {
     return cronSchedule;
   }
 
+  public Map<String, byte[]> getContext() {
+    return context;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -245,7 +262,8 @@ public final class StartChildWorkflowExecutionParameters {
         && childPolicy == that.childPolicy
         && workflowIdReusePolicy == that.workflowIdReusePolicy
         && Objects.equals(retryParameters, that.retryParameters)
-        && Objects.equals(cronSchedule, that.cronSchedule);
+        && Objects.equals(cronSchedule, that.cronSchedule)
+        && Objects.equals(context, that.context);
   }
 
   @Override
@@ -262,7 +280,8 @@ public final class StartChildWorkflowExecutionParameters {
             childPolicy,
             workflowIdReusePolicy,
             retryParameters,
-            cronSchedule);
+            cronSchedule,
+            context);
     result = 31 * result + Arrays.hashCode(input);
     return result;
   }
@@ -298,6 +317,8 @@ public final class StartChildWorkflowExecutionParameters {
         + retryParameters
         + ", cronSchedule="
         + cronSchedule
+        + ", context='"
+        + context
         + '}';
   }
 }
