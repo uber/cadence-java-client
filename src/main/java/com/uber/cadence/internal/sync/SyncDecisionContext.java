@@ -306,6 +306,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     if (retryOptions != null) {
       parameters.setRetryParameters(new RetryParameters(retryOptions));
     }
+
+    // Set the context value
+    parameters.setContext(extractContextsAndConvertToBytes(options.getContextPropagators()));
+
     return parameters;
   }
 
