@@ -65,7 +65,7 @@ license {
 }
 
 compileThrift {
-    sourceItems "src/main/idls/cadence.thrift","src/main/idls/shared.thrift"
+    sourceItems "src/main/idls/thrift/cadence.thrift","src/main/idls/thrift/shared.thrift"
 
     nowarn true
 }
