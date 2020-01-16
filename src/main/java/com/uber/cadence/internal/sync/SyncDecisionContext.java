@@ -426,7 +426,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     }
     Map<String, byte[]> result = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      result.putAll(propagator.getCurrentContext());
+      result.putAll(propagator.serializeContext(propagator.getCurrentContext()));
     }
     return result;
   }

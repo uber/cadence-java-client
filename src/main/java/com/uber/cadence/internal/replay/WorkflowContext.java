@@ -146,14 +146,19 @@ final class WorkflowContext {
     return searchAttributes;
   }
 
-  void propagateContext() {
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
+  }
+
+  /** Returns a map of propagated context objects, keyed by propagator name */
+  Map<String, Object> getPropagatedContexts() {
     if (contextPropagators == null || contextPropagators.isEmpty()) {
-      return;
+      return new HashMap<>();
     }
 
     Header headers = startedAttributes.getHeader();
     if (headers == null) {
-      return;
+      return new HashMap<>();
     }
 
     Map<String, byte[]> headerData = new HashMap<>();
@@ -164,9 +169,12 @@ final class WorkflowContext {
               headerData.put(k, org.apache.thrift.TBaseHelper.byteBufferToByteArray(v));
             });
 
+    Map<String, Object> contextData = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      propagator.setCurrentContext(headerData);
+      contextData.put(propagator.getName(), propagator.deserializeContext(headerData));
     }
+
+    return contextData;
   }
 
   void mergeSearchAttributes(SearchAttributes searchAttributes) {

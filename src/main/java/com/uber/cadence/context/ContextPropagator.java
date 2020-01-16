@@ -21,9 +21,18 @@ import java.util.Map;
 
 public interface ContextPropagator {
 
-  /** Retrieves the current context for injection into the headers */
-  Map<String, byte[]> getCurrentContext();
+  /** Returns the name of the context propagator (for use in serialization and transfer) */
+  String getName();
 
-  /** Sets the context values with data from the headers */
-  void setCurrentContext(Map<String, byte[]> context);
+  /** Given context data, serialize it for transmission in the Cadence header */
+  Map<String, byte[]> serializeContext(Object context);
+
+  /** Turn the serialized header data into context object(s) */
+  Object deserializeContext(Map<String, byte[]> context);
+
+  /** Returns the current context in object form */
+  Object getCurrentContext();
+
+  /** Sets the current context */
+  void setCurrentContext(Object context);
 }

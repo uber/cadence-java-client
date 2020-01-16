@@ -21,6 +21,7 @@ import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
@@ -563,8 +564,13 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
-    public void propagateContext() {
-      // Noop
+    public Map<String, Object> getPropagatedContexts() {
+      return null;
+    }
+
+    @Override
+    public List<ContextPropagator> getContextPropagators() {
+      return null;
     }
 
     @Override

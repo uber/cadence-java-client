@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import com.google.common.util.concurrent.RateLimiter;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
@@ -79,8 +80,8 @@ class WorkflowThreadImpl implements WorkflowThread {
       MDC.put(LoggerTag.TASK_LIST, decisionContext.getTaskList());
       MDC.put(LoggerTag.DOMAIN, decisionContext.getDomain());
 
-      // Process all the context propagators
-      decisionContext.propagateContext();
+      // Propagate the contexts
+      propagateContext();
 
       try {
         // initialYield blocks thread until the first runUntilBlocked is called.
@@ -145,6 +146,21 @@ class WorkflowThreadImpl implements WorkflowThread {
       this.name = name;
       if (thread != null) {
         thread.setName(name);
+      }
+    }
+
+    public void propagateContext() {
+      // Loop through the context propagators and propagate
+      Map<String, Object> propagatedContexts = decisionContext.getPropagatedContexts();
+      if (propagatedContexts == null || propagatedContexts.isEmpty()) {
+        return;
+      }
+
+      for (ContextPropagator propagator : decisionContext.getContextPropagators()) {
+        String name = propagator.getName();
+        if (propagatedContexts.containsKey(name)) {
+          propagator.setCurrentContext(propagatedContexts.get(name));
+        }
       }
     }
   }

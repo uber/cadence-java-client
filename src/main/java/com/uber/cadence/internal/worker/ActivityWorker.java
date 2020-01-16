@@ -220,7 +220,7 @@ public final class ActivityWorker implements SuspendableWorker {
               });
 
       for (ContextPropagator propagator : options.getContextPropagators()) {
-        propagator.setCurrentContext(headerData);
+        propagator.setCurrentContext(propagator.deserializeContext(headerData));
       }
     }
 

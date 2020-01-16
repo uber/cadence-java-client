@@ -739,15 +739,29 @@ public class WorkflowTestingTest {
   public static class TestContextPropagator implements ContextPropagator {
 
     @Override
-    public Map<String, byte[]> getCurrentContext() {
-      String testKey = MDC.get("test");
+    public String getName() {
+      return this.getClass().getName();
+    }
+
+    @Override
+    public Map<String, byte[]> serializeContext(Object context) {
+      String testKey = (String) context;
       return Collections.singletonMap("test", testKey.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
-    public void setCurrentContext(Map<String, byte[]> context) {
-      String value = new String(context.get("test"), StandardCharsets.UTF_8);
-      MDC.put("test", value);
+    public Object deserializeContext(Map<String, byte[]> context) {
+      return new String(context.get("test"), StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public Object getCurrentContext() {
+      return MDC.get("test");
+    }
+
+    @Override
+    public void setCurrentContext(Object context) {
+      MDC.put("test", String.valueOf(context));
     }
   }
 

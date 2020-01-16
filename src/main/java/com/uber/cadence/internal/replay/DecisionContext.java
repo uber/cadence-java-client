@@ -21,12 +21,15 @@ import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -80,8 +83,19 @@ public interface DecisionContext extends ReplayAware {
    */
   SearchAttributes getSearchAttributes();
 
-  /** Propagates the context */
-  void propagateContext();
+  /**
+   * Returns all of the current contexts being propagated by a {@link
+   * com.uber.cadence.context.ContextPropagator}. The key is the {@link ContextPropagator#getName()}
+   * and the value is the object returned by {@link ContextPropagator#getCurrentContext()}
+   */
+  Map<String, Object> getPropagatedContexts();
+
+  /**
+   * Returns the set of configured context propagators
+   *
+   * @return
+   */
+  List<ContextPropagator> getContextPropagators();
 
   /**
    * Used to dynamically schedule an activity for execution
