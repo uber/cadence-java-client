@@ -8,3 +8,4 @@ target
 /build
 /out
 dummy
+src/main/idls/*
