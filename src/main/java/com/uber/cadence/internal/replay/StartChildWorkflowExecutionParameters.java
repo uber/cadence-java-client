@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.replay;
 
-import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.common.RetryParameters;
@@ -44,8 +43,6 @@ public final class StartChildWorkflowExecutionParameters {
     private String workflowId;
 
     private WorkflowType workflowType;
-
-    private ChildPolicy childPolicy;
 
     private WorkflowIdReusePolicy workflowIdReusePolicy;
 
@@ -96,11 +93,6 @@ public final class StartChildWorkflowExecutionParameters {
       return this;
     }
 
-    public Builder setChildPolicy(ChildPolicy childPolicy) {
-      this.childPolicy = childPolicy;
-      return this;
-    }
-
     public Builder setWorkflowIdReusePolicy(WorkflowIdReusePolicy workflowIdReusePolicy) {
       this.workflowIdReusePolicy = workflowIdReusePolicy;
       return this;
@@ -131,7 +123,6 @@ public final class StartChildWorkflowExecutionParameters {
           taskStartToCloseTimeoutSeconds,
           workflowId,
           workflowType,
-          childPolicy,
           workflowIdReusePolicy,
           retryParameters,
           cronSchedule,
@@ -155,8 +146,6 @@ public final class StartChildWorkflowExecutionParameters {
 
   private final WorkflowType workflowType;
 
-  private final ChildPolicy childPolicy;
-
   private final WorkflowIdReusePolicy workflowIdReusePolicy;
 
   private final RetryParameters retryParameters;
@@ -174,7 +163,6 @@ public final class StartChildWorkflowExecutionParameters {
       long taskStartToCloseTimeoutSeconds,
       String workflowId,
       WorkflowType workflowType,
-      ChildPolicy childPolicy,
       WorkflowIdReusePolicy workflowIdReusePolicy,
       RetryParameters retryParameters,
       String cronSchedule,
@@ -187,7 +175,6 @@ public final class StartChildWorkflowExecutionParameters {
     this.taskStartToCloseTimeoutSeconds = taskStartToCloseTimeoutSeconds;
     this.workflowId = workflowId;
     this.workflowType = workflowType;
-    this.childPolicy = childPolicy;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.retryParameters = retryParameters;
     this.cronSchedule = cronSchedule;
@@ -226,10 +213,6 @@ public final class StartChildWorkflowExecutionParameters {
     return workflowType;
   }
 
-  public ChildPolicy getChildPolicy() {
-    return childPolicy;
-  }
-
   public WorkflowIdReusePolicy getWorkflowIdReusePolicy() {
     return workflowIdReusePolicy;
   }
@@ -259,7 +242,6 @@ public final class StartChildWorkflowExecutionParameters {
         && Objects.equals(taskList, that.taskList)
         && Objects.equals(workflowId, that.workflowId)
         && Objects.equals(workflowType, that.workflowType)
-        && childPolicy == that.childPolicy
         && workflowIdReusePolicy == that.workflowIdReusePolicy
         && Objects.equals(retryParameters, that.retryParameters)
         && Objects.equals(cronSchedule, that.cronSchedule)
@@ -277,7 +259,6 @@ public final class StartChildWorkflowExecutionParameters {
             taskStartToCloseTimeoutSeconds,
             workflowId,
             workflowType,
-            childPolicy,
             workflowIdReusePolicy,
             retryParameters,
             cronSchedule,
@@ -309,8 +290,6 @@ public final class StartChildWorkflowExecutionParameters {
         + '\''
         + ", workflowType="
         + workflowType
-        + ", childPolicy="
-        + childPolicy
         + ", workflowIdReusePolicy="
         + workflowIdReusePolicy
         + ", retryParameters="

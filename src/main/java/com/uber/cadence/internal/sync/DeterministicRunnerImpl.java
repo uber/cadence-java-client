@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
@@ -551,11 +550,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     @Override
     public Duration getDecisionTaskTimeout() {
       throw new UnsupportedOperationException("not implemented");
-    }
-
-    @Override
-    public ChildPolicy getChildPolicy() {
-      return ChildPolicy.TERMINATE;
     }
 
     @Override

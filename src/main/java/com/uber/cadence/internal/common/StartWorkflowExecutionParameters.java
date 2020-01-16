@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.common;
 
-import com.uber.cadence.ChildPolicy;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowOptions;
@@ -42,8 +41,6 @@ public final class StartWorkflowExecutionParameters {
   private long executionStartToCloseTimeoutSeconds;
 
   private long taskStartToCloseTimeoutSeconds;
-
-  private ChildPolicy childPolicy;
 
   private WorkflowIdReusePolicy workflowIdReusePolicy;
 
@@ -270,19 +267,6 @@ public final class StartWorkflowExecutionParameters {
     return this;
   }
 
-  public ChildPolicy getChildPolicy() {
-    return childPolicy;
-  }
-
-  public void setChildPolicy(ChildPolicy childPolicy) {
-    this.childPolicy = childPolicy;
-  }
-
-  public StartWorkflowExecutionParameters withChildPolicy(ChildPolicy childPolicy) {
-    this.childPolicy = childPolicy;
-    return this;
-  }
-
   public RetryParameters getRetryParameters() {
     return retryParameters;
   }
@@ -334,7 +318,6 @@ public final class StartWorkflowExecutionParameters {
         getSeconds(options.getExecutionStartToCloseTimeout()));
     parameters.setTaskStartToCloseTimeoutSeconds(getSeconds(options.getTaskStartToCloseTimeout()));
     parameters.setTaskList(options.getTaskList());
-    parameters.setChildPolicy(options.getChildPolicy());
     parameters.setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy());
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
@@ -386,8 +369,6 @@ public final class StartWorkflowExecutionParameters {
         + executionStartToCloseTimeoutSeconds
         + ", taskStartToCloseTimeoutSeconds="
         + taskStartToCloseTimeoutSeconds
-        + ", childPolicy="
-        + childPolicy
         + ", workflowIdReusePolicy="
         + workflowIdReusePolicy
         + ", retryParameters="
@@ -417,7 +398,6 @@ public final class StartWorkflowExecutionParameters {
         && Objects.equals(workflowType, that.workflowType)
         && Objects.equals(taskList, that.taskList)
         && Arrays.equals(input, that.input)
-        && childPolicy == that.childPolicy
         && workflowIdReusePolicy == that.workflowIdReusePolicy
         && Objects.equals(retryParameters, that.retryParameters)
         && Objects.equals(cronSchedule, that.cronSchedule)
@@ -435,7 +415,6 @@ public final class StartWorkflowExecutionParameters {
             taskList,
             executionStartToCloseTimeoutSeconds,
             taskStartToCloseTimeoutSeconds,
-            childPolicy,
             workflowIdReusePolicy,
             retryParameters,
             cronSchedule,
