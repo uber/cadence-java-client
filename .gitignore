@@ -8,4 +8,5 @@ target
 /build
 /out
 dummy
+$buildDir
 src/main/idls/*
