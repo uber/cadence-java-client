@@ -18,28 +18,29 @@
 package com.uber.cadence.context;
 
 import com.uber.cadence.workflow.WorkflowThreadLocal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.function.Supplier;
 
 /** This class holds the current set of context propagators */
 public class ContextThreadLocal {
 
-  private static final Logger log = LoggerFactory.getLogger(ContextThreadLocal.class);
-
   private static WorkflowThreadLocal<List<ContextPropagator>> contextPropagators =
-      new WorkflowThreadLocal<List<ContextPropagator>>();
+      WorkflowThreadLocal.withInitial(
+          new Supplier<List<ContextPropagator>>() {
+            @Override
+            public List<ContextPropagator> get() {
+              return new ArrayList<>();
+            }
+          });
 
   /** Sets the list of context propagators for the thread */
   public static void setContextPropagators(List<ContextPropagator> propagators) {
     if (propagators == null || propagators.isEmpty()) {
-      log.debug("Setting context propagators to an empty list");
       return;
     }
-
-    log.debug("Setting context propagators to a list of " + propagators.size() + " items");
     contextPropagators.set(propagators);
   }
 
@@ -56,6 +57,9 @@ public class ContextThreadLocal {
   }
 
   public static void propagateContextToCurrentThread(Map<String, Object> contextData) {
+    if (contextData == null || contextData.isEmpty()) {
+      return;
+    }
     for (ContextPropagator propagator : contextPropagators.get()) {
       if (contextData.containsKey(propagator.getName())) {
         propagator.setCurrentContext(contextData.get(propagator.getName()));
