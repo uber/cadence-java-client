@@ -28,6 +28,7 @@ import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.Header;
 import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.ParentClosePolicy;
 import com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes;
@@ -146,6 +147,11 @@ final class WorkflowDecisionContext {
     }
 
     attributes.setHeader(toHeaderThrift(parameters.getContext()));
+
+    ParentClosePolicy parentClosePolicy = parameters.getParentClosePolicy();
+    if (parentClosePolicy != null) {
+      attributes.setParentClosePolicy(parentClosePolicy);
+    }
 
     long initiatedEventId = decisions.startChildWorkflowExecution(attributes);
     final OpenChildWorkflowRequestInfo context =

@@ -447,7 +447,8 @@ class StateMachines {
             .setWorkflowType(d.getWorkflowType())
             .setRetryPolicy(d.getRetryPolicy())
             .setCronSchedule(d.getCronSchedule())
-            .setHeader(d.getHeader());
+            .setHeader(d.getHeader())
+            .setParentClosePolicy(d.getParentClosePolicy());
     HistoryEvent event =
         new HistoryEvent()
             .setEventType(EventType.StartChildWorkflowExecutionInitiated)
