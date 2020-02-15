@@ -19,7 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.util.concurrent.RateLimiter;
 import com.uber.cadence.context.ContextPropagator;
-import com.uber.cadence.context.ContextThreadLocal;
+import com.uber.cadence.internal.context.ContextThreadLocal;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;

@@ -15,8 +15,9 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.context;
+package com.uber.cadence.internal.context;
 
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.workflow.WorkflowThreadLocal;
 import java.util.ArrayList;
 import java.util.HashMap;

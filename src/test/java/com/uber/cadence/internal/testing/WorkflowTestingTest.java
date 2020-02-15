@@ -46,6 +46,7 @@ import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.testing.SimulatedTimeoutException;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.ActivityTimeoutException;
@@ -97,7 +98,14 @@ public class WorkflowTestingTest {
 
   @Before
   public void setUp() {
-    testEnvironment = TestWorkflowEnvironment.newInstance();
+    TestEnvironmentOptions options =
+        new TestEnvironmentOptions.Builder()
+            .setFactoryOptions(
+                new Worker.FactoryOptions.Builder()
+                    .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+                    .build())
+            .build();
+    testEnvironment = TestWorkflowEnvironment.newInstance(options);
   }
 
   @After
@@ -776,12 +784,7 @@ public class WorkflowTestingTest {
 
   @Test
   public void testWorkflowContextPropagation() {
-    Worker worker =
-        testEnvironment.newWorker(
-            TASK_LIST,
-            builder ->
-                builder.setContextPropagators(
-                    Collections.singletonList(new TestContextPropagator())));
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
     worker.registerWorkflowImplementationTypes(ContextPropagationWorkflowImpl.class);
     testEnvironment.start();
     MDC.put("test", "testing123");
@@ -828,12 +831,7 @@ public class WorkflowTestingTest {
 
   @Test
   public void testChildWorkflowContextPropagation() {
-    Worker worker =
-        testEnvironment.newWorker(
-            TASK_LIST,
-            builder ->
-                builder.setContextPropagators(
-                    Collections.singletonList(new TestContextPropagator())));
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
     worker.registerWorkflowImplementationTypes(
         ContextPropagationParentWorkflowImpl.class, ContextPropagationChildWorkflowImpl.class);
     testEnvironment.start();

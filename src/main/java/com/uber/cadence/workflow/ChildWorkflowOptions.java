@@ -199,7 +199,7 @@ public final class ChildWorkflowOptions {
       return this;
     }
 
-    /** Specifies how this workflow reacts to the death of the parent workflow.  */
+    /** Specifies how this workflow reacts to the death of the parent workflow. */
     public Builder setParentClosePolicy(ParentClosePolicy parentClosePolicy) {
       this.parentClosePolicy = parentClosePolicy;
       return this;
@@ -339,7 +339,9 @@ public final class ChildWorkflowOptions {
     return cronSchedule;
   }
 
-  public ParentClosePolicy getParentClosePolicy() { return parentClosePolicy; }
+  public ParentClosePolicy getParentClosePolicy() {
+    return parentClosePolicy;
+  }
 
   public Map<String, Object> getMemo() {
     return memo;
