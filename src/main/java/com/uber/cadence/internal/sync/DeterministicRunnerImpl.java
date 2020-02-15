@@ -249,7 +249,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             }
           } else {
             long t = c.getBlockedUntil();
-            if (t > nextWakeUpTime) {
+            if (nextWakeUpTime == 0 || t < nextWakeUpTime) {
               nextWakeUpTime = t;
             }
           }
