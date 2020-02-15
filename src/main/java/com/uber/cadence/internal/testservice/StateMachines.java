@@ -705,6 +705,7 @@ class StateMachines {
             .setStartToCloseTimeoutSeconds(d.getStartToCloseTimeoutSeconds())
             .setTaskList(d.getTaskList())
             .setRetryPolicy(retryPolicy)
+            .setHeader(d.getHeader())
             .setDecisionTaskCompletedEventId(decisionTaskCompletedEventId);
     data.scheduledEvent =
         a; // Cannot set it in onCommit as it is used in the processScheduleActivityTask
@@ -724,6 +725,7 @@ class StateMachines {
             .setScheduleToCloseTimeoutSeconds(scheduleToCloseTimeoutSeconds)
             .setStartToCloseTimeoutSeconds(d.getStartToCloseTimeoutSeconds())
             .setScheduledTimestamp(ctx.currentTimeInNanoseconds())
+            .setHeader(d.getHeader())
             .setAttempt(0);
 
     TaskListId taskListId = new TaskListId(ctx.getDomain(), d.getTaskList().getName());
