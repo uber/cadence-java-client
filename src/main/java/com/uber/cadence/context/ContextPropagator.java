@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * Context Propagators are used to propagate information from workflow to activity, workflow to
- * child workflow, and workflow to child thread (using {@link com.uber.cadence.workflow.Async}.
+ * child workflow, and workflow to child thread (using {@link com.uber.cadence.workflow.Async}).
  *
  * <p>A sample <code>ContextPropagator</code> that copies all {@link org.slf4j.MDC} entries starting
  * with a given prefix along the code path looks like this:
