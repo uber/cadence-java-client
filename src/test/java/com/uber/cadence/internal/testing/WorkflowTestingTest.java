@@ -754,12 +754,20 @@ public class WorkflowTestingTest {
     @Override
     public Map<String, byte[]> serializeContext(Object context) {
       String testKey = (String) context;
-      return Collections.singletonMap("test", testKey.getBytes(StandardCharsets.UTF_8));
+      if (testKey != null) {
+        return Collections.singletonMap("test", testKey.getBytes(StandardCharsets.UTF_8));
+      } else {
+        return Collections.emptyMap();
+      }
     }
 
     @Override
     public Object deserializeContext(Map<String, byte[]> context) {
-      return new String(context.get("test"), StandardCharsets.UTF_8);
+      if (context.containsKey("test")) {
+        return new String(context.get("test"), StandardCharsets.UTF_8);
+      } else {
+        return null;
+      }
     }
 
     @Override

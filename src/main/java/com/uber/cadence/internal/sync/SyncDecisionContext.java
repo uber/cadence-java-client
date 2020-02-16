@@ -82,6 +82,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final DecisionContext context;
   private DeterministicRunner runner;
   private final DataConverter converter;
+  private final List<ContextPropagator> contextPropagators;
   private final WorkflowInterceptor headInterceptor;
   private final WorkflowTimers timers = new WorkflowTimers();
   private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
@@ -90,10 +91,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public SyncDecisionContext(
       DecisionContext context,
       DataConverter converter,
+      List<ContextPropagator> contextPropagators,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       byte[] lastCompletionResult) {
     this.context = context;
     this.converter = converter;
+    this.contextPropagators = contextPropagators;
     WorkflowInterceptor interceptor = interceptorFactory.apply(this);
     if (interceptor == null) {
       log.warn("WorkflowInterceptor factory returned null interceptor");
@@ -307,8 +310,13 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       parameters.setRetryParameters(new RetryParameters(retryOptions));
     }
 
-    // Set the context value
-    parameters.setContext(extractContextsAndConvertToBytes(options.getContextPropagators()));
+    // Set the context value.  Use the context propagators from the ActivityOptions
+    // if present, otherwise use the ones configured on the DecisionContext
+    List<ContextPropagator> propagators = options.getContextPropagators();
+    if (propagators == null) {
+      propagators = this.contextPropagators;
+    }
+    parameters.setContext(extractContextsAndConvertToBytes(propagators));
 
     return parameters;
   }
@@ -378,6 +386,11 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     if (retryOptions != null) {
       retryParameters = new RetryParameters(retryOptions);
     }
+    List<ContextPropagator> propagators = options.getContextPropagators();
+    if (propagators == null) {
+      propagators = this.contextPropagators;
+    }
+
     StartChildWorkflowExecutionParameters parameters =
         new StartChildWorkflowExecutionParameters.Builder()
             .setWorkflowType(new WorkflowType().setName(name))
@@ -391,7 +404,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
             .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
             .setRetryParameters(retryParameters)
             .setCronSchedule(options.getCronSchedule())
-            .setContext(extractContextsAndConvertToBytes(options.getContextPropagators()))
+            .setContext(extractContextsAndConvertToBytes(propagators))
             .setParentClosePolicy(options.getParentClosePolicy())
             .build();
     CompletablePromise<byte[]> result = Workflow.newPromise();
