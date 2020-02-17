@@ -93,8 +93,8 @@ import java.util.Map;
  * }</pre>
  *
  * <br>
- * If you want to have override the {@code ContextPropagator} instances
- * for your activities, you can specify them at the {@link com.uber.cadence.activity.ActivityOptions} level like so:
+ * If you want to have override the {@code ContextPropagator} instances for your activities, you can
+ * specify them at the {@link com.uber.cadence.activity.ActivityOptions} level like so:
  *
  * <pre>{@code
  * activities = Workflow.newActivityStub(Activity.class,
@@ -105,7 +105,8 @@ import java.util.Map;
  * }</pre>
  *
  * <br>
- * And similarly, if you wish to override them for child workflows, you can do so when creating a {@link com.uber.cadence.workflow.ChildWorkflowStub}:
+ * And similarly, if you wish to override them for child workflows, you can do so when creating a
+ * {@link com.uber.cadence.workflow.ChildWorkflowStub}:
  *
  * <pre>{@code
  * ChildWorkflow childWorkflow = Workflow.newChildWorkflowStub(ChildWorkflow.class,
