@@ -23,7 +23,6 @@ import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
@@ -43,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
@@ -71,6 +71,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
+  private static final TDeserializer serializer = new TDeserializer();
 
   public static class ClientOptions {
 
@@ -749,33 +750,39 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     }
   }
 
-  @Override
-  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
-      GetWorkflowExecutionHistoryRequest request) throws TException {
+  // This method deserialize the DataBlob data to the HistoriyEvent data
+  private GetWorkflowExecutionHistoryResponse DeserializeFromBlobToHistoryEvents(
+      List<DataBlob> blobData, ByteBuffer nextPageToken) throws TException {
 
-    List<HistoryEvent> events;
-    ByteBuffer nextPageToken;
-    if (request.waitForNewEvent) {
-      PollForWorkflowExecutionRawHistoryResponse response =
-          PollForWorkflowExecutionRawHistory(null);
-      events =
-          InternalUtils.DeserializeFromBlobToHistoryEvents(
-              response.rawHistory, request.getHistoryEventFilterType());
-      nextPageToken = response.nextPageToken;
-    } else {
-      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
-      events =
-          InternalUtils.DeserializeFromBlobToHistoryEvents(
-              response.rawHistory, request.getHistoryEventFilterType());
-      nextPageToken = response.nextPageToken;
+    List<HistoryEvent> events = new ArrayList<HistoryEvent>();
+    for (DataBlob data : blobData) {
+      HistoryEvent event = new HistoryEvent();
+      try {
+        serializer.deserialize(event, data.Data.array());
+      } catch (org.apache.thrift.TException err) {
+        throw new TException("Deserialize blob data to history event failed with unknown error");
+      }
+      events.add(event);
     }
-
     GetWorkflowExecutionHistoryResponse res = new GetWorkflowExecutionHistoryResponse();
     History history = new History();
     history.setEvents(events);
     res.setHistory(history);
     res.setNextPageToken(nextPageToken);
     return res;
+  }
+
+  @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
+      GetWorkflowExecutionHistoryRequest request) throws TException {
+    if (request.waitForNewEvent) {
+      PollForWorkflowExecutionRawHistoryResponse response =
+          PollForWorkflowExecutionRawHistory(null);
+      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
+    } else {
+      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
+      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
+    }
   }
 
   @Override
@@ -833,7 +840,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         () -> getWorkflowExecutionRawHistory(request));
   }
 
-  // getWorkflowExecutionRawHistory
   private GetWorkflowExecutionRawHistoryResponse getWorkflowExecutionRawHistory(
       GetWorkflowExecutionRawHistoryRequest getRequest) throws TException {
     ThriftResponse<WorkflowService.GetWorkflowExecutionRawHistory_result> response = null;
@@ -865,6 +871,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         throw result.getEntityNotExistError();
       }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
+
+      return this.DeserializeFromBlobToHistoryEvents(
+          result.getSuccess().rawHistory, result.getSuccess().nextPageToken);
 
     } finally {
       if (response != null) {
@@ -2524,59 +2533,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
-  public void GetWorkflowExecutionRawHistory(GetWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
-    CompletableFuture<ThriftResponse<WorkflowService.GetWorkflowExecutionRawHistory_result>> response = null;
-    try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionRawHistory_args> request =
-              buildThriftRequest(
-                      "GetWorkflowExecutionRawHistory",
-                      new WorkflowService.GetWorkflowExecutionRawHistory_args(getRequest));
-      response = doRemoteCallAsync(request);
-
-      response
-              .whenComplete(
-                      (r, e) -> {
-                        if (e != null) {
-                          resultHandler.onError(CheckedExceptionWrapper.wrap(e));
-                          return;
-                        }
-                        WorkflowService.GetWorkflowExecutionRawHistory_result result =
-                                r.getBody(WorkflowService.GetWorkflowExecutionRawHistory_result.class);
-
-                        if (r.getResponseCode() == ResponseCode.OK) {
-                          resultHandler.onComplete(result.getSuccess());
-                          return;
-                        }
-                        if (result.isSetBadRequestError()) {
-                          resultHandler.onError(result.getBadRequestError());
-                          return;
-                        }
-                        if (result.isSetEntityNotExistError()) {
-                          resultHandler.onError(result.getEntityNotExistError());
-                          return;
-                        }
-                        if (result.isSetServiceBusyError()) {
-                          resultHandler.onError(result.getServiceBusyError());
-                          return;
-                        }
-                        resultHandler.onError(
-                                new TException(
-                                        "GetWorkflowExecutionRawHistory failed with unknown " + "error:" + result));
-                        return;
-                      })
-              .exceptionally(
-                      (e) -> {
-                        log.error("Unexpected error in GetWorkflowExecutionRawHistory", e);
-                        return null;
-                      });
-    } finally {
-      if (response != null && response.isDone()) {
-        response.join().release();
-      }
-    }
-  }
-
-  @Override
   public void DescribeWorkflowExecution(
       DescribeWorkflowExecutionRequest describeRequest, AsyncMethodCallback resultHandler)
       throws TException {
@@ -2595,59 +2551,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void ListTaskListPartitions(
       ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
-
-  @Override
-  public void PollForWorkflowExecutionRawHistory(PollForWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
-    CompletableFuture<ThriftResponse<WorkflowService.PollForWorkflowExecutionRawHistory_result>> response = null;
-    try {
-      ThriftRequest<WorkflowService.PollForWorkflowExecutionRawHistory_args> request =
-              buildThriftRequest(
-                      "PollForWorkflowExecutionRawHistory",
-                      new WorkflowService.PollForWorkflowExecutionRawHistory_args(getRequest));
-      response = doRemoteCallAsync(request);
-
-      response
-              .whenComplete(
-                      (r, e) -> {
-                        if (e != null) {
-                          resultHandler.onError(CheckedExceptionWrapper.wrap(e));
-                          return;
-                        }
-                        WorkflowService.PollForWorkflowExecutionRawHistory_result result =
-                                r.getBody(WorkflowService.PollForWorkflowExecutionRawHistory_result.class);
-
-                        if (r.getResponseCode() == ResponseCode.OK) {
-                          resultHandler.onComplete(result.getSuccess());
-                          return;
-                        }
-                        if (result.isSetBadRequestError()) {
-                          resultHandler.onError(result.getBadRequestError());
-                          return;
-                        }
-                        if (result.isSetEntityNotExistError()) {
-                          resultHandler.onError(result.getEntityNotExistError());
-                          return;
-                        }
-                        if (result.isSetServiceBusyError()) {
-                          resultHandler.onError(result.getServiceBusyError());
-                          return;
-                        }
-                        resultHandler.onError(
-                                new TException(
-                                        "PollForWorkflowExecutionRawHistory failed with unknown " + "error:" + result));
-                        return;
-                      })
-              .exceptionally(
-                      (e) -> {
-                        log.error("Unexpected error in PollForWorkflowExecutionRawHistory", e);
-                        return null;
-                      });
-    } finally {
-      if (response != null && response.isDone()) {
-        response.join().release();
-      }
-    }
-  }
 
   @Override
   public void RegisterDomain(
