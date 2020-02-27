@@ -261,7 +261,7 @@ public final class TestWorkflowService implements IWorkflowService {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
-    return store.pollForWorkflowExecutionRawHistory(mutableState.getExecutionId(), getRequest);
+    return null;
   }
 
   @Override
@@ -272,7 +272,7 @@ public final class TestWorkflowService implements IWorkflowService {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
-    return store.getWorkflowExecutionRawHistory(mutableState.getExecutionId(), getRequest);
+    return null;
   }
 
   @Override
@@ -936,19 +936,6 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
-  public void GetWorkflowExecutionRawHistory(GetWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
-    forkJoinPool.execute(
-            () -> {
-              try {
-                GetWorkflowExecutionRawHistoryResponse result = GetWorkflowExecutionRawHistory(getRequest);
-                resultHandler.onComplete(result);
-              } catch (TException e) {
-                resultHandler.onError(e);
-              }
-            });
-  }
-
-  @Override
   public void DescribeWorkflowExecution(
       DescribeWorkflowExecutionRequest describeRequest, AsyncMethodCallback resultHandler)
       throws TException {
@@ -967,19 +954,6 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void ListTaskListPartitions(
       ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
-
-  @Override
-  public void PollForWorkflowExecutionRawHistory(PollForWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
-    forkJoinPool.execute(
-            () -> {
-              try {
-                PollForWorkflowExecutionRawHistoryResponse result = PollForWorkflowExecutionRawHistory(getRequest);
-                resultHandler.onComplete(result);
-              } catch (TException e) {
-                resultHandler.onError(e);
-              }
-            });
-  }
 
   private <R> R requireNotNull(String fieldName, R value) throws BadRequestError {
     if (value == null) {
