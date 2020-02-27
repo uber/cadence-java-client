@@ -19,74 +19,7 @@ package com.uber.cadence.serviceclient;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.ClientVersionNotSupportedError;
-import com.uber.cadence.ClusterInfo;
-import com.uber.cadence.CountWorkflowExecutionsRequest;
-import com.uber.cadence.CountWorkflowExecutionsResponse;
-import com.uber.cadence.DeprecateDomainRequest;
-import com.uber.cadence.DescribeDomainRequest;
-import com.uber.cadence.DescribeDomainResponse;
-import com.uber.cadence.DescribeTaskListRequest;
-import com.uber.cadence.DescribeTaskListResponse;
-import com.uber.cadence.DescribeWorkflowExecutionRequest;
-import com.uber.cadence.DescribeWorkflowExecutionResponse;
-import com.uber.cadence.DomainAlreadyExistsError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.GetSearchAttributesResponse;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.LimitExceededError;
-import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
-import com.uber.cadence.ListArchivedWorkflowExecutionsResponse;
-import com.uber.cadence.ListClosedWorkflowExecutionsRequest;
-import com.uber.cadence.ListClosedWorkflowExecutionsResponse;
-import com.uber.cadence.ListDomainsRequest;
-import com.uber.cadence.ListDomainsResponse;
-import com.uber.cadence.ListOpenWorkflowExecutionsRequest;
-import com.uber.cadence.ListOpenWorkflowExecutionsResponse;
-import com.uber.cadence.ListTaskListPartitionsRequest;
-import com.uber.cadence.ListTaskListPartitionsResponse;
-import com.uber.cadence.ListWorkflowExecutionsRequest;
-import com.uber.cadence.ListWorkflowExecutionsResponse;
-import com.uber.cadence.PollForActivityTaskRequest;
-import com.uber.cadence.PollForActivityTaskResponse;
-import com.uber.cadence.PollForDecisionTaskRequest;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryFailedError;
-import com.uber.cadence.QueryWorkflowRequest;
-import com.uber.cadence.QueryWorkflowResponse;
-import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
-import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
-import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
-import com.uber.cadence.RegisterDomainRequest;
-import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
-import com.uber.cadence.ResetStickyTaskListRequest;
-import com.uber.cadence.ResetStickyTaskListResponse;
-import com.uber.cadence.ResetWorkflowExecutionRequest;
-import com.uber.cadence.ResetWorkflowExecutionResponse;
-import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
-import com.uber.cadence.RespondActivityTaskCanceledRequest;
-import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
-import com.uber.cadence.RespondActivityTaskCompletedRequest;
-import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
-import com.uber.cadence.RespondActivityTaskFailedRequest;
-import com.uber.cadence.RespondDecisionTaskCompletedRequest;
-import com.uber.cadence.RespondDecisionTaskCompletedResponse;
-import com.uber.cadence.RespondDecisionTaskFailedRequest;
-import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.ServiceBusyError;
-import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
-import com.uber.cadence.SignalWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionResponse;
-import com.uber.cadence.TerminateWorkflowExecutionRequest;
-import com.uber.cadence.UpdateDomainRequest;
-import com.uber.cadence.UpdateDomainResponse;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
-import com.uber.cadence.WorkflowService;
+import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
@@ -105,12 +38,11 @@ import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.nio.ByteBuffer;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
@@ -139,6 +71,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
+  private static final TDeserializer serializer = new TDeserializer();
 
   public static class ClientOptions {
 
@@ -817,34 +750,64 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     }
   }
 
+  // This method deserialize the DataBlob data to the HistoriyEvent data
+  private GetWorkflowExecutionHistoryResponse DeserializeFromBlobToHistoryEvents(
+      List<DataBlob> blobData, ByteBuffer nextPageToken) throws TException {
+
+    List<HistoryEvent> events = new ArrayList<HistoryEvent>();
+    for (DataBlob data : blobData) {
+      HistoryEvent event = new HistoryEvent();
+      try {
+        serializer.deserialize(event, data.Data.array());
+      } catch (org.apache.thrift.TException err) {
+        throw new TException("Deserialize blob data to history event failed with unknown error");
+      }
+      events.add(event);
+    }
+    GetWorkflowExecutionHistoryResponse res = new GetWorkflowExecutionHistoryResponse();
+    History history = new History();
+    history.setEvents(events);
+    res.setHistory(history);
+    res.setNextPageToken(nextPageToken);
+    return res;
+  }
+
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY, () -> getWorkflowExecutionHistory(request));
+    if (request.waitForNewEvent) {
+      PollForWorkflowExecutionRawHistoryResponse response =
+          PollForWorkflowExecutionRawHistory(null);
+      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
+    } else {
+      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
+      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
+    }
   }
 
-  private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      GetWorkflowExecutionHistoryRequest getRequest) throws TException {
-    ThriftResponse<WorkflowService.GetWorkflowExecutionHistory_result> response = null;
+  @Override
+  public PollForWorkflowExecutionRawHistoryResponse PollForWorkflowExecutionRawHistory(
+      PollForWorkflowExecutionRawHistoryRequest request) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.POLL_FOR_WORKFLOW_EXECUTION_RAW_HISTORY,
+        () -> pollForWorkflowExecutionRawHistory(request));
+  }
+
+  private PollForWorkflowExecutionRawHistoryResponse pollForWorkflowExecutionRawHistory(
+      PollForWorkflowExecutionRawHistoryRequest getRequest) throws TException {
+    ThriftResponse<WorkflowService.PollForWorkflowExecutionRawHistory_result> response = null;
     try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request;
-      if (getRequest.isWaitForNewEvent()) {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
-                options.getRpcLongPollTimeoutMillis());
-      } else {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
-      }
+      ThriftRequest<WorkflowService.PollForWorkflowExecutionRawHistory_args> request;
+      request =
+          buildThriftRequest(
+              "PollForWorkflowExecutionRawHistory",
+              new WorkflowService.PollForWorkflowExecutionRawHistory_args(getRequest));
 
       response = doRemoteCall(request);
-      WorkflowService.GetWorkflowExecutionHistory_result result =
-          response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
+
+      WorkflowService.PollForWorkflowExecutionRawHistory_result result =
+          response.getBody(WorkflowService.PollForWorkflowExecutionRawHistory_result.class);
+
       if (response.getResponseCode() == ResponseCode.OK) {
         return result.getSuccess();
       }
@@ -861,6 +824,57 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         throw result.getEntityNotExistError();
       }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
+
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
+  @Override
+  public GetWorkflowExecutionRawHistoryResponse GetWorkflowExecutionRawHistory(
+      GetWorkflowExecutionRawHistoryRequest request) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.GET_WORKFLOW_EXECUTION_RAW_HISTORY,
+        () -> getWorkflowExecutionRawHistory(request));
+  }
+
+  private GetWorkflowExecutionRawHistoryResponse getWorkflowExecutionRawHistory(
+      GetWorkflowExecutionRawHistoryRequest getRequest) throws TException {
+    ThriftResponse<WorkflowService.GetWorkflowExecutionRawHistory_result> response = null;
+    try {
+      ThriftRequest<WorkflowService.GetWorkflowExecutionRawHistory_args> request;
+      request =
+          buildThriftRequest(
+              "GetWorkflowExecutionRawHistory",
+              new WorkflowService.GetWorkflowExecutionRawHistory_args(getRequest));
+
+      response = doRemoteCall(request);
+
+      WorkflowService.GetWorkflowExecutionRawHistory_result result =
+          response.getBody(WorkflowService.GetWorkflowExecutionRawHistory_result.class);
+
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return result.getSuccess();
+      }
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
+
+      return this.DeserializeFromBlobToHistoryEvents(
+          result.getSuccess().rawHistory, result.getSuccess().nextPageToken);
+
     } finally {
       if (response != null) {
         response.release();
