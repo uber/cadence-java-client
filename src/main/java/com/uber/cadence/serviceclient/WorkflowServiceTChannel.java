@@ -872,9 +872,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
 
-      return this.DeserializeFromBlobToHistoryEvents(
-          result.getSuccess().rawHistory, result.getSuccess().nextPageToken);
-
     } finally {
       if (response != null) {
         response.release();
