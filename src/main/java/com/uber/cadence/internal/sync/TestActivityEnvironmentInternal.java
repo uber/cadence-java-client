@@ -838,6 +838,22 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public PollForWorkflowExecutionRawHistoryResponse PollForWorkflowExecutionRawHistory(
+        PollForWorkflowExecutionRawHistoryRequest getRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.PollForWorkflowExecutionRawHistory(getRequest);
+    }
+
+    @Override
+    public GetWorkflowExecutionRawHistoryResponse GetWorkflowExecutionRawHistory(
+        GetWorkflowExecutionRawHistoryRequest getRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.GetWorkflowExecutionRawHistory(getRequest);
+    }
+
+    @Override
     public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForDecisionTask(pollRequest);
