@@ -840,6 +840,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         () -> getWorkflowExecutionRawHistory(request));
   }
 
+  // getWorkflowExecutionRawHistory
   private GetWorkflowExecutionRawHistoryResponse getWorkflowExecutionRawHistory(
       GetWorkflowExecutionRawHistoryRequest getRequest) throws TException {
     ThriftResponse<WorkflowService.GetWorkflowExecutionRawHistory_result> response = null;
