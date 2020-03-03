@@ -23,6 +23,7 @@ import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
@@ -44,6 +45,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +73,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
 
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
-  private static final TDeserializer serializer = new TDeserializer();
 
   public static class ClientOptions {
 
@@ -750,39 +751,29 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     }
   }
 
-  // This method deserialize the DataBlob data to the HistoriyEvent data
-  private GetWorkflowExecutionHistoryResponse DeserializeFromBlobToHistoryEvents(
-      List<DataBlob> blobData, ByteBuffer nextPageToken) throws TException {
+  @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
+      GetWorkflowExecutionHistoryRequest request) throws TException {
 
-    List<HistoryEvent> events = new ArrayList<HistoryEvent>();
-    for (DataBlob data : blobData) {
-      HistoryEvent event = new HistoryEvent();
-      try {
-        serializer.deserialize(event, data.Data.array());
-      } catch (org.apache.thrift.TException err) {
-        throw new TException("Deserialize blob data to history event failed with unknown error");
-      }
-      events.add(event);
+    List<HistoryEvent> events;
+    ByteBuffer nextPageToken;
+    if (request.waitForNewEvent) {
+      PollForWorkflowExecutionRawHistoryResponse response =
+          PollForWorkflowExecutionRawHistory(null);
+      events = InternalUtils.DeserializeFromBlobToHistoryEvents(response.rawHistory, request.getHistoryEventFilterType());
+      nextPageToken = response.nextPageToken;
+    } else {
+      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
+      events = InternalUtils.DeserializeFromBlobToHistoryEvents(response.rawHistory, request.getHistoryEventFilterType());
+      nextPageToken = response.nextPageToken;
     }
+
     GetWorkflowExecutionHistoryResponse res = new GetWorkflowExecutionHistoryResponse();
     History history = new History();
     history.setEvents(events);
     res.setHistory(history);
     res.setNextPageToken(nextPageToken);
     return res;
-  }
-
-  @Override
-  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
-      GetWorkflowExecutionHistoryRequest request) throws TException {
-    if (request.waitForNewEvent) {
-      PollForWorkflowExecutionRawHistoryResponse response =
-          PollForWorkflowExecutionRawHistory(null);
-      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
-    } else {
-      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
-      return this.DeserializeFromBlobToHistoryEvents(response.rawHistory, response.nextPageToken);
-    }
   }
 
   @Override

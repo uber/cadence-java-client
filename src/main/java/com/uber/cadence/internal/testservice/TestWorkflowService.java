@@ -53,6 +53,10 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.PollForWorkflowExecutionRawHistoryRequest;
+import com.uber.cadence.PollForWorkflowExecutionRawHistoryResponse;
+import com.uber.cadence.GetWorkflowExecutionRawHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
@@ -336,7 +340,7 @@ public final class TestWorkflowService implements IWorkflowService {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
-    return null;
+    return store.pollForWorkflowExecutionRawHistory(mutableState.getExecutionId(), getRequest);
   }
 
   @Override
@@ -347,7 +351,7 @@ public final class TestWorkflowService implements IWorkflowService {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
-    return null;
+    return store.getWorkflowExecutionRawHistory((mutableState.getExecutionId(), getRequest));
   }
 
   @Override
