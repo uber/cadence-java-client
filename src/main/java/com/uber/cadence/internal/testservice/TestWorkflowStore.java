@@ -23,20 +23,19 @@ import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.GetWorkflowExecutionRawHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionRawHistoryResponse;
-import com.uber.cadence.PollForWorkflowExecutionRawHistoryRequest;
-import com.uber.cadence.PollForWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.PollForWorkflowExecutionRawHistoryRequest;
+import com.uber.cadence.PollForWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.WorkflowExecutionInfo;
-import org.apache.thrift.TException;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.thrift.TException;
 
 interface TestWorkflowStore {
 
@@ -165,12 +164,11 @@ interface TestWorkflowStore {
       throws EntityNotExistsError;
 
   PollForWorkflowExecutionRawHistoryResponse pollForWorkflowExecutionRawHistory(
-          ExecutionId executionId, PollForWorkflowExecutionRawHistoryRequest getRequest)
-          throws TException;
+      ExecutionId executionId, PollForWorkflowExecutionRawHistoryRequest getRequest)
+      throws TException;
 
   GetWorkflowExecutionRawHistoryResponse getWorkflowExecutionRawHistory(
-          ExecutionId executionId, GetWorkflowExecutionRawHistoryRequest getRequest)
-          throws TException;
+      ExecutionId executionId, GetWorkflowExecutionRawHistoryRequest getRequest) throws TException;
 
   void getDiagnostics(StringBuilder result);
 

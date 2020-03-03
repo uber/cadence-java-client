@@ -35,6 +35,8 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.GetWorkflowExecutionRawHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.LimitExceededError;
 import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
@@ -55,8 +57,6 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.PollForWorkflowExecutionRawHistoryRequest;
 import com.uber.cadence.PollForWorkflowExecutionRawHistoryResponse;
-import com.uber.cadence.GetWorkflowExecutionRawHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
@@ -351,7 +351,7 @@ public final class TestWorkflowService implements IWorkflowService {
     ExecutionId executionId = new ExecutionId(getRequest.getDomain(), getRequest.getExecution());
     TestWorkflowMutableState mutableState = getMutableState(executionId);
 
-    return store.getWorkflowExecutionRawHistory((mutableState.getExecutionId(), getRequest));
+    return store.getWorkflowExecutionRawHistory(mutableState.getExecutionId(), getRequest);
   }
 
   @Override
