@@ -770,6 +770,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void GetWorkflowExecutionRawHistory(GetWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
+      impl.GetWorkflowExecutionRawHistory(getRequest, resultHandler);
+    }
+
+    @Override
     public void DescribeWorkflowExecution(
         DescribeWorkflowExecutionRequest describeRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -789,6 +794,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     public void ListTaskListPartitions(
         ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler)
         throws TException {}
+
+    @Override
+    public void PollForWorkflowExecutionRawHistory(PollForWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler) throws TException {
+      impl.PollForWorkflowExecutionRawHistory(getRequest, resultHandler);
+    }
 
     @Override
     public void RegisterDomain(RegisterDomainRequest registerRequest)
