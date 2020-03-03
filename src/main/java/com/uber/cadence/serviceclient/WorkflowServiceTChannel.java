@@ -43,9 +43,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -760,11 +758,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     if (request.waitForNewEvent) {
       PollForWorkflowExecutionRawHistoryResponse response =
           PollForWorkflowExecutionRawHistory(null);
-      events = InternalUtils.DeserializeFromBlobToHistoryEvents(response.rawHistory, request.getHistoryEventFilterType());
+      events =
+          InternalUtils.DeserializeFromBlobToHistoryEvents(
+              response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
     } else {
       GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
-      events = InternalUtils.DeserializeFromBlobToHistoryEvents(response.rawHistory, request.getHistoryEventFilterType());
+      events =
+          InternalUtils.DeserializeFromBlobToHistoryEvents(
+              response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
     }
 
