@@ -158,7 +158,7 @@ public final class ActivityWorker implements SuspendableWorker {
                   ImmutableMap.of(
                       MetricsTag.ACTIVITY_TYPE,
                       task.getActivityType().getName(),
-                      MetricsTag.WORKER_TYPE,
+                      MetricsTag.WORKFLOW_TYPE,
                       task.getWorkflowType().getName()));
 
       metricsScope
