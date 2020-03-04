@@ -435,6 +435,20 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void GetWorkflowExecutionRawHistory(
+        GetWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.GetWorkflowExecutionRawHistory(getRequest, resultHandler);
+    }
+
+    @Override
+    public void PollForWorkflowExecutionRawHistory(
+        PollForWorkflowExecutionRawHistoryRequest getRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.PollForWorkflowExecutionRawHistory(getRequest, resultHandler);
+    }
+
+    @Override
     public void PollForDecisionTask(
         PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -687,6 +701,22 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
             TException {
       return impl.GetWorkflowExecutionHistory(getRequest);
+    }
+
+    @Override
+    public GetWorkflowExecutionRawHistoryResponse GetWorkflowExecutionRawHistory(
+        GetWorkflowExecutionRawHistoryRequest getRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.GetWorkflowExecutionRawHistory(getRequest);
+    }
+
+    @Override
+    public PollForWorkflowExecutionRawHistoryResponse PollForWorkflowExecutionRawHistory(
+        PollForWorkflowExecutionRawHistoryRequest getRequest)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.PollForWorkflowExecutionRawHistory(getRequest);
     }
 
     @Override
