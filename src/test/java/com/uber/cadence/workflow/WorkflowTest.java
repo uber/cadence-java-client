@@ -4037,6 +4037,7 @@ public class WorkflowTest {
 
       // Test adding a version check in non-replay code.
       int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(version, 1);
       String result = "";
       if (version == Workflow.DEFAULT_VERSION) {
         result += "activity" + testActivities.activity1(1);
@@ -4046,6 +4047,7 @@ public class WorkflowTest {
 
       // Test version change in non-replay code.
       version = Workflow.getVersion("test_change", 1, 2);
+      assertEquals(version, 1);
       if (version == 1) {
         result += "activity" + testActivities.activity1(1); // This is executed.
       } else {
@@ -4058,6 +4060,7 @@ public class WorkflowTest {
         getVersionExecuted.add(taskList + "-test_change_2");
       } else {
         int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+        assertEquals(version2, Workflow.DEFAULT_VERSION);
         if (version2 == Workflow.DEFAULT_VERSION) {
           result += "activity" + testActivities.activity1(1); // This is executed in replay mode.
         } else {
@@ -4095,6 +4098,41 @@ public class WorkflowTest {
         "sleep PT1S",
         "getVersion",
         "executeActivity customActivity1");
+  }
+
+  public static class TestGetVersionWorkflow2Impl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      // Test adding a version check in replay code.
+      if (!getVersionExecuted.contains(taskList + "-test_change_2")) {
+        getVersionExecuted.add(taskList + "-test_change_2");
+        Workflow.sleep(Duration.ofHours(1));
+      } else {
+        int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+        System.out.println("version = " + version2);
+        Workflow.sleep(Duration.ofHours(1));
+
+        int version3 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+        System.out.println("version = " + version3);
+
+        assertEquals(version2, version3);
+      }
+
+      return "test";
+    }
+  }
+
+  @Test
+  public void testGetVersion2() {
+    startWorkerFor(TestGetVersionWorkflow2Impl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class,
+            newWorkflowOptionsBuilder(taskList)
+                .setExecutionStartToCloseTimeout(Duration.ofHours(2))
+                .build());
+    workflowStub.execute(taskList);
   }
 
   static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
