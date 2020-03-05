@@ -4125,6 +4125,8 @@ public class WorkflowTest {
 
   @Test
   public void testGetVersion2() {
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+
     startWorkerFor(TestGetVersionWorkflow2Impl.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
