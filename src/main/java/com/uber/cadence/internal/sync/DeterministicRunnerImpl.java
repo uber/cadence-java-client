@@ -240,7 +240,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         toExecuteInWorkflowThread.clear();
         progress = false;
         Iterator<WorkflowThread> ci = threads.iterator();
-        nextWakeUpTime = 0;
+        nextWakeUpTime = Long.MAX_VALUE;
         while (ci.hasNext()) {
           WorkflowThread c = ci.next();
           progress = c.runUntilBlocked() || progress;
@@ -256,7 +256,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
             }
           } else {
             long t = c.getBlockedUntil();
-            if (t > nextWakeUpTime) {
+            if (t > 0 && t < nextWakeUpTime) {
               nextWakeUpTime = t;
             }
           }
