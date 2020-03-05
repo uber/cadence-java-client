@@ -191,9 +191,6 @@ public final class InternalUtils {
     return blobs;
   }
 
-  /** Prohibit instantiation */
-  private InternalUtils() {}
-
   private static final TDeserializer deSerializer = new TDeserializer();
   private static final TSerializer serializer = new TSerializer();
 
