@@ -114,6 +114,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -374,12 +375,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final TChannel tChannel;
   private final SubChannel subChannel;
 
-  public static class TimeoutException extends TException {
-    public TimeoutException(String message) {
-      super("Rpc timed out: " + message);
-    }
-  }
-
   /**
    * Creates Cadence client that connects to the local instance of the Cadence Service that listens
    * on a default port (7933).
@@ -548,7 +543,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private void throwOnRpcError(ThriftResponse<?> response) throws TException {
     if (response.isError()) {
       if (response.getError().getErrorType() == ErrorType.Timeout) {
-        throw new TimeoutException(response.getError().getMessage());
+        throw new TTransportException(
+            TTransportException.TIMED_OUT, response.getError().getMessage());
       } else {
         throw new TException("Rpc error:" + response.getError());
       }
