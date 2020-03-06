@@ -69,12 +69,12 @@ final class WorkflowInfoImpl implements WorkflowInfo {
   @Override
   public String getParentWorkflowId() {
     WorkflowExecution parentWorkflowExecution = context.getParentWorkflowExecution();
-    return parentWorkflowExecution == null ? null : parentWorkflowExecution.workflowId;
+    return parentWorkflowExecution == null ? null : parentWorkflowExecution.getWorkflowId();
   }
 
   @Override
   public String getParentRunId() {
     WorkflowExecution parentWorkflowExecution = context.getParentWorkflowExecution();
-    return parentWorkflowExecution == null ? null : parentWorkflowExecution.workflowId;
+    return parentWorkflowExecution == null ? null : parentWorkflowExecution.getRunId();
   }
 }
