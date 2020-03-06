@@ -4038,21 +4038,12 @@ public class WorkflowTest {
       // Test adding a version check in non-replay code.
       int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
       assertEquals(version, 1);
-      String result = "";
-      if (version == Workflow.DEFAULT_VERSION) {
-        result += "activity" + testActivities.activity1(1);
-      } else {
-        result += testActivities.activity2("activity2", 2); // This is executed.
-      }
+      String result = testActivities.activity2("activity2", 2);
 
       // Test version change in non-replay code.
       version = Workflow.getVersion("test_change", 1, 2);
       assertEquals(version, 1);
-      if (version == 1) {
-        result += "activity" + testActivities.activity1(1); // This is executed.
-      } else {
-        result += testActivities.activity2("activity2", 2);
-      }
+      result += "activity" + testActivities.activity1(1);
 
       // Test adding a version check in replay code.
       if (!getVersionExecuted.contains(taskList + "-test_change_2")) {
@@ -4061,21 +4052,14 @@ public class WorkflowTest {
       } else {
         int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
         assertEquals(version2, Workflow.DEFAULT_VERSION);
-        if (version2 == Workflow.DEFAULT_VERSION) {
-          result += "activity" + testActivities.activity1(1); // This is executed in replay mode.
-        } else {
-          result += testActivities.activity2("activity2", 2);
-        }
+        result += "activity" + testActivities.activity1(1);
       }
 
       // Test get version in replay mode.
       Workflow.sleep(1000);
       version = Workflow.getVersion("test_change", 1, 2);
-      if (version == 1) {
-        result += "activity" + testActivities.activity1(1); // This is executed.
-      } else {
-        result += testActivities.activity2("activity2", 2);
-      }
+      assertEquals(version, 1);
+      result += "activity" + testActivities.activity1(1);
 
       return result;
     }
@@ -4110,11 +4094,8 @@ public class WorkflowTest {
         Workflow.sleep(Duration.ofHours(1));
       } else {
         int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
-        System.out.println("version = " + version2);
         Workflow.sleep(Duration.ofHours(1));
-
         int version3 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
-        System.out.println("version = " + version3);
 
         assertEquals(version2, version3);
       }
