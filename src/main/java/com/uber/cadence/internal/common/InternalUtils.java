@@ -147,7 +147,7 @@ public final class InternalUtils {
   }
 
   // This method deserialize the DataBlob data to the HistoriyEvent data
-  public static List<HistoryEvent> DeserializeFromBlobToHistoryEvents(
+  public static History DeserializeFromBlobToHistoryEvents(
       List<DataBlob> blobData, HistoryEventFilterType historyEventFilterType) throws TException {
 
     List<HistoryEvent> events = new ArrayList<HistoryEvent>();
@@ -171,7 +171,7 @@ public final class InternalUtils {
       events = events.subList(events.size() - 1, events.size());
     }
 
-    return events;
+    return new History().setEvents(events);
   }
 
   // This method deserialize the history event data to blob data

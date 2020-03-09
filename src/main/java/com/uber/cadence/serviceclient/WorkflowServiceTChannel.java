@@ -834,6 +834,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       GetWorkflowExecutionHistoryRequest request) throws TException {
 
     List<HistoryEvent> events;
+    History history;
     ByteBuffer nextPageToken;
     if (request.isWaitForNewEvent()) {
       PollForWorkflowExecutionRawHistoryRequest newRequest =
@@ -846,7 +847,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
       PollForWorkflowExecutionRawHistoryResponse response =
           PollForWorkflowExecutionRawHistory(newRequest);
-      events =
+      history =
           InternalUtils.DeserializeFromBlobToHistoryEvents(
               response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
@@ -859,13 +860,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
               .setMaximumPageSize(request.getMaximumPageSize());
 
       GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(newRequest);
-      events =
+      history =
           InternalUtils.DeserializeFromBlobToHistoryEvents(
               response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
     }
-    History history = new History();
-    history.setEvents(events);
 
     GetWorkflowExecutionHistoryResponse res =
         new GetWorkflowExecutionHistoryResponse()
