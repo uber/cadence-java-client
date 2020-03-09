@@ -18,12 +18,7 @@
 package com.uber.cadence.internal.common;
 
 import com.google.common.base.Defaults;
-import com.uber.cadence.DataBlob;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.HistoryEventFilterType;
-import com.uber.cadence.SearchAttributes;
-import com.uber.cadence.TaskList;
-import com.uber.cadence.TaskListKind;
+import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.Shutdownable;
@@ -157,13 +152,14 @@ public final class InternalUtils {
 
     List<HistoryEvent> events = new ArrayList<HistoryEvent>();
     for (DataBlob data : blobData) {
-      HistoryEvent event = new HistoryEvent();
+      History history = new History();
       try {
-        deSerializer.deserialize(event, data.Data.array());
+        deSerializer.deserialize(history, data.Data.array());
       } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
-      events.add(event);
+
+      events.addAll(history.getEvents());
     }
 
     if (events.size() > 0 && historyEventFilterType == HistoryEventFilterType.CLOSE_EVENT) {

@@ -835,7 +835,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
     List<HistoryEvent> events;
     ByteBuffer nextPageToken;
-    if (request.waitForNewEvent) {
+    if (request.isWaitForNewEvent()) {
       PollForWorkflowExecutionRawHistoryRequest newRequest =
           new PollForWorkflowExecutionRawHistoryRequest()
               .setDomain(request.getDomain())
