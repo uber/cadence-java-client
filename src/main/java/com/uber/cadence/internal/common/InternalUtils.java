@@ -154,9 +154,14 @@ public final class InternalUtils {
     for (DataBlob data : blobData) {
       History history = new History();
       try {
-        deSerializer.deserialize(history, data.Data.array());
+        deSerializer.deserialize(history, data.getData());
       } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
+      }
+
+      if (history.getEvents().size() == 0)
+      {
+        return null;
       }
 
       events.addAll(history.getEvents());
