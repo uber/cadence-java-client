@@ -159,7 +159,7 @@ public final class InternalUtils {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
 
-      if (history.getEvents().size() == 0)
+      if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
       {
         return null;
       }
