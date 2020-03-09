@@ -836,25 +836,42 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     List<HistoryEvent> events;
     ByteBuffer nextPageToken;
     if (request.waitForNewEvent) {
+      PollForWorkflowExecutionRawHistoryRequest newRequest =
+          new PollForWorkflowExecutionRawHistoryRequest()
+              .setDomain(request.getDomain())
+              .setExecution(request.getExecution())
+              .setNextPageToken(request.getNextPageToken())
+              .setMaximumPageSize(request.getMaximumPageSize())
+              .setHistoryEventFilterType(request.getHistoryEventFilterType());
+
       PollForWorkflowExecutionRawHistoryResponse response =
-          PollForWorkflowExecutionRawHistory(null);
+          PollForWorkflowExecutionRawHistory(newRequest);
       events =
           InternalUtils.DeserializeFromBlobToHistoryEvents(
               response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
     } else {
-      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(null);
+      GetWorkflowExecutionRawHistoryRequest newRequest =
+          new GetWorkflowExecutionRawHistoryRequest()
+              .setDomain(request.getDomain())
+              .setExecution(request.getExecution())
+              .setNextPageToken(request.getNextPageToken())
+              .setMaximumPageSize(request.getMaximumPageSize());
+
+      GetWorkflowExecutionRawHistoryResponse response = GetWorkflowExecutionRawHistory(newRequest);
       events =
           InternalUtils.DeserializeFromBlobToHistoryEvents(
               response.rawHistory, request.getHistoryEventFilterType());
       nextPageToken = response.nextPageToken;
     }
-
-    GetWorkflowExecutionHistoryResponse res = new GetWorkflowExecutionHistoryResponse();
     History history = new History();
     history.setEvents(events);
-    res.setHistory(history);
-    res.setNextPageToken(nextPageToken);
+
+    GetWorkflowExecutionHistoryResponse res =
+        new GetWorkflowExecutionHistoryResponse()
+            .setHistory(history)
+            .setNextPageToken(nextPageToken);
+
     return res;
   }
 
