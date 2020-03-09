@@ -155,13 +155,13 @@ public final class InternalUtils {
       History history = new History();
       try {
         deSerializer.deserialize(history, data.getData());
+
+        if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
+        {
+          throw new TException("corrupted history event batch, empty events");
+        }
       } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
-      }
-
-      if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
-      {
-        return null;
       }
 
       events.addAll(history.getEvents());
