@@ -158,18 +158,13 @@ public final class InternalUtils {
 
         if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
         {
-          throw new TException("corrupted history event batch, empty events");
+          return null;
         }
       } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
 
       events.addAll(history.getEvents());
-    }
-
-    if(events.size() == 0)
-    {
-      throw new TException("No event is added because of corrupted history event batch");
     }
 
     if (events.size() > 0 && historyEventFilterType == HistoryEventFilterType.CLOSE_EVENT) {
