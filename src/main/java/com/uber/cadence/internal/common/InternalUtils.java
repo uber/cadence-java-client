@@ -20,7 +20,6 @@ package com.uber.cadence.internal.common;
 import com.google.common.base.Defaults;
 import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.Shutdownable;
 import com.uber.cadence.workflow.WorkflowMethod;
@@ -32,7 +31,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
 
 /** Utility functions shared by the implementation code. */
 public final class InternalUtils {
@@ -151,18 +153,19 @@ public final class InternalUtils {
 
     List<HistoryEvent> events = new ArrayList<HistoryEvent>();
     for (DataBlob data : blobData) {
-      History history = new History();
+      HistoryEvent event = new HistoryEvent();
       try {
-        history = jsonConverter.fromData(data.getData(), history.getClass(), history.getClass());
-      } catch (DataConverterException err) {
+        deSerializer.deserialize(event, data.getData());
+
+        if (event == null)
+        {
+          throw new TException("corrupted history event batch, empty events");
+        }
+      } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
 
-      if (history == null || history.getEvents() == null || history.getEvents().size() == 0) {
-        return null;
-      }
-
-      events.addAll(history.getEvents());
+      events.add(event);
     }
 
     if (events.size() > 0 && historyEventFilterType == HistoryEventFilterType.CLOSE_EVENT) {
@@ -180,8 +183,8 @@ public final class InternalUtils {
     for (HistoryEvent event : events) {
       DataBlob blob = new DataBlob();
       try {
-        blob.setData(jsonConverter.toData(event));
-      } catch (DataConverterException err) {
+        blob.setData(serializer.serialize(event));
+      } catch (org.apache.thrift.TException err) {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
       blobs.add(blob);
@@ -190,8 +193,8 @@ public final class InternalUtils {
     return blobs;
   }
 
-  private static final DataConverter jsonConverter = JsonDataConverter.getInstance();
-
+  private static final TDeserializer deSerializer = new TDeserializer();
+  private static final TSerializer serializer = new TSerializer();
   /** Prohibit instantiation */
   private InternalUtils() {}
 }
