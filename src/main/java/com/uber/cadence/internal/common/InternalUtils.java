@@ -25,10 +25,7 @@ import com.uber.cadence.internal.worker.Shutdownable;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -153,11 +150,13 @@ public final class InternalUtils {
 
     List<HistoryEvent> events = new ArrayList<HistoryEvent>();
     for (DataBlob data : blobData) {
-      HistoryEvent event = new HistoryEvent();
+      History history = new History();
       try {
-        deSerializer.deserialize(event, data.getData());
+        byte[] dataByte = data.getData();
+        dataByte = Arrays.copyOfRange(dataByte, 1, dataByte.length);
+        deSerializer.deserialize(history, dataByte);
 
-        if (event == null)
+        if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
         {
           throw new TException("corrupted history event batch, empty events");
         }
@@ -165,7 +164,12 @@ public final class InternalUtils {
         throw new TException("Deserialize blob data to history event failed with unknown error");
       }
 
-      events.add(event);
+      events.addAll(history.getEvents());
+    }
+
+    if(events.size() == 0)
+    {
+      throw new TException("No event is added because of corrupted history event batch");
     }
 
     if (events.size() > 0 && historyEventFilterType == HistoryEventFilterType.CLOSE_EVENT) {
