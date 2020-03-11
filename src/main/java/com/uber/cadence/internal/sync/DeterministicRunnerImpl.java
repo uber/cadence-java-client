@@ -269,7 +269,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
           threads.addLast(c);
         }
       } while (progress && !threads.isEmpty());
-      if (nextWakeUpTime < currentTimeMillis()) {
+
+      if (nextWakeUpTime < currentTimeMillis() || nextWakeUpTime == Long.MAX_VALUE) {
         nextWakeUpTime = 0;
       }
     } finally {
