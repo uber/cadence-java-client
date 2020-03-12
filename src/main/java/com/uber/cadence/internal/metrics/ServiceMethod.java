@@ -25,10 +25,6 @@ public class ServiceMethod {
   public static final String LIST_DOMAINS = MetricsType.CADENCE_METRICS_PREFIX + "ListDomains";
   public static final String GET_WORKFLOW_EXECUTION_HISTORY =
       MetricsType.CADENCE_METRICS_PREFIX + "GetWorkflowExecutionHistory";
-  public static final String POLL_FOR_WORKFLOW_EXECUTION_RAW_HISTORY =
-      MetricsType.CADENCE_METRICS_PREFIX + "PollForWorkflowExecutionRawHistory";
-  public static final String GET_WORKFLOW_EXECUTION_RAW_HISTORY =
-      MetricsType.CADENCE_METRICS_PREFIX + "GetWorkflowExecutionRawHistory";
   public static final String LIST_CLOSED_WORKFLOW_EXECUTIONS =
       MetricsType.CADENCE_METRICS_PREFIX + "ListClosedWorkflowExecutions";
   public static final String LIST_OPEN_WORKFLOW_EXECUTIONS =

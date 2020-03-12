@@ -28,10 +28,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
 
 /** Utility functions shared by the implementation code. */
 public final class InternalUtils {
@@ -156,8 +154,7 @@ public final class InternalUtils {
         dataByte = Arrays.copyOfRange(dataByte, 1, dataByte.length);
         deSerializer.deserialize(history, dataByte);
 
-        if (history == null || history.getEvents() == null || history.getEvents().size() == 0)
-        {
+        if (history == null || history.getEvents() == null || history.getEvents().size() == 0) {
           return null;
         }
       } catch (org.apache.thrift.TException err) {
@@ -174,26 +171,8 @@ public final class InternalUtils {
     return new History().setEvents(events);
   }
 
-  // This method deserialize the history event data to blob data
-  public static List<DataBlob> DeserializeFromHistoryEventToBlobData(List<HistoryEvent> events)
-      throws TException {
-
-    List<DataBlob> blobs = new ArrayList<DataBlob>();
-    for (HistoryEvent event : events) {
-      DataBlob blob = new DataBlob();
-      try {
-        blob.setData(serializer.serialize(event));
-      } catch (org.apache.thrift.TException err) {
-        throw new TException("Deserialize blob data to history event failed with unknown error");
-      }
-      blobs.add(blob);
-    }
-
-    return blobs;
-  }
-
   private static final TDeserializer deSerializer = new TDeserializer();
-  private static final TSerializer serializer = new TSerializer();
+
   /** Prohibit instantiation */
   private InternalUtils() {}
 }

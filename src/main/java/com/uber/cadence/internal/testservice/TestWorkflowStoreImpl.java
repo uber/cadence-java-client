@@ -18,13 +18,10 @@
 package com.uber.cadence.internal.testservice;
 
 import com.uber.cadence.BadRequestError;
-import com.uber.cadence.DataBlob;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.GetWorkflowExecutionRawHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
@@ -33,12 +30,9 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.PollForWorkflowExecutionRawHistoryRequest;
-import com.uber.cadence.PollForWorkflowExecutionRawHistoryResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
-import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.RequestContext.Timer;
 import java.time.Duration;
@@ -53,7 +47,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.thrift.TException;
 
 class TestWorkflowStoreImpl implements TestWorkflowStore {
 
@@ -369,46 +362,6 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       result.setHistory(new History().setEvents(events));
     }
     return result;
-  }
-
-  @Override
-  public PollForWorkflowExecutionRawHistoryResponse pollForWorkflowExecutionRawHistory(
-      ExecutionId executionId, PollForWorkflowExecutionRawHistoryRequest getRequest)
-      throws TException {
-    HistoryStore history;
-    // Used to eliminate the race condition on waitForNewEvents
-    long expectedNextEventId;
-    lock.lock();
-    try {
-      history = getHistoryStore(executionId);
-      expectedNextEventId = history.getNextEventIdLocked();
-    } finally {
-      lock.unlock();
-    }
-    List<HistoryEvent> events =
-        history.waitForNewEvents(expectedNextEventId, getRequest.getHistoryEventFilterType());
-    List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
-    PollForWorkflowExecutionRawHistoryResponse result =
-        new PollForWorkflowExecutionRawHistoryResponse();
-    if (events != null) {
-      result.setRawHistory(blobs);
-    }
-    return result;
-  }
-
-  @Override
-  public GetWorkflowExecutionRawHistoryResponse getWorkflowExecutionRawHistory(
-      ExecutionId executionId, GetWorkflowExecutionRawHistoryRequest getRequest) throws TException {
-    HistoryStore history;
-    lock.lock();
-    try {
-      history = getHistoryStore(executionId);
-      List<HistoryEvent> events = history.getEventsLocked();
-      List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
-      return new GetWorkflowExecutionRawHistoryResponse().setRawHistory(blobs);
-    } finally {
-      lock.unlock();
-    }
   }
 
   private HistoryStore getHistoryStore(ExecutionId executionId) throws EntityNotExistsError {
