@@ -338,7 +338,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
 
   @Override
   public GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws TException {
+      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError {
     HistoryStore history;
     // Used to eliminate the race condition on waitForNewEvents
     long expectedNextEventId;

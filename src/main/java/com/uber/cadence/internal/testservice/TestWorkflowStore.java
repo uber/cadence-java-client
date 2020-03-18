@@ -156,7 +156,7 @@ interface TestWorkflowStore {
       throws EntityNotExistsError;
 
   GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws TException;
+      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError;
 
   void getDiagnostics(StringBuilder result);
 

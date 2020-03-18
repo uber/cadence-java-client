@@ -25,6 +25,7 @@ import com.uber.cadence.HistoryEventFilterType;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.Shutdownable;
@@ -184,7 +185,7 @@ public final class InternalUtils {
 
   // This method deserialize the history event data to blob data
   public static List<DataBlob> DeserializeFromHistoryEventToBlobData(List<HistoryEvent> events)
-      throws TException {
+      throws EntityNotExistsError {
 
     List<DataBlob> blobs = new ArrayList<DataBlob>();
     for (HistoryEvent event : events) {
@@ -192,7 +193,7 @@ public final class InternalUtils {
       try {
         blob.setData(serializer.serialize(event));
       } catch (org.apache.thrift.TException err) {
-        throw new TException("Deserialize blob data to history event failed with unknown error");
+        throw new EntityNotExistsError("Deserialize blob data to history event failed with unknown error");
       }
       blobs.add(blob);
     }
