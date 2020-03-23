@@ -19,23 +19,23 @@ package com.uber.cadence.internal.common;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.DataBlob;
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.Shutdownable;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -193,7 +193,8 @@ public final class InternalUtils {
       try {
         blob.setData(serializer.serialize(event));
       } catch (org.apache.thrift.TException err) {
-        throw new EntityNotExistsError("Deserialize blob data to history event failed with unknown error");
+        throw new EntityNotExistsError(
+            "Deserialize blob data to history event failed with unknown error");
       }
       blobs.add(blob);
     }
