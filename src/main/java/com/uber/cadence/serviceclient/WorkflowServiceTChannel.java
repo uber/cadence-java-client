@@ -37,7 +37,6 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.LimitExceededError;
 import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
@@ -91,7 +90,6 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
@@ -108,7 +106,10 @@ import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
@@ -852,14 +853,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
       if (response.getResponseCode() == ResponseCode.OK) {
-        GetWorkflowExecutionHistoryResponse res = result.getSuccess();
-        if (res.getRawHistory() != null) {
-          History history =
-              InternalUtils.DeserializeFromBlobToHistoryEvents(
-                  res.getRawHistory(), getRequest.getHistoryEventFilterType());
-          res.setHistory(history);
-        }
-        return res;
+        return result.getSuccess();
       }
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();

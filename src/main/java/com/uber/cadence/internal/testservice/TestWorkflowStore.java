@@ -31,7 +31,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.thrift.TException;
 
 interface TestWorkflowStore {
 
@@ -156,7 +155,8 @@ interface TestWorkflowStore {
       throws EntityNotExistsError;
 
   GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError;
+      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest)
+      throws EntityNotExistsError;
 
   void getDiagnostics(StringBuilder result);
 
