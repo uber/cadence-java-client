@@ -51,6 +51,8 @@ import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
@@ -59,7 +61,7 @@ import org.apache.thrift.TException;
  * Implements decider that relies on replay of a workflow code. An instance of this class is created
  * per decision.
  */
-class ReplayDecider implements Decider, Consumer<HistoryEvent> {
+class ReplayDecider implements Decider {
 
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
@@ -75,6 +77,8 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
   private final Scope metricsScope;
   private final long wfStartTimeNanos;
   private final WorkflowExecutionStartedEventAttributes startedEvent;
+  private final Lock lock = new ReentrantLock();
+  private final Consumer<HistoryEvent> localActivityCompletionSink;
 
   ReplayDecider(
       IWorkflowService service,
@@ -100,6 +104,19 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
     context =
         new DecisionContextImpl(
             decisionsHelper, domain, decisionTask, startedEvent, options, laTaskPoller, this);
+    localActivityCompletionSink =
+        historyEvent -> {
+          lock.lock();
+          try {
+            processEvent(historyEvent);
+          } finally {
+            lock.unlock();
+          }
+        };
+  }
+
+  Lock getLock() {
+    return lock;
   }
 
   private void handleWorkflowExecutionStarted(HistoryEvent event) {
@@ -356,8 +373,13 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   @Override
   public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
-    boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
-    return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
+    lock.lock();
+    try {
+      boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
+      return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
+    } finally {
+      lock.unlock();
+    }
   }
 
   // Returns boolean to indicate whether we need to force create new decision task for local
@@ -536,19 +558,28 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
   @Override
   public void close() {
-    workflow.close();
+    lock.lock();
+    try {
+      workflow.close();
+    } finally {
+      lock.unlock();
+    }
   }
 
   @Override
   public byte[] query(PollForDecisionTaskResponse response, WorkflowQuery query) throws Throwable {
-    AtomicReference<byte[]> result = new AtomicReference<>();
-    decideImpl(response, () -> result.set(workflow.query(query)));
-    return result.get();
+    lock.lock();
+    try {
+      AtomicReference<byte[]> result = new AtomicReference<>();
+      decideImpl(response, () -> result.set(workflow.query(query)));
+      return result.get();
+    } finally {
+      lock.unlock();
+    }
   }
 
-  @Override
-  public void accept(HistoryEvent event) {
-    processEvent(event);
+  public Consumer<HistoryEvent> getLocalActivityCompletionSink() {
+    return localActivityCompletionSink;
   }
 
   private class DecisionTaskWithHistoryIteratorImpl implements DecisionTaskWithHistoryIterator {
@@ -580,7 +611,12 @@ class ReplayDecider implements Decider, Consumer<HistoryEvent> {
 
     @Override
     public PollForDecisionTaskResponse getDecisionTask() {
-      return task;
+      lock.lock();
+      try {
+        return task;
+      } finally {
+        lock.unlock();
+      }
     }
 
     @Override
