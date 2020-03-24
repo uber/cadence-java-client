@@ -37,6 +37,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.LimitExceededError;
 import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
@@ -90,6 +91,7 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
@@ -100,19 +102,18 @@ import com.uber.tchannel.api.SubChannel;
 import com.uber.tchannel.api.TChannel;
 import com.uber.tchannel.api.TFuture;
 import com.uber.tchannel.api.errors.TChannelError;
+import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -540,7 +541,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private void throwOnRpcError(ThriftResponse<?> response) throws TException {
     if (response.isError()) {
-      throw new TException("Rpc error:" + response.getError());
+      if (response.getError().getErrorType() == ErrorType.Timeout) {
+        throw new TTransportException(
+            TTransportException.TIMED_OUT, response.getError().getMessage());
+      } else {
+        throw new TException("Rpc error:" + response.getError());
+      }
     }
   }
 
@@ -846,7 +852,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
       if (response.getResponseCode() == ResponseCode.OK) {
-        return result.getSuccess();
+        GetWorkflowExecutionHistoryResponse res = result.getSuccess();
+        if (res.getRawHistory() != null) {
+          History history =
+              InternalUtils.DeserializeFromBlobToHistoryEvents(
+                  res.getRawHistory(), getRequest.getHistoryEventFilterType());
+          res.setHistory(history);
+        }
+        return res;
       }
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();

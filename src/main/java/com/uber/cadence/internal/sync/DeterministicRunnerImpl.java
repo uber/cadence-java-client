@@ -526,6 +526,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public WorkflowExecution getParentWorkflowExecution() {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
     public WorkflowType getWorkflowType() {
       return new WorkflowType().setName("dummy-workflow");
     }
