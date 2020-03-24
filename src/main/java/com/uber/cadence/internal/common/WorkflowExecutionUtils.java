@@ -100,6 +100,9 @@ public class WorkflowExecutionUtils {
           .setDoNotRetry(BadRequestError.class, EntityNotExistsError.class)
           .build();
 
+  // Wait period for passive cluster to retry getting workflow result in case of replication delay.
+  private static final long ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS = 500;
+
   /**
    * Returns result of a workflow instance execution or throws an exception if workflow did not
    * complete successfully.
@@ -178,7 +181,7 @@ public class WorkflowExecutionUtils {
   }
 
   /** Returns an instance closing event, potentially waiting for workflow to complete. */
-  public static HistoryEvent getInstanceCloseEvent(
+  private static HistoryEvent getInstanceCloseEvent(
       IWorkflowService service,
       String domain,
       WorkflowExecution workflowExecution,
@@ -191,20 +194,6 @@ public class WorkflowExecutionUtils {
     long start = System.currentTimeMillis();
     HistoryEvent event;
     do {
-      GetWorkflowExecutionHistoryRequest r = new GetWorkflowExecutionHistoryRequest();
-      r.setDomain(domain);
-      r.setExecution(workflowExecution);
-      r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
-      r.setNextPageToken(pageToken);
-      r.setWaitForNewEvent(true);
-      try {
-        response =
-            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
-      } catch (EntityNotExistsError e) {
-        throw e;
-      } catch (TException e) {
-        throw CheckedExceptionWrapper.wrap(e);
-      }
       if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
         throw new TimeoutException(
             "WorkflowId="
@@ -216,6 +205,42 @@ public class WorkflowExecutionUtils {
                 + ", unit="
                 + unit);
       }
+
+      GetWorkflowExecutionHistoryRequest r = new GetWorkflowExecutionHistoryRequest();
+      r.setDomain(domain);
+      r.setExecution(workflowExecution);
+      r.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
+      r.setNextPageToken(pageToken);
+      r.setWaitForNewEvent(true);
+      r.setSkipArchival(true);
+      try {
+        response =
+            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+      } catch (EntityNotExistsError e) {
+        if (e.activeCluster != null
+            && e.currentCluster != null
+            && !e.activeCluster.equals(e.currentCluster)) {
+          // Current cluster is passive cluster. Execution might not exist because of replication
+          // lag. If we are still within timeout, wait for a little bit and retry.
+          if (timeout != 0
+              && System.currentTimeMillis() + ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS - start
+                  > unit.toMillis(timeout)) {
+            throw e;
+          }
+
+          try {
+            Thread.sleep(ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS);
+          } catch (InterruptedException ie) {
+            // Throw entity not exist here.
+            throw e;
+          }
+          continue;
+        }
+        throw e;
+      } catch (TException e) {
+        throw CheckedExceptionWrapper.wrap(e);
+      }
+
       pageToken = response.getNextPageToken();
       History history = response.getHistory();
       if (history != null && history.getEvents().size() > 0) {

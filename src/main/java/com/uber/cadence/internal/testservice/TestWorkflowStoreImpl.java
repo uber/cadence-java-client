@@ -18,10 +18,9 @@
 package com.uber.cadence.internal.testservice;
 
 import com.uber.cadence.BadRequestError;
+import com.uber.cadence.DataBlob;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.EventType;
-import com.uber.cadence.DataBlob;
-import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
@@ -35,6 +34,7 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.RequestContext.Timer;
 import java.time.Duration;
@@ -49,7 +49,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.thrift.TException;
 
 class TestWorkflowStoreImpl implements TestWorkflowStore {
 
@@ -338,7 +337,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
 
   @Override
   public GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest) throws EntityNotExistsError {
+      ExecutionId executionId, GetWorkflowExecutionHistoryRequest getRequest)
+      throws EntityNotExistsError {
     HistoryStore history;
     // Used to eliminate the race condition on waitForNewEvents
     long expectedNextEventId;
@@ -348,11 +348,12 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       if (!getRequest.isWaitForNewEvent()
           && getRequest.getHistoryEventFilterType() != HistoryEventFilterType.CLOSE_EVENT) {
         List<HistoryEvent> events = history.getEventsLocked();
-        List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
+        List<DataBlob> blobs = InternalUtils.SerializeFromHistoryEventToBlobData(events);
         // Copy the list as it is mutable. Individual events assumed immutable.
         ArrayList<HistoryEvent> eventsCopy = new ArrayList<>(events);
         return new GetWorkflowExecutionHistoryResponse()
-            .setHistory(new History().setEvents(eventsCopy)).setRawHistory(blobs);
+            .setHistory(new History().setEvents(eventsCopy))
+            .setRawHistory(blobs);
       }
       expectedNextEventId = history.getNextEventIdLocked();
     } finally {
@@ -360,7 +361,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
     List<HistoryEvent> events =
         history.waitForNewEvents(expectedNextEventId, getRequest.getHistoryEventFilterType());
-    List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
+    List<DataBlob> blobs = InternalUtils.SerializeFromHistoryEventToBlobData(events);
     GetWorkflowExecutionHistoryResponse result = new GetWorkflowExecutionHistoryResponse();
     if (events != null) {
       result.setHistory(new History().setEvents(events));
