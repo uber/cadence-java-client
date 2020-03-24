@@ -19,7 +19,6 @@ package com.uber.cadence.internal.common;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.DataBlob;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
@@ -183,18 +182,15 @@ public final class InternalUtils {
     return new History().setEvents(events);
   }
 
-  // This method deserialize the history event data to blob data
-  public static List<DataBlob> DeserializeFromHistoryEventToBlobData(List<HistoryEvent> events)
-      throws EntityNotExistsError {
-
-    List<DataBlob> blobs = new ArrayList<DataBlob>();
+  // This method serializes history event to blob data
+  public static List<DataBlob> SerializeFromHistoryEventToBlobData(List<HistoryEvent> events) {
+    List<DataBlob> blobs = new ArrayList<>(events.size());
     for (HistoryEvent event : events) {
       DataBlob blob = new DataBlob();
       try {
         blob.setData(serializer.serialize(event));
       } catch (org.apache.thrift.TException err) {
-        throw new EntityNotExistsError(
-            "Deserialize blob data to history event failed with unknown error");
+        throw new RuntimeException("Serialize to blob data failed", err);
       }
       blobs.add(blob);
     }

@@ -221,7 +221,13 @@ public class WorkflowExecutionUtils {
             && e.currentCluster != null
             && !e.activeCluster.equals(e.currentCluster)) {
           // Current cluster is passive cluster. Execution might not exist because of replication
-          // lag. Wait for a little bit and retry.
+          // lag. If we are still within timeout, wait for a little bit and retry.
+          if (timeout != 0
+              && System.currentTimeMillis() + ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS - start
+                  > unit.toMillis(timeout)) {
+            throw e;
+          }
+
           try {
             Thread.sleep(ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS);
           } catch (InterruptedException ie) {
@@ -234,6 +240,7 @@ public class WorkflowExecutionUtils {
       } catch (TException e) {
         throw CheckedExceptionWrapper.wrap(e);
       }
+
       pageToken = response.getNextPageToken();
       History history = response.getHistory();
       if (history != null && history.getEvents().size() > 0) {

@@ -348,7 +348,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
       if (!getRequest.isWaitForNewEvent()
           && getRequest.getHistoryEventFilterType() != HistoryEventFilterType.CLOSE_EVENT) {
         List<HistoryEvent> events = history.getEventsLocked();
-        List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
+        List<DataBlob> blobs = InternalUtils.SerializeFromHistoryEventToBlobData(events);
         // Copy the list as it is mutable. Individual events assumed immutable.
         ArrayList<HistoryEvent> eventsCopy = new ArrayList<>(events);
         return new GetWorkflowExecutionHistoryResponse()
@@ -361,7 +361,7 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
     }
     List<HistoryEvent> events =
         history.waitForNewEvents(expectedNextEventId, getRequest.getHistoryEventFilterType());
-    List<DataBlob> blobs = InternalUtils.DeserializeFromHistoryEventToBlobData(events);
+    List<DataBlob> blobs = InternalUtils.SerializeFromHistoryEventToBlobData(events);
     GetWorkflowExecutionHistoryResponse result = new GetWorkflowExecutionHistoryResponse();
     if (events != null) {
       result.setHistory(new History().setEvents(events));
