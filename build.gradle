@@ -132,10 +132,12 @@ javadoc {
 }
 
 task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
     from javadoc
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
+    archiveClassifier = 'sources'
     from sourceSets.main.allSource
 }
 
