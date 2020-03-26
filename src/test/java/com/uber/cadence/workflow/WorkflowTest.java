@@ -18,13 +18,7 @@
 package com.uber.cadence.workflow;
 
 import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.FailWorkflow;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
@@ -436,6 +430,34 @@ public class WorkflowTest {
         "sleep PT2S",
         "executeActivity TestActivities::activityWithDelay",
         "executeActivity TestActivities::activity2");
+  }
+
+  public interface TestMultipleTimers {
+    @WorkflowMethod
+    long execute();
+  }
+
+  public static class TestMultipleTimersImpl implements TestMultipleTimers {
+
+    @Override
+    public long execute() {
+      Promise<Void> t1 = Async.procedure(() -> Workflow.sleep(Duration.ofSeconds(1)));
+      Promise<Void> t2 = Async.procedure(() -> Workflow.sleep(Duration.ofSeconds(2)));
+      long start = Workflow.currentTimeMillis();
+      Promise.anyOf(t1, t2).get();
+      long elapsed = Workflow.currentTimeMillis() - start;
+      return elapsed;
+    }
+  }
+
+  @Test
+  public void testMultipleTimers() {
+    startWorkerFor(TestMultipleTimersImpl.class);
+    TestMultipleTimers workflowStub =
+        workflowClient.newWorkflowStub(
+            TestMultipleTimers.class, newWorkflowOptionsBuilder(taskList).build());
+    long result = workflowStub.execute();
+    assertTrue("should be around 1 second: " + result, result < 2000);
   }
 
   public static class TestActivityRetryWithMaxAttempts implements TestWorkflow1 {
@@ -2652,6 +2674,40 @@ public class WorkflowTest {
     assertEquals("ChildWorkflowTimedOutException", client.execute(taskList));
   }
 
+  public static class TestParentWorkflowContinueAsNew implements TestWorkflow1 {
+
+    private final ITestChild child1 =
+        Workflow.newChildWorkflowStub(
+            ITestChild.class,
+            new ChildWorkflowOptions.Builder()
+                .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.RejectDuplicate)
+                .build());
+    private final TestWorkflow1 self = Workflow.newContinueAsNewStub(TestWorkflow1.class);
+
+    @Override
+    public String execute(String arg) {
+      child1.execute("Hello", 0);
+      if (arg.length() > 0) {
+        self.execute(""); // continue as new
+      }
+      return "foo";
+    }
+  }
+
+  /** Reproduction of a bug when a child of continued as new workflow has the same UUID ID. */
+  @Test
+  public void testParentContinueAsNew() {
+    child2Id = UUID.randomUUID().toString();
+    startWorkerFor(TestParentWorkflowContinueAsNew.class, TestChild.class);
+
+    WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+    options.setExecutionStartToCloseTimeout(Duration.ofSeconds(200));
+    options.setTaskStartToCloseTimeout(Duration.ofSeconds(60));
+    options.setTaskList(taskList);
+    TestWorkflow1 client = workflowClient.newWorkflowStub(TestWorkflow1.class, options.build());
+    assertEquals("foo", client.execute("not empty"));
+  }
+
   private static String childReexecuteId = UUID.randomUUID().toString();
 
   public interface WorkflowIdReusePolicyParent {
@@ -4009,20 +4065,13 @@ public class WorkflowTest {
 
       // Test adding a version check in non-replay code.
       int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
-      String result = "";
-      if (version == Workflow.DEFAULT_VERSION) {
-        result += "activity" + testActivities.activity1(1);
-      } else {
-        result += testActivities.activity2("activity2", 2); // This is executed.
-      }
+      assertEquals(version, 1);
+      String result = testActivities.activity2("activity2", 2);
 
       // Test version change in non-replay code.
       version = Workflow.getVersion("test_change", 1, 2);
-      if (version == 1) {
-        result += "activity" + testActivities.activity1(1); // This is executed.
-      } else {
-        result += testActivities.activity2("activity2", 2);
-      }
+      assertEquals(version, 1);
+      result += "activity" + testActivities.activity1(1);
 
       // Test adding a version check in replay code.
       if (!getVersionExecuted.contains(taskList + "-test_change_2")) {
@@ -4030,21 +4079,15 @@ public class WorkflowTest {
         getVersionExecuted.add(taskList + "-test_change_2");
       } else {
         int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
-        if (version2 == Workflow.DEFAULT_VERSION) {
-          result += "activity" + testActivities.activity1(1); // This is executed in replay mode.
-        } else {
-          result += testActivities.activity2("activity2", 2);
-        }
+        assertEquals(version2, Workflow.DEFAULT_VERSION);
+        result += "activity" + testActivities.activity1(1);
       }
 
       // Test get version in replay mode.
       Workflow.sleep(1000);
       version = Workflow.getVersion("test_change", 1, 2);
-      if (version == 1) {
-        result += "activity" + testActivities.activity1(1); // This is executed.
-      } else {
-        result += testActivities.activity2("activity2", 2);
-      }
+      assertEquals(version, 1);
+      result += "activity" + testActivities.activity1(1);
 
       return result;
     }
@@ -4067,6 +4110,40 @@ public class WorkflowTest {
         "sleep PT1S",
         "getVersion",
         "executeActivity customActivity1");
+  }
+
+  public static class TestGetVersionWorkflow2Impl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      // Test adding a version check in replay code.
+      if (!getVersionExecuted.contains(taskList + "-test_change_2")) {
+        getVersionExecuted.add(taskList + "-test_change_2");
+        Workflow.sleep(Duration.ofHours(1));
+      } else {
+        int version2 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+        Workflow.sleep(Duration.ofHours(1));
+        int version3 = Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 1);
+
+        assertEquals(version2, version3);
+      }
+
+      return "test";
+    }
+  }
+
+  @Test
+  public void testGetVersion2() {
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+
+    startWorkerFor(TestGetVersionWorkflow2Impl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class,
+            newWorkflowOptionsBuilder(taskList)
+                .setExecutionStartToCloseTimeout(Duration.ofHours(2))
+                .build());
+    workflowStub.execute(taskList);
   }
 
   static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
@@ -5295,13 +5372,13 @@ public class WorkflowTest {
 
   public interface TestUpsertSearchAttributes {
     @WorkflowMethod
-    String execute(String keyword);
+    String execute(String taskList, String keyword);
   }
 
   public static class TestUpsertSearchAttributesImpl implements TestUpsertSearchAttributes {
 
     @Override
-    public String execute(String keyword) {
+    public String execute(String taskList, String keyword) {
       SearchAttributes searchAttributes = Workflow.getWorkflowInfo().getSearchAttributes();
       assertNull(searchAttributes);
 
@@ -5315,6 +5392,14 @@ public class WorkflowTest {
           WorkflowUtils.getValueFromSearchAttributes(
               searchAttributes, "CustomKeywordField", String.class));
 
+      // Running the activity below ensures that we have one more decision task to be executed after
+      // adding the search attributes. This helps with replaying the history one more time to check
+      // against a possible NonDeterminisicWorkflowError which could be caused by missing
+      // UpsertWorkflowSearchAttributes event in history.
+      TestActivities activities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      activities.activity();
+
       return "done";
     }
   }
@@ -5325,9 +5410,52 @@ public class WorkflowTest {
     TestUpsertSearchAttributes testWorkflow =
         workflowClient.newWorkflowStub(
             TestUpsertSearchAttributes.class, newWorkflowOptionsBuilder(taskList).build());
-    String result = testWorkflow.execute("testKey");
+    String result = testWorkflow.execute(taskList, "testKey");
     assertEquals("done", result);
-    tracer.setExpected("upsertSearchAttributes");
+    tracer.setExpected("upsertSearchAttributes", "executeActivity TestActivities::activity");
+  }
+
+  public static class TestMultiargsWorkflowsFuncChild implements TestMultiargsWorkflowsFunc2 {
+    @Override
+    public String func2(String s, int i) {
+      WorkflowInfo wi = Workflow.getWorkflowInfo();
+      String parentId = wi.getParentWorkflowId();
+      return parentId;
+    }
+  }
+
+  public static class TestMultiargsWorkflowsFuncParent implements TestMultiargsWorkflowsFunc {
+    @Override
+    public String func() {
+      ChildWorkflowOptions workflowOptions =
+          new ChildWorkflowOptions.Builder()
+              .setExecutionStartToCloseTimeout(Duration.ofSeconds(100))
+              .setTaskStartToCloseTimeout(Duration.ofSeconds(60))
+              .build();
+      TestMultiargsWorkflowsFunc2 child =
+          Workflow.newChildWorkflowStub(TestMultiargsWorkflowsFunc2.class, workflowOptions);
+
+      String parentWorkflowId = Workflow.getWorkflowInfo().getParentWorkflowId();
+      String childsParentWorkflowId = child.func2(null, 0);
+
+      String result = String.format("%s - %s", parentWorkflowId, childsParentWorkflowId);
+      return result;
+    }
+  }
+
+  @Test
+  public void testParentWorkflowInfoInChildWorkflows() {
+    startWorkerFor(TestMultiargsWorkflowsFuncParent.class, TestMultiargsWorkflowsFuncChild.class);
+
+    String workflowId = "testParentWorkflowInfoInChildWorkflows";
+    WorkflowOptions workflowOptions =
+        newWorkflowOptionsBuilder(taskList).setWorkflowId(workflowId).build();
+    TestMultiargsWorkflowsFunc parent =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+
+    String result = parent.func();
+    String expected = String.format("%s - %s", null, workflowId);
+    assertEquals(expected, result);
   }
 
   private static class TracingWorkflowInterceptor implements WorkflowInterceptor {

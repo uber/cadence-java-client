@@ -37,6 +37,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.LimitExceededError;
 import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
@@ -90,6 +91,7 @@ import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
@@ -100,19 +102,18 @@ import com.uber.tchannel.api.SubChannel;
 import com.uber.tchannel.api.TChannel;
 import com.uber.tchannel.api.TFuture;
 import com.uber.tchannel.api.errors.TChannelError;
+import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,7 +129,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private static final long DEFAULT_POLL_RPC_TIMEOUT_MILLIS = 121 * 1000;
 
   /** Default RPC timeout for QueryWorkflow */
-  private static final long DEFAULT_QUERY_RPC_TIMEOUT_MILLIS = 10000;
+  private static final long DEFAULT_QUERY_RPC_TIMEOUT_MILLIS = 10 * 1000;
+
+  /** Default RPC timeout for ListArchivedWorkflow */
+  private static final long DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS = 180 * 1000;
 
   private static final String DEFAULT_CLIENT_APP_NAME = "cadence-client";
 
@@ -147,6 +151,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
     /** The tChannel timeout for query workflow call in milliseconds */
     private final long rpcQueryTimeoutMillis;
+
+    /** The tChannel timeout for list archived workflow call in milliseconds */
+    private final long rpcListArchivedWorkflowTimeoutMillis;
 
     /** TChannel service name that the Cadence service was started with. */
     private final String serviceName;
@@ -177,6 +184,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       this.rpcLongPollTimeoutMillis = builder.rpcLongPollTimeoutMillis;
       this.rpcQueryTimeoutMillis = builder.rpcQueryTimeoutMillis;
+      this.rpcListArchivedWorkflowTimeoutMillis = builder.rpcListArchivedWorkflowTimeoutMillis;
       if (builder.metricsScope == null) {
         builder.metricsScope = NoopScope.getInstance();
       }
@@ -207,6 +215,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     /** @return Returns the rpc timout for query workflow requests in millis. */
     public long getRpcQueryTimeoutMillis() {
       return rpcQueryTimeoutMillis;
+    }
+
+    /** @return Returns the rpc timout for list archived workflow requests in millis. */
+    public long getRpcListArchivedWorkflowTimeoutMillis() {
+      return rpcListArchivedWorkflowTimeoutMillis;
     }
 
     /** Returns the client application name. */
@@ -242,6 +255,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       private long rpcTimeoutMillis = DEFAULT_RPC_TIMEOUT_MILLIS;
       private long rpcLongPollTimeoutMillis = DEFAULT_POLL_RPC_TIMEOUT_MILLIS;
       public long rpcQueryTimeoutMillis = DEFAULT_QUERY_RPC_TIMEOUT_MILLIS;
+      public long rpcListArchivedWorkflowTimeoutMillis =
+          DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS;
       public String serviceName;
       private Scope metricsScope;
       private Map<String, String> transportHeaders;
@@ -276,6 +291,16 @@ public class WorkflowServiceTChannel implements IWorkflowService {
        */
       public Builder setQueryRpcTimeout(long timeoutMillis) {
         this.rpcQueryTimeoutMillis = timeoutMillis;
+        return this;
+      }
+
+      /**
+       * Sets the rpc timeout value for query calls. Default is 180000.
+       *
+       * @param timeoutMillis timeout, in millis.
+       */
+      public Builder setListArchivedWorkflowRpcTimeout(long timeoutMillis) {
+        this.rpcListArchivedWorkflowTimeoutMillis = timeoutMillis;
         return this;
       }
 
@@ -516,7 +541,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private void throwOnRpcError(ThriftResponse<?> response) throws TException {
     if (response.isError()) {
-      throw new TException("Rpc error:" + response.getError());
+      if (response.getError().getErrorType() == ErrorType.Timeout) {
+        throw new TTransportException(
+            TTransportException.TIMED_OUT, response.getError().getMessage());
+      } else {
+        throw new TException("Rpc error:" + response.getError());
+      }
     }
   }
 
@@ -822,7 +852,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
       if (response.getResponseCode() == ResponseCode.OK) {
-        return result.getSuccess();
+        GetWorkflowExecutionHistoryResponse res = result.getSuccess();
+        if (res.getRawHistory() != null) {
+          History history =
+              InternalUtils.DeserializeFromBlobToHistoryEvents(
+                  res.getRawHistory(), getRequest.getHistoryEventFilterType());
+          res.setHistory(history);
+        }
+        return res;
       }
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();
@@ -881,6 +918,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("PollForDecisionTask failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -925,6 +965,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RespondDecisionTaskCompleted failed with unknown error:" + result);
     } finally {
@@ -973,6 +1016,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RespondDecisionTaskFailed failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1018,6 +1064,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("PollForActivityTask failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1061,6 +1110,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RecordActivityTaskHeartbeat failed with unknown error:" + result);
     } finally {
@@ -1109,6 +1161,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RecordActivityTaskHeartbeatByID failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1152,6 +1207,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RespondActivityTaskCompleted failed with unknown error:" + result);
     } finally {
@@ -1198,6 +1256,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RespondActivityTaskCompletedByID failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1241,6 +1302,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RespondActivityTaskFailed failed with unknown error:" + result);
     } finally {
@@ -1287,6 +1351,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RespondActivityTaskFailedByID failedByID with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1330,6 +1397,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RespondActivityTaskCanceled failed with unknown error:" + result);
     } finally {
@@ -1375,6 +1445,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("RespondActivityTaskCanceledByID failed with unknown error:" + result);
     } finally {
@@ -1425,6 +1498,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RequestCancelWorkflowExecution failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1468,6 +1544,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("SignalWorkflowExecution failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1484,13 +1563,53 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         () -> signalWithStartWorkflowExecution(signalWithStartRequest));
   }
 
-  // TODO: https://github.com/uber/cadence-java-client/issues/359
   @Override
   public ResetWorkflowExecutionResponse ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, ClientVersionNotSupportedError, TException {
-    return null;
+    return measureRemoteCall(
+        ServiceMethod.RESET_WORKFLOW_EXECUTION, () -> resetWorkflowExecution(resetRequest));
+  }
+
+  private ResetWorkflowExecutionResponse resetWorkflowExecution(
+      ResetWorkflowExecutionRequest resetRequest) throws TException {
+    ThriftResponse<WorkflowService.ResetWorkflowExecution_result> response = null;
+    try {
+      ThriftRequest<WorkflowService.ResetWorkflowExecution_args> request =
+          buildThriftRequest(
+              "ResetWorkflowExecution",
+              new WorkflowService.ResetWorkflowExecution_args(resetRequest));
+      response = doRemoteCall(request);
+      WorkflowService.ResetWorkflowExecution_result result =
+          response.getBody(WorkflowService.ResetWorkflowExecution_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return result.getSuccess();
+      }
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetLimitExceededError()) {
+        throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
+      throw new TException("ResetWorkflowExecution failed with unknown error:" + result);
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
   }
 
   private StartWorkflowExecutionResponse signalWithStartWorkflowExecution(
@@ -1525,6 +1644,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetDomainNotActiveError()) {
         throw result.getDomainNotActiveError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("SignalWithStartWorkflowExecution failed with unknown error:" + result);
     } finally {
@@ -1570,6 +1692,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("TerminateWorkflowExecution failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1611,6 +1736,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("ListOpenWorkflowExecutions failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1648,6 +1776,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("ListClosedWorkflowExecutions failed with unknown error:" + result);
     } finally {
@@ -1717,7 +1848,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       ThriftRequest<WorkflowService.ListArchivedWorkflowExecutions_args> request =
           buildThriftRequest(
               "ListArchivedWorkflowExecutions",
-              new WorkflowService.ListArchivedWorkflowExecutions_args(listRequest));
+              new WorkflowService.ListArchivedWorkflowExecutions_args(listRequest),
+              options.getRpcListArchivedWorkflowTimeoutMillis());
       response = doRemoteCall(request);
       WorkflowService.ListArchivedWorkflowExecutions_result result =
           response.getBody(WorkflowService.ListArchivedWorkflowExecutions_result.class);
@@ -1897,6 +2029,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("RespondQueryTaskCompleted failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1933,7 +2068,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetQueryFailedError()) {
         throw result.getQueryFailedError();
       }
-
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("QueryWorkflow failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -1980,6 +2117,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("ResetStickyTaskList failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -2021,6 +2161,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("DescribeWorkflowExecution failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -2059,6 +2202,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("DescribeTaskList failed with unknown error:" + result);
     } finally {
@@ -2307,7 +2453,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest, AsyncMethodCallback resultHandler)
-      throws TException {}
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void TerminateWorkflowExecution(
@@ -2340,7 +2488,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void ListArchivedWorkflowExecutions(
       ListArchivedWorkflowExecutionsRequest listRequest, AsyncMethodCallback resultHandler)
-      throws TException {}
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void ScanWorkflowExecutions(

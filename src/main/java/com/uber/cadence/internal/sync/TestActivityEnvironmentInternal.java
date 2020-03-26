@@ -157,6 +157,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
           new WorkflowExecution()
               .setWorkflowId("test-workflow-id")
               .setRunId(UUID.randomUUID().toString()));
+      task.setWorkflowType(new WorkflowType().setName("test-workflow"));
       task.setActivityType(new ActivityType().setName(activityType));
       Result taskResult = activityTaskHandler.handle(task, NoopScope.getInstance(), false);
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
@@ -726,7 +727,9 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     @Override
     public void ListArchivedWorkflowExecutions(
         ListArchivedWorkflowExecutionsRequest listRequest, AsyncMethodCallback resultHandler)
-        throws TException {}
+        throws TException {
+      impl.ListArchivedWorkflowExecutions(listRequest, resultHandler);
+    }
 
     @Override
     public void ScanWorkflowExecutions(

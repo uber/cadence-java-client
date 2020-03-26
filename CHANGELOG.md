@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.7.0
+- Add ParentClosePolicy to child workflows and also expose parent execution info for child workflows
+- Add context propagation
+- Fix various bugs around test workflow service and test mutable state implementation
+- Use thrift IDLs from uber/cadence-idl repo as a submodule
+- Various dependency updates including Docker base image and Gradle wrapper
+- Miscellaneous bug fixes 
+
 ## v2.6.3
 - Add Upsert Search Attributes
 - Support get search attributes inside workflow
