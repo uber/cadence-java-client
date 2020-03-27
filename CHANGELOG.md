@@ -1,5 +1,8 @@
 # Changelog
 
+## v2.7.1
+- Fix a bug in build.gradle that prevented javadoc and sources from being published
+
 ## v2.7.0
 - Add ParentClosePolicy to child workflows and also expose parent execution info for child workflows
 - Add context propagation
