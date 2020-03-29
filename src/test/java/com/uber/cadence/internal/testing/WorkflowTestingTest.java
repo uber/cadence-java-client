@@ -36,6 +36,7 @@ import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityHelper;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
@@ -166,6 +167,53 @@ public class WorkflowTestingTest {
     }
   }
 
+  @ActivityHelper
+  public interface TestParentActivity {
+    String execute(String input);
+  }
+
+  public interface TestChild1Activity extends TestParentActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600)
+    @Override
+    String execute(String input);
+  }
+
+  public interface TestChild2Activity extends TestParentActivity {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600)
+    @Override
+    String execute(String input);
+  }
+
+  private static class ActivityChild1Impl implements TestChild1Activity {
+
+    @Override
+    public String execute(String input) {
+      return Activity.getTask().getActivityType() + "-" + input;
+    }
+  }
+
+  private static class ActivityChild2Impl implements TestChild2Activity {
+
+    @Override
+    public String execute(String input) {
+      return Activity.getTask().getActivityType() + "-" + input;
+    }
+  }
+
+  @Test
+  public void testChildActivity() {
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(ChildActivityWorkflow.class);
+    worker.registerActivitiesImplementations(new ActivityChild1Impl(), new ActivityChild2Impl());
+    testEnvironment.start();
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    String result = workflow.workflow1("input1");
+    assertEquals("TestChild1Activity::execute-input1-TestChild2Activity::execute-input1", result);
+  }
+
   public interface TestActivity {
 
     @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600)
@@ -188,6 +236,18 @@ public class WorkflowTestingTest {
     public String workflow1(String input) {
       Workflow.sleep(Duration.ofHours(1)); // test time skipping
       return activity.activity1(input);
+    }
+  }
+
+  public static class ChildActivityWorkflow implements TestWorkflow {
+
+    private final TestChild1Activity activity1 = Workflow.newActivityStub(TestChild1Activity.class);
+    private final TestChild2Activity activity2 = Workflow.newActivityStub(TestChild2Activity.class);
+
+    @Override
+    public String workflow1(String input) {
+      Workflow.sleep(Duration.ofHours(1)); // test time skipping
+      return activity1.execute(input) + "-" + activity2.execute(input);
     }
   }
 
