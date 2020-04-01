@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.workflow.ActivityStub;
@@ -43,10 +42,12 @@ class LocalActivityInvocationHandler extends ActivityInvocationHandlerBase {
 
   @Override
   protected Function<Object[], Object> getActivityFunc(
-      Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
+      Method method, MethodRetry methodRetry, String activityName) {
     Function<Object[], Object> function;
     LocalActivityOptions mergedOptions =
-        LocalActivityOptions.merge(activityMethod, methodRetry, options);
+        LocalActivityOptions.newBuilder(options)
+            .setMethodRetry(methodRetry)
+            .validateAndBuildWithDefaults();
     ActivityStub stub = LocalActivityStubImpl.newInstance(mergedOptions, activityExecutor);
     function =
         (a) -> stub.execute(activityName, method.getReturnType(), method.getGenericReturnType(), a);

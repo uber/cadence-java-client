@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -18,7 +18,77 @@
 package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Defaults;
-import com.uber.cadence.*;
+import com.uber.cadence.ActivityType;
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancellationAlreadyRequestedError;
+import com.uber.cadence.ClientVersionNotSupportedError;
+import com.uber.cadence.ClusterInfo;
+import com.uber.cadence.CountWorkflowExecutionsRequest;
+import com.uber.cadence.CountWorkflowExecutionsResponse;
+import com.uber.cadence.DeprecateDomainRequest;
+import com.uber.cadence.DescribeDomainRequest;
+import com.uber.cadence.DescribeDomainResponse;
+import com.uber.cadence.DescribeTaskListRequest;
+import com.uber.cadence.DescribeTaskListResponse;
+import com.uber.cadence.DescribeWorkflowExecutionRequest;
+import com.uber.cadence.DescribeWorkflowExecutionResponse;
+import com.uber.cadence.DomainAlreadyExistsError;
+import com.uber.cadence.DomainNotActiveError;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.GetSearchAttributesResponse;
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.LimitExceededError;
+import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
+import com.uber.cadence.ListArchivedWorkflowExecutionsResponse;
+import com.uber.cadence.ListClosedWorkflowExecutionsRequest;
+import com.uber.cadence.ListClosedWorkflowExecutionsResponse;
+import com.uber.cadence.ListDomainsRequest;
+import com.uber.cadence.ListDomainsResponse;
+import com.uber.cadence.ListOpenWorkflowExecutionsRequest;
+import com.uber.cadence.ListOpenWorkflowExecutionsResponse;
+import com.uber.cadence.ListTaskListPartitionsRequest;
+import com.uber.cadence.ListTaskListPartitionsResponse;
+import com.uber.cadence.ListWorkflowExecutionsRequest;
+import com.uber.cadence.ListWorkflowExecutionsResponse;
+import com.uber.cadence.PollForActivityTaskRequest;
+import com.uber.cadence.PollForActivityTaskResponse;
+import com.uber.cadence.PollForDecisionTaskRequest;
+import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.QueryWorkflowRequest;
+import com.uber.cadence.QueryWorkflowResponse;
+import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
+import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
+import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RegisterDomainRequest;
+import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.ResetStickyTaskListRequest;
+import com.uber.cadence.ResetStickyTaskListResponse;
+import com.uber.cadence.ResetWorkflowExecutionRequest;
+import com.uber.cadence.ResetWorkflowExecutionResponse;
+import com.uber.cadence.RespondActivityTaskCanceledByIDRequest;
+import com.uber.cadence.RespondActivityTaskCanceledRequest;
+import com.uber.cadence.RespondActivityTaskCompletedByIDRequest;
+import com.uber.cadence.RespondActivityTaskCompletedRequest;
+import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
+import com.uber.cadence.RespondActivityTaskFailedRequest;
+import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskCompletedResponse;
+import com.uber.cadence.RespondDecisionTaskFailedRequest;
+import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.ServiceBusyError;
+import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
+import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionResponse;
+import com.uber.cadence.TerminateWorkflowExecutionRequest;
+import com.uber.cadence.UpdateDomainRequest;
+import com.uber.cadence.UpdateDomainResponse;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.metrics.NoopScope;
@@ -102,7 +172,10 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
   @Override
   public <T> T newActivityStub(Class<T> activityInterface) {
     ActivityOptions options =
-        new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofDays(1)).build();
+        ActivityOptions.newBuilder()
+            .setScheduleToCloseTimeout(Duration.ofDays(1))
+            .setHeartbeatTimeout(Duration.ofSeconds(1))
+            .build();
     InvocationHandler invocationHandler =
         ActivityInvocationHandler.newInstance(options, new TestActivityExecutor(workflowService));
     invocationHandler = new DeterministicRunnerWrapper(invocationHandler);

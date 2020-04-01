@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -29,31 +29,23 @@ import java.util.Objects;
 /** Options used to configure how an local activity is invoked. */
 public final class LocalActivityOptions {
 
-  /**
-   * Used to merge annotation and options. Options takes precedence. Returns options with all
-   * defaults filled in.
-   */
-  public static LocalActivityOptions merge(
-      ActivityMethod a, MethodRetry r, LocalActivityOptions o) {
-    if (a == null) {
-      if (r == null) {
-        return new LocalActivityOptions.Builder(o).validateAndBuildWithDefaults();
-      }
-      RetryOptions mergedR = RetryOptions.merge(r, o.getRetryOptions());
-      return new LocalActivityOptions.Builder()
-          .setRetryOptions(mergedR)
-          .validateAndBuildWithDefaults();
-    }
-    if (o == null) {
-      o = new LocalActivityOptions.Builder().build();
-    }
-    return new LocalActivityOptions.Builder()
-        .setScheduleToCloseTimeout(
-            ActivityOptions.mergeDuration(
-                a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
-        .setRetryOptions(RetryOptions.merge(r, o.getRetryOptions()))
-        .setContextPropagators(o.getContextPropagators())
-        .validateAndBuildWithDefaults();
+  public static Builder newBuilder() {
+    return new Builder(null);
+  }
+
+  /** @param o null is allowed */
+  public static Builder newBuilder(LocalActivityOptions o) {
+    return new Builder(o);
+  }
+
+  public static LocalActivityOptions getDefaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final LocalActivityOptions DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = LocalActivityOptions.newBuilder().build();
   }
 
   public static final class Builder {
@@ -89,6 +81,17 @@ public final class LocalActivityOptions {
 
     public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
       this.contextPropagators = contextPropagators;
+      return this;
+    }
+
+    /**
+     * Merges MethodRetry annotation. The values of this builder take precedence over annotation
+     * ones.
+     */
+    public Builder setMethodRetry(MethodRetry r) {
+      if (r != null) {
+        this.retryOptions = RetryOptions.merge(r, retryOptions);
+      }
       return this;
     }
 
