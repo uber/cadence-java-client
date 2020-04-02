@@ -33,6 +33,8 @@ import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
 import io.netty.util.internal.ConcurrentSet;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.TException;
@@ -251,5 +253,64 @@ public class ActivityTestingTest {
         testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
     assertEquals(3, count.get());
+  }
+
+  public interface A {
+    void a();
+  }
+
+  @ActivityInterface
+  public interface B extends A {
+    void b();
+  }
+
+  @ActivityInterface
+  public interface C extends B, A {
+    void c();
+  }
+
+  public class CImpl implements C {
+    private List<String> invocations = new ArrayList<>();
+
+    @Override
+    public void a() {
+      invocations.add("a");
+    }
+
+    @Override
+    public void b() {
+      invocations.add("b");
+    }
+
+    @Override
+    public void c() {
+      invocations.add("c");
+    }
+  }
+
+  @Test
+  public void testInvokingActivityByBaseInterface() {
+    CImpl impl = new CImpl();
+    testEnvironment.registerActivitiesImplementations(impl);
+    try {
+      testEnvironment.newActivityStub(A.class);
+      fail("A doesn't implement activity");
+    } catch (IllegalArgumentException e) {
+      // expected as A doesn't implement any activity
+    }
+    B b = testEnvironment.newActivityStub(B.class);
+    b.a();
+    b.b();
+    C c = testEnvironment.newActivityStub(C.class);
+    c.a();
+    c.b();
+    c.c();
+    List<String> expected = new ArrayList<>();
+    expected.add("a");
+    expected.add("b");
+    expected.add("a");
+    expected.add("b");
+    expected.add("c");
+    assertEquals(expected, impl.invocations);
   }
 }

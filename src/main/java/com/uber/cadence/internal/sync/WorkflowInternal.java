@@ -149,7 +149,7 @@ public final class WorkflowInternal {
   public static <T> T newActivityStub(Class<T> activityInterface, ActivityOptions options) {
     WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
-        ActivityInvocationHandler.newInstance(options, decisionContext);
+        ActivityInvocationHandler.newInstance(activityInterface, options, decisionContext);
     return ActivityInvocationHandlerBase.newProxy(activityInterface, invocationHandler);
   }
 
@@ -162,7 +162,7 @@ public final class WorkflowInternal {
       Class<T> activityInterface, LocalActivityOptions options) {
     WorkflowInterceptor decisionContext = WorkflowInternal.getWorkflowInterceptor();
     InvocationHandler invocationHandler =
-        LocalActivityInvocationHandler.newInstance(options, decisionContext);
+        LocalActivityInvocationHandler.newInstance(activityInterface, options, decisionContext);
     return ActivityInvocationHandlerBase.newProxy(activityInterface, invocationHandler);
   }
 

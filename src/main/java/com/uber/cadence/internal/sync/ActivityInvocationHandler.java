@@ -30,13 +30,15 @@ class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
   private final WorkflowInterceptor activityExecutor;
 
   static InvocationHandler newInstance(
-      ActivityOptions options, WorkflowInterceptor activityExecutor) {
-    return new ActivityInvocationHandler(options, activityExecutor);
+      Class<?> activityInterface, ActivityOptions options, WorkflowInterceptor activityExecutor) {
+    return new ActivityInvocationHandler(activityInterface, activityExecutor, options);
   }
 
-  private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  private ActivityInvocationHandler(
+      Class<?> activityInterface, WorkflowInterceptor activityExecutor, ActivityOptions options) {
     this.options = options;
     this.activityExecutor = activityExecutor;
+    init(activityInterface);
   }
 
   @Override

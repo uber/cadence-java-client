@@ -5441,6 +5441,7 @@ public class WorkflowTest {
     void createGreeting(String name);
   }
 
+  @ActivityInterface
   public interface GreetingActivities {
     @ActivityMethod
     String composeGreeting(String string);

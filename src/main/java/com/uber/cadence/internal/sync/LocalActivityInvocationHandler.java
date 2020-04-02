@@ -30,14 +30,19 @@ class LocalActivityInvocationHandler extends ActivityInvocationHandlerBase {
   private final WorkflowInterceptor activityExecutor;
 
   static InvocationHandler newInstance(
-      LocalActivityOptions options, WorkflowInterceptor activityExecutor) {
-    return new LocalActivityInvocationHandler(options, activityExecutor);
+      Class<?> activityInterface,
+      LocalActivityOptions options,
+      WorkflowInterceptor activityExecutor) {
+    return new LocalActivityInvocationHandler(activityInterface, activityExecutor, options);
   }
 
   private LocalActivityInvocationHandler(
-      LocalActivityOptions options, WorkflowInterceptor activityExecutor) {
+      Class<?> activityInterface,
+      WorkflowInterceptor activityExecutor,
+      LocalActivityOptions options) {
     this.options = options;
     this.activityExecutor = activityExecutor;
+    init(activityInterface);
   }
 
   @Override
