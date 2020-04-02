@@ -155,6 +155,7 @@ public class LocalActivityContextPropagationTest {
     }
   }
 
+  @ActivityInterface
   public interface LocalActivityContextPropagation {
 
     @ActivityMethod

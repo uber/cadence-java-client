@@ -27,6 +27,7 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.ActivityWorkerShutdownException;
 import com.uber.cadence.client.WorkflowClient;
@@ -111,6 +112,7 @@ public class CleanWorkerShutdownTest {
     }
   }
 
+  @ActivityInterface
   public interface Activities {
     String execute();
   }

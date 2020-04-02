@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
@@ -47,6 +48,7 @@ public class ActivityTestingTest {
     testEnvironment = TestActivityEnvironment.newInstance();
   }
 
+  @ActivityInterface
   public interface TestActivity {
 
     String activity1(String input);
@@ -110,6 +112,7 @@ public class ActivityTestingTest {
     assertEquals("details1", details.get());
   }
 
+  @ActivityInterface
   public interface InterruptibleTestActivity {
     void activity1() throws InterruptedException;
   }

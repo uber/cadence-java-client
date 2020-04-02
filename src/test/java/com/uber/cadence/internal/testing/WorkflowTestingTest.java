@@ -36,6 +36,7 @@ import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.activity.Activity;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.*;
 import com.uber.cadence.context.ContextPropagator;
@@ -161,6 +162,7 @@ public class WorkflowTestingTest {
     }
   }
 
+  @ActivityInterface
   public interface TestActivity {
     String activity1(String input);
   }
@@ -486,6 +488,7 @@ public class WorkflowTestingTest {
     log.info(testEnvironment.getDiagnostics());
   }
 
+  @ActivityInterface
   public interface TestCancellationActivity {
     String activity1(String input);
   }

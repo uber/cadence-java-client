@@ -41,11 +41,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.activity.ActivityTask;
-import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.activity.*;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -73,7 +69,11 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.*;
+import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactory;
+import com.uber.cadence.worker.WorkerFactoryOptions;
+import com.uber.cadence.worker.WorkerOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.File;
@@ -2941,6 +2941,7 @@ public class WorkflowTest {
     }
   }
 
+  @ActivityInterface
   public interface AngryChildActivity {
 
     @ActivityMethod
@@ -3674,6 +3675,7 @@ public class WorkflowTest {
     Assert.assertEquals("run 2", lastCompletionResult);
   }
 
+  @ActivityInterface
   public interface TestActivities {
 
     String sleepActivity(long milliseconds, int input);
@@ -4755,6 +4757,7 @@ public class WorkflowTest {
     tracer.setExpected("sideEffect", "sideEffect", "executeActivity TestActivities::activity2");
   }
 
+  @ActivityInterface
   public interface GenericParametersActivity {
 
     List<UUID> execute(List<UUID> arg1, Set<UUID> arg2);
@@ -4863,6 +4866,7 @@ public class WorkflowTest {
     }
   }
 
+  @ActivityInterface
   public interface NonSerializableExceptionActivity {
     void execute();
   }
@@ -4907,9 +4911,8 @@ public class WorkflowTest {
     assertTrue(result.contains("NonSerializableException"));
   }
 
+  @ActivityInterface
   public interface NonDeserializableArgumentsActivity {
-
-    @ActivityMethod
     void execute(int arg);
   }
 
