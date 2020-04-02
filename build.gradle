@@ -37,7 +37,7 @@ googleJavaFormat {
 }
 
 group = 'com.uber.cadence'
-version = '2.7.0'
+version = '2.7.1'
 
 description = '''Uber Cadence Java Client'''
 
@@ -132,10 +132,12 @@ javadoc {
 }
 
 task javadocJar(type: Jar) {
+    archiveClassifier = 'javadoc'
     from javadoc
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
+    archiveClassifier = 'sources'
     from sourceSets.main.allSource
 }
 
