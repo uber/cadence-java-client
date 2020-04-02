@@ -44,6 +44,7 @@ import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.client.WorkflowTimedOutException;
 import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.context.OpenTracingContextPropagator;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.testing.SimulatedTimeoutException;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -57,8 +58,15 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
+import io.opentracing.Scope;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.mock.MockTracer;
+import io.opentracing.util.GlobalTracer;
+import io.opentracing.util.ThreadLocalScopeManager;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -982,5 +990,49 @@ public class WorkflowTestingTest {
     ParentWorkflow workflow = client.newWorkflowStub(ParentWorkflow.class, options);
     String result = workflow.workflow("input1");
     assertEquals("testing123testing123", result);
+  }
+
+  public static class OpenTracingContextPropagationWorkflowImpl implements TestWorkflow {
+    @Override
+    public String workflow1(String input) {
+      Tracer tracer = GlobalTracer.get();
+      Span span = tracer.buildSpan("testContextPropagationWorkflow").start();
+      try (Scope scope = tracer.scopeManager().activate(span)) {
+        Span activeSpan = tracer.scopeManager().activeSpan();
+        return activeSpan.getBaggageItem("foo");
+      } finally {
+        span.finish();
+      }
+    }
+  }
+
+  @Test
+  public void testOpenTracingContextPropagation() {
+    MockTracer tracer =
+        new MockTracer(new ThreadLocalScopeManager(), MockTracer.Propagator.TEXT_MAP);
+    GlobalTracer.registerIfAbsent(tracer);
+    Span span = tracer.buildSpan("testContextPropagation").start();
+
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(OpenTracingContextPropagationWorkflowImpl.class);
+    testEnvironment.start();
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    WorkflowOptions options =
+        new WorkflowOptions.Builder()
+            .setContextPropagators(
+                Arrays.asList(new TestContextPropagator(), new OpenTracingContextPropagator()))
+            .build();
+
+    try (Scope scope = tracer.scopeManager().activate(span)) {
+
+      Span activeSpan = tracer.scopeManager().activeSpan();
+      activeSpan.setBaggageItem("foo", "bar");
+
+      TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
+      assertEquals("bar", workflow.workflow1("input1"));
+
+    } finally {
+      span.finish();
+    }
   }
 }

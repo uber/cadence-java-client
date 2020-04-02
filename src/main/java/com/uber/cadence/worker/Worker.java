@@ -25,6 +25,7 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.context.OpenTracingContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -952,10 +953,13 @@ public final class Worker implements Suspendable {
       }
 
       if (contextPropagators != null) {
-        this.contextPropagators = contextPropagators;
+        this.contextPropagators = new ArrayList(contextPropagators);
       } else {
         this.contextPropagators = new ArrayList<>();
       }
+
+      // Add the OpenTracing propagator
+      this.contextPropagators.add(new OpenTracingContextPropagator());
     }
   }
 }

@@ -28,6 +28,7 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.context.OpenTracingContextPropagator;
 import com.uber.cadence.internal.common.Retryer;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -38,6 +39,11 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.log.Fields;
+import io.opentracing.tag.Tags;
+import io.opentracing.util.GlobalTracer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -175,7 +181,18 @@ public final class ActivityWorker implements SuspendableWorker {
 
       propagateContext(task);
 
-      try {
+      // Set up an opentracing span
+      Tracer openTracingTracer = GlobalTracer.get();
+      Tracer.SpanBuilder builder =
+          openTracingTracer
+              .buildSpan("cadence.activity")
+              .withTag("resource.name", task.getActivityType().getName());
+      if (OpenTracingContextPropagator.getCurrentOpenTracingSpanContext() != null) {
+        builder.asChildOf(OpenTracingContextPropagator.getCurrentOpenTracingSpanContext());
+      }
+      Span span = builder.start();
+
+      try (io.opentracing.Scope scope = openTracingTracer.activateSpan(span)) {
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
         ActivityTaskHandler.Result response = handler.handle(task, metricsScope, false);
         sw.stop();
@@ -197,11 +214,22 @@ public final class ActivityWorker implements SuspendableWorker {
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
         sendReply(task, new Result(null, null, cancelledRequest, null), metricsScope);
         sw.stop();
+      } catch (Exception e) {
+        Tags.ERROR.set(span, true);
+        Map<String, Object> errorData = new HashMap<>();
+        errorData.put(Fields.EVENT, "error");
+        if (e != null) {
+          errorData.put(Fields.ERROR_OBJECT, e);
+          errorData.put(Fields.MESSAGE, e.getMessage());
+        }
+        span.log(errorData);
+        throw e;
       } finally {
         MDC.remove(LoggerTag.ACTIVITY_ID);
         MDC.remove(LoggerTag.ACTIVITY_TYPE);
         MDC.remove(LoggerTag.WORKFLOW_ID);
         MDC.remove(LoggerTag.RUN_ID);
+        span.finish();
       }
     }
 
