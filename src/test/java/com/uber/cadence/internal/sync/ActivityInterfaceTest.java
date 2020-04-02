@@ -15,7 +15,7 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.worker;
+package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Objects;
 import com.uber.cadence.activity.ActivityInterface;

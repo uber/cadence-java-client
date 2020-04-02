@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.uber.cadence.PollForActivityTaskResponse;
@@ -156,6 +157,11 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   @Override
   public boolean isAnyTypeSupported() {
     return !activities.isEmpty();
+  }
+
+  @VisibleForTesting
+  public Set<String> getRegisteredActivityTypes() {
+    return activities.keySet();
   }
 
   void setActivitiesImplementation(Object[] activitiesImplementation) {
