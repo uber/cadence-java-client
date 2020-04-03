@@ -1,0 +1,11 @@
+version: 2
+cli:
+  server: https://app.fossa.com
+  fetcher: custom
+  project: git@github.com:uber/cadence-java-client.git
+analyze:
+  modules:
+  - name: .
+    type: gradle
+    target: ':'
+    path: .
