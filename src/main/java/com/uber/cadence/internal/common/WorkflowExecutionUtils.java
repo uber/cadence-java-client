@@ -125,7 +125,7 @@ public class WorkflowExecutionUtils {
       TimeUnit unit)
       throws TimeoutException, CancellationException, WorkflowExecutionFailedException,
           WorkflowTerminatedException, WorkflowTimedOutException, EntityNotExistsError {
-    // getIntanceCloseEvent waits for workflow completion including new runs.
+    // getInstanceCloseEvent waits for workflow completion including new runs.
     HistoryEvent closeEvent =
         getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
     return getResultFromCloseEvent(workflowExecution, workflowType, closeEvent);
@@ -295,7 +295,8 @@ public class WorkflowExecutionUtils {
         getWorkflowExecutionHistoryAsync(service, request);
     return response.thenComposeAsync(
         (r) -> {
-          if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
+          long elapsedTime = System.currentTimeMillis() - start;
+          if (timeout != 0 && elapsedTime > unit.toMillis(timeout)) {
             throw CheckedExceptionWrapper.wrap(
                 new TimeoutException(
                     "WorkflowId="
@@ -311,7 +312,7 @@ public class WorkflowExecutionUtils {
           if (history == null || history.getEvents().size() == 0) {
             // Empty poll returned
             return getInstanceCloseEventAsync(
-                service, domain, workflowExecution, pageToken, timeout, unit);
+                service, domain, workflowExecution, pageToken, timeout - elapsedTime, unit);
           }
           HistoryEvent event = history.getEvents().get(0);
           if (!isWorkflowExecutionCompletedEvent(event)) {
@@ -327,7 +328,12 @@ public class WorkflowExecutionUtils {
                             .getWorkflowExecutionContinuedAsNewEventAttributes()
                             .getNewExecutionRunId());
             return getInstanceCloseEventAsync(
-                service, domain, nextWorkflowExecution, r.getNextPageToken(), timeout, unit);
+                service,
+                domain,
+                nextWorkflowExecution,
+                r.getNextPageToken(),
+                timeout - elapsedTime,
+                unit);
           }
           return CompletableFuture.completedFuture(event);
         });
