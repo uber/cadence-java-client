@@ -834,20 +834,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       GetWorkflowExecutionHistoryRequest getRequest) throws TException {
     ThriftResponse<WorkflowService.GetWorkflowExecutionHistory_result> response = null;
     try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request;
-      if (getRequest.isWaitForNewEvent()) {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
-                options.getRpcLongPollTimeoutMillis());
-      } else {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
-      }
-
+      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+          buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
       response = doRemoteCall(request);
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
@@ -879,6 +867,24 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         response.release();
       }
     }
+  }
+
+  private ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args>
+      buildGetWorkflowExecutionHistoryThriftRequest(GetWorkflowExecutionHistoryRequest getRequest) {
+    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request;
+    if (getRequest.isWaitForNewEvent()) {
+      request =
+          buildThriftRequest(
+              "GetWorkflowExecutionHistory",
+              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
+              options.getRpcLongPollTimeoutMillis());
+    } else {
+      request =
+          buildThriftRequest(
+              "GetWorkflowExecutionHistory",
+              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
+    }
+    return request;
   }
 
   @Override
@@ -2298,9 +2304,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response = null;
     try {
       ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-          buildThriftRequest(
-              "GetWorkflowExecutionHistory",
-              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
+          buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
       response = doRemoteCallAsync(request);
 
       response
