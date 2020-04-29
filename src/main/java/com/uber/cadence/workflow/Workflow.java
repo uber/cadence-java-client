@@ -290,6 +290,27 @@ import org.slf4j.Logger;
  * }
  * </code></pre>
  *
+ * To start child then return and let child run:
+ *
+ * <pre><code>
+ * public static class GreetingWorkflowImpl implements GreetingWorkflow {
+ *
+ *    {@literal @}Override
+ *     public String getGreeting(String name) {
+ *
+ *         GreetingChild child1 = Workflow.newChildWorkflowStub(GreetingChild.class);
+ *         Async.function(child1::composeGreeting, "Hello", name);
+ *
+ *         // block until child started,
+ *         // otherwise child may not start because parent complete first.
+ *         Promise<WorkflowExecution> childPromise = Workflow.getWorkflowExecution(child);
+ *         childPromise.get();
+ *
+ *         return "Parent Greeting";
+ *     }
+ * }
+ * </code></pre>
+ *
  * To send signal to a child, call a method annotated with {@literal @}{@link SignalMethod}:
  *
  * <pre><code>
