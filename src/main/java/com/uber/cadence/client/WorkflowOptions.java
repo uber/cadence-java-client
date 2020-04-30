@@ -124,10 +124,9 @@ public final class WorkflowOptions {
      * conditions Cadence allows two workflows with the same domain and workflow id run
      * simultaneously.
      * <li>
-     *
-     *     <ul>
-     *       AllowDuplicateFailedOnly is a default value. It means that workflow can start if
-     *       previous run failed or was cancelled or terminated.
+     * <ul>
+     *   AllowDuplicateFailedOnly is a default value. It means that workflow can start if
+     *   previous run failed or was cancelled or terminated.
      * </ul>
      *
      * <ul>
@@ -137,6 +136,12 @@ public final class WorkflowOptions {
      * <ul>
      *   RejectDuplicate doesn't allow new run independently of the previous run closure status.
      * </ul>
+     *
+     * <ul>
+     *   TerminateIfRunning terminate current running workflow using the same workflow ID if exist,
+     * 	 then start a new run in one transaction
+     * </ul>
+     * </li>
      */
     public Builder setWorkflowIdReusePolicy(WorkflowIdReusePolicy workflowIdReusePolicy) {
       this.workflowIdReusePolicy = workflowIdReusePolicy;
