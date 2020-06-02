@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.7.2
+- Fix leak in Async GetWorkflowExecutionHistory
+- Fix context timeout in execute workflow
+
 ## v2.7.1
 - Fix a bug in build.gradle that prevented javadoc and sources from being published
 
