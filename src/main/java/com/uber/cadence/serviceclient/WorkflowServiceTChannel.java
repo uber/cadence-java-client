@@ -2302,14 +2302,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler) {
     CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response = null;
-    try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-          buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
-      response = doRemoteCallAsync(request);
+    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+        buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
+    response = doRemoteCallAsync(request);
 
-      response
-          .whenComplete(
-              (r, e) -> {
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
                 if (e != null) {
                   resultHandler.onError(CheckedExceptionWrapper.wrap(e));
                   return;
@@ -2336,18 +2336,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                 resultHandler.onError(
                     new TException(
                         "GetWorkflowExecutionHistory failed with unknown " + "error:" + result));
-                return;
-              })
-          .exceptionally(
-              (e) -> {
-                log.error("Unexpected error in GetWorkflowExecutionHistory", e);
-                return null;
-              });
-    } finally {
-      if (response != null && response.isDone()) {
-        response.join().release();
-      }
-    }
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in GetWorkflowExecutionHistory", e);
+              return null;
+            });
   }
 
   @Override
