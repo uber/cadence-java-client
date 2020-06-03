@@ -334,6 +334,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     }
     parameters.setAttempt(attempt);
     parameters.setElapsedTime(elapsed);
+    parameters.setWorkflowDomain(this.context.getDomain());
+    parameters.setWorkflowExecution(this.context.getWorkflowExecution());
     return parameters;
   }
 
