@@ -292,7 +292,7 @@ public class WorkflowExecutionUtils {
     request.setWaitForNewEvent(true);
     request.setNextPageToken(pageToken);
     CompletableFuture<GetWorkflowExecutionHistoryResponse> response =
-        getWorkflowExecutionHistoryAsync(service, request);
+        getWorkflowExecutionHistoryAsync(service, request, timeout, unit);
     return response.thenComposeAsync(
         (r) -> {
           long elapsedTime = System.currentTimeMillis() - start;
@@ -341,9 +341,16 @@ public class WorkflowExecutionUtils {
 
   private static CompletableFuture<GetWorkflowExecutionHistoryResponse>
       getWorkflowExecutionHistoryAsync(
-          IWorkflowService service, GetWorkflowExecutionHistoryRequest r) {
+          IWorkflowService service,
+          GetWorkflowExecutionHistoryRequest r,
+          long timeout,
+          TimeUnit unit) {
+    RetryOptions retryOptions =
+        new RetryOptions.Builder(retryParameters)
+            .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
+            .build();
     return Retryer.retryWithResultAsync(
-        retryParameters,
+        retryOptions,
         () -> {
           CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
           try {
