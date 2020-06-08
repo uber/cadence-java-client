@@ -20,6 +20,8 @@ package com.uber.cadence.client;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.common.QueryResponse;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -44,12 +46,20 @@ public interface WorkflowStub {
    * @return untyped workflow stub for the same workflow instance.
    */
   static <T> WorkflowStub fromTyped(T typed) {
-    if (!(typed instanceof Supplier)) {
+    if (!(typed instanceof Proxy)) {
       throw new IllegalArgumentException(
           "arguments must be created through WorkflowClient.newWorkflowStub");
     }
+
+    InvocationHandler handler = Proxy.getInvocationHandler(typed);
+
+    if (!(handler instanceof Supplier)) {
+      throw new IllegalArgumentException(
+          "arguments must be created through WorkflowClient.newWorkflowStub");
+    }
+
     @SuppressWarnings("unchecked")
-    Supplier<WorkflowStub> supplier = (Supplier<WorkflowStub>) typed;
+    Supplier<WorkflowStub> supplier = (Supplier<WorkflowStub>) handler;
     return supplier.get();
   }
 
