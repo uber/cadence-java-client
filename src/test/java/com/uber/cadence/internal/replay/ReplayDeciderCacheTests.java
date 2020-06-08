@@ -27,6 +27,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.NoopScope;
@@ -256,6 +257,7 @@ public class ReplayDeciderCacheTests {
     return new ReplayDecider(
         new TestWorkflowService(),
         "domain",
+        new WorkflowType().setName("workflow"),
         new ReplayWorkflow() {
           @Override
           public void start(HistoryEvent event, DecisionContext context) {}

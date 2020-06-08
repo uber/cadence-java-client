@@ -29,9 +29,11 @@ import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEventsIterator;
@@ -43,6 +45,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
+import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,6 +86,7 @@ class ReplayDecider implements Decider {
   ReplayDecider(
       IWorkflowService service,
       String domain,
+      WorkflowType workflowType,
       ReplayWorkflow workflow,
       DecisionsHelper decisionsHelper,
       SingleWorkerOptions options,
@@ -90,7 +94,10 @@ class ReplayDecider implements Decider {
     this.service = service;
     this.workflow = workflow;
     this.decisionsHelper = decisionsHelper;
-    this.metricsScope = options.getMetricsScope();
+    this.metricsScope =
+        options
+            .getMetricsScope()
+            .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, workflowType.getName()));
     PollForDecisionTaskResponse decisionTask = decisionsHelper.getTask();
 
     startedEvent =
