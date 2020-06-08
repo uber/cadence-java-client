@@ -36,6 +36,7 @@ public class RetryerTest {
             .setInitialInterval(Duration.ofMillis(10))
             .setMaximumInterval(Duration.ofMillis(100))
             .setExpiration(Duration.ofMillis(500))
+            .setMaximumAttempts(20)
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
