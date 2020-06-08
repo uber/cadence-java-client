@@ -1395,6 +1395,16 @@ public class WorkflowTest {
     assertEquals("1234", stubP4.query());
     assertEquals("12345", stubP5.query());
     assertEquals("123456", stubP6.query());
+
+    // Test execution from untyped stub.
+    workflowOptions =
+        newWorkflowOptionsBuilder(taskList).setWorkflowId(UUID.randomUUID().toString()).build();
+    TestMultiargsWorkflowsFunc stub2 =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+    WorkflowStub untypedStub = WorkflowStub.fromTyped(stub2);
+    untypedStub.start();
+    String result = untypedStub.getResult(String.class);
+    assertEquals("func", result);
   }
 
   @Test
