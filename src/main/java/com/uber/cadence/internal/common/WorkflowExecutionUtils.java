@@ -354,7 +354,7 @@ public class WorkflowExecutionUtils {
         () -> {
           CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
           try {
-            service.GetWorkflowExecutionHistory(
+            service.GetWorkflowExecutionHistoryWithTimeout(
                 r,
                 new AsyncMethodCallback<GetWorkflowExecutionHistoryResponse>() {
                   @Override
@@ -366,7 +366,8 @@ public class WorkflowExecutionUtils {
                   public void onError(Exception exception) {
                     result.completeExceptionally(exception);
                   }
-                });
+                },
+                unit.toMillis(timeout));
           } catch (TException e) {
             result.completeExceptionally(e);
           }

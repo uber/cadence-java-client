@@ -807,6 +807,16 @@ public final class TestWorkflowService implements IWorkflowService {
         });
   }
 
+  @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic
+  @Override
+  public void GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    GetWorkflowExecutionHistory(getRequest, resultHandler);
+  }
+
   @Override
   public void PollForDecisionTask(
       PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws TException {

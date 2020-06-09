@@ -2297,15 +2297,46 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     throw new UnsupportedOperationException("not implemented");
   }
 
+  private Long validateAndUpdateTimeout(Long timeoutInMillis) {
+    if (timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
+      timeoutInMillis = options.getRpcLongPollTimeoutMillis();
+    }
+    return timeoutInMillis;
+  }
+
+  @SuppressWarnings({"unchecked", "FutureReturnValueIgnored"})
+  @Override
+  public void GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis);
+    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+        buildThriftRequest(
+            "GetWorkflowExecutionHistory",
+            new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
+            timeoutInMillis);
+
+    getWorkflowExecutionHistory(request, resultHandler);
+  }
+
   @SuppressWarnings({"unchecked", "FutureReturnValueIgnored"})
   @Override
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler) {
-    CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response = null;
+
     ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
         buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
-    response = doRemoteCallAsync(request);
 
+    getWorkflowExecutionHistory(request, resultHandler);
+  }
+
+  private void getWorkflowExecutionHistory(
+      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request,
+      AsyncMethodCallback resultHandler) {
+    CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response =
+        doRemoteCallAsync(request);
     response
         .whenComplete(
             (r, e) -> {

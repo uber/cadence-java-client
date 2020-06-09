@@ -17,9 +17,26 @@
 
 package com.uber.cadence.serviceclient;
 
+import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.WorkflowService.AsyncIface;
 import com.uber.cadence.WorkflowService.Iface;
+import org.apache.thrift.async.AsyncMethodCallback;
 
 public interface IWorkflowService extends Iface, AsyncIface {
   void close();
+
+  /**
+   * GetWorkflowExecutionHistoryWithTimeout get workflow history asynchronously similar to
+   * GetWorkflowExecutionHistory but with timeout.
+   *
+   * @param getRequest
+   * @param resultHandler
+   * @param timeoutInMillis
+   * @throws org.apache.thrift.TException
+   */
+  void GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws org.apache.thrift.TException;
 }
