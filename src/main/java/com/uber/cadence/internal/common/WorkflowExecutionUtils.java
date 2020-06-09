@@ -215,7 +215,9 @@ public class WorkflowExecutionUtils {
       r.setSkipArchival(true);
       try {
         response =
-            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+            Retryer.retryWithResult(
+                retryParameters,
+                () -> service.GetWorkflowExecutionHistoryWithTimeout(r, unit.toMillis(timeout)));
       } catch (EntityNotExistsError e) {
         if (e.activeCluster != null
             && e.currentCluster != null

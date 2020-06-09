@@ -824,18 +824,27 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, timeoutInMillis));
+  }
+
+  @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
     return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY, () -> getWorkflowExecutionHistory(request));
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, null));
   }
 
   private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      GetWorkflowExecutionHistoryRequest getRequest) throws TException {
+      GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
     ThriftResponse<WorkflowService.GetWorkflowExecutionHistory_result> response = null;
     try {
       ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-          buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
+          buildGetWorkflowExecutionHistoryThriftRequest(getRequest, timeoutInMillis);
       response = doRemoteCall(request);
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
@@ -870,21 +879,20 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   private ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args>
-      buildGetWorkflowExecutionHistoryThriftRequest(GetWorkflowExecutionHistoryRequest getRequest) {
-    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request;
+      buildGetWorkflowExecutionHistoryThriftRequest(
+          GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) {
+
     if (getRequest.isWaitForNewEvent()) {
-      request =
-          buildThriftRequest(
-              "GetWorkflowExecutionHistory",
-              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
-              options.getRpcLongPollTimeoutMillis());
+      timeoutInMillis =
+          validateAndUpdateTimeout(timeoutInMillis, options.getRpcLongPollTimeoutMillis());
     } else {
-      request =
-          buildThriftRequest(
-              "GetWorkflowExecutionHistory",
-              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
+      timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
     }
-    return request;
+
+    return buildThriftRequest(
+        "GetWorkflowExecutionHistory",
+        new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
+        timeoutInMillis);
   }
 
   @Override
@@ -2297,9 +2305,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     throw new UnsupportedOperationException("not implemented");
   }
 
-  private Long validateAndUpdateTimeout(Long timeoutInMillis) {
-    if (timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
-      timeoutInMillis = options.getRpcLongPollTimeoutMillis();
+  private Long validateAndUpdateTimeout(Long timeoutInMillis, Long defaultTimeoutInMillis) {
+    if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
+      timeoutInMillis = defaultTimeoutInMillis;
     }
     return timeoutInMillis;
   }
@@ -2311,14 +2319,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis) {
 
-    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis);
-    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-        buildThriftRequest(
-            "GetWorkflowExecutionHistory",
-            new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
-            timeoutInMillis);
-
-    getWorkflowExecutionHistory(request, resultHandler);
+    getWorkflowExecutionHistory(getRequest, resultHandler, timeoutInMillis);
   }
 
   @SuppressWarnings({"unchecked", "FutureReturnValueIgnored"})
@@ -2326,15 +2327,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler) {
 
-    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-        buildGetWorkflowExecutionHistoryThriftRequest(getRequest);
-
-    getWorkflowExecutionHistory(request, resultHandler);
+    getWorkflowExecutionHistory(getRequest, resultHandler, null);
   }
 
   private void getWorkflowExecutionHistory(
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request,
-      AsyncMethodCallback resultHandler) {
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+        buildGetWorkflowExecutionHistoryThriftRequest(getRequest, timeoutInMillis);
+
     CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response =
         doRemoteCallAsync(request);
     response

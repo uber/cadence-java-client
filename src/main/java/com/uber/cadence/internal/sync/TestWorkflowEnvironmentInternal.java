@@ -699,6 +699,14 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+        GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.GetWorkflowExecutionHistoryWithTimeout(getRequest, timeoutInMillis);
+    }
+
+    @Override
     public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForDecisionTask(pollRequest);
