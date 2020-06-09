@@ -213,7 +213,7 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       r.setWaitForNewEvent(true);
       r.setSkipArchival(true);
-      RetryOptions retryOptions = getRetryOptionTimeout(timeout, unit);
+      RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
       try {
         response =
             Retryer.retryWithResult(
@@ -342,7 +342,7 @@ public class WorkflowExecutionUtils {
         });
   }
 
-  private static RetryOptions getRetryOptionTimeout(long timeout, TimeUnit unit) {
+  private static RetryOptions getRetryOptionWithTimeout(long timeout, TimeUnit unit) {
     return new RetryOptions.Builder(retryParameters)
         .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
         .build();
@@ -354,7 +354,7 @@ public class WorkflowExecutionUtils {
           GetWorkflowExecutionHistoryRequest r,
           long timeout,
           TimeUnit unit) {
-    RetryOptions retryOptions = getRetryOptionTimeout(timeout, unit);
+    RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
     return Retryer.retryWithResultAsync(
         retryOptions,
         () -> {
