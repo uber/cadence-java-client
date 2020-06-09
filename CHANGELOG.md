@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.7.3
+- Add wf type tag in decider metrics scope
+- Fix WorkflowStub.fromTyped method
+- Added missing fields to local activity task
+- Honor user timeout for get workflow result
+
 ## v2.7.2
 - Fix leak in Async GetWorkflowExecutionHistory
 - Fix context timeout in execute workflow
