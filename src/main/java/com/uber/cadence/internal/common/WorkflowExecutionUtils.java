@@ -213,10 +213,11 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       r.setWaitForNewEvent(true);
       r.setSkipArchival(true);
+      RetryOptions retryOptions = getRetryOptionTimeout(timeout, unit);
       try {
         response =
             Retryer.retryWithResult(
-                retryParameters,
+                retryOptions,
                 () -> service.GetWorkflowExecutionHistoryWithTimeout(r, unit.toMillis(timeout)));
       } catch (EntityNotExistsError e) {
         if (e.activeCluster != null
@@ -341,16 +342,19 @@ public class WorkflowExecutionUtils {
         });
   }
 
+  private static RetryOptions getRetryOptionTimeout(long timeout, TimeUnit unit) {
+    return new RetryOptions.Builder(retryParameters)
+        .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
+        .build();
+  }
+
   private static CompletableFuture<GetWorkflowExecutionHistoryResponse>
       getWorkflowExecutionHistoryAsync(
           IWorkflowService service,
           GetWorkflowExecutionHistoryRequest r,
           long timeout,
           TimeUnit unit) {
-    RetryOptions retryOptions =
-        new RetryOptions.Builder(retryParameters)
-            .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
-            .build();
+    RetryOptions retryOptions = getRetryOptionTimeout(timeout, unit);
     return Retryer.retryWithResultAsync(
         retryOptions,
         () -> {
