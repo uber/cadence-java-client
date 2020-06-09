@@ -36,6 +36,7 @@ public class RetryerTest {
             .setInitialInterval(Duration.ofMillis(10))
             .setMaximumInterval(Duration.ofMillis(100))
             .setExpiration(Duration.ofMillis(500))
+            .setMaximumAttempts(20)
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
@@ -104,5 +105,30 @@ public class RetryerTest {
       assertEquals("simulated", e.getCause().getMessage());
     }
     assertTrue(System.currentTimeMillis() - start < 100000);
+  }
+
+  @Test
+  public void testMaxAttempt() throws InterruptedException {
+    RetryOptions options =
+        new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofMillis(10))
+            .setMaximumInterval(Duration.ofMillis(100))
+            .setExpiration(Duration.ofMillis(500))
+            .setMaximumAttempts(1)
+            .validateBuildWithDefaults();
+    long start = System.currentTimeMillis();
+    try {
+      Retryer.retryWithResultAsync(
+              options,
+              () -> {
+                throw new IllegalArgumentException("simulated");
+              })
+          .get();
+      fail("unreachable");
+    } catch (ExecutionException e) {
+      assertTrue(e.getCause() instanceof IllegalArgumentException);
+      assertEquals("simulated", e.getCause().getMessage());
+    }
+    assertTrue(System.currentTimeMillis() - start < 500);
   }
 }
