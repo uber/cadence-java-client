@@ -2308,6 +2308,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private Long validateAndUpdateTimeout(Long timeoutInMillis, Long defaultTimeoutInMillis) {
     if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
       timeoutInMillis = defaultTimeoutInMillis;
+    } else {
+      timeoutInMillis = Math.min(timeoutInMillis, defaultTimeoutInMillis);
     }
     return timeoutInMillis;
   }
