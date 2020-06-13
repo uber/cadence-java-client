@@ -213,9 +213,12 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       r.setWaitForNewEvent(true);
       r.setSkipArchival(true);
+      RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
       try {
         response =
-            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+            Retryer.retryWithResult(
+                retryOptions,
+                () -> service.GetWorkflowExecutionHistoryWithTimeout(r, unit.toMillis(timeout)));
       } catch (EntityNotExistsError e) {
         if (e.activeCluster != null
             && e.currentCluster != null
@@ -292,7 +295,7 @@ public class WorkflowExecutionUtils {
     request.setWaitForNewEvent(true);
     request.setNextPageToken(pageToken);
     CompletableFuture<GetWorkflowExecutionHistoryResponse> response =
-        getWorkflowExecutionHistoryAsync(service, request);
+        getWorkflowExecutionHistoryAsync(service, request, timeout, unit);
     return response.thenComposeAsync(
         (r) -> {
           long elapsedTime = System.currentTimeMillis() - start;
@@ -339,15 +342,25 @@ public class WorkflowExecutionUtils {
         });
   }
 
+  private static RetryOptions getRetryOptionWithTimeout(long timeout, TimeUnit unit) {
+    return new RetryOptions.Builder(retryParameters)
+        .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
+        .build();
+  }
+
   private static CompletableFuture<GetWorkflowExecutionHistoryResponse>
       getWorkflowExecutionHistoryAsync(
-          IWorkflowService service, GetWorkflowExecutionHistoryRequest r) {
+          IWorkflowService service,
+          GetWorkflowExecutionHistoryRequest r,
+          long timeout,
+          TimeUnit unit) {
+    RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
     return Retryer.retryWithResultAsync(
-        retryParameters,
+        retryOptions,
         () -> {
           CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
           try {
-            service.GetWorkflowExecutionHistory(
+            service.GetWorkflowExecutionHistoryWithTimeout(
                 r,
                 new AsyncMethodCallback<GetWorkflowExecutionHistoryResponse>() {
                   @Override
@@ -359,7 +372,8 @@ public class WorkflowExecutionUtils {
                   public void onError(Exception exception) {
                     result.completeExceptionally(exception);
                   }
-                });
+                },
+                unit.toMillis(timeout));
           } catch (TException e) {
             result.completeExceptionally(e);
           }

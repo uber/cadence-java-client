@@ -1395,6 +1395,16 @@ public class WorkflowTest {
     assertEquals("1234", stubP4.query());
     assertEquals("12345", stubP5.query());
     assertEquals("123456", stubP6.query());
+
+    // Test execution from untyped stub.
+    workflowOptions =
+        newWorkflowOptionsBuilder(taskList).setWorkflowId(UUID.randomUUID().toString()).build();
+    TestMultiargsWorkflowsFunc stub2 =
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsFunc.class, workflowOptions);
+    WorkflowStub untypedStub = WorkflowStub.fromTyped(stub2);
+    untypedStub.start();
+    String result = untypedStub.getResult(String.class);
+    assertEquals("func", result);
   }
 
   @Test
@@ -3716,6 +3726,11 @@ public class WorkflowTest {
 
     @Override
     public void throwIO() {
+      assertEquals(DOMAIN, Activity.getTask().getWorkflowDomain());
+      assertNotNull(Activity.getTask().getWorkflowExecution());
+      assertNotNull(Activity.getTask().getWorkflowExecution().getWorkflowId());
+      assertFalse(Activity.getTask().getWorkflowExecution().getWorkflowId().isEmpty());
+      assertFalse(Activity.getTask().getWorkflowExecution().getRunId().isEmpty());
       lastAttempt = Activity.getTask().getAttempt();
       invocations.add("throwIO");
       try {
