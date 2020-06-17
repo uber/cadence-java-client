@@ -26,11 +26,15 @@ import com.uber.cadence.internal.common.TerminateWorkflowExecutionParameters;
 import com.uber.cadence.internal.replay.QueryWorkflowParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.concurrent.CompletableFuture;
 
 public interface GenericWorkflowClientExternal {
 
   WorkflowExecution startWorkflow(StartWorkflowExecutionParameters startParameters)
       throws WorkflowExecutionAlreadyStartedError;
+
+  CompletableFuture<WorkflowExecution> startWorkflowAsync(
+      StartWorkflowExecutionParameters startParameters);
 
   void signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters);
 

@@ -803,6 +803,11 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
+      public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+        return next.startAsync(args);
+      }
+
+      @Override
       public WorkflowExecution signalWithStart(
           String signalName, Object[] signalArgs, Object[] startArgs) {
         return next.signalWithStart(signalName, signalArgs, startArgs);

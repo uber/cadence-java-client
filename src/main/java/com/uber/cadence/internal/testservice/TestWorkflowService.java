@@ -797,7 +797,15 @@ public final class TestWorkflowService implements IWorkflowService {
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new UnsupportedOperationException("not implemented");
+    forkJoinPool.execute(
+        () -> {
+          try {
+            StartWorkflowExecutionResponse result = StartWorkflowExecution(startRequest);
+            resultHandler.onComplete(result);
+          } catch (TException e) {
+            resultHandler.onError(e);
+          }
+        });
   }
 
   @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic

@@ -2300,9 +2300,67 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   @Override
   public void StartWorkflowExecution(
-      StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
-      throws TException {
-    throw new UnsupportedOperationException("not implemented");
+      StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler) {
+
+    startRequest.setRequestId(UUID.randomUUID().toString());
+    ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
+        buildThriftRequest(
+            "StartWorkflowExecution",
+            new WorkflowService.StartWorkflowExecution_args(startRequest));
+
+    CompletableFuture<ThriftResponse<WorkflowService.StartWorkflowExecution_result>> response =
+        doRemoteCallAsync(request);
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
+                if (e != null) {
+                  resultHandler.onError(CheckedExceptionWrapper.wrap(e));
+                  return;
+                }
+                WorkflowService.StartWorkflowExecution_result result =
+                    r.getBody(WorkflowService.StartWorkflowExecution_result.class);
+                if (r.getResponseCode() == ResponseCode.OK) {
+                  resultHandler.onComplete(result.getSuccess());
+                  return;
+                }
+                if (result.isSetBadRequestError()) {
+                  resultHandler.onError(result.getBadRequestError());
+                  return;
+                }
+                if (result.isSetSessionAlreadyExistError()) {
+                  resultHandler.onError(result.getSessionAlreadyExistError());
+                  return;
+                }
+                if (result.isSetServiceBusyError()) {
+                  resultHandler.onError(result.getServiceBusyError());
+                  return;
+                }
+                if (result.isSetDomainNotActiveError()) {
+                  resultHandler.onError(result.getDomainNotActiveError());
+                  return;
+                }
+                if (result.isSetLimitExceededError()) {
+                  resultHandler.onError(result.getLimitExceededError());
+                  return;
+                }
+                if (result.isSetEntityNotExistError()) {
+                  resultHandler.onError(result.getEntityNotExistError());
+                  return;
+                }
+                resultHandler.onError(
+                    new TException("StartWorkflowExecution failed with unknown error:" + result));
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in StartWorkflowExecution", e);
+              return null;
+            });
   }
 
   private Long validateAndUpdateTimeout(Long timeoutInMillis, Long defaultTimeoutInMillis) {

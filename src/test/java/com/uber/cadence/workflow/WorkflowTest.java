@@ -951,6 +951,34 @@ public class WorkflowTest {
     assertEquals("activity10", result);
   }
 
+  @Test
+  public void testUntypedAsyncStart() {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub startWorkflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> future = startWorkflowStub.startAsync(taskList);
+
+    try {
+      WorkflowExecution execution = future.get();
+      WorkflowStub workflowStub =
+          workflowClient.newUntypedWorkflowStub(execution, Optional.empty());
+      String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
+      assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
+      assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
+      // Test stub created from workflow execution.
+      workflowStub =
+          workflowClient.newUntypedWorkflowStub(execution, workflowStub.getWorkflowType());
+      stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
+      assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
+      assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
+      String result = workflowStub.getResult(String.class);
+      assertEquals("activity10", result);
+    } catch (Exception e) {
+      fail("unreachable");
+    }
+  }
+
   public static class TestCancellationForWorkflowsWithFailedPromises implements TestWorkflow1 {
 
     @Override
