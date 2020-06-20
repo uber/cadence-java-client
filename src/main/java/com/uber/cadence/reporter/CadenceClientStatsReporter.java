@@ -17,6 +17,11 @@
 
 package com.uber.cadence.reporter;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.AtomicDouble;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.m3.tally.Buckets;
 import com.uber.m3.tally.Capabilities;
 import com.uber.m3.tally.CapableOf;
@@ -25,10 +30,12 @@ import com.uber.m3.util.Duration;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class CadenceClientStatsReporter implements StatsReporter {
+
+  private final Map<String, AtomicDouble> gauges = new ConcurrentHashMap<>();
 
   @Override
   public Capabilities capabilities() {
@@ -52,7 +59,12 @@ public class CadenceClientStatsReporter implements StatsReporter {
 
   @Override
   public void reportGauge(String name, Map<String, String> tags, double value) {
-    // NOOP
+    AtomicDouble gauge = gauges.computeIfAbsent(name, metricName -> {
+      AtomicDouble result = Metrics.gauge(name, getTags(tags), new AtomicDouble());
+      Preconditions.checkNotNull(result, "Metrics.gauge should not return null ever");
+      return result;
+    });
+    gauge.set(value);
   }
 
   @Override
@@ -83,9 +95,11 @@ public class CadenceClientStatsReporter implements StatsReporter {
   }
 
   private Iterable<Tag> getTags(Map<String, String> tags) {
-    return tags.entrySet()
-        .stream()
-        .map(entry -> Tag.of(entry.getKey(), entry.getValue()))
-        .collect(Collectors.toList());
+    return ImmutableList.of(
+        Tag.of(MetricsTag.ACTIVITY_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.ACTIVITY_TYPE))),
+        Tag.of(MetricsTag.DOMAIN, Strings.nullToEmpty(tags.get(MetricsTag.DOMAIN))),
+        Tag.of(MetricsTag.TASK_LIST, Strings.nullToEmpty(tags.get(MetricsTag.TASK_LIST))),
+        Tag.of(MetricsTag.WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.WORKFLOW_TYPE)))
+    );
   }
 }
