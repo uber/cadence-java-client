@@ -19,6 +19,7 @@ package com.uber.cadence.reporter;
 
 import static org.junit.Assert.assertEquals;
 
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.m3.tally.CapableOf;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
@@ -26,6 +27,7 @@ import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -36,9 +38,15 @@ public class CadenceClientStatsReporterTest {
 
   private static final String DEFAULT_REPORT_NAME = "cadence_workflow_start";
   private static final Map<String, String> DEFAULT_REPORT_TAGS =
-      ImmutableMap.of("Domain", "domain_name", "TaskList", "task_list");
+      ImmutableMap.of(MetricsTag.DOMAIN, "domain_name", MetricsTag.TASK_LIST, "task_list");
   private static final long DEFAULT_COUNT = 10;
+  private static final double DEFAULT_VALUE = 1.0;
   private static final Duration DEFAULT_DURATION = Duration.ofSeconds(10);
+  private static final List<Tag> EXPECTED_REPORT_TAGS = Arrays.asList(
+      Tag.of(MetricsTag.ACTIVITY_TYPE, ""),
+      Tag.of(MetricsTag.DOMAIN, "domain_name"),
+      Tag.of(MetricsTag.TASK_LIST, "task_list"),
+      Tag.of(MetricsTag.WORKFLOW_TYPE, ""));
 
   private CadenceClientStatsReporter cadenceClientStatsReporter = new CadenceClientStatsReporter();
 
@@ -61,8 +69,7 @@ public class CadenceClientStatsReporterTest {
   public void testCounterShouldCallMetricRegistryForMonitoredCounterCadenceAction() {
     callDefaultCounter();
 
-    assertEquals(
-        Arrays.asList(Tag.of("Domain", "domain_name"), Tag.of("TaskList", "task_list")),
+    assertEquals(EXPECTED_REPORT_TAGS,
         Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).counter().getId().getTags());
     assertEquals(10, Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).counter().count(), 0);
   }
@@ -71,11 +78,19 @@ public class CadenceClientStatsReporterTest {
   public void testTimerShouldCallMetricRegistryForMonitoredCounterCadenceAction() {
     callDefaultTimer();
 
-    assertEquals(
-        Arrays.asList(Tag.of("Domain", "domain_name"), Tag.of("TaskList", "task_list")),
+    assertEquals(EXPECTED_REPORT_TAGS,
         Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).timer().getId().getTags());
     assertEquals(
         10, Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).timer().totalTime(TimeUnit.SECONDS), 0);
+  }
+
+  @Test
+  public void testGaugeShouldCallMetricRegistryForMonitoredGaugeCadenceAction() {
+    callDefaultGauge();
+
+    assertEquals(EXPECTED_REPORT_TAGS,
+        Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).gauge().getId().getTags());
+    assertEquals(1.0, Metrics.globalRegistry.get(DEFAULT_REPORT_NAME).gauge().value(), 0);
   }
 
   private void callDefaultCounter() {
@@ -86,5 +101,9 @@ public class CadenceClientStatsReporterTest {
   private void callDefaultTimer() {
     cadenceClientStatsReporter.reportTimer(
         DEFAULT_REPORT_NAME, DEFAULT_REPORT_TAGS, DEFAULT_DURATION);
+  }
+
+  private void callDefaultGauge() {
+    cadenceClientStatsReporter.reportGauge(DEFAULT_REPORT_NAME, DEFAULT_REPORT_TAGS, DEFAULT_VALUE);
   }
 }
