@@ -79,7 +79,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     try {
       return startWorkflowInternal(startParameters);
     } finally {
-      emitStartMetric(startParameters);
+      emitMetricsForStartWorkflow(startParameters);
     }
   }
 
@@ -87,11 +87,11 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
   public CompletableFuture<WorkflowExecution> startWorkflowAsync(
       StartWorkflowExecutionParameters startParameters) {
 
-    emitStartMetric(startParameters);
+    emitMetricsForStartWorkflow(startParameters);
     return startWorkflowAsyncInternal(startParameters);
   }
 
-  private void emitStartMetric(StartWorkflowExecutionParameters startParameters) {
+  private void emitMetricsForStartWorkflow(StartWorkflowExecutionParameters startParameters) {
     // TODO: can probably cache this
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(3)

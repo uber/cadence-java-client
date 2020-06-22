@@ -207,7 +207,18 @@ class WorkflowStubImpl implements WorkflowStub {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
 
-    return startAsyncWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+    CompletableFuture<WorkflowExecution> result =
+        startAsyncWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+    result.whenComplete(
+        (input, exception) -> {
+          if (input != null) {
+            execution.set(
+                new WorkflowExecution()
+                    .setWorkflowId(input.getWorkflowId())
+                    .setRunId(input.getRunId()));
+          }
+        });
+    return result;
   }
 
   private WorkflowExecution signalWithStartWithOptions(
