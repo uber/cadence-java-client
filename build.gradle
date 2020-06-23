@@ -82,7 +82,7 @@ task updateDlsSubmodule(type: Exec) {
 
 compileThrift {
     dependsOn updateDlsSubmodule
-    sourceItems "src/main/idls/thrift/cadence.thrift","src/main/idls/thrift/shared.thrift"
+    sourceItems "${projectDir}/src/main/idls/thrift/cadence.thrift","${projectDir}/src/main/idls/thrift/shared.thrift"
 
     nowarn true
 }
