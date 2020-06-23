@@ -23,6 +23,7 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -34,25 +35,22 @@ class AllOfPromise<G> implements Promise<List<G>> {
 
   private int notReadyCount;
 
-  @SuppressWarnings("unchecked")
   AllOfPromise(Promise<G>[] promises) {
-    // Using array to initialize it to the desired size with nulls.
-    result = (G[]) new Object[promises.length];
-    int index = 0;
-    for (Promise<G> f : promises) {
-      addPromise(index, f);
-      index++;
-    }
+    this(Arrays.asList(promises));
   }
 
   @SuppressWarnings("unchecked")
   public AllOfPromise(Collection<Promise<G>> promises) {
-    // Using array to initialize it to the desired size with nulls.
-    result = (G[]) new Object[promises.size()];
-    int index = 0;
-    for (Promise<G> f : promises) {
-      addPromise(index, f);
-      index++;
+    if (promises.isEmpty()) {
+      impl.complete(Collections.emptyList());
+    } else {
+      // Using array to initialize it to the desired size with nulls.
+      result = (G[]) new Object[promises.size()];
+      int index = 0;
+      for (Promise<G> f : promises) {
+        addPromise(index, f);
+        index++;
+      }
     }
   }
 
