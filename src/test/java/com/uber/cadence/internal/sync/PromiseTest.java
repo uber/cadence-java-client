@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -436,6 +437,36 @@ public class PromiseTest {
           "root done"
         };
     trace.setExpected(expected);
+  }
+
+  @Test
+  public void testAllOf_shouldCompleteWithoutBlocking() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> {
+              Promise<List<String>> allOf = Promise.allOf(emptyList());
+
+              assertTrue(allOf.isCompleted());
+
+              Promise<Boolean> thenApply =
+                  allOf.thenApply(result -> result.isEmpty() ? Boolean.TRUE : Boolean.FALSE);
+              assertTrue(thenApply.isCompleted());
+              assertTrue(thenApply.get());
+
+              assertTrue(allOf.get().isEmpty());
+              trace.add("done1");
+
+              @SuppressWarnings({"unchecked", "rawtypes"})
+              AllOfPromise<String> allOfEmptyArray = new AllOfPromise<>(new Promise[0]);
+
+              assertTrue(allOfEmptyArray.isCompleted());
+              assertTrue(allOfEmptyArray.get().isEmpty());
+              trace.add("done2");
+            });
+
+    r.runUntilAllBlocked();
+    trace.setExpected("done1", "done2");
+    trace.assertExpected();
   }
 
   @Test
