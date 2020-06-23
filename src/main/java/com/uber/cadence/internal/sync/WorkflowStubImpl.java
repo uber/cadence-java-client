@@ -129,9 +129,9 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   private CompletableFuture<WorkflowExecution> startAsyncWithOptions(
-      WorkflowOptions o, Object... args) {
+      Long timeoutInMillis, WorkflowOptions o, Object... args) {
     StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
-    return genericClient.startWorkflowAsync(p);
+    return genericClient.startWorkflowAsync(p, timeoutInMillis);
   }
 
   private StartWorkflowExecutionParameters getStartWorkflowExecutionParameters(
@@ -203,12 +203,19 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+    return startAsyncWithTimeout(Long.MAX_VALUE, args);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
+      Long timeoutInMillis, Object... args) {
     if (!options.isPresent()) {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
 
     CompletableFuture<WorkflowExecution> result =
-        startAsyncWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+        startAsyncWithOptions(
+            timeoutInMillis, WorkflowOptions.merge(null, null, null, options.get()), args);
     result.whenComplete(
         (input, exception) -> {
           if (input != null) {

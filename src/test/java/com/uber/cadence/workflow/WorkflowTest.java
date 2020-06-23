@@ -938,6 +938,34 @@ public class WorkflowTest {
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     WorkflowExecution execution = workflowStub.start(taskList);
+    testUntypedAndStackTraceHelper(workflowStub, execution);
+  }
+
+  @Test
+  public void testUntypedAsyncStart() throws Exception {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
+    testUntypedAndStackTraceHelper(workflowStub, future.get());
+  }
+
+  @Test
+  public void testUntypedAsyncStartWithTimeout() throws Exception {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    Long timeout = new Long(200);
+    CompletableFuture<WorkflowExecution> future =
+        workflowStub.startAsyncWithTimeout(timeout, taskList);
+    testUntypedAndStackTraceHelper(workflowStub, future.get());
+  }
+
+  private void testUntypedAndStackTraceHelper(
+      WorkflowStub workflowStub, WorkflowExecution execution) {
+
     sleep(Duration.ofMillis(500));
     String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
     assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
@@ -949,24 +977,6 @@ public class WorkflowTest {
     assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
     String result = workflowStub.getResult(String.class);
     assertEquals("activity10", result);
-  }
-
-  @Test
-  public void testUntypedAsyncStart() {
-    startWorkerFor(TestSyncWorkflowImpl.class);
-    WorkflowStub workflowStub =
-        workflowClient.newUntypedWorkflowStub(
-            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
-    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
-
-    try {
-      WorkflowExecution execution = future.get();
-      String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
-      assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
-      assertTrue(stackTrace, stackTrace.contains("activityWithDelay"));
-    } catch (Exception e) {
-      fail("unreachable");
-    }
   }
 
   public static class TestCancellationForWorkflowsWithFailedPromises implements TestWorkflow1 {

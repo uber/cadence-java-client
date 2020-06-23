@@ -2301,12 +2301,29 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler) {
+    startWorkflowExecution(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionWithTimeout(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+    startWorkflowExecution(startRequest, resultHandler, timeoutInMillis);
+  }
+
+  public void startWorkflowExecution(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
 
     startRequest.setRequestId(UUID.randomUUID().toString());
+    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
     ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
         buildThriftRequest(
             "StartWorkflowExecution",
-            new WorkflowService.StartWorkflowExecution_args(startRequest));
+            new WorkflowService.StartWorkflowExecution_args(startRequest),
+            timeoutInMillis);
 
     CompletableFuture<ThriftResponse<WorkflowService.StartWorkflowExecution_result>> response =
         doRemoteCallAsync(request);

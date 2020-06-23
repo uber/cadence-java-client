@@ -34,6 +34,7 @@ import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.*;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -43,6 +44,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -87,8 +89,15 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
   public CompletableFuture<WorkflowExecution> startWorkflowAsync(
       StartWorkflowExecutionParameters startParameters) {
 
+    return startWorkflowAsync(startParameters, Long.MAX_VALUE);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startWorkflowAsync(
+      StartWorkflowExecutionParameters startParameters, Long timeoutInMillis) {
+
     emitMetricsForStartWorkflow(startParameters);
-    return startWorkflowAsyncInternal(startParameters);
+    return startWorkflowAsyncInternal(startParameters, timeoutInMillis);
   }
 
   private void emitMetricsForStartWorkflow(StartWorkflowExecutionParameters startParameters) {
@@ -124,17 +133,27 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     return execution;
   }
 
+  private RetryOptions getRetryOptionsWithExpiration(RetryOptions o, Long timeoutInMillis) {
+    if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
+      return o;
+    }
+    return new RetryOptions.Builder(Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS)
+        .setExpiration(Duration.ofMillis((timeoutInMillis)))
+        .build();
+  }
+
   private CompletableFuture<WorkflowExecution> startWorkflowAsyncInternal(
-      StartWorkflowExecutionParameters startParameters) {
+      StartWorkflowExecutionParameters startParameters, Long timeoutInMillis) {
     StartWorkflowExecutionRequest request = getStartRequest(startParameters);
 
     return Retryer.retryWithResultAsync(
-        Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+        getRetryOptionsWithExpiration(
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, timeoutInMillis),
         () -> {
           CompletableFuture<WorkflowExecution> result = new CompletableFuture<>();
           try {
 
-            service.StartWorkflowExecution(
+            service.StartWorkflowExecutionWithTimeout(
                 request,
                 new AsyncMethodCallback<StartWorkflowExecutionResponse>() {
                   @Override
@@ -149,7 +168,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
                   public void onError(Exception exception) {
                     result.completeExceptionally(exception);
                   }
-                });
+                },
+                timeoutInMillis);
           } catch (TException e) {
             result.completeExceptionally(e);
           }

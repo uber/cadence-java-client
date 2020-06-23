@@ -797,6 +797,15 @@ public final class TestWorkflowService implements IWorkflowService {
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
+    StartWorkflowExecutionWithTimeout(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionWithTimeout(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
     forkJoinPool.execute(
         () -> {
           try {
