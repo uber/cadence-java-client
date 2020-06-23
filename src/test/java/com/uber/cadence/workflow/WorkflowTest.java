@@ -959,7 +959,7 @@ public class WorkflowTest {
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     Long timeout = new Long(200);
     CompletableFuture<WorkflowExecution> future =
-        workflowStub.startAsyncWithTimeout(timeout, taskList);
+        workflowStub.startAsyncWithTimeout(timeout, TimeUnit.MILLISECONDS, taskList);
     testUntypedAndStackTraceHelper(workflowStub, future.get());
   }
 

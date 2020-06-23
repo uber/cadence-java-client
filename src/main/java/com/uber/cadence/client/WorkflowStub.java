@@ -69,7 +69,8 @@ public interface WorkflowStub {
 
   CompletableFuture<WorkflowExecution> startAsync(Object... args);
 
-  CompletableFuture<WorkflowExecution> startAsyncWithTimeout(Long timeoutInMillis, Object... args);
+  CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
+      long timeout, TimeUnit unit, Object... args);
 
   WorkflowExecution signalWithStart(String signalName, Object[] signalArgs, Object[] startArgs);
 

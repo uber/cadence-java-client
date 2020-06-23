@@ -2312,7 +2312,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     startWorkflowExecution(startRequest, resultHandler, timeoutInMillis);
   }
 
-  public void startWorkflowExecution(
+  private void startWorkflowExecution(
       StartWorkflowExecutionRequest startRequest,
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis) {

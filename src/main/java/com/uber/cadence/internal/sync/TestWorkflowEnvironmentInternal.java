@@ -818,8 +818,8 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
 
       @Override
       public CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
-          Long timeoutInMillis, Object... args) {
-        return next.startAsyncWithTimeout(timeoutInMillis, args);
+          long timeout, TimeUnit unit, Object... args) {
+        return next.startAsyncWithTimeout(timeout, unit, args);
       }
 
       @Override
