@@ -545,7 +545,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testActivityRetryWithExiration() {
+  public void testActivityRetryWithExpiration() {
     startWorkerFor(TestActivityRetryWithExpiration.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
@@ -989,6 +989,22 @@ public class WorkflowTest {
       future.get();
     } catch (ExecutionException e) {
       assertTrue(e.getCause() instanceof WorkflowExecutionAlreadyStartedError);
+    }
+  }
+
+  @Test
+  public void testUntypedAsyncStartAndGetResult() throws InterruptedException {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> startFuture = workflowStub.startAsync(taskList);
+    try {
+      startFuture.get();
+      CompletableFuture<String> resultFuture = workflowStub.getResultAsync(String.class);
+      assertEquals("activity10", resultFuture.get());
+    } catch (ExecutionException e) {
+      fail("unreachable");
     }
   }
 
