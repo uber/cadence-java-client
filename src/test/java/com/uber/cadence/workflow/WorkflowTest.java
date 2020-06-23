@@ -35,6 +35,7 @@ import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.activity.Activity;
@@ -961,6 +962,34 @@ public class WorkflowTest {
     CompletableFuture<WorkflowExecution> future =
         workflowStub.startAsyncWithTimeout(timeout, TimeUnit.MILLISECONDS, taskList);
     testUntypedAndStackTraceHelper(workflowStub, future.get());
+  }
+
+  @Test
+  public void testUntypedAsyncStartFailed() throws InterruptedException {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    String testWorkflowID = "test-untyped-async-failed";
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute",
+            newWorkflowOptionsBuilder(taskList).setWorkflowId(testWorkflowID).build());
+    workflowStub.start(taskList);
+    try {
+      workflowStub.startAsync(taskList);
+      fail("unreachable");
+    } catch (DuplicateWorkflowException e) {
+      // expected error from stub reuse
+    }
+
+    WorkflowStub newWorkflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute",
+            newWorkflowOptionsBuilder(taskList).setWorkflowId(testWorkflowID).build());
+    CompletableFuture<WorkflowExecution> future = newWorkflowStub.startAsync(taskList);
+    try {
+      future.get();
+    } catch (ExecutionException e) {
+      assertTrue(e.getCause() instanceof WorkflowExecutionAlreadyStartedError);
+    }
   }
 
   private void testUntypedAndStackTraceHelper(
