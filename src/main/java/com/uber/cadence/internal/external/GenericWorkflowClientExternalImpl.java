@@ -34,6 +34,7 @@ import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.*;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -43,10 +44,13 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
 
 public final class GenericWorkflowClientExternalImpl implements GenericWorkflowClientExternal {
 
@@ -77,19 +81,104 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     try {
       return startWorkflowInternal(startParameters);
     } finally {
-      // TODO: can probably cache this
-      Map<String, String> tags =
-          new ImmutableMap.Builder<String, String>(3)
-              .put(MetricsTag.WORKFLOW_TYPE, startParameters.getWorkflowType().getName())
-              .put(MetricsTag.TASK_LIST, startParameters.getTaskList())
-              .put(MetricsTag.DOMAIN, domain)
-              .build();
-      metricsScope.tagged(tags).counter(MetricsType.WORKFLOW_START_COUNTER).inc(1);
+      emitMetricsForStartWorkflow(startParameters);
     }
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startWorkflowAsync(
+      StartWorkflowExecutionParameters startParameters) {
+
+    return startWorkflowAsync(startParameters, Long.MAX_VALUE);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startWorkflowAsync(
+      StartWorkflowExecutionParameters startParameters, Long timeoutInMillis) {
+
+    emitMetricsForStartWorkflow(startParameters);
+    return startWorkflowAsyncInternal(startParameters, timeoutInMillis);
+  }
+
+  private void emitMetricsForStartWorkflow(StartWorkflowExecutionParameters startParameters) {
+    // TODO: can probably cache this
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(3)
+            .put(MetricsTag.WORKFLOW_TYPE, startParameters.getWorkflowType().getName())
+            .put(MetricsTag.TASK_LIST, startParameters.getTaskList())
+            .put(MetricsTag.DOMAIN, domain)
+            .build();
+    metricsScope.tagged(tags).counter(MetricsType.WORKFLOW_START_COUNTER).inc(1);
   }
 
   private WorkflowExecution startWorkflowInternal(StartWorkflowExecutionParameters startParameters)
       throws WorkflowExecutionAlreadyStartedError {
+
+    StartWorkflowExecutionRequest request = getStartRequest(startParameters);
+    StartWorkflowExecutionResponse result;
+    try {
+      result =
+          Retryer.retryWithResult(
+              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+              () -> service.StartWorkflowExecution(request));
+    } catch (WorkflowExecutionAlreadyStartedError e) {
+      throw e;
+    } catch (TException e) {
+      throw CheckedExceptionWrapper.wrap(e);
+    }
+    WorkflowExecution execution = new WorkflowExecution();
+    execution.setRunId(result.getRunId());
+    execution.setWorkflowId(request.getWorkflowId());
+
+    return execution;
+  }
+
+  private RetryOptions getRetryOptionsWithExpiration(RetryOptions o, Long timeoutInMillis) {
+    if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
+      return o;
+    }
+    return new RetryOptions.Builder(Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS)
+        .setExpiration(Duration.ofMillis((timeoutInMillis)))
+        .build();
+  }
+
+  private CompletableFuture<WorkflowExecution> startWorkflowAsyncInternal(
+      StartWorkflowExecutionParameters startParameters, Long timeoutInMillis) {
+    StartWorkflowExecutionRequest request = getStartRequest(startParameters);
+
+    return Retryer.retryWithResultAsync(
+        getRetryOptionsWithExpiration(
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, timeoutInMillis),
+        () -> {
+          CompletableFuture<WorkflowExecution> result = new CompletableFuture<>();
+          try {
+
+            service.StartWorkflowExecutionWithTimeout(
+                request,
+                new AsyncMethodCallback<StartWorkflowExecutionResponse>() {
+                  @Override
+                  public void onComplete(StartWorkflowExecutionResponse response) {
+                    WorkflowExecution execution = new WorkflowExecution();
+                    execution.setRunId(response.getRunId());
+                    execution.setWorkflowId(request.getWorkflowId());
+                    result.complete(execution);
+                  }
+
+                  @Override
+                  public void onError(Exception exception) {
+                    result.completeExceptionally(exception);
+                  }
+                },
+                timeoutInMillis);
+          } catch (TException e) {
+            result.completeExceptionally(e);
+          }
+          return result;
+        });
+  }
+
+  private StartWorkflowExecutionRequest getStartRequest(
+      StartWorkflowExecutionParameters startParameters) {
     StartWorkflowExecutionRequest request = new StartWorkflowExecutionRequest();
     request.setDomain(domain);
     if (startParameters.getInput() != null) {
@@ -124,26 +213,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setSearchAttributes(toSearchAttributesThrift(startParameters.getSearchAttributes()));
     request.setHeader(toHeaderThrift(startParameters.getContext()));
 
-    //        if(startParameters.getChildPolicy() != null) {
-    //            request.setChildPolicy(startParameters.getChildPolicy());
-    //        }
-
-    StartWorkflowExecutionResponse result;
-    try {
-      result =
-          Retryer.retryWithResult(
-              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-              () -> service.StartWorkflowExecution(request));
-    } catch (WorkflowExecutionAlreadyStartedError e) {
-      throw e;
-    } catch (TException e) {
-      throw CheckedExceptionWrapper.wrap(e);
-    }
-    WorkflowExecution execution = new WorkflowExecution();
-    execution.setRunId(result.getRunId());
-    execution.setWorkflowId(request.getWorkflowId());
-
-    return execution;
+    return request;
   }
 
   private Memo toMemoThrift(Map<String, byte[]> memo) {

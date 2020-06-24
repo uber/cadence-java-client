@@ -59,11 +59,14 @@ public class CadenceClientStatsReporter implements StatsReporter {
 
   @Override
   public void reportGauge(String name, Map<String, String> tags, double value) {
-    AtomicDouble gauge = gauges.computeIfAbsent(name, metricName -> {
-      AtomicDouble result = Metrics.gauge(name, getTags(tags), new AtomicDouble());
-      Preconditions.checkNotNull(result, "Metrics.gauge should not return null ever");
-      return result;
-    });
+    AtomicDouble gauge =
+        gauges.computeIfAbsent(
+            name,
+            metricName -> {
+              AtomicDouble result = Metrics.gauge(name, getTags(tags), new AtomicDouble());
+              Preconditions.checkNotNull(result, "Metrics.gauge should not return null ever");
+              return result;
+            });
     gauge.set(value);
   }
 
@@ -99,7 +102,6 @@ public class CadenceClientStatsReporter implements StatsReporter {
         Tag.of(MetricsTag.ACTIVITY_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.ACTIVITY_TYPE))),
         Tag.of(MetricsTag.DOMAIN, Strings.nullToEmpty(tags.get(MetricsTag.DOMAIN))),
         Tag.of(MetricsTag.TASK_LIST, Strings.nullToEmpty(tags.get(MetricsTag.TASK_LIST))),
-        Tag.of(MetricsTag.WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.WORKFLOW_TYPE)))
-    );
+        Tag.of(MetricsTag.WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.WORKFLOW_TYPE))));
   }
 }

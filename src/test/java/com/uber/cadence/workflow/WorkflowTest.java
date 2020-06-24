@@ -35,6 +35,7 @@ import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.activity.Activity;
@@ -544,7 +545,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testActivityRetryWithExiration() {
+  public void testActivityRetryWithExpiration() {
     startWorkerFor(TestActivityRetryWithExpiration.class);
     TestWorkflow1 workflowStub =
         workflowClient.newWorkflowStub(
@@ -938,6 +939,95 @@ public class WorkflowTest {
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
     WorkflowExecution execution = workflowStub.start(taskList);
+    testUntypedAndStackTraceHelper(workflowStub, execution);
+  }
+
+  @Test
+  public void testUntypedAsyncStart() throws Exception {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
+    testUntypedAndStackTraceHelper(workflowStub, future.get());
+  }
+
+  @Test
+  public void testUntypedAsyncStartWithTimeout() throws Exception {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
+    Long timeout = new Long(200);
+    CompletableFuture<WorkflowExecution> future =
+        workflowStub.startAsyncWithTimeout(timeout, TimeUnit.MILLISECONDS, taskList);
+    testUntypedAndStackTraceHelper(workflowStub, future.get());
+  }
+
+  @Test
+  public void testUntypedAsyncStartFailed() throws InterruptedException {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    String testWorkflowID = "test-untyped-async-failed";
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute",
+            newWorkflowOptionsBuilder(taskList).setWorkflowId(testWorkflowID).build());
+    workflowStub.start(taskList);
+    try {
+      workflowStub.startAsync(taskList);
+      fail("unreachable");
+    } catch (DuplicateWorkflowException e) {
+      // expected error from stub reuse
+    }
+
+    WorkflowStub newWorkflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflow1::execute",
+            newWorkflowOptionsBuilder(taskList).setWorkflowId(testWorkflowID).build());
+    CompletableFuture<WorkflowExecution> future = newWorkflowStub.startAsync(taskList);
+    try {
+      future.get();
+    } catch (ExecutionException e) {
+      assertTrue(e.getCause() instanceof WorkflowExecutionAlreadyStartedError);
+    }
+  }
+
+  @Test
+  public void testUntypedAsyncStartAndGetResult() throws InterruptedException {
+    startWorkerFor(TestSyncWorkflowImpl.class);
+    String wfType = "TestWorkflow1::execute";
+    long timeoutMillis = 5000;
+    long startTime = System.currentTimeMillis();
+    WorkflowStub startStub =
+        workflowClient.newUntypedWorkflowStub(wfType, newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<String> resultFuture =
+        startStub
+            .startAsyncWithTimeout(timeoutMillis, TimeUnit.MILLISECONDS, taskList)
+            .thenCompose(
+                execution -> {
+                  long remainingTimeMillis =
+                      timeoutMillis - (System.currentTimeMillis() - startTime);
+                  if (remainingTimeMillis <= 0) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(new TimeoutException());
+                    return f;
+                  }
+
+                  WorkflowStub resultStub =
+                      workflowClient.newUntypedWorkflowStub(execution, Optional.of(wfType));
+                  return resultStub.getResultAsync(
+                      remainingTimeMillis, TimeUnit.MILLISECONDS, String.class);
+                });
+    try {
+      assertEquals("activity10", resultFuture.get());
+    } catch (ExecutionException e) {
+      fail("unreachable");
+    }
+  }
+
+  private void testUntypedAndStackTraceHelper(
+      WorkflowStub workflowStub, WorkflowExecution execution) {
+
     sleep(Duration.ofMillis(500));
     String stackTrace = workflowStub.query(WorkflowClient.QUERY_TYPE_STACK_TRACE, String.class);
     assertTrue(stackTrace, stackTrace.contains("WorkflowTest$TestSyncWorkflowImpl.execute"));
@@ -2230,7 +2320,7 @@ public class WorkflowTest {
    *             ->OriginalActivityException
    * </pre>
    *
-   * This test also tests that Checked exception wrapping and unwrapping works producing a nice
+   * <p>This test also tests that Checked exception wrapping and unwrapping works producing a nice
    * exception chain without the wrappers.
    */
   @Test
