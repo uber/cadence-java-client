@@ -995,13 +995,30 @@ public class WorkflowTest {
   @Test
   public void testUntypedAsyncStartAndGetResult() throws InterruptedException {
     startWorkerFor(TestSyncWorkflowImpl.class);
-    WorkflowStub workflowStub =
-        workflowClient.newUntypedWorkflowStub(
-            "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
-    CompletableFuture<WorkflowExecution> startFuture = workflowStub.startAsync(taskList);
+    String wfType = "TestWorkflow1::execute";
+    long timeoutMillis = 5000;
+    long startTime = System.currentTimeMillis();
+    WorkflowStub startStub =
+        workflowClient.newUntypedWorkflowStub(wfType, newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<String> resultFuture =
+        startStub
+            .startAsyncWithTimeout(timeoutMillis, TimeUnit.MILLISECONDS, taskList)
+            .thenCompose(
+                execution -> {
+                  long remainingTimeMillis =
+                      timeoutMillis - (System.currentTimeMillis() - startTime);
+                  if (remainingTimeMillis <= 0) {
+                    CompletableFuture<String> f = new CompletableFuture<>();
+                    f.completeExceptionally(new TimeoutException());
+                    return f;
+                  }
+
+                  WorkflowStub resultStub =
+                      workflowClient.newUntypedWorkflowStub(execution, Optional.of(wfType));
+                  return resultStub.getResultAsync(
+                      remainingTimeMillis, TimeUnit.MILLISECONDS, String.class);
+                });
     try {
-      startFuture.get();
-      CompletableFuture<String> resultFuture = workflowStub.getResultAsync(String.class);
       assertEquals("activity10", resultFuture.get());
     } catch (ExecutionException e) {
       fail("unreachable");
@@ -2303,7 +2320,7 @@ public class WorkflowTest {
    *             ->OriginalActivityException
    * </pre>
    *
-   * This test also tests that Checked exception wrapping and unwrapping works producing a nice
+   * <p>This test also tests that Checked exception wrapping and unwrapping works producing a nice
    * exception chain without the wrappers.
    */
   @Test
