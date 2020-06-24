@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.7.4
+- Fix prometheus reporting issue 
+- Fix Promise.allOf should not block on empty input
+- Misc: Added project directory to sourceItems path
+- Add async start to untype stub
+
 ## v2.7.3
 - Add wf type tag in decider metrics scope
 - Fix WorkflowStub.fromTyped method
