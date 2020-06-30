@@ -92,19 +92,22 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       }
       for (Method method : i.getRawType().getMethods()) {
         ActivityMethod annotation = method.getAnnotation(ActivityMethod.class);
-        String activityType;
-        if (annotation != null && !annotation.name().isEmpty()) {
-          activityType = annotation.name();
-        } else {
-          activityType = InternalUtils.getSimpleName(method);
-        }
-        if (activities.containsKey(activityType)) {
-          throw new IllegalStateException(
-              activityType + " activity type is already registered with the worker");
-        }
 
-        ActivityTaskExecutor implementation = newTaskExecutor.apply(method, activity);
-        activities.put(activityType, implementation);
+        if (annotation != null) {
+          String activityType;
+          if (!annotation.name().isEmpty()) {
+            activityType = annotation.name();
+          } else {
+            activityType = InternalUtils.getSimpleName(method);
+          }
+          if (activities.containsKey(activityType)) {
+            throw new IllegalStateException(
+                activityType + " activity type is already registered with the worker");
+          }
+
+          ActivityTaskExecutor implementation = newTaskExecutor.apply(method, activity);
+          activities.put(activityType, implementation);
+        }
       }
     }
   }
