@@ -323,11 +323,11 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   private ExecuteLocalActivityParameters constructExecuteLocalActivityParameters(
       String name, LocalActivityOptions options, byte[] input, long elapsed, int attempt) {
-    ExecuteLocalActivityParameters parameters = new ExecuteLocalActivityParameters();
-    parameters
+    ExecuteLocalActivityParameters parameters = new ExecuteLocalActivityParameters()
         .withActivityType(new ActivityType().setName(name))
         .withInput(input)
         .withScheduleToCloseTimeoutSeconds(options.getScheduleToCloseTimeout().getSeconds());
+
     RetryOptions retryOptions = options.getRetryOptions();
     if (retryOptions != null) {
       parameters.setRetryOptions(retryOptions);
@@ -336,6 +336,11 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     parameters.setElapsedTime(elapsed);
     parameters.setWorkflowDomain(this.context.getDomain());
     parameters.setWorkflowExecution(this.context.getWorkflowExecution());
+
+    List<ContextPropagator> propagators = Optional.ofNullable(options.getContextPropagators())
+        .orElse(contextPropagators);
+    parameters.setContext(extractContextsAndConvertToBytes(propagators));
+
     return parameters;
   }
 

@@ -21,6 +21,7 @@ import com.uber.cadence.ActivityType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.common.RetryOptions;
 import java.util.Arrays;
+import java.util.Map;
 
 public class ExecuteLocalActivityParameters {
 
@@ -33,6 +34,7 @@ public class ExecuteLocalActivityParameters {
   private RetryOptions retryOptions;
   private long elapsedTime;
   private int attempt;
+  private Map<String, byte[]> context;
 
   public ExecuteLocalActivityParameters() {}
 
@@ -228,6 +230,14 @@ public class ExecuteLocalActivityParameters {
 
   public void setWorkflowExecution(WorkflowExecution workflowExecution) {
     this.workflowExecution = workflowExecution;
+  }
+
+  public Map<String, byte[]> getContext() {
+    return context;
+  }
+
+  public void setContext(Map<String, byte[]> context) {
+    this.context = context;
   }
 
   @Override

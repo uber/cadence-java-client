@@ -21,7 +21,9 @@ import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 /** Options used to configure how an local activity is invoked. */
@@ -50,12 +52,14 @@ public final class LocalActivityOptions {
             ActivityOptions.mergeDuration(
                 a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
         .setRetryOptions(RetryOptions.merge(r, o.getRetryOptions()))
+        .setContextPropagators(o.getContextPropagators())
         .validateAndBuildWithDefaults();
   }
 
   public static final class Builder {
     private Duration scheduleToCloseTimeout;
     private RetryOptions retryOptions;
+    private List<ContextPropagator> contextPropagators;
 
     public Builder() {}
 
@@ -83,8 +87,13 @@ public final class LocalActivityOptions {
       return this;
     }
 
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     public LocalActivityOptions build() {
-      return new LocalActivityOptions(scheduleToCloseTimeout, retryOptions);
+      return new LocalActivityOptions(scheduleToCloseTimeout, retryOptions, contextPropagators);
     }
 
     public LocalActivityOptions validateAndBuildWithDefaults() {
@@ -92,16 +101,18 @@ public final class LocalActivityOptions {
       if (retryOptions != null) {
         ro = new RetryOptions.Builder(retryOptions).validateBuildWithDefaults();
       }
-      return new LocalActivityOptions(roundUpToSeconds(scheduleToCloseTimeout), ro);
+      return new LocalActivityOptions(roundUpToSeconds(scheduleToCloseTimeout), ro, contextPropagators);
     }
   }
 
   private final Duration scheduleToCloseTimeout;
   private final RetryOptions retryOptions;
+  private final List<ContextPropagator> contextPropagators;
 
-  private LocalActivityOptions(Duration scheduleToCloseTimeout, RetryOptions retryOptions) {
+  private LocalActivityOptions(Duration scheduleToCloseTimeout, RetryOptions retryOptions, List<ContextPropagator> contextPropagators) {
     this.scheduleToCloseTimeout = scheduleToCloseTimeout;
     this.retryOptions = retryOptions;
+    this.contextPropagators = contextPropagators;
   }
 
   public Duration getScheduleToCloseTimeout() {
@@ -110,6 +121,10 @@ public final class LocalActivityOptions {
 
   public RetryOptions getRetryOptions() {
     return retryOptions;
+  }
+
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
   }
 
   @Override
