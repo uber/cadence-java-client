@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.5
+- Added supports contextPropagators for localActivity
+
 ## v2.7.4
 - Fix prometheus reporting issue 
 - Fix Promise.allOf should not block on empty input
