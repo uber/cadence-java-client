@@ -276,7 +276,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       decisionTask.setHistory(getHistoryResponse.getHistory());
       decisionTask.setNextPageToken(getHistoryResponse.getNextPageToken());
     }
-    DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask);
+    DecisionsHelper decisionsHelper = new DecisionsHelper(decisionTask, options);
     ReplayWorkflow workflow = workflowFactory.getWorkflow(workflowType);
     return new ReplayDecider(
         service, domain, workflowType, workflow, decisionsHelper, options, laTaskPoller);
