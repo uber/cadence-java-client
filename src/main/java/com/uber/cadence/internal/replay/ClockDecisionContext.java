@@ -230,7 +230,6 @@ public final class ClockDecisionContext {
       handleLocalActivityMarker(attributes);
     } else if (VERSION_MARKER_NAME.equals(name)) {
       handleVersionMarker(attributes);
-      // record version
     } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name) && !VERSION_MARKER_NAME.equals(name)) {
       if (log.isWarnEnabled()) {
         log.warn("Unexpected marker: " + event);
