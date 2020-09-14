@@ -88,6 +88,7 @@ public final class ClockDecisionContext {
   private final DataConverter dataConverter;
   private final Condition taskCondition;
   private boolean taskCompleted = false;
+  private final Map<String, Integer> versionMap = new HashMap<>();
 
   ClockDecisionContext(
       DecisionsHelper decisions,
@@ -227,6 +228,9 @@ public final class ClockDecisionContext {
       sideEffectResults.put(event.getEventId(), attributes.getDetails());
     } else if (LOCAL_ACTIVITY_MARKER_NAME.equals(name)) {
       handleLocalActivityMarker(attributes);
+    } else if (VERSION_MARKER_NAME.equals(name)) {
+      handleVersionMarker(attributes);
+      // record version
     } else if (!MUTABLE_SIDE_EFFECT_MARKER_NAME.equals(name) && !VERSION_MARKER_NAME.equals(name)) {
       if (log.isWarnEnabled()) {
         log.warn("Unexpected marker: " + event);
@@ -276,6 +280,14 @@ public final class ClockDecisionContext {
     }
   }
 
+  private void handleVersionMarker(MarkerRecordedEventAttributes attributes) {
+    MarkerHandler.MarkerInterface markerData =
+        MarkerHandler.MarkerInterface.fromEventAttributes(attributes, dataConverter);
+    String versionID = markerData.getId();
+    int version = dataConverter.fromData(attributes.getDetails(), Integer.class, Integer.class);
+    versionMap.put(versionID, version);
+  }
+
   int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
     Predicate<MarkerRecordedEventAttributes> changeIdEquals =
         (attributes) -> {
@@ -284,6 +296,12 @@ public final class ClockDecisionContext {
           return markerData.getId().equals(changeId);
         };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
+
+    Integer version = versionMap.get(changeId);
+    if (version != null) {
+      validateVersion(changeId, version, minSupported, maxSupported);
+      return version;
+    }
 
     Optional<byte[]> result =
         versionHandler.handle(
@@ -299,7 +317,7 @@ public final class ClockDecisionContext {
     if (!result.isPresent()) {
       return WorkflowInternal.DEFAULT_VERSION;
     }
-    int version = converter.fromData(result.get(), Integer.class, Integer.class);
+    version = converter.fromData(result.get(), Integer.class, Integer.class);
     validateVersion(changeId, version, minSupported, maxSupported);
     return version;
   }
