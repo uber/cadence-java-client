@@ -58,6 +58,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 class WorkflowStubImpl implements WorkflowStub {
 
@@ -188,7 +189,18 @@ class WorkflowStubImpl implements WorkflowStub {
     }
     Map<String, byte[]> result = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      result.putAll(propagator.serializeContext(propagator.getCurrentContext()));
+      // Get the serialized context from the propagator
+      Map<String, byte[]> serializedContext =
+          propagator.serializeContext(propagator.getCurrentContext());
+      // Namespace each entry in case of overlaps, so foo -> bar becomes MyPropagator:foo -> bar
+      Map<String, byte[]> namespacedSerializedContext =
+          serializedContext
+              .entrySet()
+              .stream()
+              .collect(
+                  Collectors.toMap(
+                      k -> propagator.getName() + ":" + k.getKey(), Map.Entry::getValue));
+      result.putAll(namespacedSerializedContext);
     }
     return result;
   }

@@ -31,10 +31,14 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /** Support for OpenTracing spans */
 public class OpenTracingContextPropagator implements ContextPropagator {
+
+  private static final Logger log = LoggerFactory.getLogger(OpenTracingContextPropagator.class);
 
   private static ThreadLocal<SpanContext> currentOpenTracingSpanContext = new ThreadLocal<>();
   private static ThreadLocal<Span> currentOpenTracingSpan = new ThreadLocal<>();
@@ -59,8 +63,10 @@ public class OpenTracingContextPropagator implements ContextPropagator {
   public Map<String, byte[]> serializeContext(Object context) {
     Map<String, byte[]> serializedContext = new HashMap<>();
     Map<String, String> contextMap = (Map<String, String>) context;
-    for (Map.Entry<String, String> entry : contextMap.entrySet()) {
-      serializedContext.put(entry.getKey(), entry.getValue().getBytes(Charset.defaultCharset()));
+    if (contextMap != null) {
+      for (Map.Entry<String, String> entry : contextMap.entrySet()) {
+        serializedContext.put(entry.getKey(), entry.getValue().getBytes(Charset.defaultCharset()));
+      }
     }
     return serializedContext;
   }
@@ -76,11 +82,14 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public Object getCurrentContext() {
+    log.debug("Getting current context");
     Tracer currentTracer = GlobalTracer.get();
     Span currentSpan = currentTracer.scopeManager().activeSpan();
     if (currentSpan != null) {
       HashMapTextMap contextTextMap = new HashMapTextMap();
       currentTracer.inject(currentSpan.context(), Format.Builtin.TEXT_MAP, contextTextMap);
+      log.debug(
+          "Retrieving current span data as current context: " + contextTextMap.getBackingMap());
       return contextTextMap.getBackingMap();
     } else {
       return null;
@@ -89,9 +98,11 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public void setCurrentContext(Object context) {
+    log.debug("Setting current context");
     Tracer currentTracer = GlobalTracer.get();
     Map<String, String> contextAsMap = (Map<String, String>) context;
     if (contextAsMap != null) {
+      log.debug("setting current context to " + contextAsMap);
       HashMapTextMap contextTextMap = new HashMapTextMap(contextAsMap);
       setCurrentOpenTracingSpanContext(
           currentTracer.extract(Format.Builtin.TEXT_MAP, contextTextMap));
@@ -100,6 +111,7 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public void setUp() {
+    log.debug("Starting a new opentracing span");
     Tracer openTracingTracer = GlobalTracer.get();
     Tracer.SpanBuilder builder =
         openTracingTracer
@@ -111,6 +123,7 @@ public class OpenTracingContextPropagator implements ContextPropagator {
     }
 
     Span span = builder.start();
+    log.debug("New span: " + span);
     openTracingTracer.activateSpan(span);
     currentOpenTracingSpan.set(span);
     Scope scope = openTracingTracer.activateSpan(span);
@@ -134,8 +147,36 @@ public class OpenTracingContextPropagator implements ContextPropagator {
   public void finish(boolean successful) {
     Scope currentScope = currentOpenTracingScope.get();
     Span currentSpan = currentOpenTracingSpan.get();
+
+    log.debug("Closing currently open span " + currentSpan.context().toSpanId());
     currentScope.close();
     currentSpan.finish();
+    currentOpenTracingScope.remove();
+    currentOpenTracingSpan.remove();
+    currentOpenTracingSpanContext.remove();
+  }
+
+  /** Just check for other instances of the same class */
+  @Override
+  public boolean equals(Object obj) {
+    if (obj == null) {
+      return false;
+    }
+
+    if (this == obj) {
+      return true;
+    }
+
+    if (this.getClass().equals(obj.getClass())) {
+      return true;
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.getClass().hashCode();
   }
 
   private class HashMapTextMap implements TextMap {

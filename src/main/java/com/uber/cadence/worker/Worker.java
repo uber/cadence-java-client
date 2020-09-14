@@ -958,8 +958,11 @@ public final class Worker implements Suspendable {
         this.contextPropagators = new ArrayList<>();
       }
 
-      // Add the OpenTracing propagator
-      this.contextPropagators.add(new OpenTracingContextPropagator());
+      // Add the OpenTracing propagator if it's not already there
+      OpenTracingContextPropagator openTracing = new OpenTracingContextPropagator();
+      if (!this.contextPropagators.contains(openTracing)) {
+        this.contextPropagators.add(openTracing);
+      }
     }
   }
 }

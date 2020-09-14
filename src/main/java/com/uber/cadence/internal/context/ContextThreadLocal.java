@@ -106,7 +106,7 @@ public class ContextThreadLocal {
   }
 
   /**
-   * Calls {@link ContextPropagator#finish(boolean))} for each propagator
+   * Calls {@link ContextPropagator#finish(boolean)} for each propagator
    *
    * @param successful True if the workflow/activity completed without unhandled exception, false
    *     otherwise

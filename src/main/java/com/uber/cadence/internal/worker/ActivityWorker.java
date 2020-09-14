@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
@@ -252,7 +253,18 @@ public final class ActivityWorker implements SuspendableWorker {
               });
 
       for (ContextPropagator propagator : options.getContextPropagators()) {
-        propagator.setCurrentContext(propagator.deserializeContext(headerData));
+        // Only send the context propagator the fields that belong to them
+        // Change the map from MyPropagator:foo -> bar to foo -> bar
+        Map<String, byte[]> filteredData =
+            headerData
+                .entrySet()
+                .stream()
+                .filter(e -> e.getKey().startsWith(propagator.getName()))
+                .collect(
+                    Collectors.toMap(
+                        e -> e.getKey().substring(e.getKey().indexOf(":") + 1),
+                        Map.Entry::getValue));
+        propagator.setCurrentContext(propagator.deserializeContext(filteredData));
       }
     }
 
