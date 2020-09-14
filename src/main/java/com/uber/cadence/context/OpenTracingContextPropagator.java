@@ -17,21 +17,28 @@
 
 package com.uber.cadence.context;
 
+import com.uber.cadence.internal.logging.LoggerTag;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
+import io.opentracing.log.Fields;
 import io.opentracing.propagation.Format;
 import io.opentracing.propagation.TextMap;
+import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.slf4j.MDC;
 
 /** Support for OpenTracing spans */
 public class OpenTracingContextPropagator implements ContextPropagator {
 
   private static ThreadLocal<SpanContext> currentOpenTracingSpanContext = new ThreadLocal<>();
+  private static ThreadLocal<Span> currentOpenTracingSpan = new ThreadLocal<>();
+  private static ThreadLocal<Scope> currentOpenTracingScope = new ThreadLocal<>();
 
   public static void setCurrentOpenTracingSpanContext(SpanContext ctx) {
     if (ctx != null) {
@@ -89,6 +96,46 @@ public class OpenTracingContextPropagator implements ContextPropagator {
       setCurrentOpenTracingSpanContext(
           currentTracer.extract(Format.Builtin.TEXT_MAP, contextTextMap));
     }
+  }
+
+  @Override
+  public void setUp() {
+    Tracer openTracingTracer = GlobalTracer.get();
+    Tracer.SpanBuilder builder =
+        openTracingTracer
+            .buildSpan("cadence.workflow")
+            .withTag("resource.name", MDC.get(LoggerTag.WORKFLOW_TYPE));
+
+    if (getCurrentOpenTracingSpanContext() != null) {
+      builder.asChildOf(getCurrentOpenTracingSpanContext());
+    }
+
+    Span span = builder.start();
+    openTracingTracer.activateSpan(span);
+    currentOpenTracingSpan.set(span);
+    Scope scope = openTracingTracer.activateSpan(span);
+    currentOpenTracingScope.set(scope);
+  }
+
+  @Override
+  public void onError(Throwable t) {
+    Span span = currentOpenTracingSpan.get();
+    Tags.ERROR.set(span, true);
+    Map<String, Object> errorData = new HashMap<>();
+    errorData.put(Fields.EVENT, "error");
+    if (t != null) {
+      errorData.put(Fields.ERROR_OBJECT, t);
+      errorData.put(Fields.MESSAGE, t.getMessage());
+    }
+    span.log(errorData);
+  }
+
+  @Override
+  public void finish(boolean successful) {
+    Scope currentScope = currentOpenTracingScope.get();
+    Span currentSpan = currentOpenTracingSpan.get();
+    currentScope.close();
+    currentSpan.finish();
   }
 
   private class HashMapTextMap implements TextMap {

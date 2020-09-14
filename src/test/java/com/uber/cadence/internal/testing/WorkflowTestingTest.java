@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.testing;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
@@ -61,6 +62,7 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
+import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import io.opentracing.util.GlobalTracer;
 import io.opentracing.util.ThreadLocalScopeManager;
@@ -996,13 +998,11 @@ public class WorkflowTestingTest {
     @Override
     public String workflow1(String input) {
       Tracer tracer = GlobalTracer.get();
-      Span span = tracer.buildSpan("testContextPropagationWorkflow").start();
-      try (Scope scope = tracer.scopeManager().activate(span)) {
-        Span activeSpan = tracer.scopeManager().activeSpan();
-        return activeSpan.getBaggageItem("foo");
-      } finally {
-        span.finish();
-      }
+      Span activeSpan = tracer.scopeManager().activeSpan();
+      MockSpan mockSpan = (MockSpan) activeSpan;
+      assertNotNull(activeSpan);
+      assertEquals("TestWorkflow::workflow1", mockSpan.tags().get("resource.name"));
+      return activeSpan.getBaggageItem("foo");
     }
   }
 

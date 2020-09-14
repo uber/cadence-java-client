@@ -19,19 +19,12 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.util.concurrent.RateLimiter;
 import com.uber.cadence.context.ContextPropagator;
-import com.uber.cadence.context.OpenTracingContextPropagator;
 import com.uber.cadence.internal.context.ContextThreadLocal;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.workflow.Promise;
-import io.opentracing.Scope;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
-import io.opentracing.log.Fields;
-import io.opentracing.tag.Tags;
-import io.opentracing.util.GlobalTracer;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashMap;
@@ -98,27 +91,16 @@ class WorkflowThreadImpl implements WorkflowThread {
       // Repopulate the context(s)
       ContextThreadLocal.setContextPropagators(this.contextPropagators);
       ContextThreadLocal.propagateContextToCurrentThread(this.propagatedContexts);
+      ContextThreadLocal.setUpContextPropagators();
 
-      // Set up an opentracing span
-      Tracer openTracingTracer = GlobalTracer.get();
-      Tracer.SpanBuilder builder =
-          openTracingTracer
-              .buildSpan("cadence.workflow")
-              .withTag("resource.name", decisionContext.getWorkflowType().getName());
-
-      if (OpenTracingContextPropagator.getCurrentOpenTracingSpanContext() != null) {
-        builder.asChildOf(OpenTracingContextPropagator.getCurrentOpenTracingSpanContext());
-      }
-      Span span = builder.start();
-
-      try (Scope scope = openTracingTracer.activateSpan(span)) {
+      try {
         // initialYield blocks thread until the first runUntilBlocked is called.
         // Otherwise r starts executing without control of the sync.
         threadContext.initialYield();
         cancellationScope.run();
       } catch (DestroyWorkflowThreadError e) {
         if (!threadContext.isDestroyRequested()) {
-          setSpanError(span, e);
+          ContextThreadLocal.onErrorContextPropagators(e);
           threadContext.setUnhandledException(e);
         }
       } catch (Error e) {
@@ -131,11 +113,11 @@ class WorkflowThreadImpl implements WorkflowThread {
           log.error(
               String.format("Workflow thread \"%s\" run failed with Error:\n%s", name, stackTrace));
         }
-        setSpanError(span, e);
+        ContextThreadLocal.onErrorContextPropagators(e);
         threadContext.setUnhandledException(e);
       } catch (CancellationException e) {
         if (!isCancelRequested()) {
-          setSpanError(span, e);
+          ContextThreadLocal.onErrorContextPropagators(e);
           threadContext.setUnhandledException(e);
         }
         if (log.isDebugEnabled()) {
@@ -152,27 +134,16 @@ class WorkflowThreadImpl implements WorkflowThread {
                   "Workflow thread \"%s\" run failed with unhandled exception:\n%s",
                   name, stackTrace));
         }
-        setSpanError(span, e);
+        ContextThreadLocal.onErrorContextPropagators(e);
         threadContext.setUnhandledException(e);
       } finally {
+        ContextThreadLocal.finishContextPropagators(threadContext.getUnhandledException() == null);
         DeterministicRunnerImpl.setCurrentThreadInternal(null);
         threadContext.setStatus(Status.DONE);
         thread.setName(originalName);
         thread = null;
         MDC.clear();
-        span.finish();
       }
-    }
-
-    private void setSpanError(Span span, Throwable ex) {
-      Tags.ERROR.set(span, true);
-      Map<String, Object> errorData = new HashMap<>();
-      errorData.put(Fields.EVENT, "error");
-      if (ex != null) {
-        errorData.put(Fields.ERROR_OBJECT, ex);
-        errorData.put(Fields.MESSAGE, ex.getMessage());
-      }
-      span.log(errorData);
     }
 
     public String getName() {
