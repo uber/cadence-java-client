@@ -123,7 +123,7 @@ public class ContextTests {
 
     @Override
     public String getName() {
-      return this.getClass().getName();
+      return "TestContextPropagator::withSomeColons";
     }
 
     @Override

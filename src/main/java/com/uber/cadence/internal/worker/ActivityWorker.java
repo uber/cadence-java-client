@@ -262,7 +262,7 @@ public final class ActivityWorker implements SuspendableWorker {
                 .filter(e -> e.getKey().startsWith(propagator.getName()))
                 .collect(
                     Collectors.toMap(
-                        e -> e.getKey().substring(e.getKey().indexOf(":") + 1),
+                        e -> e.getKey().substring(propagator.getName().length() + 1),
                         Map.Entry::getValue));
         propagator.setCurrentContext(propagator.deserializeContext(filteredData));
       }

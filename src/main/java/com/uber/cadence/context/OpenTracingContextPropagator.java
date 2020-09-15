@@ -82,14 +82,11 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public Object getCurrentContext() {
-    log.debug("Getting current context");
     Tracer currentTracer = GlobalTracer.get();
     Span currentSpan = currentTracer.scopeManager().activeSpan();
     if (currentSpan != null) {
       HashMapTextMap contextTextMap = new HashMapTextMap();
       currentTracer.inject(currentSpan.context(), Format.Builtin.TEXT_MAP, contextTextMap);
-      log.debug(
-          "Retrieving current span data as current context: " + contextTextMap.getBackingMap());
       return contextTextMap.getBackingMap();
     } else {
       return null;
@@ -98,11 +95,9 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public void setCurrentContext(Object context) {
-    log.debug("Setting current context");
     Tracer currentTracer = GlobalTracer.get();
     Map<String, String> contextAsMap = (Map<String, String>) context;
     if (contextAsMap != null) {
-      log.debug("setting current context to " + contextAsMap);
       HashMapTextMap contextTextMap = new HashMapTextMap(contextAsMap);
       setCurrentOpenTracingSpanContext(
           currentTracer.extract(Format.Builtin.TEXT_MAP, contextTextMap));
@@ -111,7 +106,6 @@ public class OpenTracingContextPropagator implements ContextPropagator {
 
   @Override
   public void setUp() {
-    log.debug("Starting a new opentracing span");
     Tracer openTracingTracer = GlobalTracer.get();
     Tracer.SpanBuilder builder =
         openTracingTracer
@@ -123,7 +117,6 @@ public class OpenTracingContextPropagator implements ContextPropagator {
     }
 
     Span span = builder.start();
-    log.debug("New span: " + span);
     openTracingTracer.activateSpan(span);
     currentOpenTracingSpan.set(span);
     Scope scope = openTracingTracer.activateSpan(span);
@@ -133,14 +126,16 @@ public class OpenTracingContextPropagator implements ContextPropagator {
   @Override
   public void onError(Throwable t) {
     Span span = currentOpenTracingSpan.get();
-    Tags.ERROR.set(span, true);
-    Map<String, Object> errorData = new HashMap<>();
-    errorData.put(Fields.EVENT, "error");
-    if (t != null) {
-      errorData.put(Fields.ERROR_OBJECT, t);
-      errorData.put(Fields.MESSAGE, t.getMessage());
+    if (span != null) {
+      Tags.ERROR.set(span, true);
+      Map<String, Object> errorData = new HashMap<>();
+      errorData.put(Fields.EVENT, "error");
+      if (t != null) {
+        errorData.put(Fields.ERROR_OBJECT, t);
+        errorData.put(Fields.MESSAGE, t.getMessage());
+      }
+      span.log(errorData);
     }
-    span.log(errorData);
   }
 
   @Override
@@ -148,9 +143,14 @@ public class OpenTracingContextPropagator implements ContextPropagator {
     Scope currentScope = currentOpenTracingScope.get();
     Span currentSpan = currentOpenTracingSpan.get();
 
-    log.debug("Closing currently open span " + currentSpan.context().toSpanId());
-    currentScope.close();
-    currentSpan.finish();
+    if (currentScope != null) {
+      currentScope.close();
+    }
+
+    if (currentSpan != null) {
+      currentSpan.finish();
+    }
+
     currentOpenTracingScope.remove();
     currentOpenTracingSpan.remove();
     currentOpenTracingSpanContext.remove();
