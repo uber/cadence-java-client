@@ -700,6 +700,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void SignalWorkflowExecutionWithTimeout(
+        SignalWorkflowExecutionRequest signalRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.SignalWorkflowExecutionWithTimeout(signalRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void SignalWithStartWorkflowExecution(
         SignalWithStartWorkflowExecutionRequest signalWithStartRequest,
         AsyncMethodCallback resultHandler)
