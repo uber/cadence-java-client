@@ -946,15 +946,14 @@ public final class TestWorkflowService implements IWorkflowService {
       Long timeoutInMillis)
       throws TException {
     forkJoinPool.execute(
-            () -> {
-              try {
-                SignalWorkflowExecution(signalRequest);
-                resultHandler.onComplete(null);
-              } catch (TException e) {
-                resultHandler.onError(e);
-              }
-            }
-    );
+        () -> {
+          try {
+            SignalWorkflowExecution(signalRequest);
+            resultHandler.onComplete(null);
+          } catch (TException e) {
+            resultHandler.onError(e);
+          }
+        });
   }
 
   @Override
