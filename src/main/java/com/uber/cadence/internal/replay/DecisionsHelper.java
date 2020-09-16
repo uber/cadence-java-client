@@ -671,10 +671,10 @@ class DecisionsHelper {
   // is removed in replay.
   void addAllMissingVersionMarker(
       boolean isNextDecisionVersionMarker,
-      Optional<Predicate<MarkerRecordedEventAttributes>> isDifferentChange) {
+      Optional<Predicate<MarkerRecordedEventAttributes>> changeIdEquals) {
     boolean added;
     do {
-      added = addMissingVersionMarker(isNextDecisionVersionMarker, isDifferentChange);
+      added = addMissingVersionMarker(isNextDecisionVersionMarker, changeIdEquals);
     } while (added);
   }
 

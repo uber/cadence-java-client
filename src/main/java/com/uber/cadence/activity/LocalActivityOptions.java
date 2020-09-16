@@ -101,7 +101,8 @@ public final class LocalActivityOptions {
       if (retryOptions != null) {
         ro = new RetryOptions.Builder(retryOptions).validateBuildWithDefaults();
       }
-      return new LocalActivityOptions(roundUpToSeconds(scheduleToCloseTimeout), ro, contextPropagators);
+      return new LocalActivityOptions(
+          roundUpToSeconds(scheduleToCloseTimeout), ro, contextPropagators);
     }
   }
 
@@ -109,7 +110,10 @@ public final class LocalActivityOptions {
   private final RetryOptions retryOptions;
   private final List<ContextPropagator> contextPropagators;
 
-  private LocalActivityOptions(Duration scheduleToCloseTimeout, RetryOptions retryOptions, List<ContextPropagator> contextPropagators) {
+  private LocalActivityOptions(
+      Duration scheduleToCloseTimeout,
+      RetryOptions retryOptions,
+      List<ContextPropagator> contextPropagators) {
     this.scheduleToCloseTimeout = scheduleToCloseTimeout;
     this.retryOptions = retryOptions;
     this.contextPropagators = contextPropagators;
