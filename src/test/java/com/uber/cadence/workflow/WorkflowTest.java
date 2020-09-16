@@ -4503,6 +4503,78 @@ public class WorkflowTest {
     }
   }
 
+  public static class TestGetVersionAddedImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+
+      int versionNew = Workflow.getVersion("cid2", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(-1, versionNew);
+      int version = Workflow.getVersion("cid1", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(1, version);
+
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionAdded() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionAddedImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  public static class TestGetVersionRemovedImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      // history contains cid1, but later getVersion is removed
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionRemoved() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionRemovedImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  public static class TestGetVersionRemoveAndAddImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      int version = Workflow.getVersion("cid2", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(-1, version);
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionRemoveAndAdd() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionRemoveAndAddImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
   public interface DeterminismFailingWorkflow {
 
     @WorkflowMethod
