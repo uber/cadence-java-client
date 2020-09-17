@@ -3290,7 +3290,6 @@ public class WorkflowTest {
     WorkflowStub workflowStub =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflowSignaled::execute", newWorkflowOptionsBuilder(taskList).build());
-    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
     String testSignalInput = "hello";
     try {
       workflowStub.signalAsync("testSignal", testSignalInput).get();
