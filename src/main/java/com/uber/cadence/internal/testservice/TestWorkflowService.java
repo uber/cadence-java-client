@@ -936,7 +936,24 @@ public final class TestWorkflowService implements IWorkflowService {
   public void SignalWorkflowExecution(
       SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new UnsupportedOperationException("not implemented");
+    SignalWorkflowExecutionWithTimeout(signalRequest, resultHandler, null);
+  }
+
+  @Override
+  public void SignalWorkflowExecutionWithTimeout(
+      SignalWorkflowExecutionRequest signalRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    forkJoinPool.execute(
+        () -> {
+          try {
+            SignalWorkflowExecution(signalRequest);
+            resultHandler.onComplete(null);
+          } catch (TException e) {
+            resultHandler.onError(e);
+          }
+        });
   }
 
   @Override

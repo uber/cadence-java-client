@@ -19,6 +19,7 @@ package com.uber.cadence.serviceclient;
 
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowService.AsyncIface;
 import com.uber.cadence.WorkflowService.Iface;
@@ -66,6 +67,20 @@ public interface IWorkflowService extends Iface, AsyncIface {
    */
   void GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException;
+  /**
+   * SignalWorkflowExecutionWithTimeout signal workflow same as SignalWorkflowExecution but with
+   * timeout
+   *
+   * @param signalRequest
+   * @param resultHandler
+   * @param timeoutInMillis
+   * @throws TException
+   */
+  void SignalWorkflowExecutionWithTimeout(
+      SignalWorkflowExecutionRequest signalRequest,
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException;
