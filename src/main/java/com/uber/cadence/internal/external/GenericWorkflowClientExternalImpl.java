@@ -269,15 +269,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   @Override
   public void signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters) {
-    SignalWorkflowExecutionRequest request = new SignalWorkflowExecutionRequest();
-    request.setDomain(domain);
+    SignalWorkflowExecutionRequest request = getSignalRequest(signalParameters);
 
-    request.setInput(signalParameters.getInput());
-    request.setSignalName(signalParameters.getSignalName());
-    WorkflowExecution execution = new WorkflowExecution();
-    execution.setRunId(signalParameters.getRunId());
-    execution.setWorkflowId(signalParameters.getWorkflowId());
-    request.setWorkflowExecution(execution);
     try {
       Retryer.retry(
           Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
@@ -285,6 +278,55 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
+  }
+
+  @Override
+  public CompletableFuture<Void> signalWorkflowExecutionAsync(
+      SignalExternalWorkflowParameters signalParameters) {
+    return signalWorkflowExecutionAsync(signalParameters, Long.MAX_VALUE);
+  }
+
+  @Override
+  public CompletableFuture<Void> signalWorkflowExecutionAsync(
+      SignalExternalWorkflowParameters signalParameters, Long timeoutInMillis) {
+    SignalWorkflowExecutionRequest request = getSignalRequest(signalParameters);
+    return Retryer.retryWithResultAsync(
+        getRetryOptionsWithExpiration(
+            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, timeoutInMillis),
+        () -> {
+          CompletableFuture<Void> result = new CompletableFuture<>();
+          try {
+            service.SignalWorkflowExecution(
+                request,
+                new AsyncMethodCallback() {
+                  @Override
+                  public void onComplete(Object response) {
+                    result.complete(null);
+                  }
+
+                  @Override
+                  public void onError(Exception exception) {
+                    result.completeExceptionally(exception);
+                  }
+                });
+          } catch (TException e) {
+            result.completeExceptionally(e);
+          }
+          return result;
+        });
+  }
+
+  private SignalWorkflowExecutionRequest getSignalRequest(
+      SignalExternalWorkflowParameters signalParameters) {
+    SignalWorkflowExecutionRequest request = new SignalWorkflowExecutionRequest();
+    request.setDomain(domain);
+    request.setInput(signalParameters.getInput());
+    request.setSignalName(signalParameters.getSignalName());
+    WorkflowExecution execution = new WorkflowExecution();
+    execution.setRunId(signalParameters.getRunId());
+    execution.setWorkflowId(signalParameters.getWorkflowId());
+    request.setWorkflowExecution(execution);
+    return request;
   }
 
   @Override
