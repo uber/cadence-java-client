@@ -41,6 +41,12 @@ public interface GenericWorkflowClientExternal {
 
   void signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters);
 
+  CompletableFuture<Void> signalWorkflowExecutionAsync(
+      SignalExternalWorkflowParameters signalParameters);
+
+  CompletableFuture<Void> signalWorkflowExecutionAsync(
+      SignalExternalWorkflowParameters signalParameters, Long timeoutInMillis);
+
   WorkflowExecution signalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionParameters parameters);
 
