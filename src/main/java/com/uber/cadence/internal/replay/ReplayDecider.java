@@ -454,7 +454,9 @@ class ReplayDecider implements Decider {
         // Reset state to before running the event loop
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
       }
-
+      if (forceCreateNewDecisionTask) {
+        metricsScope.counter(MetricsType.DECISION_TASK_FORCE_COMPLETED).inc(1);
+      }
       return forceCreateNewDecisionTask;
     } catch (Error e) {
       if (this.workflow.getWorkflowImplementationOptions().getNonDeterministicWorkflowPolicy()

@@ -306,7 +306,7 @@ public class ReplayDeciderCacheTests {
             return new WorkflowImplementationOptions.Builder().build();
           }
         },
-        new DecisionsHelper(response),
+        new DecisionsHelper(response, new SingleWorkerOptions.Builder().build()),
         new SingleWorkerOptions.Builder().build(),
         (a, d) -> true);
   }
