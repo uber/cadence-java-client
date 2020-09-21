@@ -245,6 +245,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
         new RespondDecisionTaskCompletedRequest();
     completedRequest.setTaskToken(decisionTask.getTaskToken());
     completedRequest.setDecisions(result.getDecisions());
+    completedRequest.setQueryResults(result.getQueryResults());
     completedRequest.setForceCreateNewDecisionTask(result.getForceCreateNewDecisionTask());
 
     if (stickyTaskListName != null) {

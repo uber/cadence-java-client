@@ -25,10 +25,12 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryResultType;
 import com.uber.cadence.TimerFiredEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowQueryResult;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
@@ -51,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
@@ -59,6 +62,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -387,10 +391,37 @@ class ReplayDecider implements Decider {
   public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
     lock.lock();
     try {
-      boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
-      return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
+      AtomicReference<Map<String, WorkflowQueryResult>> queryResults = new AtomicReference<>();
+      boolean forceCreateNewDecisionTask =
+          decideImpl(
+              decisionTask, () -> queryResults.set(getQueryResults(decisionTask.getQueries())));
+      return new DecisionResult(
+          decisionsHelper.getDecisions(), queryResults.get(), forceCreateNewDecisionTask);
     } finally {
       lock.unlock();
+    }
+  }
+
+  private Map<String, WorkflowQueryResult> getQueryResults(Map<String, WorkflowQuery> queries) {
+    if (queries == null) {
+      return null;
+    }
+
+    return queries
+        .entrySet()
+        .stream()
+        .collect(Collectors.toMap(q -> q.getKey(), q -> queryWorkflow(q.getValue())));
+  }
+
+  private WorkflowQueryResult queryWorkflow(WorkflowQuery query) {
+    try {
+      return new WorkflowQueryResult()
+          .setResultType(QueryResultType.ANSWERED)
+          .setAnswer(workflow.query(query));
+    } catch (Throwable e) {
+      return new WorkflowQueryResult()
+          .setResultType(QueryResultType.FAILED)
+          .setErrorMessage(e.getMessage());
     }
   }
 
