@@ -645,8 +645,8 @@ class ReplayDecider implements Decider {
           Duration decisionTaskRemainingTime = decisionTaskRemainingTime();
           if (decisionTaskRemainingTime.isNegative() || decisionTaskRemainingTime.isZero()) {
             throw new Error(
-                "Decision task timed out while querying history. If this happens consistently please consider " +
-                    "increase decision task timeout or reduce history size.");
+                "Decision task timed out while querying history. If this happens consistently please consider "
+                    + "increase decision task timeout or reduce history size.");
           }
 
           metricsScope.counter(MetricsType.WORKFLOW_GET_HISTORY_COUNTER).inc(1);

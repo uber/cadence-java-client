@@ -234,7 +234,7 @@ class WorkflowStubImpl implements WorkflowStub {
     CompletableFuture<WorkflowExecution> result =
         startAsyncWithOptions(
             timeout, unit, WorkflowOptions.merge(null, null, null, options.get()), args);
-    result.whenComplete(
+    return result.whenComplete(
         (input, exception) -> {
           if (input != null) {
             execution.set(
@@ -243,7 +243,6 @@ class WorkflowStubImpl implements WorkflowStub {
                     .setRunId(input.getRunId()));
           }
         });
-    return result;
   }
 
   private WorkflowExecution signalWithStartWithOptions(

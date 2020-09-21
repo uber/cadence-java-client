@@ -148,5 +148,6 @@ public class MetricsType {
   public static final String WORKFLOW_ACTIVE_THREAD_COUNT =
       CADENCE_METRICS_PREFIX + "workflow_active_thread_count";
 
-  public static final String NON_DETERMINISTIC_ERROR = CADENCE_METRICS_PREFIX + "non-deterministic-error";
+  public static final String NON_DETERMINISTIC_ERROR =
+      CADENCE_METRICS_PREFIX + "non-deterministic-error";
 }

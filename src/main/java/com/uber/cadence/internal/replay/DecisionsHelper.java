@@ -725,9 +725,10 @@ class DecisionsHelper {
   private DecisionStateMachine getDecision(DecisionId decisionId) {
     DecisionStateMachine result = decisions.get(decisionId);
     if (result == null) {
-      Scope metricsScope = options
-          .getMetricsScope()
-          .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, task.getWorkflowType().getName()));
+      Scope metricsScope =
+          options
+              .getMetricsScope()
+              .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, task.getWorkflowType().getName()));
       metricsScope.counter(MetricsType.NON_DETERMINISTIC_ERROR).inc(1);
       throw new NonDeterminisicWorkflowError(
           "Unknown " + decisionId + ". " + NON_DETERMINISTIC_MESSAGE);
