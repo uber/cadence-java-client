@@ -38,6 +38,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.Memo;
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.SearchAttributes;
@@ -2577,6 +2578,71 @@ public class WorkflowTest {
     assertEquals(
         "Hello World!",
         workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class));
+  }
+
+  public static class TestConsistentQueryImpl implements QueryableWorkflow {
+    String state = "initial";
+
+    @Override
+    public String execute() {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
+
+      while (!state.equals("exit")) {
+        String oldState = state;
+        Workflow.await(() -> !Objects.equals(state, oldState));
+        try {
+          // Simulate longer workflow.
+          // Queries with EVENTUAL consistency will return stale state before this finishes.
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        testActivities.activity();
+      }
+      return "";
+    }
+
+    @Override
+    public String getState() {
+      return state;
+    }
+
+    @Override
+    public void mySignal(String newState) {
+      log.info("TestConsistentQueryImpl.mySignal newState=" + newState);
+      state = newState;
+    }
+  }
+
+  @Test
+  public void testConsistentQuery() throws Exception {
+    startWorkerFor(TestConsistentQueryImpl.class);
+
+    String workflowType = QueryableWorkflow.class.getSimpleName() + "::execute";
+    WorkflowOptions.Builder ob = newWorkflowOptionsBuilder(taskList);
+    WorkflowStub client = workflowClient.newUntypedWorkflowStub(workflowType, ob.build());
+
+    java.util.function.Function<QueryConsistencyLevel, String> query =
+        (consistencyLevel) ->
+            client
+                .query(
+                    "QueryableWorkflow::getState",
+                    String.class,
+                    String.class,
+                    null,
+                    consistencyLevel)
+                .getResult();
+
+    client.start();
+
+    client.signal("testSignal", "A");
+    assertEquals("A", query.apply(QueryConsistencyLevel.STRONG));
+
+    client.signal("testSignal", "B");
+    assertEquals("A", query.apply(QueryConsistencyLevel.EVENTUAL));
+    assertEquals("B", query.apply(QueryConsistencyLevel.STRONG));
+
+    client.signal("testSignal", "exit");
   }
 
   public static class TestNoQueryWorkflowImpl implements QueryableWorkflow {

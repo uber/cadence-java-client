@@ -991,6 +991,18 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
+      public <R> QueryResponse<R> query(
+          String queryType,
+          Class<R> resultClass,
+          Type resultType,
+          QueryRejectCondition queryRejectCondition,
+          QueryConsistencyLevel queryConsistencyLevel,
+          Object... args) {
+        return next.query(
+            queryType, resultClass, resultType, queryRejectCondition, queryConsistencyLevel, args);
+      }
+
+      @Override
       public void cancel() {
         next.cancel();
       }

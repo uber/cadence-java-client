@@ -853,7 +853,7 @@ public class DeterministicRunnerTest {
 
     @Override
     public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
-      return new DecisionResult(new ArrayList<>(), false);
+      return new DecisionResult(new ArrayList<>(), null, false);
     }
 
     @Override

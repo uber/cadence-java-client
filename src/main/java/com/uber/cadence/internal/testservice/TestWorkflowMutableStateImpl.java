@@ -49,9 +49,11 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryRejected;
+import com.uber.cadence.QueryResultType;
 import com.uber.cadence.QueryTaskCompletedType;
 import com.uber.cadence.QueryWorkflowRequest;
 import com.uber.cadence.QueryWorkflowResponse;
@@ -88,6 +90,8 @@ import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
+import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowQueryResult;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.StateMachines.Action;
 import com.uber.cadence.internal.testservice.StateMachines.ActivityTaskData;
@@ -159,6 +163,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
   private final Map<String, CompletableFuture<QueryWorkflowResponse>> queries =
       new ConcurrentHashMap<>();
   private final Map<String, PollForDecisionTaskResponse> queryRequests = new ConcurrentHashMap<>();
+  private final Map<String, WorkflowQuery> pendingQueries = new ConcurrentHashMap<>();
   private final Optional<String> continuedExecutionRunId;
   public StickyExecutionAttributes stickyExecutionAttributes;
 
@@ -230,6 +235,7 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
 
       RequestContext ctx = new RequestContext(clock, this, nextEventId);
       updater.apply(ctx);
+      setPendingQueries(ctx);
       if (concurrentDecision && workflow.getState() != State.TIMED_OUT) {
         concurrentToDecision.add(ctx);
         ctx.fireCallbacks(0);
@@ -247,6 +253,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     } finally {
       lockHandle.unlock();
       lock.unlock();
+    }
+  }
+
+  private void setPendingQueries(RequestContext ctx) {
+    TestWorkflowStore.DecisionTask decisionTask = ctx.getDecisionTask();
+    if (decisionTask != null) {
+      decisionTask.getTask().setQueries(pendingQueries);
     }
   }
 
@@ -317,6 +330,16 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     List<Decision> decisions = request.getDecisions();
     completeDecisionUpdate(
         ctx -> {
+          if (request.getQueryResultsSize() > 0) {
+            request
+                .getQueryResults()
+                .forEach(
+                    (queryId, queryResult) -> {
+                      completeQuery(queryId, queryResult);
+                      pendingQueries.remove(queryId);
+                    });
+          }
+
           if (ctx.getInitialEventId() != historySize + 1) {
             throw new BadRequestError(
                 "Expired decision: expectedHistorySize="
@@ -369,6 +392,19 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
           ctx.unlockTimer();
         },
         request.getStickyAttributes());
+  }
+
+  private void completeQuery(String queryId, WorkflowQueryResult queryResult) {
+    CompletableFuture<QueryWorkflowResponse> future = queries.get(queryId);
+    if (future == null) {
+      throw new RuntimeException("Unknown query id: " + queryId);
+    }
+    if (queryResult.getResultType() == QueryResultType.ANSWERED) {
+      future.complete(new QueryWorkflowResponse().setQueryResult(queryResult.getAnswer()));
+    } else {
+      future.completeExceptionally(
+          new QueryFailedError().setMessage(queryResult.getErrorMessage()));
+    }
   }
 
   private boolean hasCompleteDecision(List<Decision> decisions) {
@@ -1536,23 +1572,29 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
       }
     }
 
-    PollForDecisionTaskResponse task =
-        new PollForDecisionTaskResponse()
-            .setTaskToken(queryId.toBytes())
-            .setWorkflowExecution(executionId.getExecution())
-            .setWorkflowType(startRequest.getWorkflowType())
-            .setQuery(queryRequest.getQuery())
-            .setWorkflowExecutionTaskList(startRequest.getTaskList());
-    TaskListId taskListId =
-        new TaskListId(
-            queryRequest.getDomain(),
-            stickyExecutionAttributes == null
-                ? startRequest.getTaskList().getName()
-                : stickyExecutionAttributes.getWorkerTaskList().getName());
     CompletableFuture<QueryWorkflowResponse> result = new CompletableFuture<>();
-    queryRequests.put(queryId.getQueryId(), task);
     queries.put(queryId.getQueryId(), result);
-    store.sendQueryTask(executionId, taskListId, task);
+
+    if (queryRequest.getQueryConsistencyLevel() == QueryConsistencyLevel.STRONG) {
+      pendingQueries.put(queryId.getQueryId(), queryRequest.getQuery());
+    } else {
+      PollForDecisionTaskResponse task =
+          new PollForDecisionTaskResponse()
+              .setTaskToken(queryId.toBytes())
+              .setWorkflowExecution(executionId.getExecution())
+              .setWorkflowType(startRequest.getWorkflowType())
+              .setQuery(queryRequest.getQuery())
+              .setWorkflowExecutionTaskList(startRequest.getTaskList());
+      TaskListId taskListId =
+          new TaskListId(
+              queryRequest.getDomain(),
+              stickyExecutionAttributes == null
+                  ? startRequest.getTaskList().getName()
+                  : stickyExecutionAttributes.getWorkerTaskList().getName());
+      queryRequests.put(queryId.getQueryId(), task);
+      store.sendQueryTask(executionId, taskListId, task);
+    }
+
     try {
       return result.get();
     } catch (InterruptedException e) {
