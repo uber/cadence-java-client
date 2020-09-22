@@ -59,7 +59,8 @@ public class LocalActivityContextPropagationTest {
 
   private final WrapperContext wrapperContext = new WrapperContext(EXPECTED_CONTEXT_NAME);
 
-  //let's add safe TestWorkflowEnvironment closing and make configurable propagation enabling/disabling
+  // let's add safe TestWorkflowEnvironment closing and make configurable propagation
+  // enabling/disabling
   private class TestEnvAutoCloseable implements AutoCloseable {
 
     private TestWorkflowEnvironment testEnv;

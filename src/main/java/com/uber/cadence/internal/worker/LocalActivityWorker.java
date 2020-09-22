@@ -271,7 +271,9 @@ public final class LocalActivityWorker implements SuspendableWorker {
   }
 
   private void restoreContext(Map<String, byte[]> context) {
-    options.getContextPropagators()
-        .forEach(propagator -> propagator.setCurrentContext(propagator.deserializeContext(context)));
+    options
+        .getContextPropagators()
+        .forEach(
+            propagator -> propagator.setCurrentContext(propagator.deserializeContext(context)));
   }
 }

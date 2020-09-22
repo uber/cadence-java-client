@@ -97,6 +97,28 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public void signal(String signalName, Object... input) {
+    SignalExternalWorkflowParameters p = getSignalExternalWorkflowParameters(signalName, input);
+    try {
+      genericClient.signalWorkflowExecution(p);
+    } catch (Exception e) {
+      throw new WorkflowServiceException(execution.get(), workflowType, e);
+    }
+  }
+
+  @Override
+  public CompletableFuture<Void> signalAsync(String signalName, Object... input) {
+    return signalAsyncWithTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS, signalName, input);
+  }
+
+  @Override
+  public CompletableFuture<Void> signalAsyncWithTimeout(
+      long timeout, TimeUnit unit, String signalName, Object... input) {
+    SignalExternalWorkflowParameters p = getSignalExternalWorkflowParameters(signalName, input);
+    return genericClient.signalWorkflowExecutionAsync(p, unit.toMillis(timeout));
+  }
+
+  private SignalExternalWorkflowParameters getSignalExternalWorkflowParameters(
+      String signalName, Object... input) {
     checkStarted();
     SignalExternalWorkflowParameters p = new SignalExternalWorkflowParameters();
     p.setInput(dataConverter.toData(input));
@@ -105,11 +127,7 @@ class WorkflowStubImpl implements WorkflowStub {
     // TODO: Deal with signaling started workflow only, when requested
     // Commented out to support signaling workflows that called continue as new.
     //        p.setRunId(execution.getRunId());
-    try {
-      genericClient.signalWorkflowExecution(p);
-    } catch (Exception e) {
-      throw new WorkflowServiceException(execution.get(), workflowType, e);
-    }
+    return p;
   }
 
   private WorkflowExecution startWithOptions(WorkflowOptions o, Object... args) {
@@ -216,7 +234,7 @@ class WorkflowStubImpl implements WorkflowStub {
     CompletableFuture<WorkflowExecution> result =
         startAsyncWithOptions(
             timeout, unit, WorkflowOptions.merge(null, null, null, options.get()), args);
-    result.whenComplete(
+    return result.whenComplete(
         (input, exception) -> {
           if (input != null) {
             execution.set(
@@ -225,7 +243,6 @@ class WorkflowStubImpl implements WorkflowStub {
                     .setRunId(input.getRunId()));
           }
         });
-    return result;
   }
 
   private WorkflowExecution signalWithStartWithOptions(

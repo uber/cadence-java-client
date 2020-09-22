@@ -65,6 +65,11 @@ public interface WorkflowStub {
 
   void signal(String signalName, Object... args);
 
+  CompletableFuture<Void> signalAsync(String signalName, Object... args);
+
+  CompletableFuture<Void> signalAsyncWithTimeout(
+      long timeout, TimeUnit unit, String signalName, Object... args);
+
   WorkflowExecution start(Object... args);
 
   CompletableFuture<WorkflowExecution> startAsync(Object... args);

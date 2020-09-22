@@ -2551,9 +2551,82 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   @Override
   public void SignalWorkflowExecution(
-      SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler)
-      throws TException {
-    throw new UnsupportedOperationException("not implemented");
+      SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler) {
+    signalWorkflowExecution(signalRequest, resultHandler, null);
+  }
+
+  @Override
+  public void SignalWorkflowExecutionWithTimeout(
+      SignalWorkflowExecutionRequest signalRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+    signalWorkflowExecution(signalRequest, resultHandler, timeoutInMillis);
+  }
+
+  private void signalWorkflowExecution(
+      SignalWorkflowExecutionRequest signalRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
+    ThriftRequest<WorkflowService.SignalWorkflowExecution_args> request =
+        buildThriftRequest(
+            "SignalWorkflowExecution",
+            new WorkflowService.SignalWorkflowExecution_args(signalRequest),
+            timeoutInMillis);
+    CompletableFuture<ThriftResponse<WorkflowService.SignalWorkflowExecution_result>> response =
+        doRemoteCallAsync(request);
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
+                if (e != null) {
+                  resultHandler.onError(CheckedExceptionWrapper.wrap(e));
+                  return;
+                }
+                WorkflowService.SignalWorkflowExecution_result result =
+                    r.getBody(WorkflowService.SignalWorkflowExecution_result.class);
+                if (r.getResponseCode() == ResponseCode.OK) {
+                  resultHandler.onComplete(null);
+                  return;
+                }
+                if (result.isSetBadRequestError()) {
+                  resultHandler.onError(result.getBadRequestError());
+                  return;
+                }
+                if (result.isSetEntityNotExistError()) {
+                  resultHandler.onError(result.getEntityNotExistError());
+                  return;
+                }
+                if (result.isSetServiceBusyError()) {
+                  resultHandler.onError(result.getServiceBusyError());
+                  return;
+                }
+                if (result.isSetDomainNotActiveError()) {
+                  resultHandler.onError(result.getDomainNotActiveError());
+                  return;
+                }
+                if (result.isSetLimitExceededError()) {
+                  resultHandler.onError(result.getLimitExceededError());
+                  return;
+                }
+                if (result.isSetClientVersionNotSupportedError()) {
+                  resultHandler.onError(result.getClientVersionNotSupportedError());
+                  return;
+                }
+                resultHandler.onError(
+                    new TException("SignalWorkflowExecution failed with unknown error:" + result));
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in SignalWorkflowExecution", e);
+              return null;
+            });
   }
 
   @Override

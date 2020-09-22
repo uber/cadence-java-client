@@ -26,6 +26,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
@@ -3224,6 +3225,80 @@ public class WorkflowTest {
     }
   }
 
+  public static class TestSignalWorkflowAsync implements TestWorkflowSignaled {
+    private String message;
+
+    @Override
+    public String execute() {
+      Workflow.await(() -> !Strings.isNullOrEmpty(message));
+      return message;
+    }
+
+    @Override
+    public void signal1(String arg) {
+      message = arg;
+    }
+  }
+
+  @Test
+  public void testSignalWorkflowAsync() throws Exception {
+    startWorkerFor(TestSignalWorkflowAsync.class);
+
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflowSignaled::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
+    future.get();
+
+    String testSignalInput = "hello";
+    CompletableFuture<String> resultFuture =
+        workflowStub
+            .signalAsync("testSignal", testSignalInput)
+            .thenCompose(
+                v -> {
+                  return workflowStub.getResultAsync(String.class);
+                });
+    assertEquals(testSignalInput, resultFuture.get());
+  }
+
+  @Test
+  public void testSignalWorkflowAsyncWithTimeout() throws Exception {
+    startWorkerFor(TestSignalWorkflowAsync.class);
+
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflowSignaled::execute", newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
+    future.get();
+
+    Long timeout = new Long(200);
+    String testSignalInput = "hello";
+    CompletableFuture<String> resultFuture =
+        workflowStub
+            .signalAsyncWithTimeout(timeout, TimeUnit.MILLISECONDS, "testSignal", testSignalInput)
+            .thenCompose(
+                v -> {
+                  return workflowStub.getResultAsync(String.class);
+                });
+    assertEquals(testSignalInput, resultFuture.get());
+  }
+
+  @Test
+  public void testSignalWorkflowAsyncFailed() throws Exception {
+    startWorkerFor(TestSignalWorkflowAsync.class);
+
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(
+            "TestWorkflowSignaled::execute", newWorkflowOptionsBuilder(taskList).build());
+    String testSignalInput = "hello";
+    try {
+      workflowStub.signalAsync("testSignal", testSignalInput).get();
+      fail("unreachable");
+    } catch (IllegalStateException e) {
+      // expected exception, workflow should be started before signal
+    }
+  }
+
   public static class TestChildWorkflowAsyncRetryWorkflow implements TestWorkflow1 {
 
     private ITestChild child;
@@ -4424,6 +4499,78 @@ public class WorkflowTest {
       fail("unreachable");
     } catch (WorkflowException e) {
       assertEquals("unsupported change version", e.getCause().getMessage());
+    }
+  }
+
+  public static class TestGetVersionAddedImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+
+      int versionNew = Workflow.getVersion("cid2", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(-1, versionNew);
+      int version = Workflow.getVersion("cid1", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(1, version);
+
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionAdded() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionAddedImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  public static class TestGetVersionRemovedImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      // history contains cid1, but later getVersion is removed
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionRemoved() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionRemovedImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
+    }
+  }
+
+  public static class TestGetVersionRemoveAndAddImpl implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      int version = Workflow.getVersion("cid2", Workflow.DEFAULT_VERSION, 1);
+      assertEquals(-1, version);
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
+      return "hello" + testActivities.activity1(1);
+    }
+  }
+
+  @Test
+  public void testGetVersionRemoveAndAdd() {
+    try {
+      WorkflowReplayer.replayWorkflowExecutionFromResource(
+          "testGetVersionHistory.json", TestGetVersionRemoveAndAddImpl.class);
+    } catch (Exception e) {
+      e.printStackTrace();
+      fail();
     }
   }
 

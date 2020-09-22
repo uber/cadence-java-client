@@ -108,6 +108,32 @@ public class RetryerTest {
   }
 
   @Test
+  public void testAddDoNotRetry() throws InterruptedException {
+    RetryOptions options =
+        new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofMillis(10))
+            .setExpiration(Duration.ofSeconds(100))
+            .validateBuildWithDefaults();
+    options = options.addDoNotRetry(InterruptedException.class);
+    long start = System.currentTimeMillis();
+    try {
+      Retryer.retryWithResultAsync(
+              options,
+              () -> {
+                CompletableFuture<Void> result = new CompletableFuture<>();
+                result.completeExceptionally(new InterruptedException("simulated"));
+                return result;
+              })
+          .get();
+      fail("unreachable");
+    } catch (ExecutionException e) {
+      assertTrue(e.getCause() instanceof InterruptedException);
+      assertEquals("simulated", e.getCause().getMessage());
+    }
+    assertTrue(System.currentTimeMillis() - start < 100000);
+  }
+
+  @Test
   public void testMaxAttempt() throws InterruptedException {
     RetryOptions options =
         new RetryOptions.Builder()
