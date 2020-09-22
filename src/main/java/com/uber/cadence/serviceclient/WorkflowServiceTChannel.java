@@ -824,30 +824,27 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, timeoutInMillis));
+  }
+
+  @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
     return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY, () -> getWorkflowExecutionHistory(request));
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, null));
   }
 
   private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
-      GetWorkflowExecutionHistoryRequest getRequest) throws TException {
+      GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
     ThriftResponse<WorkflowService.GetWorkflowExecutionHistory_result> response = null;
     try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request;
-      if (getRequest.isWaitForNewEvent()) {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
-                options.getRpcLongPollTimeoutMillis());
-      } else {
-        request =
-            buildThriftRequest(
-                "GetWorkflowExecutionHistory",
-                new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
-      }
-
+      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+          buildGetWorkflowExecutionHistoryThriftRequest(getRequest, timeoutInMillis);
       response = doRemoteCall(request);
       WorkflowService.GetWorkflowExecutionHistory_result result =
           response.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
@@ -879,6 +876,23 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         response.release();
       }
     }
+  }
+
+  private ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args>
+      buildGetWorkflowExecutionHistoryThriftRequest(
+          GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) {
+
+    if (getRequest.isWaitForNewEvent()) {
+      timeoutInMillis =
+          validateAndUpdateTimeout(timeoutInMillis, options.getRpcLongPollTimeoutMillis());
+    } else {
+      timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
+    }
+
+    return buildThriftRequest(
+        "GetWorkflowExecutionHistory",
+        new WorkflowService.GetWorkflowExecutionHistory_args(getRequest),
+        timeoutInMillis);
   }
 
   @Override
@@ -2286,26 +2300,127 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   @Override
   public void StartWorkflowExecution(
-      StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
-      throws TException {
-    throw new UnsupportedOperationException("not implemented");
+      StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler) {
+    startWorkflowExecution(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionWithTimeout(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+    startWorkflowExecution(startRequest, resultHandler, timeoutInMillis);
+  }
+
+  private void startWorkflowExecution(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    startRequest.setRequestId(UUID.randomUUID().toString());
+    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
+    ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
+        buildThriftRequest(
+            "StartWorkflowExecution",
+            new WorkflowService.StartWorkflowExecution_args(startRequest),
+            timeoutInMillis);
+
+    CompletableFuture<ThriftResponse<WorkflowService.StartWorkflowExecution_result>> response =
+        doRemoteCallAsync(request);
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
+                if (e != null) {
+                  resultHandler.onError(CheckedExceptionWrapper.wrap(e));
+                  return;
+                }
+                WorkflowService.StartWorkflowExecution_result result =
+                    r.getBody(WorkflowService.StartWorkflowExecution_result.class);
+                if (r.getResponseCode() == ResponseCode.OK) {
+                  resultHandler.onComplete(result.getSuccess());
+                  return;
+                }
+                if (result.isSetBadRequestError()) {
+                  resultHandler.onError(result.getBadRequestError());
+                  return;
+                }
+                if (result.isSetSessionAlreadyExistError()) {
+                  resultHandler.onError(result.getSessionAlreadyExistError());
+                  return;
+                }
+                if (result.isSetServiceBusyError()) {
+                  resultHandler.onError(result.getServiceBusyError());
+                  return;
+                }
+                if (result.isSetDomainNotActiveError()) {
+                  resultHandler.onError(result.getDomainNotActiveError());
+                  return;
+                }
+                if (result.isSetLimitExceededError()) {
+                  resultHandler.onError(result.getLimitExceededError());
+                  return;
+                }
+                if (result.isSetEntityNotExistError()) {
+                  resultHandler.onError(result.getEntityNotExistError());
+                  return;
+                }
+                resultHandler.onError(
+                    new TException("StartWorkflowExecution failed with unknown error:" + result));
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in StartWorkflowExecution", e);
+              return null;
+            });
+  }
+
+  private Long validateAndUpdateTimeout(Long timeoutInMillis, Long defaultTimeoutInMillis) {
+    if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
+      timeoutInMillis = defaultTimeoutInMillis;
+    } else {
+      timeoutInMillis = Math.min(timeoutInMillis, defaultTimeoutInMillis);
+    }
+    return timeoutInMillis;
+  }
+
+  @SuppressWarnings({"unchecked", "FutureReturnValueIgnored"})
+  @Override
+  public void GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    getWorkflowExecutionHistory(getRequest, resultHandler, timeoutInMillis);
   }
 
   @SuppressWarnings({"unchecked", "FutureReturnValueIgnored"})
   @Override
   public void GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler) {
-    CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response = null;
-    try {
-      ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
-          buildThriftRequest(
-              "GetWorkflowExecutionHistory",
-              new WorkflowService.GetWorkflowExecutionHistory_args(getRequest));
-      response = doRemoteCallAsync(request);
 
-      response
-          .whenComplete(
-              (r, e) -> {
+    getWorkflowExecutionHistory(getRequest, resultHandler, null);
+  }
+
+  private void getWorkflowExecutionHistory(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis) {
+
+    ThriftRequest<WorkflowService.GetWorkflowExecutionHistory_args> request =
+        buildGetWorkflowExecutionHistoryThriftRequest(getRequest, timeoutInMillis);
+
+    CompletableFuture<ThriftResponse<GetWorkflowExecutionHistory_result>> response =
+        doRemoteCallAsync(request);
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
                 if (e != null) {
                   resultHandler.onError(CheckedExceptionWrapper.wrap(e));
                   return;
@@ -2332,18 +2447,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                 resultHandler.onError(
                     new TException(
                         "GetWorkflowExecutionHistory failed with unknown " + "error:" + result));
-                return;
-              })
-          .exceptionally(
-              (e) -> {
-                log.error("Unexpected error in GetWorkflowExecutionHistory", e);
-                return null;
-              });
-    } finally {
-      if (response != null && response.isDone()) {
-        response.join().release();
-      }
-    }
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in GetWorkflowExecutionHistory", e);
+              return null;
+            });
   }
 
   @Override

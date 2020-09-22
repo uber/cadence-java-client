@@ -125,7 +125,7 @@ public class WorkflowExecutionUtils {
       TimeUnit unit)
       throws TimeoutException, CancellationException, WorkflowExecutionFailedException,
           WorkflowTerminatedException, WorkflowTimedOutException, EntityNotExistsError {
-    // getIntanceCloseEvent waits for workflow completion including new runs.
+    // getInstanceCloseEvent waits for workflow completion including new runs.
     HistoryEvent closeEvent =
         getInstanceCloseEvent(service, domain, workflowExecution, timeout, unit);
     return getResultFromCloseEvent(workflowExecution, workflowType, closeEvent);
@@ -213,9 +213,12 @@ public class WorkflowExecutionUtils {
       r.setNextPageToken(pageToken);
       r.setWaitForNewEvent(true);
       r.setSkipArchival(true);
+      RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
       try {
         response =
-            Retryer.retryWithResult(retryParameters, () -> service.GetWorkflowExecutionHistory(r));
+            Retryer.retryWithResult(
+                retryOptions,
+                () -> service.GetWorkflowExecutionHistoryWithTimeout(r, unit.toMillis(timeout)));
       } catch (EntityNotExistsError e) {
         if (e.activeCluster != null
             && e.currentCluster != null
@@ -289,12 +292,14 @@ public class WorkflowExecutionUtils {
     request.setDomain(domain);
     request.setExecution(workflowExecution);
     request.setHistoryEventFilterType(HistoryEventFilterType.CLOSE_EVENT);
+    request.setWaitForNewEvent(true);
     request.setNextPageToken(pageToken);
     CompletableFuture<GetWorkflowExecutionHistoryResponse> response =
-        getWorkflowExecutionHistoryAsync(service, request);
+        getWorkflowExecutionHistoryAsync(service, request, timeout, unit);
     return response.thenComposeAsync(
         (r) -> {
-          if (timeout != 0 && System.currentTimeMillis() - start > unit.toMillis(timeout)) {
+          long elapsedTime = System.currentTimeMillis() - start;
+          if (timeout != 0 && elapsedTime > unit.toMillis(timeout)) {
             throw CheckedExceptionWrapper.wrap(
                 new TimeoutException(
                     "WorkflowId="
@@ -310,7 +315,7 @@ public class WorkflowExecutionUtils {
           if (history == null || history.getEvents().size() == 0) {
             // Empty poll returned
             return getInstanceCloseEventAsync(
-                service, domain, workflowExecution, pageToken, timeout, unit);
+                service, domain, workflowExecution, pageToken, timeout - elapsedTime, unit);
           }
           HistoryEvent event = history.getEvents().get(0);
           if (!isWorkflowExecutionCompletedEvent(event)) {
@@ -326,21 +331,36 @@ public class WorkflowExecutionUtils {
                             .getWorkflowExecutionContinuedAsNewEventAttributes()
                             .getNewExecutionRunId());
             return getInstanceCloseEventAsync(
-                service, domain, nextWorkflowExecution, r.getNextPageToken(), timeout, unit);
+                service,
+                domain,
+                nextWorkflowExecution,
+                r.getNextPageToken(),
+                timeout - elapsedTime,
+                unit);
           }
           return CompletableFuture.completedFuture(event);
         });
   }
 
+  private static RetryOptions getRetryOptionWithTimeout(long timeout, TimeUnit unit) {
+    return new RetryOptions.Builder(retryParameters)
+        .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
+        .build();
+  }
+
   private static CompletableFuture<GetWorkflowExecutionHistoryResponse>
       getWorkflowExecutionHistoryAsync(
-          IWorkflowService service, GetWorkflowExecutionHistoryRequest r) {
+          IWorkflowService service,
+          GetWorkflowExecutionHistoryRequest r,
+          long timeout,
+          TimeUnit unit) {
+    RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
     return Retryer.retryWithResultAsync(
-        retryParameters,
+        retryOptions,
         () -> {
           CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
           try {
-            service.GetWorkflowExecutionHistory(
+            service.GetWorkflowExecutionHistoryWithTimeout(
                 r,
                 new AsyncMethodCallback<GetWorkflowExecutionHistoryResponse>() {
                   @Override
@@ -352,7 +372,8 @@ public class WorkflowExecutionUtils {
                   public void onError(Exception exception) {
                     result.completeExceptionally(exception);
                   }
-                });
+                },
+                unit.toMillis(timeout));
           } catch (TException e) {
             result.completeExceptionally(e);
           }

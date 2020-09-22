@@ -577,10 +577,28 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void StartWorkflowExecutionWithTimeout(
+        StartWorkflowExecutionRequest startRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.StartWorkflowExecutionWithTimeout(startRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
         throws TException {
       impl.GetWorkflowExecutionHistory(getRequest, resultHandler);
+    }
+
+    @Override
+    public void GetWorkflowExecutionHistoryWithTimeout(
+        GetWorkflowExecutionHistoryRequest getRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.GetWorkflowExecutionHistoryWithTimeout(getRequest, resultHandler, timeoutInMillis);
     }
 
     @Override
@@ -836,6 +854,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
             TException {
       return impl.GetWorkflowExecutionHistory(getRequest);
+    }
+
+    @Override
+    public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+        GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.GetWorkflowExecutionHistoryWithTimeout(getRequest, timeoutInMillis);
     }
 
     @Override

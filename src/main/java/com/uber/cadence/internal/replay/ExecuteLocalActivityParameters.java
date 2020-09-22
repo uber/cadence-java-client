@@ -18,11 +18,15 @@
 package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.ActivityType;
+import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.common.RetryOptions;
 import java.util.Arrays;
+import java.util.Map;
 
 public class ExecuteLocalActivityParameters {
 
+  private String workflowDomain;
+  private WorkflowExecution workflowExecution;
   private String activityId;
   private ActivityType activityType;
   private byte[] input;
@@ -30,6 +34,7 @@ public class ExecuteLocalActivityParameters {
   private RetryOptions retryOptions;
   private long elapsedTime;
   private int attempt;
+  private Map<String, byte[]> context;
 
   public ExecuteLocalActivityParameters() {}
 
@@ -211,9 +216,38 @@ public class ExecuteLocalActivityParameters {
     this.elapsedTime = startTime;
   }
 
+  public String getWorkflowDomain() {
+    return workflowDomain;
+  }
+
+  public void setWorkflowDomain(String workflowDomain) {
+    this.workflowDomain = workflowDomain;
+  }
+
+  public WorkflowExecution getWorkflowExecution() {
+    return workflowExecution;
+  }
+
+  public void setWorkflowExecution(WorkflowExecution workflowExecution) {
+    this.workflowExecution = workflowExecution;
+  }
+
+  public Map<String, byte[]> getContext() {
+    return context;
+  }
+
+  public void setContext(Map<String, byte[]> context) {
+    this.context = context;
+  }
+
   @Override
   public String toString() {
-    return "ExecuteActivityParameters{"
+    return "ExecuteLocalActivityParameters{"
+        + "workflowDomain='"
+        + workflowDomain
+        + '\''
+        + ", workflowExecution="
+        + workflowExecution
         + "activityId='"
         + activityId
         + '\''
@@ -223,6 +257,12 @@ public class ExecuteLocalActivityParameters {
         + Arrays.toString(input)
         + ", scheduleToCloseTimeoutSeconds="
         + scheduleToCloseTimeoutSeconds
+        + ", retryOptions="
+        + retryOptions
+        + ", elapsedTime="
+        + elapsedTime
+        + ", attempt="
+        + attempt
         + '}';
   }
 }

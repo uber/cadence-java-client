@@ -38,12 +38,18 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Dynamic implementation of a strongly typed workflow interface that can be used to start, signal
  * and query workflows from external processes.
  */
-class WorkflowInvocationHandler implements InvocationHandler {
+class WorkflowInvocationHandler implements InvocationHandler, Supplier<WorkflowStub> {
+
+  @Override
+  public WorkflowStub get() {
+    return untyped;
+  }
 
   public enum InvocationType {
     SYNC,

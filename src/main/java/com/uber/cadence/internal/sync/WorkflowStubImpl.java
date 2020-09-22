@@ -128,6 +128,12 @@ class WorkflowStubImpl implements WorkflowStub {
     return execution.get();
   }
 
+  private CompletableFuture<WorkflowExecution> startAsyncWithOptions(
+      long timeout, TimeUnit unit, WorkflowOptions o, Object... args) {
+    StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
+    return genericClient.startWorkflowAsync(p, unit.toMillis(timeout));
+  }
+
   private StartWorkflowExecutionParameters getStartWorkflowExecutionParameters(
       WorkflowOptions o, Object[] args) {
     if (execution.get() != null) {
@@ -193,6 +199,33 @@ class WorkflowStubImpl implements WorkflowStub {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
     return startWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+    return startAsyncWithTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS, args);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
+      long timeout, TimeUnit unit, Object... args) {
+    if (!options.isPresent()) {
+      throw new IllegalStateException("Required parameter WorkflowOptions is missing");
+    }
+
+    CompletableFuture<WorkflowExecution> result =
+        startAsyncWithOptions(
+            timeout, unit, WorkflowOptions.merge(null, null, null, options.get()), args);
+    result.whenComplete(
+        (input, exception) -> {
+          if (input != null) {
+            execution.set(
+                new WorkflowExecution()
+                    .setWorkflowId(input.getWorkflowId())
+                    .setRunId(input.getRunId()));
+          }
+        });
+    return result;
   }
 
   private WorkflowExecution signalWithStartWithOptions(

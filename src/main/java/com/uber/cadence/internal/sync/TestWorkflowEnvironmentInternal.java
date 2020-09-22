@@ -428,10 +428,28 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void StartWorkflowExecutionWithTimeout(
+        StartWorkflowExecutionRequest startRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.StartWorkflowExecutionWithTimeout(startRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
         throws TException {
       impl.GetWorkflowExecutionHistory(getRequest, resultHandler);
+    }
+
+    @Override
+    public void GetWorkflowExecutionHistoryWithTimeout(
+        GetWorkflowExecutionHistoryRequest getRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.GetWorkflowExecutionHistoryWithTimeout(getRequest, resultHandler, timeoutInMillis);
     }
 
     @Override
@@ -690,6 +708,14 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+        GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis)
+        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+            TException {
+      return impl.GetWorkflowExecutionHistoryWithTimeout(getRequest, timeoutInMillis);
+    }
+
+    @Override
     public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
         throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
       return impl.PollForDecisionTask(pollRequest);
@@ -783,6 +809,17 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       @Override
       public WorkflowExecution start(Object... args) {
         return next.start(args);
+      }
+
+      @Override
+      public CompletableFuture<WorkflowExecution> startAsync(Object... args) {
+        return next.startAsync(args);
+      }
+
+      @Override
+      public CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
+          long timeout, TimeUnit unit, Object... args) {
+        return next.startAsyncWithTimeout(timeout, unit, args);
       }
 
       @Override

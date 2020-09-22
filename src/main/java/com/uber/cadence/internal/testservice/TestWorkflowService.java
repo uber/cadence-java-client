@@ -329,6 +329,15 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis)
+      throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
+          TException {
+
+    return GetWorkflowExecutionHistory(getRequest);
+  }
+
+  @Override
   public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
       throws BadRequestError, InternalServiceError, ServiceBusyError, TException {
     PollForDecisionTaskResponse task;
@@ -788,7 +797,24 @@ public final class TestWorkflowService implements IWorkflowService {
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new UnsupportedOperationException("not implemented");
+    StartWorkflowExecutionWithTimeout(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionWithTimeout(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    forkJoinPool.execute(
+        () -> {
+          try {
+            StartWorkflowExecutionResponse result = StartWorkflowExecution(startRequest);
+            resultHandler.onComplete(result);
+          } catch (TException e) {
+            resultHandler.onError(e);
+          }
+        });
   }
 
   @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic
@@ -805,6 +831,16 @@ public final class TestWorkflowService implements IWorkflowService {
             resultHandler.onError(e);
           }
         });
+  }
+
+  @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic
+  @Override
+  public void GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    GetWorkflowExecutionHistory(getRequest, resultHandler);
   }
 
   @Override

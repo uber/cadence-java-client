@@ -33,6 +33,7 @@ import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -163,6 +164,8 @@ public final class LocalActivityWorker implements SuspendableWorker {
 
     @Override
     public void handle(Task task) throws Exception {
+      propagateContext(task.params);
+
       task.taskStartTime = System.currentTimeMillis();
       ActivityTaskHandler.Result result = handleLocalActivity(task);
 
@@ -212,6 +215,11 @@ public final class LocalActivityWorker implements SuspendableWorker {
       metricsScope.counter(MetricsType.LOCAL_ACTIVITY_TOTAL_COUNTER).inc(1);
 
       PollForActivityTaskResponse pollTask = new PollForActivityTaskResponse();
+      pollTask.setWorkflowDomain(task.params.getWorkflowDomain());
+      pollTask.setActivityId(task.params.getActivityId());
+      pollTask.setWorkflowExecution(task.params.getWorkflowExecution());
+      pollTask.setScheduledTimestamp(System.currentTimeMillis());
+      pollTask.setStartedTimestamp(System.currentTimeMillis());
       pollTask.setActivityType(task.params.getActivityType());
       pollTask.setInput(task.params.getInput());
       pollTask.setAttempt(task.params.getAttempt());
@@ -250,5 +258,20 @@ public final class LocalActivityWorker implements SuspendableWorker {
         return result;
       }
     }
+  }
+
+  private void propagateContext(ExecuteLocalActivityParameters params) {
+    if (options.getContextPropagators() == null || options.getContextPropagators().isEmpty()) {
+      return;
+    }
+
+    Optional.ofNullable(params.getContext())
+        .filter(context -> !context.isEmpty())
+        .ifPresent(this::restoreContext);
+  }
+
+  private void restoreContext(Map<String, byte[]> context) {
+    options.getContextPropagators()
+        .forEach(propagator -> propagator.setCurrentContext(propagator.deserializeContext(context)));
   }
 }
