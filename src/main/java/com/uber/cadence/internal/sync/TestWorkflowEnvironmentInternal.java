@@ -551,6 +551,15 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void SignalWorkflowExecutionWithTimeout(
+        SignalWorkflowExecutionRequest signalRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.SignalWorkflowExecutionWithTimeout(signalRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void SignalWithStartWorkflowExecution(
         SignalWithStartWorkflowExecutionRequest signalWithStartRequest,
         AsyncMethodCallback resultHandler)
@@ -804,6 +813,17 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       @Override
       public void signal(String signalName, Object... args) {
         next.signal(signalName, args);
+      }
+
+      @Override
+      public CompletableFuture<Void> signalAsync(String signalName, Object... args) {
+        return next.signalAsync(signalName, args);
+      }
+
+      @Override
+      public CompletableFuture<Void> signalAsyncWithTimeout(
+          long timeout, TimeUnit unit, String signalName, Object... args) {
+        return next.signalAsyncWithTimeout(timeout, unit, signalName, args);
       }
 
       @Override

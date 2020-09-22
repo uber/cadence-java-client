@@ -57,8 +57,13 @@ import com.uber.cadence.UpsertWorkflowSearchAttributesDecisionAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
+import com.uber.cadence.internal.metrics.MetricsTag;
+import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
+import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
+import com.uber.m3.tally.Scope;
+import com.uber.m3.util.ImmutableMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -86,6 +91,7 @@ class DecisionsHelper {
           + "change in the workflow definition.";
 
   private final PollForDecisionTaskResponse task;
+  private final SingleWorkerOptions options;
 
   /**
    * When workflow task completes the decisions are converted to events that follow the decision
@@ -105,8 +111,9 @@ class DecisionsHelper {
   // TODO: removal of completed activities
   private final Map<String, Long> activityIdToScheduledEventId = new HashMap<>();
 
-  DecisionsHelper(PollForDecisionTaskResponse task) {
+  DecisionsHelper(PollForDecisionTaskResponse task, SingleWorkerOptions options) {
     this.task = task;
+    this.options = options;
   }
 
   long getNextDecisionEventId() {
@@ -664,10 +671,10 @@ class DecisionsHelper {
   // is removed in replay.
   void addAllMissingVersionMarker(
       boolean isNextDecisionVersionMarker,
-      Optional<Predicate<MarkerRecordedEventAttributes>> isDifferentChange) {
+      Optional<Predicate<MarkerRecordedEventAttributes>> changeIdEquals) {
     boolean added;
     do {
-      added = addMissingVersionMarker(isNextDecisionVersionMarker, isDifferentChange);
+      added = addMissingVersionMarker(isNextDecisionVersionMarker, changeIdEquals);
     } while (added);
   }
 
@@ -718,6 +725,11 @@ class DecisionsHelper {
   private DecisionStateMachine getDecision(DecisionId decisionId) {
     DecisionStateMachine result = decisions.get(decisionId);
     if (result == null) {
+      Scope metricsScope =
+          options
+              .getMetricsScope()
+              .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, task.getWorkflowType().getName()));
+      metricsScope.counter(MetricsType.NON_DETERMINISTIC_ERROR).inc(1);
       throw new NonDeterminisicWorkflowError(
           "Unknown " + decisionId + ". " + NON_DETERMINISTIC_MESSAGE);
     }

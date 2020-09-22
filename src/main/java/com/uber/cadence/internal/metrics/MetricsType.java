@@ -67,6 +67,8 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "decision-task-error";
   public static final String DECISION_TASK_COMPLETED_COUNTER =
       CADENCE_METRICS_PREFIX + "decision-task-completed";
+  public static final String DECISION_TASK_FORCE_COMPLETED =
+      CADENCE_METRICS_PREFIX + "decision-task-force-completed";
 
   public static final String ACTIVITY_POLL_COUNTER = CADENCE_METRICS_PREFIX + "activity-poll-total";
   public static final String ACTIVITY_POLL_FAILED_COUNTER =
@@ -145,4 +147,7 @@ public class MetricsType {
   public static final String STICKY_CACHE_SIZE = CADENCE_METRICS_PREFIX + "sticky-cache-size";
   public static final String WORKFLOW_ACTIVE_THREAD_COUNT =
       CADENCE_METRICS_PREFIX + "workflow_active_thread_count";
+
+  public static final String NON_DETERMINISTIC_ERROR =
+      CADENCE_METRICS_PREFIX + "non-deterministic-error";
 }

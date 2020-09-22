@@ -454,7 +454,9 @@ class ReplayDecider implements Decider {
         // Reset state to before running the event loop
         decisionsHelper.handleDecisionTaskStartedEvent(decision);
       }
-
+      if (forceCreateNewDecisionTask) {
+        metricsScope.counter(MetricsType.DECISION_TASK_FORCE_COMPLETED).inc(1);
+      }
       return forceCreateNewDecisionTask;
     } catch (Error e) {
       if (this.workflow.getWorkflowImplementationOptions().getNonDeterministicWorkflowPolicy()
@@ -596,7 +598,7 @@ class ReplayDecider implements Decider {
     private final Duration paginationStart = Duration.ofMillis(System.currentTimeMillis());
     private Duration decisionTaskStartToCloseTimeout;
 
-    private final Duration retryServiceOperationExpirationInterval() {
+    private final Duration decisionTaskRemainingTime() {
       Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(paginationStart);
       return decisionTaskStartToCloseTimeout.minus(passed);
     }
@@ -640,11 +642,18 @@ class ReplayDecider implements Decider {
             return current.next();
           }
 
+          Duration decisionTaskRemainingTime = decisionTaskRemainingTime();
+          if (decisionTaskRemainingTime.isNegative() || decisionTaskRemainingTime.isZero()) {
+            throw new Error(
+                "Decision task timed out while querying history. If this happens consistently please consider "
+                    + "increase decision task timeout or reduce history size.");
+          }
+
           metricsScope.counter(MetricsType.WORKFLOW_GET_HISTORY_COUNTER).inc(1);
           Stopwatch sw = metricsScope.timer(MetricsType.WORKFLOW_GET_HISTORY_LATENCY).start();
           RetryOptions retryOptions =
               new RetryOptions.Builder()
-                  .setExpiration(retryServiceOperationExpirationInterval())
+                  .setExpiration(decisionTaskRemainingTime)
                   .setInitialInterval(retryServiceOperationInitialInterval)
                   .setMaximumInterval(retryServiceOperationMaxInterval)
                   .build();
