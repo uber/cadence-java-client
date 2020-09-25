@@ -4419,13 +4419,13 @@ public class WorkflowTest {
 
   // The following test covers the scenario where getVersion call is removed before a
   // non-version-marker decision.
-  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
       TestActivities testActivities =
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      String result;
       // Test removing a version check in replay code.
       if (!getVersionExecuted.contains(taskList)) {
         int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
@@ -4442,25 +4442,33 @@ public class WorkflowTest {
       result += testActivities.activity();
       return result;
     }
+
+    @Override
+    public String query() {
+      return result;
+    }
   }
 
   @Test
   public void testGetVersionRemovedInReplay() {
     startWorkerFor(TestGetVersionRemovedInReplayWorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity22activity", result);
     tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
         "getVersion",
         "executeActivity TestActivities::activity2",
         "executeActivity TestActivities::activity");
+    assertEquals("activity22activity", workflowStub.query());
   }
 
   // The following test covers the scenario where getVersion call is removed before another
   // version-marker decision.
-  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
@@ -4475,19 +4483,30 @@ public class WorkflowTest {
         Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 2);
       }
 
-      return testActivities.activity();
+      result = testActivities.activity();
+      return result;
+    }
+
+    @Override
+    public String query() {
+      return result;
     }
   }
 
   @Test
   public void testGetVersionRemovedInReplay2() {
     startWorkerFor(TestGetVersionRemovedInReplay2WorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity", result);
-    tracer.setExpected("getVersion", "getVersion", "executeActivity TestActivities::activity");
+    tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
+        "getVersion",
+        "getVersion",
+        "executeActivity TestActivities::activity");
+    assertEquals("activity", workflowStub.query());
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
