@@ -425,6 +425,15 @@ public class WorkflowTest {
     String getState();
   }
 
+  public interface TestWorkflowQuery {
+
+    @WorkflowMethod()
+    String execute(String taskList);
+
+    @QueryMethod()
+    String query();
+  }
+
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
 
     @Override
@@ -4348,13 +4357,13 @@ public class WorkflowTest {
 
   static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
 
-  public static class TestGetVersionWithoutDecisionEventWorkflowImpl
-      implements TestWorkflowSignaled {
+  public static class TestGetVersionWithoutDecisionEventWorkflowImpl implements TestWorkflow3 {
 
     CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
+    String result = "";
 
     @Override
-    public String execute() {
+    public String execute(String taskList) {
       try {
         if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
           // Execute getVersion in non-replay mode.
@@ -4367,10 +4376,11 @@ public class WorkflowTest {
           int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
           if (version == Workflow.DEFAULT_VERSION) {
             signalReceived.get();
-            return "result 1";
+            result = "result 1";
           } else {
-            return "result 2";
+            result = "result 2";
           }
+          return result;
         }
       } catch (Exception e) {
         throw new RuntimeException("failed to get from signal");
@@ -4383,6 +4393,11 @@ public class WorkflowTest {
     public void signal1(String arg) {
       signalReceived.complete(true);
     }
+
+    @Override
+    public String getState() {
+      return result;
+    }
   }
 
   @Test
@@ -4391,14 +4406,15 @@ public class WorkflowTest {
     executionStarted = new CompletableFuture<>();
     getVersionExecuted.remove("getVersionWithoutDecisionEvent");
     startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
-    TestWorkflowSignaled workflowStub =
+    TestWorkflow3 workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
-    WorkflowClient.start(workflowStub::execute);
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    WorkflowClient.start(workflowStub::execute, taskList);
     executionStarted.get();
     workflowStub.signal1("test signal");
-    String result = workflowStub.execute();
+    String result = workflowStub.execute(taskList);
     assertEquals("result 1", result);
+    assertEquals("result 1", workflowStub.getState());
   }
 
   // The following test covers the scenario where getVersion call is removed before a
@@ -5174,15 +5190,6 @@ public class WorkflowTest {
     assertEquals(
         "sleepActivity1sleepActivity2sleepActivity3sleepActivity4sleepActivity21sleepActivity21sleepActivity21",
         result);
-  }
-
-  public interface TestWorkflowQuery {
-
-    @WorkflowMethod()
-    String execute(String taskList);
-
-    @QueryMethod()
-    String query();
   }
 
   public static final class TestLocalActivityAndQueryWorkflow implements TestWorkflowQuery {
