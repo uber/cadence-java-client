@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -409,6 +411,18 @@ public class WorkflowTest {
 
     @QueryMethod(name = "getTrace")
     List<String> getTrace();
+  }
+
+  public interface TestWorkflow3 {
+
+    @WorkflowMethod
+    String execute(String taskList);
+
+    @SignalMethod(name = "testSignal")
+    void signal1(String arg);
+
+    @QueryMethod(name = "getState")
+    String getState();
   }
 
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
@@ -5845,5 +5859,74 @@ public class WorkflowTest {
       trace.add("upsertSearchAttributes");
       next.upsertSearchAttributes(searchAttributes);
     }
+  }
+
+  public static class TestGetVersionWorkflowRetryImpl implements TestWorkflow3 {
+    private String result = "";
+
+    @Override
+    public String execute(String taskList) {
+      int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+      int act = 0;
+      if (version == 1) {
+        ActivityOptions options =
+            new ActivityOptions.Builder()
+                .setTaskList(taskList)
+                .setHeartbeatTimeout(Duration.ofSeconds(5))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                .setStartToCloseTimeout(Duration.ofSeconds(10))
+                .setRetryOptions(
+                    new RetryOptions.Builder()
+                        .setMaximumAttempts(3)
+                        .setInitialInterval(Duration.ofSeconds(1))
+                        .build())
+                .build();
+
+        TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, options);
+        act = testActivities.activity1(1);
+      }
+
+      result += "activity" + act;
+      return result;
+    }
+
+    @Override
+    public void signal1(String arg) {
+      Workflow.sleep(1000);
+    }
+
+    @Override
+    public String getState() {
+      return result;
+    }
+  }
+
+  @Test
+  public void testGetVersionRetry() throws ExecutionException, InterruptedException {
+    TestActivities activity = mock(TestActivities.class);
+    when(activity.activity1(1)).thenReturn(1);
+    worker.registerActivitiesImplementations(activity);
+
+    startWorkerFor(TestGetVersionWorkflowRetryImpl.class);
+    TestWorkflow3 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    workflowStub.signal1("test");
+    assertEquals("activity1", result.get());
+
+    // test replay
+    assertEquals("activity1", workflowStub.getState());
+  }
+
+  @Test
+  public void testGetVersionWithRetryReplay() throws Exception {
+    // Avoid executing 4 times
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", disableStickyExecution);
+
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "testGetVersionWithRetryHistory.json", TestGetVersionWorkflowRetryImpl.class);
   }
 }

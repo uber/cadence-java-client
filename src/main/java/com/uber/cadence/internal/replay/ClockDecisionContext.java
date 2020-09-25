@@ -296,12 +296,6 @@ public final class ClockDecisionContext {
         };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
 
-    Integer version = versionMap.get(changeId);
-    if (version != null) {
-      validateVersion(changeId, version, minSupported, maxSupported);
-      return version;
-    }
-
     Optional<byte[]> result =
         versionHandler.handle(
             changeId,
@@ -312,6 +306,12 @@ public final class ClockDecisionContext {
               }
               return Optional.of(converter.toData(maxSupported));
             });
+
+    Integer version = versionMap.get(changeId);
+    if (version != null) {
+      validateVersion(changeId, version, minSupported, maxSupported);
+      return version;
+    }
 
     if (!result.isPresent()) {
       return WorkflowInternal.DEFAULT_VERSION;
