@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.7.7
+- Fix replay error when querying workflow that contains activity retry
+
 ## 2.7.6
 - Fix getVersion override when added new version 
 - Add async signal to untypedstub 
