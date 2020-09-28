@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -409,6 +411,27 @@ public class WorkflowTest {
 
     @QueryMethod(name = "getTrace")
     List<String> getTrace();
+  }
+
+  public interface TestWorkflow3 {
+
+    @WorkflowMethod
+    String execute(String taskList);
+
+    @SignalMethod(name = "testSignal")
+    void signal1(String arg);
+
+    @QueryMethod(name = "getState")
+    String getState();
+  }
+
+  public interface TestWorkflowQuery {
+
+    @WorkflowMethod()
+    String execute(String taskList);
+
+    @QueryMethod()
+    String query();
   }
 
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
@@ -4334,13 +4357,13 @@ public class WorkflowTest {
 
   static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
 
-  public static class TestGetVersionWithoutDecisionEventWorkflowImpl
-      implements TestWorkflowSignaled {
+  public static class TestGetVersionWithoutDecisionEventWorkflowImpl implements TestWorkflow3 {
 
     CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
+    String result = "";
 
     @Override
-    public String execute() {
+    public String execute(String taskList) {
       try {
         if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
           // Execute getVersion in non-replay mode.
@@ -4353,10 +4376,11 @@ public class WorkflowTest {
           int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
           if (version == Workflow.DEFAULT_VERSION) {
             signalReceived.get();
-            return "result 1";
+            result = "result 1";
           } else {
-            return "result 2";
+            result = "result 2";
           }
+          return result;
         }
       } catch (Exception e) {
         throw new RuntimeException("failed to get from signal");
@@ -4369,6 +4393,11 @@ public class WorkflowTest {
     public void signal1(String arg) {
       signalReceived.complete(true);
     }
+
+    @Override
+    public String getState() {
+      return result;
+    }
   }
 
   @Test
@@ -4377,25 +4406,26 @@ public class WorkflowTest {
     executionStarted = new CompletableFuture<>();
     getVersionExecuted.remove("getVersionWithoutDecisionEvent");
     startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
-    TestWorkflowSignaled workflowStub =
+    TestWorkflow3 workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
-    WorkflowClient.start(workflowStub::execute);
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    WorkflowClient.start(workflowStub::execute, taskList);
     executionStarted.get();
     workflowStub.signal1("test signal");
-    String result = workflowStub.execute();
+    String result = workflowStub.execute(taskList);
     assertEquals("result 1", result);
+    assertEquals("result 1", workflowStub.getState());
   }
 
   // The following test covers the scenario where getVersion call is removed before a
   // non-version-marker decision.
-  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
       TestActivities testActivities =
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      String result;
       // Test removing a version check in replay code.
       if (!getVersionExecuted.contains(taskList)) {
         int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
@@ -4412,25 +4442,33 @@ public class WorkflowTest {
       result += testActivities.activity();
       return result;
     }
+
+    @Override
+    public String query() {
+      return result;
+    }
   }
 
   @Test
   public void testGetVersionRemovedInReplay() {
     startWorkerFor(TestGetVersionRemovedInReplayWorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity22activity", result);
     tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
         "getVersion",
         "executeActivity TestActivities::activity2",
         "executeActivity TestActivities::activity");
+    assertEquals("activity22activity", workflowStub.query());
   }
 
   // The following test covers the scenario where getVersion call is removed before another
   // version-marker decision.
-  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
@@ -4445,19 +4483,30 @@ public class WorkflowTest {
         Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 2);
       }
 
-      return testActivities.activity();
+      result = testActivities.activity();
+      return result;
+    }
+
+    @Override
+    public String query() {
+      return result;
     }
   }
 
   @Test
   public void testGetVersionRemovedInReplay2() {
     startWorkerFor(TestGetVersionRemovedInReplay2WorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity", result);
-    tracer.setExpected("getVersion", "getVersion", "executeActivity TestActivities::activity");
+    tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
+        "getVersion",
+        "getVersion",
+        "executeActivity TestActivities::activity");
+    assertEquals("activity", workflowStub.query());
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
@@ -5162,15 +5211,6 @@ public class WorkflowTest {
         result);
   }
 
-  public interface TestWorkflowQuery {
-
-    @WorkflowMethod()
-    String execute(String taskList);
-
-    @QueryMethod()
-    String query();
-  }
-
   public static final class TestLocalActivityAndQueryWorkflow implements TestWorkflowQuery {
 
     String message = "initial value";
@@ -5845,5 +5885,74 @@ public class WorkflowTest {
       trace.add("upsertSearchAttributes");
       next.upsertSearchAttributes(searchAttributes);
     }
+  }
+
+  public static class TestGetVersionWorkflowRetryImpl implements TestWorkflow3 {
+    private String result = "";
+
+    @Override
+    public String execute(String taskList) {
+      int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+      int act = 0;
+      if (version == 1) {
+        ActivityOptions options =
+            new ActivityOptions.Builder()
+                .setTaskList(taskList)
+                .setHeartbeatTimeout(Duration.ofSeconds(5))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                .setStartToCloseTimeout(Duration.ofSeconds(10))
+                .setRetryOptions(
+                    new RetryOptions.Builder()
+                        .setMaximumAttempts(3)
+                        .setInitialInterval(Duration.ofSeconds(1))
+                        .build())
+                .build();
+
+        TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, options);
+        act = testActivities.activity1(1);
+      }
+
+      result += "activity" + act;
+      return result;
+    }
+
+    @Override
+    public void signal1(String arg) {
+      Workflow.sleep(1000);
+    }
+
+    @Override
+    public String getState() {
+      return result;
+    }
+  }
+
+  @Test
+  public void testGetVersionRetry() throws ExecutionException, InterruptedException {
+    TestActivities activity = mock(TestActivities.class);
+    when(activity.activity1(1)).thenReturn(1);
+    worker.registerActivitiesImplementations(activity);
+
+    startWorkerFor(TestGetVersionWorkflowRetryImpl.class);
+    TestWorkflow3 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    workflowStub.signal1("test");
+    assertEquals("activity1", result.get());
+
+    // test replay
+    assertEquals("activity1", workflowStub.getState());
+  }
+
+  @Test
+  public void testGetVersionWithRetryReplay() throws Exception {
+    // Avoid executing 4 times
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", disableStickyExecution);
+
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "testGetVersionWithRetryHistory.json", TestGetVersionWorkflowRetryImpl.class);
   }
 }
