@@ -2591,12 +2591,6 @@ public class WorkflowTest {
       while (!state.equals("exit")) {
         String oldState = state;
         Workflow.await(() -> !Objects.equals(state, oldState));
-        try {
-          // Simulate longer workflow.
-          // Queries with EVENTUAL consistency will return stale state before this finishes.
-          Thread.sleep(1000);
-        } catch (InterruptedException e) {
-        }
         testActivities.activity();
       }
       return "";
@@ -2639,7 +2633,6 @@ public class WorkflowTest {
     assertEquals("A", query.apply(QueryConsistencyLevel.STRONG));
 
     client.signal("testSignal", "B");
-    assertEquals("A", query.apply(QueryConsistencyLevel.EVENTUAL));
     assertEquals("B", query.apply(QueryConsistencyLevel.STRONG));
 
     client.signal("testSignal", "exit");
