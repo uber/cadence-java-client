@@ -311,7 +311,19 @@ public class WorkflowExecutionUtils {
                         + ", unit="
                         + unit));
           }
-          History history = r.getHistory();
+          History history;
+          if (r.getRawHistory() != null) {
+            try {
+              history =
+                  InternalUtils.DeserializeFromBlobToHistoryEvents(
+                      r.getRawHistory(), request.getHistoryEventFilterType());
+            } catch (TException e) {
+              e.printStackTrace();
+              throw new RuntimeException("Unable to deserialize raw history");
+            }
+          } else {
+            history = r.getHistory();
+          }
           if (history == null || history.getEvents().size() == 0) {
             // Empty poll returned
             return getInstanceCloseEventAsync(
