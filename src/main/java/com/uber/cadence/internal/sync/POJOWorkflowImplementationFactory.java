@@ -322,7 +322,10 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
         newInstance();
         signalMethod.invoke(workflow, args);
       } catch (IllegalAccessException e) {
-        throw new Error("Failure processing \"" + signalName + "\" at eventID " + eventId, e);
+        String errorMessage =
+            "Failed to process signal \"" + signalName + "\" at eventID " + eventId + ".";
+        log.error(errorMessage + "\n" + e);
+        throw new Error(errorMessage + " Check cause for details.", e);
       } catch (DataConverterException e) {
         logSerializationException(signalName, eventId, e);
       } catch (InvocationTargetException e) {
@@ -332,8 +335,10 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
         } else if (targetException instanceof Error) {
           throw (Error) targetException;
         } else {
-          throw new Error(
-              "Failure processing \"" + signalName + "\" at eventID " + eventId, targetException);
+          String errorMessage =
+              "Failed to process signal \"" + signalName + "\" at eventID " + eventId + ".";
+          log.error(errorMessage + "\n" + targetException);
+          throw new Error(errorMessage + " Check cause for details.", targetException);
         }
       }
     }
