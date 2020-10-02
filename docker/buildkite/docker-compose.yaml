@@ -27,7 +27,7 @@ services:
           - statsd
 
   cadence:
-    image: ubercadence/server:master-auto-setup
+    image: ubercadence/server:latestRelease-auto-setup
     logging:
       driver: none
     ports:
