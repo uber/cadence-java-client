@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.8
+- Fix get raw history 
+- Improve signal processing error and log 
+- Fix replay error when querying workflow that contains activity retry 
+
 ## 2.7.6
 - Fix getVersion override when added new version 
 - Add async signal to untypedstub 
