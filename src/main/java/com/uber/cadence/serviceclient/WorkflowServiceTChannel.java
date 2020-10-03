@@ -2429,7 +2429,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                     r.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
 
                 if (r.getResponseCode() == ResponseCode.OK) {
-                  resultHandler.onComplete(result.getSuccess());
+                  GetWorkflowExecutionHistoryResponse res = result.getSuccess();
+                  if (res.getRawHistory() != null) {
+                    History history =
+                        InternalUtils.DeserializeFromBlobToHistoryEvents(
+                            res.getRawHistory(), getRequest.getHistoryEventFilterType());
+                    res.setHistory(history);
+                  }
+                  resultHandler.onComplete(res);
                   return;
                 }
                 if (result.isSetBadRequestError()) {
@@ -2447,6 +2454,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                 resultHandler.onError(
                     new TException(
                         "GetWorkflowExecutionHistory failed with unknown " + "error:" + result));
+              } catch (TException tException) {
+                resultHandler.onError(tException);
               } finally {
                 if (r != null) {
                   r.release();
