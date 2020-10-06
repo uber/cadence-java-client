@@ -433,7 +433,7 @@ class WorkflowStubImpl implements WorkflowStub {
     return query(
         queryType,
         resultClass,
-        resultClass,
+        resultType,
         queryRejectCondition,
         QueryConsistencyLevel.EVENTUAL,
         args);
