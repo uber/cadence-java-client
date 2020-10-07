@@ -160,7 +160,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
             workflowInterface, genericClient, options, dataConverter, interceptors);
     return (T)
         Proxy.newProxyInstance(
-            WorkflowInternal.class.getClassLoader(),
+            workflowInterface.getClassLoader(),
             new Class<?>[] {workflowInterface},
             invocationHandler);
   }
@@ -213,7 +213,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     T result =
         (T)
             Proxy.newProxyInstance(
-                WorkflowInternal.class.getClassLoader(),
+                workflowInterface.getClassLoader(),
                 new Class<?>[] {workflowInterface},
                 invocationHandler);
     return result;
