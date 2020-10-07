@@ -5,7 +5,7 @@ buildscript {
 }
 
 plugins {
-    id 'net.minecrell.licenser' version '0.4.1'
+    id "com.github.hierynomus.license" version"0.15.0"
     id 'com.github.sherter.google-java-format' version '0.8'
     id 'net.ltgt.errorprone' version  '1.1.1'
     id 'java-library'
@@ -66,6 +66,7 @@ dependencies {
 
 license {
     header rootProject.file('license-header.txt')
+    skipExistingHeaders true
     exclude 'com/uber/cadence/*.java' // generated code
 }
 
@@ -212,7 +213,7 @@ task registerDomain(type:JavaExec) {
 
 test {
     dependsOn 'registerDomain'
-    dependsOn 'checkLicenseMain'
+    dependsOn 'licenseMain'
     testLogging {
         events 'passed', 'skipped', 'failed'
         exceptionFormat 'full'
