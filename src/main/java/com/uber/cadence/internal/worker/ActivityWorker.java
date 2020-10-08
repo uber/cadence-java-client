@@ -47,11 +47,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
-public final class ActivityWorker implements SuspendableWorker {
+public final class ActivityWorker extends SuspendableWorkerBase {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Activity Poller taskList=";
 
-  private SuspendableWorker poller = new NoopSuspendableWorker();
   private final ActivityTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
@@ -83,7 +82,7 @@ public final class ActivityWorker implements SuspendableWorker {
   @Override
   public void start() {
     if (handler.isAnyTypeSupported()) {
-      poller =
+      SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
               new ActivityPollTask(service, domain, taskList, options),
@@ -91,56 +90,9 @@ public final class ActivityWorker implements SuspendableWorker {
               options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
+      setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
-  }
-
-  @Override
-  public boolean isStarted() {
-    return poller.isStarted();
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return poller.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return poller.isTerminated();
-  }
-
-  @Override
-  public void shutdown() {
-    poller.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    poller.shutdownNow();
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    if (!poller.isStarted()) {
-      return;
-    }
-    poller.awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public void suspendPolling() {
-    poller.suspendPolling();
-  }
-
-  @Override
-  public void resumePolling() {
-    poller.resumePolling();
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return poller.isSuspended();
   }
 
   private class TaskHandlerImpl

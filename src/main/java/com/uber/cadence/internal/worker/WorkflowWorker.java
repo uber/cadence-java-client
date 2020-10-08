@@ -46,18 +46,16 @@ import com.uber.m3.util.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
-public final class WorkflowWorker
-    implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
+public final class WorkflowWorker extends SuspendableWorkerBase
+    implements Consumer<PollForDecisionTaskResponse> {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Workflow Poller taskList=";
 
-  private SuspendableWorker poller = new NoopSuspendableWorker();
   private PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
   private final DecisionTaskHandler handler;
   private final IWorkflowService service;
@@ -96,7 +94,7 @@ public final class WorkflowWorker
     if (handler.isAnyTypeSupported()) {
       pollTaskExecutor =
           new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
-      poller =
+      SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
               new WorkflowPollTask(
@@ -105,23 +103,9 @@ public final class WorkflowWorker
               options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
+      setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
-  }
-
-  @Override
-  public boolean isStarted() {
-    return poller.isStarted();
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return poller.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return poller.isTerminated();
   }
 
   public byte[] queryWorkflowExecution(WorkflowExecution exec, String queryType, byte[] args)
@@ -185,40 +169,6 @@ public final class WorkflowWorker
       return r.getQueryResult();
     }
     throw new RuntimeException("Query returned wrong response: " + result);
-  }
-
-  @Override
-  public void shutdown() {
-    poller.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    poller.shutdownNow();
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    if (!poller.isStarted()) {
-      return;
-    }
-
-    poller.awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public void suspendPolling() {
-    poller.suspendPolling();
-  }
-
-  @Override
-  public void resumePolling() {
-    poller.resumePolling();
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return poller.isSuspended();
   }
 
   @Override

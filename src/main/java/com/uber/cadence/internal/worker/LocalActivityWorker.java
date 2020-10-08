@@ -34,16 +34,14 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
-public final class LocalActivityWorker implements SuspendableWorker {
+public final class LocalActivityWorker extends SuspendableWorkerBase {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Local Activity Poller taskList=";
 
-  private SuspendableWorker poller = new NoopSuspendableWorker();
   private final ActivityTaskHandler handler;
   private final String domain;
   private final String taskList;
@@ -71,7 +69,7 @@ public final class LocalActivityWorker implements SuspendableWorker {
   @Override
   public void start() {
     if (handler.isAnyTypeSupported()) {
-      poller =
+      SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
               laPollTask,
@@ -79,56 +77,9 @@ public final class LocalActivityWorker implements SuspendableWorker {
               options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
+      setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
-  }
-
-  @Override
-  public boolean isStarted() {
-    return poller.isStarted();
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return poller.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return poller.isTerminated();
-  }
-
-  @Override
-  public void shutdown() {
-    poller.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    poller.shutdownNow();
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    if (!poller.isStarted()) {
-      return;
-    }
-    poller.awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public void suspendPolling() {
-    poller.suspendPolling();
-  }
-
-  @Override
-  public void resumePolling() {
-    poller.resumePolling();
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return poller.isSuspended();
   }
 
   public static class Task {
