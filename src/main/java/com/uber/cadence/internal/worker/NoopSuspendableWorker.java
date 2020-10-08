@@ -52,9 +52,7 @@ class NoopSuspendableWorker implements SuspendableWorker {
   public void awaitTermination(long timeout, TimeUnit unit) {}
 
   @Override
-  public void start() {
-    throw new IllegalStateException("Non startable");
-  }
+  public void start() {}
 
   @Override
   public boolean isStarted() {
@@ -62,17 +60,13 @@ class NoopSuspendableWorker implements SuspendableWorker {
   }
 
   @Override
-  public void suspendPolling() {
-    throw new IllegalStateException("Non suspendable");
-  }
+  public void suspendPolling() {}
 
   @Override
-  public void resumePolling() {
-    throw new IllegalStateException("Non resumable");
-  }
+  public void resumePolling() {}
 
   @Override
   public boolean isSuspended() {
-    return false;
+    return true;
   }
 }
