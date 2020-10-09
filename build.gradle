@@ -68,6 +68,7 @@ license {
     header rootProject.file('license-header.txt')
     skipExistingHeaders true
     exclude 'com/uber/cadence/*.java' // generated code
+    excludes(["**/*.json"])
 }
 
 task initDlsSubmodule(type: Exec) {

@@ -118,7 +118,11 @@ public class SyncWorkflowWorker
   @Override
   public void start() {
     workflowWorker.start();
-    laWorker.start();
+    // workflowWorker doesn't start if no types are registered with it. In that case we don't need
+    // to start LocalActivity Worker.
+    if (workflowWorker.isStarted()) {
+      laWorker.start();
+    }
   }
 
   @Override
