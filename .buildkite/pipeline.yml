@@ -9,6 +9,11 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
+    timeout_in_minutes: 15
+    retry:
+      automatic:
+        - exit_status: "*"
+          limit: 3
     plugins:
       - docker-compose#v3.0.0:
           run: unit-test-test-service
@@ -19,6 +24,11 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
+    timeout_in_minutes: 15
+    retry:
+      automatic:
+        - exit_status: "*"
+          limit: 3
     plugins:
       - docker-compose#v3.0.0:
           run: unit-test-docker-sticky-on
@@ -29,6 +39,11 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
+    timeout_in_minutes: 15
+    retry:
+      automatic:
+        - exit_status: "*"
+          limit: 3
     plugins:
       - docker-compose#v3.0.0:
           run: unit-test-docker-sticky-off
