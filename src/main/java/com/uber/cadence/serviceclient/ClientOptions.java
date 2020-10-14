@@ -190,13 +190,15 @@ public class ClientOptions {
     private String clientAppName = DEFAULT_CLIENT_APP_NAME;
     private long rpcTimeoutMillis = DEFAULT_RPC_TIMEOUT_MILLIS;
     private long rpcLongPollTimeoutMillis = DEFAULT_POLL_RPC_TIMEOUT_MILLIS;
-    public long rpcQueryTimeoutMillis = DEFAULT_QUERY_RPC_TIMEOUT_MILLIS;
-    public long rpcListArchivedWorkflowTimeoutMillis =
+    private long rpcQueryTimeoutMillis = DEFAULT_QUERY_RPC_TIMEOUT_MILLIS;
+    private long rpcListArchivedWorkflowTimeoutMillis =
         DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS;
-    public String serviceName;
+    private String serviceName;
     private Scope metricsScope;
     private Map<String, String> transportHeaders;
     private Map<String, String> headers;
+
+    private Builder() {}
 
     public Builder setHost(String host) {
       this.host = host;

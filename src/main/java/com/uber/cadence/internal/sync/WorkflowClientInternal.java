@@ -40,6 +40,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,13 +62,12 @@ public final class WorkflowClientInternal implements WorkflowClient {
    */
   public static WorkflowClient newInstance(
       IWorkflowService service, WorkflowClientOptions options) {
+    Objects.requireNonNull(service);
+    Objects.requireNonNull(options);
     return new WorkflowClientInternal(service, options);
   }
 
   private WorkflowClientInternal(IWorkflowService service, WorkflowClientOptions options) {
-    if (options == null) {
-      options = new WorkflowClientOptions.Builder().build();
-    }
     this.options = options;
     this.workflowService = service;
     this.genericClient =

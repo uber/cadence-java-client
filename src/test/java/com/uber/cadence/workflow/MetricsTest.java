@@ -197,12 +197,12 @@ public class MetricsTest {
     Scope scope = new RootScopeBuilder().reporter(reporter).reportEvery(reportingFrequecy);
 
     WorkflowClientOptions clientOptions =
-        new WorkflowClientOptions.Builder().setDomain(WorkflowTest.DOMAIN).build();
-    TestEnvironmentOptions testOptions =
-        new TestEnvironmentOptions.Builder()
-            .setWorkflowClientOptions(clientOptions)
+        WorkflowClientOptions.newBuilder()
+            .setDomain(WorkflowTest.DOMAIN)
             .setMetricsScope(scope)
             .build();
+    TestEnvironmentOptions testOptions =
+        new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
     testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
   }
 

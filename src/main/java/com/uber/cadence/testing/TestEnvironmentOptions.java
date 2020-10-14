@@ -21,10 +21,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.workflow.WorkflowInterceptor;
-import com.uber.m3.tally.Scope;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -36,8 +34,6 @@ public final class TestEnvironmentOptions {
     private DataConverter dataConverter = JsonDataConverter.getInstance();
 
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
-
-    private Scope metricsScope;
 
     private boolean enableLoggingInReplay;
 
@@ -67,14 +63,6 @@ public final class TestEnvironmentOptions {
       return this;
     }
 
-    /**
-     * Set scope to use for metrics reporting. Optional. Default is noop scope that skips reporting.
-     */
-    public Builder setMetricsScope(Scope metricsScope) {
-      this.metricsScope = metricsScope;
-      return this;
-    }
-
     /** Set factoryOptions for worker factory used to create workers. */
     public Builder setWorkerFactoryOptions(Worker.FactoryOptions options) {
       this.factoryOptions = options;
@@ -88,10 +76,6 @@ public final class TestEnvironmentOptions {
     }
 
     public TestEnvironmentOptions build() {
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-
       if (factoryOptions == null) {
         factoryOptions =
             new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
@@ -100,7 +84,6 @@ public final class TestEnvironmentOptions {
       return new TestEnvironmentOptions(
           dataConverter,
           interceptorFactory,
-          metricsScope,
           factoryOptions,
           workflowClientOptions,
           enableLoggingInReplay);
@@ -109,7 +92,6 @@ public final class TestEnvironmentOptions {
 
   private final DataConverter dataConverter;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
-  private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
   private final Worker.FactoryOptions workerFactoryOptions;
   private final WorkflowClientOptions workflowClientOptions;
@@ -117,13 +99,11 @@ public final class TestEnvironmentOptions {
   private TestEnvironmentOptions(
       DataConverter dataConverter,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      Scope metricsScope,
       Worker.FactoryOptions options,
       WorkflowClientOptions workflowClientOptions,
       boolean enableLoggingInReplay) {
     this.dataConverter = dataConverter;
     this.interceptorFactory = interceptorFactory;
-    this.metricsScope = metricsScope;
     this.workerFactoryOptions = options;
     this.workflowClientOptions = workflowClientOptions;
     this.enableLoggingInReplay = enableLoggingInReplay;
@@ -135,10 +115,6 @@ public final class TestEnvironmentOptions {
 
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
-  }
-
-  public Scope getMetricsScope() {
-    return metricsScope;
   }
 
   public boolean isLoggingEnabledInReplay() {

@@ -142,23 +142,22 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     WorkerOptions.Builder builder =
         new WorkerOptions.Builder()
             .setInterceptorFactory(testEnvironmentOptions.getInterceptorFactory())
-            .setMetricsScope(testEnvironmentOptions.getMetricsScope())
+            .setMetricsScope(testEnvironmentOptions.getWorkflowClientOptions().getMetricsScope())
             .setEnableLoggingInReplay(testEnvironmentOptions.isLoggingEnabledInReplay());
     if (testEnvironmentOptions.getDataConverter() != null) {
       builder.setDataConverter(testEnvironmentOptions.getDataConverter());
     }
     builder = overrideOptions.apply(builder);
-    Worker result = workerFactory.newWorker(taskList, builder.build());
-    return result;
+    return workerFactory.newWorker(taskList, builder.build());
   }
 
   @Override
   public WorkflowClient newWorkflowClient() {
     WorkflowClientOptions options =
-        new WorkflowClientOptions.Builder()
+        WorkflowClientOptions.newBuilder()
             .setDataConverter(testEnvironmentOptions.getDataConverter())
             .setInterceptors(new TimeLockingInterceptor(service))
-            .setMetricsScope(testEnvironmentOptions.getMetricsScope())
+            .setMetricsScope(testEnvironmentOptions.getWorkflowClientOptions().getMetricsScope())
             .setDomain(testEnvironmentOptions.getWorkflowClientOptions().getDomain())
             .build();
     return WorkflowClientInternal.newInstance(service, options);
@@ -172,7 +171,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     System.arraycopy(existingInterceptors, 0, interceptors, 0, existingInterceptors.length);
     interceptors[interceptors.length - 1] = new TimeLockingInterceptor(service);
     WorkflowClientOptions newOptions =
-        new WorkflowClientOptions.Builder(options).setInterceptors(interceptors).build();
+        WorkflowClientOptions.newBuilder(options).setInterceptors(interceptors).build();
     return WorkflowClientInternal.newInstance(service, newOptions);
   }
 
