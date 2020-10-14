@@ -24,6 +24,7 @@ import static org.mockito.Mockito.*;
 
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -195,9 +196,11 @@ public class MetricsTest {
     reporter = mock(StatsReporter.class);
     Scope scope = new RootScopeBuilder().reporter(reporter).reportEvery(reportingFrequecy);
 
+    WorkflowClientOptions clientOptions =
+        new WorkflowClientOptions.Builder().setDomain(WorkflowTest.DOMAIN).build();
     TestEnvironmentOptions testOptions =
         new TestEnvironmentOptions.Builder()
-            .setDomain(WorkflowTest.DOMAIN)
+            .setWorkflowClientOptions(clientOptions)
             .setMetricsScope(scope)
             .build();
     testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);

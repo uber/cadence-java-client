@@ -30,7 +30,9 @@ import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityWorkerShutdownException;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -79,7 +81,7 @@ public class CleanWorkerShutdownTest {
   @Before
   public void setUp() {
     if (useExternalService) {
-      service = new WorkflowServiceTChannel();
+      service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     }
   }
 
@@ -135,16 +137,18 @@ public class CleanWorkerShutdownTest {
     Worker.Factory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = Worker.Factory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);
@@ -187,16 +191,18 @@ public class CleanWorkerShutdownTest {
     Worker.Factory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = Worker.Factory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);
@@ -266,16 +272,18 @@ public class CleanWorkerShutdownTest {
     Worker.Factory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = Worker.Factory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new HeartbeatingActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);

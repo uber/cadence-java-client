@@ -69,7 +69,7 @@ public class LocalActivityContextPropagationTest {
       testEnv =
           TestWorkflowEnvironment.newInstance(
               new TestEnvironmentOptions.Builder()
-                  .setFactoryOptions(
+                  .setWorkerFactoryOptions(
                       new FactoryOptions.Builder()
                           .setContextPropagators(
                               propagationEnabled ? PROPAGATORS : Collections.emptyList())

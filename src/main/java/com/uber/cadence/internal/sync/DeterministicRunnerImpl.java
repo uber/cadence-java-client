@@ -273,6 +273,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
       if (nextWakeUpTime < currentTimeMillis() || nextWakeUpTime == Long.MAX_VALUE) {
         nextWakeUpTime = 0;
       }
+
     } finally {
       inRunUntilAllBlocked = false;
       // Close was requested while running

@@ -31,10 +31,12 @@ import static org.mockito.Mockito.verify;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.DeciderCache;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -93,7 +95,7 @@ public class StickyWorkerTest {
   @BeforeClass
   public static void setUp() {
     if (useDockerService) {
-      service = new WorkflowServiceTChannel();
+      service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     }
   }
 
@@ -556,12 +558,14 @@ public class StickyWorkerTest {
         options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
       }
       if (useExternalService) {
-        factory = new Worker.Factory(service, DOMAIN, options);
+        factory = Worker.Factory.newInstance(getWorkflowClient());
       } else {
+        WorkflowClientOptions clientOptions =
+            WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
         TestEnvironmentOptions testOptions =
             new TestEnvironmentOptions.Builder()
-                .setDomain(DOMAIN)
-                .setFactoryOptions(options)
+                .setWorkflowClientOptions(clientOptions)
+                .setWorkerFactoryOptions(options)
                 .build();
         testEnv = TestWorkflowEnvironment.newInstance(testOptions);
       }
@@ -572,8 +576,10 @@ public class StickyWorkerTest {
     }
 
     private WorkflowClient getWorkflowClient() {
+      WorkflowClientOptions clientOptions =
+          WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
       return useExternalService
-          ? WorkflowClient.newInstance(service, DOMAIN)
+          ? WorkflowClient.newInstance(service, clientOptions)
           : testEnv.newWorkflowClient();
     }
 

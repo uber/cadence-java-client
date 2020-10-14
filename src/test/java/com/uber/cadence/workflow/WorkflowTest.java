@@ -67,6 +67,7 @@ import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -211,7 +212,8 @@ public class WorkflowTest {
   private TestWorkflowEnvironment testEnvironment;
   private ScheduledExecutorService scheduledExecutor;
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
-  private static final WorkflowServiceTChannel service = new WorkflowServiceTChannel();
+  private static final WorkflowServiceTChannel service =
+      new WorkflowServiceTChannel(ClientOptions.defaultInstance());
 
   @AfterClass
   public static void closeService() {
@@ -278,12 +280,16 @@ public class WorkflowTest {
     }
     tracer = new TracingWorkflowInterceptorFactory();
     // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
+    WorkflowClientOptions clientOptions =
+        new WorkflowClientOptions.Builder().setDomain(DOMAIN).build();
     if (useExternalService) {
+      workflowClient = WorkflowClient.newInstance(service);
+      workflowClientWithOptions = WorkflowClient.newInstance(service, clientOptions);
       Worker.FactoryOptions factoryOptions =
           new Worker.FactoryOptions.Builder()
               .setDisableStickyExecution(disableStickyExecution)
               .build();
-      workerFactory = new Worker.Factory(service, DOMAIN, factoryOptions);
+      workerFactory = new Worker.Factory(workflowClientWithOptions, factoryOptions);
       WorkerOptions workerOptions =
           new WorkerOptions.Builder()
               .setActivityPollerOptions(new PollerOptions.Builder().setPollThreadCount(5).build())
@@ -291,19 +297,13 @@ public class WorkflowTest {
               .setInterceptorFactory(tracer)
               .build();
       worker = workerFactory.newWorker(taskList, workerOptions);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
-      WorkflowClientOptions clientOptions =
-          new WorkflowClientOptions.Builder()
-              .setDataConverter(JsonDataConverter.getInstance())
-              .build();
-      workflowClientWithOptions = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
       scheduledExecutor = new ScheduledThreadPoolExecutor(1);
     } else {
       TestEnvironmentOptions testOptions =
           new TestEnvironmentOptions.Builder()
-              .setDomain(DOMAIN)
+              .setWorkflowClientOptions(clientOptions)
               .setInterceptorFactory(tracer)
-              .setFactoryOptions(
+              .setWorkerFactoryOptions(
                   new Worker.FactoryOptions.Builder()
                       .setDisableStickyExecution(disableStickyExecution)
                       .build())
@@ -2418,11 +2418,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignal() throws Exception {
+  public void testSignal() {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      Worker.Factory workerFactory = Worker.Factory.newInstance(workflowClientWithOptions);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);
@@ -2496,7 +2496,7 @@ public class WorkflowTest {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      Worker.Factory workerFactory = Worker.Factory.newInstance(workflowClientWithOptions);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);
@@ -3006,10 +3006,11 @@ public class WorkflowTest {
                     return next;
                   }
                 })
+            .setDomain(DOMAIN)
             .build();
     WorkflowClient wc;
     if (useExternalService) {
-      wc = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
+      wc = WorkflowClient.newInstance(service, clientOptions);
     } else {
       wc = testEnvironment.newWorkflowClient(clientOptions);
     }
@@ -3072,7 +3073,7 @@ public class WorkflowTest {
     options.setTaskList(taskList);
     WorkflowClient wc;
     if (useExternalService) {
-      wc = WorkflowClient.newInstance(service, DOMAIN);
+      wc = workflowClientWithOptions;
     } else {
       wc = testEnvironment.newWorkflowClient();
     }

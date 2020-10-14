@@ -57,11 +57,15 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
   private final Scope metricsScope;
 
   ManualActivityCompletionClientImpl(
-      IWorkflowService service, byte[] taskToken, DataConverter dataConverter, Scope metricsScope) {
+      IWorkflowService service,
+      String domain,
+      byte[] taskToken,
+      DataConverter dataConverter,
+      Scope metricsScope) {
     this.service = service;
     this.taskToken = taskToken;
     this.dataConverter = dataConverter;
-    this.domain = null;
+    this.domain = domain;
     this.execution = null;
     this.activityId = null;
     this.metricsScope = metricsScope;

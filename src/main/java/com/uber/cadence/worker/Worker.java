@@ -39,7 +39,6 @@ import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.internal.worker.Suspendable;
 import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
@@ -52,7 +51,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -394,14 +392,19 @@ public final class Worker implements Suspendable {
 
   /** Maintains worker creation and lifecycle. */
   public static final class Factory {
-    private final List<Worker> workers = new ArrayList<>();
-    private final IWorkflowService workflowService;
-    /** Indicates if factory owns the service. An owned service is closed on shutdown. */
-    private final boolean closeServiceOnShutdown;
 
-    private final String domain;
-    private final UUID id =
-        UUID.randomUUID(); // Guarantee uniqueness for stickyTaskListName when multiple factories
+    public static Factory newInstance(WorkflowClient workflowClient) {
+      return Factory.newInstance(workflowClient, FactoryOptions.defaultInstance());
+    }
+
+    public static Factory newInstance(WorkflowClient workflowClient, FactoryOptions options) {
+      return new Factory(workflowClient, options);
+    }
+
+    private final List<Worker> workers = new ArrayList<>();
+    private final WorkflowClient workflowClient;
+    // Guarantee uniqueness for stickyTaskListName when multiple factories
+    private final UUID id = UUID.randomUUID();
     private final ThreadPoolExecutor workflowThreadPool;
     private final AtomicInteger workflowThreadCounter = new AtomicInteger();
     private final FactoryOptions factoryOptions;
@@ -415,85 +418,16 @@ public final class Worker implements Suspendable {
     private final String statusErrorMessage =
         "attempted to %s while in %s state. Acceptable States: %s";
     private static final Logger log = LoggerFactory.getLogger(Factory.class);
-    /**
-     * Creates a factory. Workers will be connected to a local deployment of cadence-server
-     *
-     * @param domain Domain used by workers to poll for workflows.
-     */
-    public Factory(String domain) {
-      this(new WorkflowServiceTChannel(), true, domain, null);
-    }
-
-    /**
-     * Creates a factory. Workers will be connected to the cadence-server at the specific host and
-     * port.
-     *
-     * @param host host used by the underlying workflowServiceClient to connect to.
-     * @param port port used by the underlying workflowServiceClient to connect to.
-     * @param domain Domain used by workers to poll for workflows.
-     */
-    public Factory(String host, int port, String domain) {
-      this(new WorkflowServiceTChannel(host, port), true, domain, null);
-    }
-
-    /**
-     * Creates a factory connected to a local deployment of cadence-server.
-     *
-     * @param domain Domain used by workers to poll for workflows.
-     * @param factoryOptions Options used to configure factory settings
-     */
-    public Factory(String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(), true, domain, factoryOptions);
-    }
-
-    /**
-     * Creates a factory. Workers will be connected to the cadence-server at the specific host and
-     * port.
-     *
-     * @param host host used by the underlying workflowServiceClient to connect to.
-     * @param port port used by the underlying workflowServiceClient to connect to.
-     * @param domain Domain used by workers to poll for workflows.
-     * @param factoryOptions Options used to configure factory settings
-     */
-    public Factory(String host, int port, String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(host, port), true, domain, factoryOptions);
-    }
 
     /**
      * Creates a factory. Workers will be connect to the cadence-server using the workflowService
      * client passed in.
      *
-     * @param workflowService client to the Cadence Service endpoint.
-     * @param domain Domain used by workers to poll for workflows.
-     */
-    public Factory(IWorkflowService workflowService, String domain) {
-      this(workflowService, false, domain, null);
-    }
-
-    /**
-     * Creates a factory. Workers will be connect to the cadence-server using the workflowService
-     * client passed in.
-     *
-     * @param workflowService client to the Cadence Service endpoint.
-     * @param domain Domain used by workers to poll for workflows.
+     * @param workflowClient client to the Cadence Service endpoint.
      * @param factoryOptions Options used to configure factory settings
      */
-    public Factory(IWorkflowService workflowService, String domain, FactoryOptions factoryOptions) {
-      this(workflowService, false, domain, factoryOptions);
-    }
-
-    private Factory(
-        IWorkflowService workflowService,
-        boolean closeServiceOnShutdown,
-        String domain,
-        FactoryOptions factoryOptions) {
-      Preconditions.checkArgument(
-          !Strings.isNullOrEmpty(domain), "domain should not be an empty string");
-
-      this.domain = domain;
-      this.workflowService =
-          Objects.requireNonNull(workflowService, "workflowService should not be null");
-      this.closeServiceOnShutdown = closeServiceOnShutdown;
+    public Factory(WorkflowClient workflowClient, FactoryOptions factoryOptions) {
+      this.workflowClient = Objects.requireNonNull(workflowClient);
       factoryOptions =
           factoryOptions == null ? new FactoryOptions.Builder().build() : factoryOptions;
       this.factoryOptions = factoryOptions;
@@ -515,18 +449,22 @@ public final class Worker implements Suspendable {
       Scope metricsScope =
           this.factoryOptions.metricsScope.tagged(
               new ImmutableMap.Builder<String, String>(2)
-                  .put(MetricsTag.DOMAIN, domain)
+                  .put(MetricsTag.DOMAIN, workflowClient.getOptions().getDomain())
                   .put(MetricsTag.TASK_LIST, getHostName())
                   .build());
 
       this.cache = new DeciderCache(this.factoryOptions.cacheMaximumSize, metricsScope);
 
-      dispatcher = new PollDecisionTaskDispatcher(workflowService);
+      dispatcher = new PollDecisionTaskDispatcher(workflowClient.getService());
       stickyPoller =
           new Poller<>(
               id.toString(),
               new WorkflowPollTaskFactory(
-                      workflowService, domain, getStickyTaskListName(), metricsScope, id.toString())
+                      workflowClient.getService(),
+                      workflowClient.getOptions().getDomain(),
+                      getStickyTaskListName(),
+                      metricsScope,
+                      id.toString())
                   .get(),
               dispatcher,
               this.factoryOptions.stickyWorkflowPollerOptions,
@@ -565,8 +503,8 @@ public final class Worker implements Suspendable {
               statusErrorMessage, "create new worker", state.name(), State.Initial.name()));
       Worker worker =
           new Worker(
-              workflowService,
-              domain,
+              workflowClient.getService(),
+              workflowClient.getOptions().getDomain(),
               taskList,
               options,
               cache,
@@ -636,9 +574,9 @@ public final class Worker implements Suspendable {
       return true;
     }
 
-    /** @return instance of the cadence client that this worker uses. */
-    public IWorkflowService getWorkflowService() {
-      return workflowService;
+    /** @return instance of the Cadence client that this worker uses. */
+    public WorkflowClient getWorkflowClient() {
+      return workflowClient;
     }
 
     /**
@@ -659,24 +597,6 @@ public final class Worker implements Suspendable {
       }
       for (Worker worker : workers) {
         worker.shutdown();
-      }
-      closeServiceWhenTerminated();
-    }
-
-    /**
-     * Closes Cadence client object. It should be closed only after all tasks have completed
-     * execution as tasks use it to report completion.
-     */
-    private void closeServiceWhenTerminated() {
-      if (closeServiceOnShutdown) {
-        ForkJoinPool.commonPool()
-            .execute(
-                () -> {
-                  // Service is used to report task completions.
-                  awaitTermination(1, TimeUnit.HOURS);
-                  log.info("Closing workflow service client");
-                  workflowService.close();
-                });
       }
     }
 
@@ -701,7 +621,6 @@ public final class Worker implements Suspendable {
       for (Worker worker : workers) {
         worker.shutdownNow();
       }
-      closeServiceWhenTerminated();
     }
 
     /**
@@ -780,6 +699,16 @@ public final class Worker implements Suspendable {
   }
 
   public static class FactoryOptions {
+    private static final FactoryOptions DEFAULT_INSTANCE;
+
+    static {
+      DEFAULT_INSTANCE = new Builder().build();
+    }
+
+    static FactoryOptions defaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
     public static class Builder {
       private boolean disableStickyExecution;
       private int stickyDecisionScheduleToStartTimeoutInSeconds = 5;
