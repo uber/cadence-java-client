@@ -28,7 +28,6 @@ import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
-import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.sync.SyncActivityWorker;
 import com.uber.cadence.internal.sync.SyncWorkflowWorker;
@@ -447,11 +446,14 @@ public final class Worker implements Suspendable {
       }
 
       Scope metricsScope =
-          this.factoryOptions.metricsScope.tagged(
-              new ImmutableMap.Builder<String, String>(2)
-                  .put(MetricsTag.DOMAIN, workflowClient.getOptions().getDomain())
-                  .put(MetricsTag.TASK_LIST, getHostName())
-                  .build());
+          workflowClient
+              .getOptions()
+              .getMetricsScope()
+              .tagged(
+                  new ImmutableMap.Builder<String, String>(2)
+                      .put(MetricsTag.DOMAIN, workflowClient.getOptions().getDomain())
+                      .put(MetricsTag.TASK_LIST, getHostName())
+                      .build());
 
       this.cache = new DeciderCache(this.factoryOptions.cacheMaximumSize, metricsScope);
 
@@ -715,7 +717,6 @@ public final class Worker implements Suspendable {
       private int cacheMaximumSize = 600;
       private int maxWorkflowThreadCount = 600;
       private PollerOptions stickyWorkflowPollerOptions;
-      private Scope metricScope;
       private List<ContextPropagator> contextPropagators;
 
       /**
@@ -766,11 +767,6 @@ public final class Worker implements Suspendable {
         return this;
       }
 
-      public Builder setMetricScope(Scope metricScope) {
-        this.metricScope = metricScope;
-        return this;
-      }
-
       public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
         this.contextPropagators = contextPropagators;
         return this;
@@ -783,7 +779,6 @@ public final class Worker implements Suspendable {
             maxWorkflowThreadCount,
             stickyDecisionScheduleToStartTimeoutInSeconds,
             stickyWorkflowPollerOptions,
-            metricScope,
             contextPropagators);
       }
     }
@@ -793,7 +788,6 @@ public final class Worker implements Suspendable {
     private final int maxWorkflowThreadCount;
     private final int stickyDecisionScheduleToStartTimeoutInSeconds;
     private final PollerOptions stickyWorkflowPollerOptions;
-    private final Scope metricsScope;
     private List<ContextPropagator> contextPropagators;
 
     private FactoryOptions(
@@ -802,7 +796,6 @@ public final class Worker implements Suspendable {
         int maxWorkflowThreadCount,
         int stickyDecisionScheduleToStartTimeoutInSeconds,
         PollerOptions stickyWorkflowPollerOptions,
-        Scope metricsScope,
         List<ContextPropagator> contextPropagators) {
       Preconditions.checkArgument(
           cacheMaximumSize > 0, "cacheMaximumSize should be greater than 0");
@@ -827,12 +820,6 @@ public final class Worker implements Suspendable {
                 .build();
       } else {
         this.stickyWorkflowPollerOptions = stickyWorkflowPollerOptions;
-      }
-
-      if (metricsScope == null) {
-        this.metricsScope = NoopScope.getInstance();
-      } else {
-        this.metricsScope = metricsScope;
       }
 
       if (contextPropagators != null) {

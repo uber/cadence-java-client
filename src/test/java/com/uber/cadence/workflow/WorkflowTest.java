@@ -68,6 +68,7 @@ import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.serviceclient.ClientOptions;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -211,7 +212,7 @@ public class WorkflowTest {
   private TestWorkflowEnvironment testEnvironment;
   private ScheduledExecutorService scheduledExecutor;
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
-  private static final WorkflowServiceTChannel service =
+  private static final IWorkflowService service =
       new WorkflowServiceTChannel(ClientOptions.defaultInstance());
 
   @AfterClass
