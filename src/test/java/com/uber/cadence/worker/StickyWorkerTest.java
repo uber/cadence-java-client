@@ -553,7 +553,7 @@ public class StickyWorkerTest {
         options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
       }
       if (useExternalService) {
-        factory = Worker.Factory.newInstance(getWorkflowClient());
+        factory = Worker.Factory.newInstance(getWorkflowClient(), options);
       } else {
         WorkflowClientOptions clientOptions =
             WorkflowClientOptions.newBuilder().setDomain(DOMAIN).setMetricsScope(scope).build();
