@@ -29,7 +29,6 @@ import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.worker.Worker.FactoryOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.nio.charset.StandardCharsets;
@@ -68,8 +67,8 @@ public class LocalActivityContextPropagationTest {
       testEnv =
           TestWorkflowEnvironment.newInstance(
               new TestEnvironmentOptions.Builder()
-                  .setWorkerFactoryOptions(
-                      new FactoryOptions.Builder()
+                  .setWorkflowClientOptions(
+                      WorkflowClientOptions.newBuilder()
                           .setContextPropagators(
                               propagationEnabled ? PROPAGATORS : Collections.emptyList())
                           .build())

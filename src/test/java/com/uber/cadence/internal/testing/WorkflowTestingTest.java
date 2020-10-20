@@ -38,11 +38,7 @@ import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.client.WorkflowException;
-import com.uber.cadence.client.WorkflowOptions;
-import com.uber.cadence.client.WorkflowStub;
-import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.client.*;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.testing.SimulatedTimeoutException;
@@ -101,8 +97,8 @@ public class WorkflowTestingTest {
   public void setUp() {
     TestEnvironmentOptions options =
         new TestEnvironmentOptions.Builder()
-            .setWorkerFactoryOptions(
-                new Worker.FactoryOptions.Builder()
+            .setWorkflowClientOptions(
+                WorkflowClientOptions.newBuilder()
                     .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
                     .build())
             .build();

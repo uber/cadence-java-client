@@ -20,20 +20,33 @@ package com.uber.cadence.worker;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
-import com.uber.m3.tally.Scope;
-import java.lang.management.ManagementFactory;
 import java.util.Objects;
 import java.util.function.Function;
 
 public final class WorkerOptions {
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(WorkerOptions options) {
+    return new Builder(options);
+  }
+
+  public static WorkerOptions defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final WorkerOptions DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = WorkerOptions.newBuilder().build();
+  }
 
   public static final class Builder {
 
     private double workerActivitiesPerSecond;
-    private String identity;
     private DataConverter dataConverter = JsonDataConverter.getInstance();
     private int maxConcurrentActivityExecutionSize = 100;
     private int maxConcurrentWorkflowExecutionSize = 50;
@@ -46,18 +59,24 @@ public final class WorkerOptions {
     private RetryOptions reportWorkflowCompletionRetryOptions;
     private RetryOptions reportWorkflowFailureRetryOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
-    private Scope metricsScope;
-    private boolean enableLoggingInReplay;
 
-    /**
-     * Override human readable identity of the worker. Identity is used to identify a worker and is
-     * recorded in the workflow history events. For example when a worker gets an activity task the
-     * correspondent ActivityTaskStarted event contains the worker identity as a field. Default is
-     * whatever <code>(ManagementFactory.getRuntimeMXBean().getName()</code> returns.
-     */
-    public Builder setIdentity(String identity) {
-      this.identity = Objects.requireNonNull(identity);
-      return this;
+    private Builder() {}
+
+    private Builder(WorkerOptions options) {
+      this.workerActivitiesPerSecond = options.workerActivitiesPerSecond;
+      this.dataConverter = options.dataConverter;
+      this.maxConcurrentActivityExecutionSize = options.maxConcurrentActivityExecutionSize;
+      this.maxConcurrentWorkflowExecutionSize = options.maxConcurrentWorkflowExecutionSize;
+      this.maxConcurrentLocalActivityExecutionSize =
+          options.maxConcurrentLocalActivityExecutionSize;
+      this.taskListActivitiesPerSecond = options.taskListActivitiesPerSecond;
+      this.activityPollerOptions = options.activityPollerOptions;
+      this.workflowPollerOptions = options.workflowPollerOptions;
+      this.reportActivityCompletionRetryOptions = options.reportActivityCompletionRetryOptions;
+      this.reportActivityFailureRetryOptions = options.reportActivityFailureRetryOptions;
+      this.reportWorkflowCompletionRetryOptions = options.reportWorkflowCompletionRetryOptions;
+      this.reportWorkflowFailureRetryOptions = options.reportWorkflowFailureRetryOptions;
+      this.interceptorFactory = options.interceptorFactory;
     }
 
     /**
@@ -153,16 +172,6 @@ public final class WorkerOptions {
       return this;
     }
 
-    public Builder setMetricsScope(Scope metricsScope) {
-      this.metricsScope = Objects.requireNonNull(metricsScope);
-      return this;
-    }
-
-    public Builder setEnableLoggingInReplay(boolean enableLoggingInReplay) {
-      this.enableLoggingInReplay = enableLoggingInReplay;
-      return this;
-    }
-
     /**
      * Optional: Sets the rate limiting on number of activities that can be executed per second.
      * This is managed by the server and controls activities per second for your entire tasklist.
@@ -177,17 +186,8 @@ public final class WorkerOptions {
     }
 
     public WorkerOptions build() {
-      if (identity == null) {
-        identity = ManagementFactory.getRuntimeMXBean().getName();
-      }
-
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-
       return new WorkerOptions(
           workerActivitiesPerSecond,
-          identity,
           dataConverter,
           maxConcurrentActivityExecutionSize,
           maxConcurrentWorkflowExecutionSize,
@@ -199,14 +199,11 @@ public final class WorkerOptions {
           reportActivityFailureRetryOptions,
           reportWorkflowCompletionRetryOptions,
           reportWorkflowFailureRetryOptions,
-          interceptorFactory,
-          metricsScope,
-          enableLoggingInReplay);
+          interceptorFactory);
     }
   }
 
   private final double workerActivitiesPerSecond;
-  private final String identity;
   private final DataConverter dataConverter;
   private final int maxConcurrentActivityExecutionSize;
   private final int maxConcurrentWorkflowExecutionSize;
@@ -219,12 +216,9 @@ public final class WorkerOptions {
   private final RetryOptions reportWorkflowCompletionRetryOptions;
   private final RetryOptions reportWorkflowFailureRetryOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
-  private final Scope metricsScope;
-  private final boolean enableLoggingInReplay;
 
   private WorkerOptions(
       double workerActivitiesPerSecond,
-      String identity,
       DataConverter dataConverter,
       int maxConcurrentActivityExecutionSize,
       int maxConcurrentWorkflowExecutionSize,
@@ -236,11 +230,8 @@ public final class WorkerOptions {
       RetryOptions reportActivityFailureRetryOptions,
       RetryOptions reportWorkflowCompletionRetryOptions,
       RetryOptions reportWorkflowFailureRetryOptions,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      Scope metricsScope,
-      boolean enableLoggingInReplay) {
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
-    this.identity = identity;
     this.dataConverter = dataConverter;
     this.maxConcurrentActivityExecutionSize = maxConcurrentActivityExecutionSize;
     this.maxConcurrentWorkflowExecutionSize = maxConcurrentWorkflowExecutionSize;
@@ -253,16 +244,10 @@ public final class WorkerOptions {
     this.reportWorkflowCompletionRetryOptions = reportWorkflowCompletionRetryOptions;
     this.reportWorkflowFailureRetryOptions = reportWorkflowFailureRetryOptions;
     this.interceptorFactory = interceptorFactory;
-    this.metricsScope = metricsScope;
-    this.enableLoggingInReplay = enableLoggingInReplay;
   }
 
   public double getWorkerActivitiesPerSecond() {
     return workerActivitiesPerSecond;
-  }
-
-  public String getIdentity() {
-    return identity;
   }
 
   public DataConverter getDataConverter() {
@@ -309,22 +294,11 @@ public final class WorkerOptions {
     return interceptorFactory;
   }
 
-  public Scope getMetricsScope() {
-    return metricsScope;
-  }
-
-  public boolean getEnableLoggingInReplay() {
-    return enableLoggingInReplay;
-  }
-
   @Override
   public String toString() {
     return "WorkerOptions{"
         + "workerActivitiesPerSecond="
         + workerActivitiesPerSecond
-        + ", identity='"
-        + identity
-        + '\''
         + ", dataConverter="
         + dataConverter
         + ", maxConcurrentActivityExecutionSize="

@@ -17,10 +17,16 @@
 
 package com.uber.cadence.client;
 
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
+import com.uber.m3.util.ImmutableMap;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /** Options for WorkflowClient configuration. */
@@ -29,6 +35,7 @@ public final class WorkflowClientOptions {
   private static final WorkflowClientOptions DEFAULT_INSTANCE;
   private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
       new WorkflowClientInterceptor[0];
+  private static final List<ContextPropagator> EMPTY_CONTEXT_PROPAGATORS = Arrays.asList();
 
   static {
     DEFAULT_INSTANCE = new Builder().build();
@@ -51,6 +58,8 @@ public final class WorkflowClientOptions {
     private DataConverter dataConverter = JsonDataConverter.getInstance();
     private WorkflowClientInterceptor[] interceptors = EMPTY_INTERCEPTOR_ARRAY;
     private Scope metricsScope = NoopScope.getInstance();
+    private String identity = ManagementFactory.getRuntimeMXBean().getName();;
+    private List<ContextPropagator> contextPropagators = EMPTY_CONTEXT_PROPAGATORS;
 
     private Builder() {}
 
@@ -59,6 +68,7 @@ public final class WorkflowClientOptions {
       dataConverter = options.getDataConverter();
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
+      identity = options.getIdentity();
     }
 
     public Builder setDomain(String domain) {
@@ -97,8 +107,26 @@ public final class WorkflowClientOptions {
       return this;
     }
 
+    /**
+     * Override human readable identity of the worker. Identity is used to identify a worker and is
+     * recorded in the workflow history events. For example when a worker gets an activity task the
+     * correspondent ActivityTaskStarted event contains the worker identity as a field. Default is
+     * whatever <code>(ManagementFactory.getRuntimeMXBean().getName()</code> returns.
+     */
+    public Builder setIdentity(String identity) {
+      this.identity = Objects.requireNonNull(identity);
+      return this;
+    }
+
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     public WorkflowClientOptions build() {
-      return new WorkflowClientOptions(domain, dataConverter, interceptors, metricsScope);
+      metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.DOMAIN, domain));
+      return new WorkflowClientOptions(
+          domain, dataConverter, interceptors, metricsScope, identity, contextPropagators);
     }
   }
 
@@ -106,16 +134,22 @@ public final class WorkflowClientOptions {
   private final DataConverter dataConverter;
   private final WorkflowClientInterceptor[] interceptors;
   private final Scope metricsScope;
+  private String identity;
+  private List<ContextPropagator> contextPropagators;
 
   private WorkflowClientOptions(
       String domain,
       DataConverter dataConverter,
       WorkflowClientInterceptor[] interceptors,
-      Scope metricsScope) {
+      Scope metricsScope,
+      String identity,
+      List<ContextPropagator> contextPropagators) {
     this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;
     this.metricsScope = metricsScope;
+    this.identity = identity;
+    this.contextPropagators = contextPropagators;
   }
 
   public String getDomain() {
@@ -132,5 +166,13 @@ public final class WorkflowClientOptions {
 
   public Scope getMetricsScope() {
     return metricsScope;
+  }
+
+  public String getIdentity() {
+    return identity;
+  }
+
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
   }
 }

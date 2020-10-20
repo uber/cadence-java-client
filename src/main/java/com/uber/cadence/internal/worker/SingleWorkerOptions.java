@@ -29,8 +29,15 @@ import java.util.List;
 
 public final class SingleWorkerOptions {
 
-  public static final class Builder {
+  public static Builder newBuilder() {
+    return new Builder();
+  }
 
+  public static Builder newBuilder(SingleWorkerOptions options) {
+    return new Builder(options);
+  }
+
+  public static final class Builder {
     private String identity;
     private DataConverter dataConverter;
     private int taskExecutorThreadPoolSize = 100;
@@ -121,7 +128,7 @@ public final class SingleWorkerOptions {
 
       if (pollerOptions == null) {
         pollerOptions =
-            new PollerOptions.Builder()
+            PollerOptions.newBuilder()
                 .setPollBackoffInitialInterval(Duration.ofMillis(200))
                 .setPollBackoffMaximumInterval(Duration.ofSeconds(20))
                 .setPollThreadCount(1)
