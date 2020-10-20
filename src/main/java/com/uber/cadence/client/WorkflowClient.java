@@ -108,76 +108,28 @@ public interface WorkflowClient {
   String QUERY_TYPE_REPLAY_ONLY = "__replay_only";
 
   /**
-   * Creates worker that connects to the local instance of the Cadence Service that listens on a
-   * default port (7933).
-   *
-   * @param domain domain that worker uses to poll.
-   */
-  static WorkflowClient newInstance(String domain) {
-    return WorkflowClientInternal.newInstance(domain);
-  }
-
-  /**
-   * Creates worker that connects to the local instance of the Cadence Service that listens on a
-   * default port (7933).
-   *
-   * @param domain domain that worker uses to poll.
-   * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
-   *     configuring client.
-   */
-  static WorkflowClient newInstance(String domain, WorkflowClientOptions options) {
-    return WorkflowClientInternal.newInstance(domain, options);
-  }
-
-  /**
    * Creates client that connects to an instance of the Cadence Service.
    *
-   * @param host of the Cadence Service endpoint
-   * @param port of the Cadence Service endpoint
-   * @param domain domain that worker uses to poll.
+   * @param service client to the Cadence Service endpoint.
    */
-  static WorkflowClient newInstance(String host, int port, String domain) {
-    return WorkflowClientInternal.newInstance(host, port, domain);
-  }
-
-  /**
-   * Creates client that connects to an instance of the Cadence Service.
-   *
-   * @param host of the Cadence Service endpoint
-   * @param port of the Cadence Service endpoint
-   * @param domain domain that worker uses to poll.
-   * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
-   *     configuring client.
-   */
-  static WorkflowClient newInstance(
-      String host, int port, String domain, WorkflowClientOptions options) {
-    return WorkflowClientInternal.newInstance(host, port, domain, options);
+  static WorkflowClient newInstance(IWorkflowService service) {
+    return WorkflowClientInternal.newInstance(service, WorkflowClientOptions.defaultInstance());
   }
 
   /**
    * Creates client that connects to an instance of the Cadence Service.
    *
    * @param service client to the Cadence Service endpoint.
-   * @param domain domain that worker uses to poll.
-   */
-  static WorkflowClient newInstance(IWorkflowService service, String domain) {
-    return WorkflowClientInternal.newInstance(service, domain);
-  }
-
-  /**
-   * Creates client that connects to an instance of the Cadence Service.
-   *
-   * @param service client to the Cadence Service endpoint.
-   * @param domain domain that worker uses to poll.
    * @param options Options (like {@link com.uber.cadence.converter.DataConverter}er override) for
    *     configuring client.
    */
-  static WorkflowClient newInstance(
-      IWorkflowService service, String domain, WorkflowClientOptions options) {
-    return WorkflowClientInternal.newInstance(service, domain, options);
+  static WorkflowClient newInstance(IWorkflowService service, WorkflowClientOptions options) {
+    return WorkflowClientInternal.newInstance(service, options);
   }
 
-  String getDomain();
+  WorkflowClientOptions getOptions();
+
+  IWorkflowService getService();
 
   /**
    * Creates workflow client stub that can be used to start a single workflow execution. The first
@@ -728,7 +680,4 @@ public interface WorkflowClient {
       A6 arg6) {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
-
-  /** Closes the workflow client and the underlying IWorkflowService when this method is called. */
-  void close();
 }

@@ -25,19 +25,45 @@ import java.util.Objects;
 
 /** Options for WorkflowClient configuration. */
 public final class WorkflowClientOptions {
+  private static final String DEFAULT_DOMAIN = "default";
+  private static final WorkflowClientOptions DEFAULT_INSTANCE;
+  private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
+      new WorkflowClientInterceptor[0];
+
+  static {
+    DEFAULT_INSTANCE = new Builder().build();
+  }
+
+  public static WorkflowClientOptions defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(WorkflowClientOptions options) {
+    return new Builder(options);
+  }
 
   public static final class Builder {
-
+    private String domain = DEFAULT_DOMAIN;
     private DataConverter dataConverter = JsonDataConverter.getInstance();
     private WorkflowClientInterceptor[] interceptors = EMPTY_INTERCEPTOR_ARRAY;
-    private Scope metricsScope;
+    private Scope metricsScope = NoopScope.getInstance();
 
-    public Builder() {}
+    private Builder() {}
 
-    public Builder(WorkflowClientOptions options) {
+    private Builder(WorkflowClientOptions options) {
+      domain = options.getDomain();
       dataConverter = options.getDataConverter();
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
+    }
+
+    public Builder setDomain(String domain) {
+      this.domain = domain;
+      return this;
     }
 
     /**
@@ -72,26 +98,28 @@ public final class WorkflowClientOptions {
     }
 
     public WorkflowClientOptions build() {
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-      return new WorkflowClientOptions(dataConverter, interceptors, metricsScope);
+      return new WorkflowClientOptions(domain, dataConverter, interceptors, metricsScope);
     }
   }
 
-  private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
-      new WorkflowClientInterceptor[0];
+  private final String domain;
   private final DataConverter dataConverter;
-
   private final WorkflowClientInterceptor[] interceptors;
-
   private final Scope metricsScope;
 
   private WorkflowClientOptions(
-      DataConverter dataConverter, WorkflowClientInterceptor[] interceptors, Scope metricsScope) {
+      String domain,
+      DataConverter dataConverter,
+      WorkflowClientInterceptor[] interceptors,
+      Scope metricsScope) {
+    this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;
     this.metricsScope = metricsScope;
+  }
+
+  public String getDomain() {
+    return domain;
   }
 
   public DataConverter getDataConverter() {

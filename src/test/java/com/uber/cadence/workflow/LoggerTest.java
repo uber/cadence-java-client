@@ -24,6 +24,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -86,9 +87,11 @@ public class LoggerTest {
 
   @Test
   public void testWorkflowLogger() {
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(WorkflowTest.DOMAIN).build();
     TestEnvironmentOptions testOptions =
         new TestEnvironmentOptions.Builder()
-            .setDomain(WorkflowTest.DOMAIN)
+            .setWorkflowClientOptions(clientOptions)
             .setEnableLoggingInReplay(false)
             .build();
     TestWorkflowEnvironment env = TestWorkflowEnvironment.newInstance(testOptions);

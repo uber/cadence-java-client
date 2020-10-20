@@ -101,7 +101,7 @@ public class WorkflowTestingTest {
   public void setUp() {
     TestEnvironmentOptions options =
         new TestEnvironmentOptions.Builder()
-            .setFactoryOptions(
+            .setWorkerFactoryOptions(
                 new Worker.FactoryOptions.Builder()
                     .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
                     .build())
@@ -580,7 +580,7 @@ public class WorkflowTestingTest {
             .GetWorkflowExecutionHistory(
                 new GetWorkflowExecutionHistoryRequest()
                     .setExecution(new WorkflowExecution().setWorkflowId(workflowID))
-                    .setDomain(client.getDomain()))
+                    .setDomain(client.getOptions().getDomain()))
             .getHistory();
     List<HistoryEvent> historyEvents = history.getEvents();
     assertTrue(

@@ -90,8 +90,8 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public void start() {
-    if (log.isInfoEnabled()) {
-      log.info("start(): " + toString());
+    if (log.isDebugEnabled()) {
+      log.debug("start(): " + toString());
     }
     if (pollerOptions.getMaximumPollRatePerSecond() > 0.0) {
       pollRateThrottler =
@@ -143,7 +143,7 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public void shutdown() {
-    log.info("shutdown");
+    log.debug("shutdown");
     if (!isStarted()) {
       return;
     }
@@ -159,8 +159,8 @@ public final class Poller<T> implements SuspendableWorker {
 
   @Override
   public void shutdownNow() {
-    if (log.isInfoEnabled()) {
-      log.info("shutdownNow poller=" + this.pollerOptions.getPollThreadNamePrefix());
+    if (log.isDebugEnabled()) {
+      log.debug("shutdownNow poller=" + this.pollerOptions.getPollThreadNamePrefix());
     }
     if (!isStarted()) {
       return;

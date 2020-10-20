@@ -31,10 +31,13 @@ import static org.mockito.Mockito.verify;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.replay.DeciderCache;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -93,7 +96,7 @@ public class StickyWorkerTest {
   @BeforeClass
   public static void setUp() {
     if (useDockerService) {
-      service = new WorkflowServiceTChannel();
+      service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     }
   }
 
@@ -115,12 +118,9 @@ public class StickyWorkerTest {
             .reporter(reporter)
             .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
-    TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
-                .setDisableStickyExecution(false)
-                .setMetricScope(scope)
-                .build());
+    Worker.FactoryOptions factoryOptions =
+        new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+    TestEnvironmentWrapper wrapper = new TestEnvironmentWrapper(factoryOptions, scope);
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
@@ -173,14 +173,13 @@ public class StickyWorkerTest {
             .reporter(reporter)
             .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
-    TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
-                .setDisableStickyExecution(false)
-                .setMetricScope(scope)
-                .setMaxWorkflowThreadCount(10)
-                .setCacheMaximumSize(100)
-                .build());
+    Worker.FactoryOptions factoryOptions =
+        new Worker.FactoryOptions.Builder()
+            .setDisableStickyExecution(false)
+            .setMaxWorkflowThreadCount(10)
+            .setCacheMaximumSize(100)
+            .build();
+    TestEnvironmentWrapper wrapper = new TestEnvironmentWrapper(factoryOptions, scope);
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker =
         factory.newWorker(
@@ -231,12 +230,10 @@ public class StickyWorkerTest {
             .reporter(reporter)
             .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
-    TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
-                .setDisableStickyExecution(false)
-                .setMetricScope(scope)
-                .build());
+    Worker.FactoryOptions factoryOptions =
+        new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+
+    TestEnvironmentWrapper wrapper = new TestEnvironmentWrapper(factoryOptions, scope);
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
@@ -289,12 +286,9 @@ public class StickyWorkerTest {
             .reporter(reporter)
             .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
-    TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
-                .setDisableStickyExecution(false)
-                .setMetricScope(scope)
-                .build());
+    Worker.FactoryOptions factoryOptions =
+        new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+    TestEnvironmentWrapper wrapper = new TestEnvironmentWrapper(factoryOptions, scope);
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(
@@ -340,12 +334,9 @@ public class StickyWorkerTest {
             .reporter(reporter)
             .reportEvery(com.uber.m3.util.Duration.ofMillis(300));
 
-    TestEnvironmentWrapper wrapper =
-        new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
-                .setDisableStickyExecution(false)
-                .setMetricScope(scope)
-                .build());
+    Worker.FactoryOptions factoryOptions =
+        new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+    TestEnvironmentWrapper wrapper = new TestEnvironmentWrapper(factoryOptions, scope);
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
     worker.registerWorkflowImplementationTypes(TestMutableSideEffectWorkflowImpl.class);
@@ -394,7 +385,8 @@ public class StickyWorkerTest {
     String taskListName = "notCachedStickyTest";
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(true).build());
+            new Worker.FactoryOptions.Builder().setDisableStickyExecution(true).build(),
+            NoopScope.getInstance());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
@@ -427,7 +419,8 @@ public class StickyWorkerTest {
     String taskListName = "evictedStickyTest";
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build());
+            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build(),
+            NoopScope.getInstance());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
@@ -467,7 +460,8 @@ public class StickyWorkerTest {
     String taskListName = "queryStickyTest";
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build());
+            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build(),
+            NoopScope.getInstance());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
@@ -508,7 +502,8 @@ public class StickyWorkerTest {
     String taskListName = "queryEvictionStickyTest";
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build());
+            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build(),
+            NoopScope.getInstance());
     Worker.Factory factory = wrapper.getWorkerFactory();
     Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(GreetingSignalWorkflowImpl.class);
@@ -550,18 +545,22 @@ public class StickyWorkerTest {
 
     private TestWorkflowEnvironment testEnv;
     private Worker.Factory factory;
+    private final Scope scope;
 
-    public TestEnvironmentWrapper(Worker.FactoryOptions options) {
+    public TestEnvironmentWrapper(Worker.FactoryOptions options, Scope scope) {
+      this.scope = scope;
       if (options == null) {
         options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
       }
       if (useExternalService) {
-        factory = new Worker.Factory(service, DOMAIN, options);
+        factory = Worker.Factory.newInstance(getWorkflowClient(), options);
       } else {
+        WorkflowClientOptions clientOptions =
+            WorkflowClientOptions.newBuilder().setDomain(DOMAIN).setMetricsScope(scope).build();
         TestEnvironmentOptions testOptions =
             new TestEnvironmentOptions.Builder()
-                .setDomain(DOMAIN)
-                .setFactoryOptions(options)
+                .setWorkflowClientOptions(clientOptions)
+                .setWorkerFactoryOptions(options)
                 .build();
         testEnv = TestWorkflowEnvironment.newInstance(testOptions);
       }
@@ -572,8 +571,10 @@ public class StickyWorkerTest {
     }
 
     private WorkflowClient getWorkflowClient() {
+      WorkflowClientOptions clientOptions =
+          WorkflowClientOptions.newBuilder().setDomain(DOMAIN).setMetricsScope(scope).build();
       return useExternalService
-          ? WorkflowClient.newInstance(service, DOMAIN)
+          ? WorkflowClient.newInstance(service, clientOptions)
           : testEnv.newWorkflowClient();
     }
 

@@ -24,6 +24,7 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class ManualActivityCompletionClientFactoryImpl
     extends ManualActivityCompletionClientFactory {
@@ -35,9 +36,9 @@ public class ManualActivityCompletionClientFactoryImpl
 
   public ManualActivityCompletionClientFactoryImpl(
       IWorkflowService service, String domain, DataConverter dataConverter, Scope metricsScope) {
-    this.service = service;
-    this.domain = domain;
-    this.dataConverter = dataConverter;
+    this.service = Objects.requireNonNull(service);
+    this.domain = Objects.requireNonNull(domain);
+    this.dataConverter = Objects.requireNonNull(dataConverter);
 
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(1).put(MetricsTag.DOMAIN, domain).build();
@@ -54,16 +55,11 @@ public class ManualActivityCompletionClientFactoryImpl
 
   @Override
   public ManualActivityCompletionClient getClient(byte[] taskToken) {
-    if (service == null) {
-      throw new IllegalStateException("required property service is null");
-    }
-    if (dataConverter == null) {
-      throw new IllegalStateException("required property dataConverter is null");
-    }
     if (taskToken == null || taskToken.length == 0) {
       throw new IllegalArgumentException("null or empty task token");
     }
-    return new ManualActivityCompletionClientImpl(service, taskToken, dataConverter, metricsScope);
+    return new ManualActivityCompletionClientImpl(
+        service, domain, taskToken, dataConverter, metricsScope);
   }
 
   @Override
