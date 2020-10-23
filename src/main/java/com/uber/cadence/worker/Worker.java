@@ -141,6 +141,7 @@ public final class Worker implements Suspendable {
             .put(MetricsTag.TASK_LIST, taskList)
             .build();
     return new SingleWorkerOptions.Builder()
+        .setWorkerActivitiesPerSecond(options.getWorkerActivitiesPerSecond())
         .setDataConverter(options.getDataConverter())
         .setIdentity(options.getIdentity())
         .setPollerOptions(options.getActivityPollerOptions())

@@ -39,6 +39,8 @@ final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
   private final String taskList;
   private final TaskHandler<T> handler;
 
+  private Throttler taskRateThrottler;
+
   PollTaskExecutor(
       String domain, String taskList, SingleWorkerOptions options, TaskHandler<T> handler) {
     this.domain = domain;
@@ -59,6 +61,10 @@ final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
             options.getPollerOptions().getPollThreadNamePrefix().replaceFirst("Poller", "Executor"),
             options.getPollerOptions().getUncaughtExceptionHandler()));
     taskExecutor.setRejectedExecutionHandler(new BlockCallerPolicy());
+
+    if (options.getWorkerActivitiesPerSecond() > 0.0) {
+      taskRateThrottler = new Throttler("PollTaskExecutor", options.getWorkerActivitiesPerSecond());
+    }
   }
 
   @Override
@@ -68,6 +74,9 @@ final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
           MDC.put(LoggerTag.DOMAIN, domain);
           MDC.put(LoggerTag.TASK_LIST, taskList);
           try {
+            if (taskRateThrottler != null) {
+              taskRateThrottler.throttle();
+            }
             handler.handle(task);
           } catch (Throwable ee) {
             options

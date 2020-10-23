@@ -38,7 +38,29 @@ final class Throttler {
 
   private final long rateIntervalMilliseconds;
 
+  /** Default 1s interval when interval per message is less than 1ms */
+  private static final long defaultRateIntervalMilliseconds = 1000L;
+
   private long overslept;
+
+  private static long calculateIntervalMillisecondsPerMessage(double maxRatePerSecond) {
+    return (long) (1 / maxRatePerSecond * 1000.0);
+  }
+
+  /**
+   * Construct throttler.
+   *
+   * @param name Human readable name of the resource being throttled. Used for logging only.
+   * @param maxRatePerSecond maximum rate allowed
+   */
+  public Throttler(String name, double maxRatePerSecond) {
+    this(
+        name,
+        maxRatePerSecond,
+        calculateIntervalMillisecondsPerMessage(maxRatePerSecond) <= 0L
+            ? defaultRateIntervalMilliseconds
+            : calculateIntervalMillisecondsPerMessage(maxRatePerSecond));
+  }
 
   /**
    * Construct throttler.
@@ -69,7 +91,7 @@ final class Throttler {
     int maxMessagesPerRateInterval = (int) (maxRatePerSecond * rateIntervalMilliseconds / 1000);
     if (maxMessagesPerRateInterval == 0) {
       maxMessagesPerRateInterval = 1;
-      rateInterval = (long) (1.0 / maxRatePerSecond * 1000.0);
+      rateInterval = calculateIntervalMillisecondsPerMessage(maxRatePerSecond);
     } else {
       rateInterval = rateIntervalMilliseconds;
     }
