@@ -31,6 +31,7 @@ public final class SingleWorkerOptions {
 
   public static final class Builder {
 
+    private double workerActivitiesPerSecond;
     private String identity;
     private DataConverter dataConverter;
     private int taskExecutorThreadPoolSize = 100;
@@ -47,6 +48,7 @@ public final class SingleWorkerOptions {
     public Builder() {}
 
     public Builder(SingleWorkerOptions options) {
+      this.workerActivitiesPerSecond = options.getWorkerActivitiesPerSecond();
       this.identity = options.getIdentity();
       this.dataConverter = options.getDataConverter();
       this.pollerOptions = options.getPollerOptions();
@@ -57,6 +59,11 @@ public final class SingleWorkerOptions {
       this.metricsScope = options.getMetricsScope();
       this.enableLoggingInReplay = options.getEnableLoggingInReplay();
       this.contextPropagators = options.getContextPropagators();
+    }
+
+    public Builder setWorkerActivitiesPerSecond(double workerActivitiesPerSecond) {
+      this.workerActivitiesPerSecond = workerActivitiesPerSecond;
+      return this;
     }
 
     public Builder setIdentity(String identity) {
@@ -137,6 +144,7 @@ public final class SingleWorkerOptions {
       }
 
       return new SingleWorkerOptions(
+          workerActivitiesPerSecond,
           identity,
           dataConverter,
           taskExecutorThreadPoolSize,
@@ -150,6 +158,7 @@ public final class SingleWorkerOptions {
     }
   }
 
+  private final double workerActivitiesPerSecond;
   private final String identity;
   private final DataConverter dataConverter;
   private final int taskExecutorThreadPoolSize;
@@ -162,6 +171,7 @@ public final class SingleWorkerOptions {
   private List<ContextPropagator> contextPropagators;
 
   private SingleWorkerOptions(
+      double workerActivitiesPerSecond,
       String identity,
       DataConverter dataConverter,
       int taskExecutorThreadPoolSize,
@@ -172,6 +182,7 @@ public final class SingleWorkerOptions {
       Scope metricsScope,
       boolean enableLoggingInReplay,
       List<ContextPropagator> contextPropagators) {
+    this.workerActivitiesPerSecond = workerActivitiesPerSecond;
     this.identity = identity;
     this.dataConverter = dataConverter;
     this.taskExecutorThreadPoolSize = taskExecutorThreadPoolSize;
@@ -182,6 +193,10 @@ public final class SingleWorkerOptions {
     this.metricsScope = metricsScope;
     this.enableLoggingInReplay = enableLoggingInReplay;
     this.contextPropagators = contextPropagators;
+  }
+
+  double getWorkerActivitiesPerSecond() {
+    return workerActivitiesPerSecond;
   }
 
   public String getIdentity() {
