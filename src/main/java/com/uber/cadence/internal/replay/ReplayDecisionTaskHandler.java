@@ -113,7 +113,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       e.printStackTrace(pw);
       String stackTrace = sw.toString();
       failedRequest.setDetails(stackTrace.getBytes(StandardCharsets.UTF_8));
-      return new DecisionTaskHandler.Result(null, failedRequest, null, null);
+      return new DecisionTaskHandler.Result(null, failedRequest, null);
     }
   }
 
@@ -236,7 +236,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
         cache.markProcessingDone(decisionTask);
       }
     }
-    return new Result(null, null, queryCompletedRequest, null);
+    return new Result(null, null, queryCompletedRequest);
   }
 
   private Result createCompletedRequest(
@@ -254,7 +254,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
           (int) stickyTaskListScheduleToStartTimeout.getSeconds());
       completedRequest.setStickyAttributes(attributes);
     }
-    return new Result(completedRequest, null, null, null);
+    return new Result(completedRequest, null, null);
   }
 
   @Override

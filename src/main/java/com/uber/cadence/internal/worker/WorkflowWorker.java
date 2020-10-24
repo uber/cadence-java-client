@@ -18,9 +18,6 @@
 package com.uber.cadence.internal.worker;
 
 import com.google.common.base.Strings;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
@@ -32,9 +29,8 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.common.WorkflowExecutionHistory;
-import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -237,32 +233,18 @@ public final class WorkflowWorker extends SuspendableWorkerBase
     private void sendReply(
         IWorkflowService service, byte[] taskToken, DecisionTaskHandler.Result response)
         throws TException {
-      RetryOptions ro = response.getRequestRetryOptions();
       RespondDecisionTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
-        ro =
-            options
-                .getReportCompletionRetryOptions()
-                .merge(ro)
-                .addDoNotRetry(
-                    BadRequestError.class, EntityNotExistsError.class, DomainNotActiveError.class);
         taskCompleted.setIdentity(options.getIdentity());
         taskCompleted.setTaskToken(taskToken);
-        Retryer.retry(ro, () -> service.RespondDecisionTaskCompleted(taskCompleted));
+        RpcRetryer.retryWithDefaultOption(
+            () -> service.RespondDecisionTaskCompleted(taskCompleted));
       } else {
         RespondDecisionTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
-          ro =
-              options
-                  .getReportFailureRetryOptions()
-                  .merge(ro)
-                  .addDoNotRetry(
-                      BadRequestError.class,
-                      EntityNotExistsError.class,
-                      DomainNotActiveError.class);
           taskFailed.setIdentity(options.getIdentity());
           taskFailed.setTaskToken(taskToken);
-          Retryer.retry(ro, () -> service.RespondDecisionTaskFailed(taskFailed));
+          RpcRetryer.retryWithDefaultOption(() -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
           if (queryCompleted != null) {

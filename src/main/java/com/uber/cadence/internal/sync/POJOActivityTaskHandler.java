@@ -147,8 +147,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     failure = CheckedExceptionWrapper.unwrap(failure);
     result.setReason(failure.getClass().getName());
     result.setDetails(dataConverter.toData(failure));
-    return new ActivityTaskHandler.Result(
-        null, new Result.TaskFailedResult(result, failure), null, null);
+    return new ActivityTaskHandler.Result(null, new Result.TaskFailedResult(result, failure), null);
   }
 
   @Override
@@ -214,12 +213,12 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         Object result = method.invoke(activity, args);
         RespondActivityTaskCompletedRequest request = new RespondActivityTaskCompletedRequest();
         if (context.isDoNotCompleteOnReturn()) {
-          return new ActivityTaskHandler.Result(null, null, null, null);
+          return new ActivityTaskHandler.Result(null, null, null);
         }
         if (method.getReturnType() != Void.TYPE) {
           request.setResult(dataConverter.toData(result));
         }
-        return new ActivityTaskHandler.Result(request, null, null, null);
+        return new ActivityTaskHandler.Result(request, null, null);
       } catch (RuntimeException | IllegalAccessException e) {
         return mapToActivityFailure(e, metricsScope, false);
       } catch (InvocationTargetException e) {
@@ -252,7 +251,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         if (method.getReturnType() != Void.TYPE) {
           request.setResult(dataConverter.toData(result));
         }
-        return new ActivityTaskHandler.Result(request, null, null, null);
+        return new ActivityTaskHandler.Result(request, null, null);
       } catch (RuntimeException | IllegalAccessException e) {
         return mapToActivityFailure(e, metricsScope, true);
       } catch (InvocationTargetException e) {

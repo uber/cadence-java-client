@@ -21,7 +21,6 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 
@@ -37,7 +36,6 @@ public interface ActivityTaskHandler {
     private final RespondActivityTaskCompletedRequest taskCompleted;
     private final TaskFailedResult taskFailed;
     private final RespondActivityTaskCanceledRequest taskCancelled;
-    private final RetryOptions requestRetryOptions;
     private int attempt;
     private Duration backoff;
 
@@ -68,12 +66,10 @@ public interface ActivityTaskHandler {
     public Result(
         RespondActivityTaskCompletedRequest taskCompleted,
         TaskFailedResult taskFailed,
-        RespondActivityTaskCanceledRequest taskCancelled,
-        RetryOptions requestRetryOptions) {
+        RespondActivityTaskCanceledRequest taskCancelled) {
       this.taskCompleted = taskCompleted;
       this.taskFailed = taskFailed;
       this.taskCancelled = taskCancelled;
-      this.requestRetryOptions = requestRetryOptions;
     }
 
     public RespondActivityTaskCompletedRequest getTaskCompleted() {
@@ -86,10 +82,6 @@ public interface ActivityTaskHandler {
 
     public RespondActivityTaskCanceledRequest getTaskCancelled() {
       return taskCancelled;
-    }
-
-    public RetryOptions getRequestRetryOptions() {
-      return requestRetryOptions;
     }
 
     public void setAttempt(int attempt) {

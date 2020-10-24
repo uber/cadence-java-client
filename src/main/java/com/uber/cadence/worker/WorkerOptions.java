@@ -138,34 +138,6 @@ public final class WorkerOptions {
       return this;
     }
 
-    public Builder setReportActivityCompletionRetryOptions(
-        RetryOptions reportActivityCompletionRetryOptions) {
-      this.reportActivityCompletionRetryOptions =
-          Objects.requireNonNull(reportActivityCompletionRetryOptions);
-      return this;
-    }
-
-    public Builder setReportActivityFailureRetryOptions(
-        RetryOptions reportActivityFailureRetryOptions) {
-      this.reportActivityFailureRetryOptions =
-          Objects.requireNonNull(reportActivityFailureRetryOptions);
-      return this;
-    }
-
-    public Builder setReportWorkflowCompletionRetryOptions(
-        RetryOptions reportWorkflowCompletionRetryOptions) {
-      this.reportWorkflowCompletionRetryOptions =
-          Objects.requireNonNull(reportWorkflowCompletionRetryOptions);
-      return this;
-    }
-
-    public Builder setReportWorkflowFailureRetryOptions(
-        RetryOptions reportWorkflowFailureRetryOptions) {
-      this.reportWorkflowFailureRetryOptions =
-          Objects.requireNonNull(reportWorkflowFailureRetryOptions);
-      return this;
-    }
-
     public Builder setInterceptorFactory(
         Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
       this.interceptorFactory = Objects.requireNonNull(interceptorFactory);

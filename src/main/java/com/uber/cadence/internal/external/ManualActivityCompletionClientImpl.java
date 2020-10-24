@@ -31,7 +31,7 @@ import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
 import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
@@ -95,9 +95,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setResult(convertedResult);
       request.setTaskToken(taskToken);
       try {
-        Retryer.retry(
-            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-            () -> service.RespondActivityTaskCompleted(request));
+        RpcRetryer.retryWithDefaultOption(() -> service.RespondActivityTaskCompleted(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
@@ -139,9 +137,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setDetails(dataConverter.toData(failure));
       request.setTaskToken(taskToken);
       try {
-        Retryer.retry(
-            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-            () -> service.RespondActivityTaskFailed(request));
+        RpcRetryer.retryWithDefaultOption(() -> service.RespondActivityTaskFailed(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
@@ -156,9 +152,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       request.setWorkflowID(execution.getWorkflowId());
       request.setRunID(execution.getRunId());
       try {
-        Retryer.retry(
-            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-            () -> service.RespondActivityTaskFailedByID(request));
+        RpcRetryer.retryWithDefaultOption(() -> service.RespondActivityTaskFailedByID(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_BY_ID_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);

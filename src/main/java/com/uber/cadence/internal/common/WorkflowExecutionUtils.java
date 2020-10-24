@@ -27,7 +27,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.uber.cadence.ActivityType;
-import com.uber.cadence.BadRequestError;
 import com.uber.cadence.Decision;
 import com.uber.cadence.DecisionType;
 import com.uber.cadence.DescribeWorkflowExecutionRequest;
@@ -90,15 +89,6 @@ public class WorkflowExecutionUtils {
    * traces.
    */
   private static final String INDENTATION = "  ";
-
-  private static RetryOptions retryParameters =
-      new RetryOptions.Builder()
-          .setBackoffCoefficient(2)
-          .setInitialInterval(Duration.ofMillis(500))
-          .setMaximumInterval(Duration.ofSeconds(30))
-          .setMaximumAttempts(Integer.MAX_VALUE)
-          .setDoNotRetry(BadRequestError.class, EntityNotExistsError.class)
-          .build();
 
   // Wait period for passive cluster to retry getting workflow result in case of replication delay.
   private static final long ENTITY_NOT_EXIST_RETRY_WAIT_MILLIS = 500;
@@ -216,7 +206,7 @@ public class WorkflowExecutionUtils {
       RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
       try {
         response =
-            Retryer.retryWithResult(
+            RpcRetryer.retryWithResult(
                 retryOptions,
                 () -> service.GetWorkflowExecutionHistoryWithTimeout(r, unit.toMillis(timeout)));
       } catch (EntityNotExistsError e) {
@@ -343,7 +333,7 @@ public class WorkflowExecutionUtils {
   }
 
   private static RetryOptions getRetryOptionWithTimeout(long timeout, TimeUnit unit) {
-    return new RetryOptions.Builder(retryParameters)
+    return new RetryOptions.Builder(RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS)
         .setExpiration(Duration.ofSeconds(unit.toSeconds(timeout)))
         .build();
   }
@@ -355,7 +345,7 @@ public class WorkflowExecutionUtils {
           long timeout,
           TimeUnit unit) {
     RetryOptions retryOptions = getRetryOptionWithTimeout(timeout, unit);
-    return Retryer.retryWithResultAsync(
+    return RpcRetryer.retryWithResultAsync(
         retryOptions,
         () -> {
           CompletableFuture<GetWorkflowExecutionHistoryResponse> result = new CompletableFuture<>();
