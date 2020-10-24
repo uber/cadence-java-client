@@ -73,9 +73,7 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.Worker;
-import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.worker.*;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.File;
@@ -205,7 +203,7 @@ public class WorkflowTest {
 
   private String taskList;
 
-  private Worker.Factory workerFactory;
+  private WorkerFactory workerFactory;
   private Worker worker;
   private TestActivitiesImpl activitiesImpl;
   private WorkflowClient workflowClient;
@@ -284,14 +282,14 @@ public class WorkflowTest {
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
       workflowClient = WorkflowClient.newInstance(service, clientOptions);
-      Worker.FactoryOptions factoryOptions =
-          new Worker.FactoryOptions.Builder()
+      WorkerFactoryOptions factoryOptions =
+          WorkerFactoryOptions.newBuilder()
               .setDisableStickyExecution(disableStickyExecution)
               .build();
-      workerFactory = new Worker.Factory(workflowClient, factoryOptions);
+      workerFactory = new WorkerFactory(workflowClient, factoryOptions);
       WorkerOptions workerOptions =
-          new WorkerOptions.Builder()
-              .setActivityPollerOptions(new PollerOptions.Builder().setPollThreadCount(5).build())
+          WorkerOptions.newBuilder()
+              .setActivityPollerOptions(PollerOptions.newBuilder().setPollThreadCount(5).build())
               .setMaxConcurrentActivityExecutionSize(1000)
               .setInterceptorFactory(tracer)
               .build();
@@ -303,7 +301,7 @@ public class WorkflowTest {
               .setWorkflowClientOptions(clientOptions)
               .setInterceptorFactory(tracer)
               .setWorkerFactoryOptions(
-                  new Worker.FactoryOptions.Builder()
+                  WorkerFactoryOptions.newBuilder()
                       .setDisableStickyExecution(disableStickyExecution)
                       .build())
               .build();
@@ -2406,7 +2404,7 @@ public class WorkflowTest {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = Worker.Factory.newInstance(workflowClient);
+      WorkerFactory workerFactory = WorkerFactory.newInstance(workflowClient);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);
@@ -2480,7 +2478,7 @@ public class WorkflowTest {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = Worker.Factory.newInstance(workflowClient);
+      WorkerFactory workerFactory = WorkerFactory.newInstance(workflowClient);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);

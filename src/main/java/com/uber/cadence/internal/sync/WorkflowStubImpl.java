@@ -201,7 +201,7 @@ class WorkflowStubImpl implements WorkflowStub {
 
   private Map<String, byte[]> extractContextsAndConvertToBytes(
       List<ContextPropagator> contextPropagators) {
-    if (contextPropagators == null) {
+    if (contextPropagators == null || contextPropagators.isEmpty()) {
       return null;
     }
     Map<String, byte[]> result = new HashMap<>();

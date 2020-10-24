@@ -21,7 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactoryOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
 import java.util.function.Function;
@@ -37,7 +37,7 @@ public final class TestEnvironmentOptions {
 
     private boolean enableLoggingInReplay;
 
-    private Worker.FactoryOptions factoryOptions;
+    private WorkerFactoryOptions factoryOptions;
 
     private WorkflowClientOptions workflowClientOptions = WorkflowClientOptions.defaultInstance();
 
@@ -64,7 +64,7 @@ public final class TestEnvironmentOptions {
     }
 
     /** Set factoryOptions for worker factory used to create workers. */
-    public Builder setWorkerFactoryOptions(Worker.FactoryOptions options) {
+    public Builder setWorkerFactoryOptions(WorkerFactoryOptions options) {
       this.factoryOptions = options;
       return this;
     }
@@ -77,8 +77,7 @@ public final class TestEnvironmentOptions {
 
     public TestEnvironmentOptions build() {
       if (factoryOptions == null) {
-        factoryOptions =
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+        factoryOptions = WorkerFactoryOptions.newBuilder().setDisableStickyExecution(false).build();
       }
 
       return new TestEnvironmentOptions(
@@ -93,13 +92,13 @@ public final class TestEnvironmentOptions {
   private final DataConverter dataConverter;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
   private final boolean enableLoggingInReplay;
-  private final Worker.FactoryOptions workerFactoryOptions;
+  private final WorkerFactoryOptions workerFactoryOptions;
   private final WorkflowClientOptions workflowClientOptions;
 
   private TestEnvironmentOptions(
       DataConverter dataConverter,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      Worker.FactoryOptions options,
+      WorkerFactoryOptions options,
       WorkflowClientOptions workflowClientOptions,
       boolean enableLoggingInReplay) {
     this.dataConverter = dataConverter;
@@ -121,7 +120,7 @@ public final class TestEnvironmentOptions {
     return enableLoggingInReplay;
   }
 
-  public Worker.FactoryOptions getWorkerFactoryOptions() {
+  public WorkerFactoryOptions getWorkerFactoryOptions() {
     return workerFactoryOptions;
   }
 
@@ -134,6 +133,8 @@ public final class TestEnvironmentOptions {
     return "TestEnvironmentOptions{"
         + "dataConverter="
         + dataConverter
+        + ", workerFactoryOptions="
+        + workerFactoryOptions
         + ", workflowClientOptions="
         + workflowClientOptions
         + '}';

@@ -24,9 +24,13 @@ import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
-import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactory;
 import java.util.concurrent.TimeUnit;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class WorkerFactoryTests {
 
@@ -40,13 +44,13 @@ public class WorkerFactoryTests {
 
   private IWorkflowService service;
   private WorkflowClient client;
-  private Worker.Factory factory;
+  private WorkerFactory factory;
 
   @Before
   public void setUp() {
     service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     client = WorkflowClient.newInstance(service);
-    factory = Worker.Factory.newInstance(client);
+    factory = WorkerFactory.newInstance(client);
   }
 
   @After

@@ -134,14 +134,14 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
       workflowClient = WorkflowClient.newInstance(service, clientOptions);
-      workerFactory = Worker.Factory.newInstance(workflowClient);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
@@ -188,14 +188,14 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
       workflowClient = WorkflowClient.newInstance(service, clientOptions);
-      workerFactory = Worker.Factory.newInstance(workflowClient);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
@@ -261,7 +261,7 @@ public class CleanWorkerShutdownTest {
 
   /**
    * Tests that Activity#heartbeat throws ActivityWorkerShutdownException after {@link
-   * Worker.Factory#shutdown()} is closed.
+   * WorkerFactory#shutdown()} is closed.
    */
   @Test
   public void testShutdownHeartbeatingActivity()
@@ -269,14 +269,14 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
       workflowClient = WorkflowClient.newInstance(service, clientOptions);
-      workerFactory = Worker.Factory.newInstance(workflowClient);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new HeartbeatingActivitiesImpl(started));

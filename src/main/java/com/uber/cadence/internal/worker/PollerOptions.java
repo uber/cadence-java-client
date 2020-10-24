@@ -26,6 +26,24 @@ public final class PollerOptions {
 
   private static final Logger log = LoggerFactory.getLogger(PollerOptions.class);
 
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(PollerOptions options) {
+    return new Builder(options);
+  }
+
+  public static PollerOptions getDefaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final PollerOptions DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = PollerOptions.newBuilder().build();
+  }
+
   public static final class Builder {
 
     private int maximumPollRateIntervalMilliseconds = 1000;
@@ -44,9 +62,9 @@ public final class PollerOptions {
 
     private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
-    public Builder() {}
+    private Builder() {}
 
-    public Builder(PollerOptions o) {
+    private Builder(PollerOptions o) {
       if (o == null) {
         return;
       }

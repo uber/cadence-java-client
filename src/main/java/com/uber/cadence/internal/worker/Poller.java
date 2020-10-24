@@ -249,7 +249,7 @@ public final class Poller<T> implements SuspendableWorker {
         if (!pollExecutor.isTerminating()) {
           pollExecutor.execute(this);
         } else {
-          log.info("poll loop done");
+          log.debug("poll loop done");
         }
       }
     }

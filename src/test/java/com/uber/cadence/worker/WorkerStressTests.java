@@ -82,9 +82,9 @@ public class WorkerStressTests {
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setMaxWorkflowThreadCount(200).build());
-    Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+            WorkerFactoryOptions.newBuilder().setMaxWorkflowThreadCount(200).build());
+    WorkerFactory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
@@ -122,12 +122,12 @@ public class WorkerStressTests {
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
+            WorkerFactoryOptions.newBuilder()
                 .setDisableStickyExecution(false)
                 .setMaxWorkflowThreadCount(2)
                 .build());
-    Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    WorkerFactory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
@@ -172,18 +172,18 @@ public class WorkerStressTests {
   private class TestEnvironmentWrapper {
 
     private TestWorkflowEnvironment testEnv;
-    private Worker.Factory factory;
+    private WorkerFactory factory;
 
-    public TestEnvironmentWrapper(Worker.FactoryOptions options) {
+    public TestEnvironmentWrapper(WorkerFactoryOptions options) {
       if (options == null) {
-        options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+        options = WorkerFactoryOptions.newBuilder().setDisableStickyExecution(false).build();
       }
       WorkflowClientOptions clientOptions =
           WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
       if (useDockerService) {
         IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
         WorkflowClient client = WorkflowClient.newInstance(service, clientOptions);
-        factory = Worker.Factory.newInstance(client, options);
+        factory = WorkerFactory.newInstance(client, options);
       } else {
         TestEnvironmentOptions testOptions =
             new TestEnvironmentOptions.Builder()
@@ -194,7 +194,7 @@ public class WorkerStressTests {
       }
     }
 
-    private Worker.Factory getWorkerFactory() {
+    private WorkerFactory getWorkerFactory() {
       return useExternalService ? factory : testEnv.getWorkerFactory();
     }
 
