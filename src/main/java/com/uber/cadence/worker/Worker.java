@@ -84,7 +84,7 @@ public final class Worker implements Suspendable {
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getActivityPollerOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
@@ -98,7 +98,7 @@ public final class Worker implements Suspendable {
 
     SingleWorkerOptions workflowOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getWorkflowPollerOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorkflowExecutionSize())
@@ -108,7 +108,7 @@ public final class Worker implements Suspendable {
             .build();
     SingleWorkerOptions localActivityOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getWorkflowPollerOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentLocalActivityExecutionSize())

@@ -17,9 +17,6 @@
 
 package com.uber.cadence.worker;
 
-import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
@@ -47,24 +44,18 @@ public final class WorkerOptions {
   public static final class Builder {
 
     private double workerActivitiesPerSecond;
-    private DataConverter dataConverter = JsonDataConverter.getInstance();
     private int maxConcurrentActivityExecutionSize = 100;
     private int maxConcurrentWorkflowExecutionSize = 50;
     private int maxConcurrentLocalActivityExecutionSize = 100;
     private double taskListActivitiesPerSecond = 100000;
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
-    private RetryOptions reportActivityCompletionRetryOptions;
-    private RetryOptions reportActivityFailureRetryOptions;
-    private RetryOptions reportWorkflowCompletionRetryOptions;
-    private RetryOptions reportWorkflowFailureRetryOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
 
     private Builder() {}
 
     private Builder(WorkerOptions options) {
       this.workerActivitiesPerSecond = options.workerActivitiesPerSecond;
-      this.dataConverter = options.dataConverter;
       this.maxConcurrentActivityExecutionSize = options.maxConcurrentActivityExecutionSize;
       this.maxConcurrentWorkflowExecutionSize = options.maxConcurrentWorkflowExecutionSize;
       this.maxConcurrentLocalActivityExecutionSize =
@@ -72,20 +63,7 @@ public final class WorkerOptions {
       this.taskListActivitiesPerSecond = options.taskListActivitiesPerSecond;
       this.activityPollerOptions = options.activityPollerOptions;
       this.workflowPollerOptions = options.workflowPollerOptions;
-      this.reportActivityCompletionRetryOptions = options.reportActivityCompletionRetryOptions;
-      this.reportActivityFailureRetryOptions = options.reportActivityFailureRetryOptions;
-      this.reportWorkflowCompletionRetryOptions = options.reportWorkflowCompletionRetryOptions;
-      this.reportWorkflowFailureRetryOptions = options.reportWorkflowFailureRetryOptions;
       this.interceptorFactory = options.interceptorFactory;
-    }
-
-    /**
-     * Override a data converter implementation used by workflows and activities executed by this
-     * worker. Default is {@link com.uber.cadence.converter.JsonDataConverter} data converter.
-     */
-    public Builder setDataConverter(DataConverter dataConverter) {
-      this.dataConverter = Objects.requireNonNull(dataConverter);
-      return this;
     }
 
     /** Maximum number of activities started per second. Default is 0 which means unlimited. */
@@ -160,70 +138,46 @@ public final class WorkerOptions {
     public WorkerOptions build() {
       return new WorkerOptions(
           workerActivitiesPerSecond,
-          dataConverter,
           maxConcurrentActivityExecutionSize,
           maxConcurrentWorkflowExecutionSize,
           maxConcurrentLocalActivityExecutionSize,
           taskListActivitiesPerSecond,
           activityPollerOptions,
           workflowPollerOptions,
-          reportActivityCompletionRetryOptions,
-          reportActivityFailureRetryOptions,
-          reportWorkflowCompletionRetryOptions,
-          reportWorkflowFailureRetryOptions,
           interceptorFactory);
     }
   }
 
   private final double workerActivitiesPerSecond;
-  private final DataConverter dataConverter;
   private final int maxConcurrentActivityExecutionSize;
   private final int maxConcurrentWorkflowExecutionSize;
   private final int maxConcurrentLocalActivityExecutionSize;
   private final double taskListActivitiesPerSecond;
   private final PollerOptions activityPollerOptions;
   private final PollerOptions workflowPollerOptions;
-  private final RetryOptions reportActivityCompletionRetryOptions;
-  private final RetryOptions reportActivityFailureRetryOptions;
-  private final RetryOptions reportWorkflowCompletionRetryOptions;
-  private final RetryOptions reportWorkflowFailureRetryOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
 
   private WorkerOptions(
       double workerActivitiesPerSecond,
-      DataConverter dataConverter,
       int maxConcurrentActivityExecutionSize,
       int maxConcurrentWorkflowExecutionSize,
       int maxConcurrentLocalActivityExecutionSize,
       double taskListActivitiesPerSecond,
       PollerOptions activityPollerOptions,
       PollerOptions workflowPollerOptions,
-      RetryOptions reportActivityCompletionRetryOptions,
-      RetryOptions reportActivityFailureRetryOptions,
-      RetryOptions reportWorkflowCompletionRetryOptions,
-      RetryOptions reportWorkflowFailureRetryOptions,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
-    this.dataConverter = dataConverter;
     this.maxConcurrentActivityExecutionSize = maxConcurrentActivityExecutionSize;
     this.maxConcurrentWorkflowExecutionSize = maxConcurrentWorkflowExecutionSize;
     this.maxConcurrentLocalActivityExecutionSize = maxConcurrentLocalActivityExecutionSize;
     this.taskListActivitiesPerSecond = taskListActivitiesPerSecond;
     this.activityPollerOptions = activityPollerOptions;
     this.workflowPollerOptions = workflowPollerOptions;
-    this.reportActivityCompletionRetryOptions = reportActivityCompletionRetryOptions;
-    this.reportActivityFailureRetryOptions = reportActivityFailureRetryOptions;
-    this.reportWorkflowCompletionRetryOptions = reportWorkflowCompletionRetryOptions;
-    this.reportWorkflowFailureRetryOptions = reportWorkflowFailureRetryOptions;
     this.interceptorFactory = interceptorFactory;
   }
 
   public double getWorkerActivitiesPerSecond() {
     return workerActivitiesPerSecond;
-  }
-
-  public DataConverter getDataConverter() {
-    return dataConverter;
   }
 
   public int getMaxConcurrentActivityExecutionSize() {
@@ -246,22 +200,6 @@ public final class WorkerOptions {
     return workflowPollerOptions;
   }
 
-  public RetryOptions getReportActivityCompletionRetryOptions() {
-    return reportActivityCompletionRetryOptions;
-  }
-
-  public RetryOptions getReportActivityFailureRetryOptions() {
-    return reportActivityFailureRetryOptions;
-  }
-
-  public RetryOptions getReportWorkflowCompletionRetryOptions() {
-    return reportWorkflowCompletionRetryOptions;
-  }
-
-  public RetryOptions getReportWorkflowFailureRetryOptions() {
-    return reportWorkflowFailureRetryOptions;
-  }
-
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
   }
@@ -271,8 +209,6 @@ public final class WorkerOptions {
     return "WorkerOptions{"
         + "workerActivitiesPerSecond="
         + workerActivitiesPerSecond
-        + ", dataConverter="
-        + dataConverter
         + ", maxConcurrentActivityExecutionSize="
         + maxConcurrentActivityExecutionSize
         + ", maxConcurrentWorkflowExecutionSize="
@@ -285,14 +221,6 @@ public final class WorkerOptions {
         + activityPollerOptions
         + ", workflowPollerOptions="
         + workflowPollerOptions
-        + ", reportActivityCompletionRetryOptions="
-        + reportActivityCompletionRetryOptions
-        + ", reportActivityFailureRetryOptions="
-        + reportActivityFailureRetryOptions
-        + ", reportWorkflowCompletionRetryOptions="
-        + reportWorkflowCompletionRetryOptions
-        + ", reportWorkflowFailureRetryOptions="
-        + reportWorkflowFailureRetryOptions
         + '}';
   }
 }
