@@ -51,7 +51,7 @@ public final class SingleWorkerOptions {
     private boolean enableLoggingInReplay;
     private List<ContextPropagator> contextPropagators;
 
-    public Builder() {}
+    private Builder() {}
 
     public Builder(SingleWorkerOptions options) {
       this.identity = options.getIdentity();
