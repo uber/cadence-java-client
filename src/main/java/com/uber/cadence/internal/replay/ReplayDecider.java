@@ -32,7 +32,7 @@ import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
-import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.HistoryHelper.DecisionEvents;
@@ -667,7 +667,7 @@ class ReplayDecider implements Decider {
 
           try {
             GetWorkflowExecutionHistoryResponse r =
-                Retryer.retryWithResult(
+                RpcRetryer.retryWithResult(
                     retryOptions, () -> service.GetWorkflowExecutionHistory(request));
             current = r.getHistory().getEventsIterator();
             nextPageToken = r.getNextPageToken();

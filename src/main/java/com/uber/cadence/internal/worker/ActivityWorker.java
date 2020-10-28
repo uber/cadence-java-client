@@ -17,18 +17,14 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.Header;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.context.ContextPropagator;
-import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -150,7 +146,7 @@ public final class ActivityWorker extends SuspendableWorkerBase {
         cancelledRequest.setDetails(
             String.valueOf(e.getMessage()).getBytes(StandardCharsets.UTF_8));
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task, new Result(null, null, cancelledRequest, null), metricsScope);
+        sendReply(task, new Result(null, null, cancelledRequest), metricsScope);
         sw.stop();
       } finally {
         MDC.remove(LoggerTag.ACTIVITY_ID);
@@ -201,49 +197,26 @@ public final class ActivityWorker extends SuspendableWorkerBase {
     private void sendReply(
         PollForActivityTaskResponse task, ActivityTaskHandler.Result response, Scope metricsScope)
         throws TException {
-      RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
-        ro =
-            options
-                .getReportCompletionRetryOptions()
-                .merge(ro)
-                .addDoNotRetry(
-                    BadRequestError.class, EntityNotExistsError.class, DomainNotActiveError.class);
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
-        Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
+        RpcRetryer.retry(() -> service.RespondActivityTaskCompleted(taskCompleted));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
         if (response.getTaskFailedResult() != null) {
           RespondActivityTaskFailedRequest taskFailed =
               response.getTaskFailedResult().getTaskFailedRequest();
-          ro =
-              options
-                  .getReportFailureRetryOptions()
-                  .merge(ro)
-                  .addDoNotRetry(
-                      BadRequestError.class,
-                      EntityNotExistsError.class,
-                      DomainNotActiveError.class);
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
-          Retryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
+          RpcRetryer.retry(() -> service.RespondActivityTaskFailed(taskFailed));
           metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
             taskCancelled.setTaskToken(task.getTaskToken());
             taskCancelled.setIdentity(options.getIdentity());
-            ro =
-                options
-                    .getReportFailureRetryOptions()
-                    .merge(ro)
-                    .addDoNotRetry(
-                        BadRequestError.class,
-                        EntityNotExistsError.class,
-                        DomainNotActiveError.class);
-            Retryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
+            RpcRetryer.retry(() -> service.RespondActivityTaskCanceled(taskCancelled));
             metricsScope.counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
           }
         }

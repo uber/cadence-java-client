@@ -1,7 +1,7 @@
 /*
- *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
- *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -19,7 +19,13 @@ package com.uber.cadence.internal.common;
 
 import static com.uber.cadence.internal.common.CheckedExceptionWrapper.unwrap;
 
-import com.uber.cadence.*;
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancellationAlreadyRequestedError;
+import com.uber.cadence.DomainAlreadyExistsError;
+import com.uber.cadence.DomainNotActiveError;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.common.RetryOptions;
 import java.time.Duration;
 import java.util.concurrent.CancellationException;
@@ -31,8 +37,8 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class Retryer {
-  public static final RetryOptions DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS;
+public final class RpcRetryer {
+  public static final RetryOptions DEFAULT_RPC_RETRY_OPTIONS;
 
   private static final Duration RETRY_SERVICE_OPERATION_INITIAL_INTERVAL = Duration.ofMillis(20);
   private static final Duration RETRY_SERVICE_OPERATION_EXPIRATION_INTERVAL = Duration.ofMinutes(1);
@@ -58,7 +64,7 @@ public final class Retryer {
         QueryFailedError.class,
         DomainNotActiveError.class,
         CancellationAlreadyRequestedError.class);
-    DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS = roBuilder.validateBuildWithDefaults();
+    DEFAULT_RPC_RETRY_OPTIONS = roBuilder.validateBuildWithDefaults();
   }
 
   public interface RetryableProc<E extends Throwable> {
@@ -81,7 +87,7 @@ public final class Retryer {
     private final CompletableFuture<V> value;
     private final Throwable exception;
 
-    public ValueExceptionPair(CompletableFuture<V> value, Throwable exception) {
+    ValueExceptionPair(CompletableFuture<V> value, Throwable exception) {
       this.value = value;
       this.exception = exception;
     }
@@ -95,7 +101,7 @@ public final class Retryer {
     }
   }
 
-  private static final Logger log = LoggerFactory.getLogger(Retryer.class);
+  private static final Logger log = LoggerFactory.getLogger(RpcRetryer.class);
 
   public static <T extends Throwable> void retry(RetryOptions options, RetryableProc<T> r)
       throws T {
@@ -105,6 +111,10 @@ public final class Retryer {
           r.apply();
           return null;
         });
+  }
+
+  public static <T extends Throwable> void retry(RetryableProc<T> r) throws T {
+    retry(DEFAULT_RPC_RETRY_OPTIONS, r);
   }
 
   public static <R, T extends Throwable> R retryWithResult(
@@ -266,5 +276,5 @@ public final class Retryer {
   }
 
   /** Prohibits instantiation. */
-  private Retryer() {}
+  private RpcRetryer() {}
 }

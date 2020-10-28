@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -84,11 +84,9 @@ public final class Worker implements Suspendable {
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getActivityPollerOptions())
-            .setReportCompletionRetryOptions(options.getReportActivityCompletionRetryOptions())
-            .setReportFailureRetryOptions(options.getReportActivityFailureRetryOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
@@ -100,11 +98,9 @@ public final class Worker implements Suspendable {
 
     SingleWorkerOptions workflowOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getWorkflowPollerOptions())
-            .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
-            .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentWorkflowExecutionSize())
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
@@ -112,11 +108,9 @@ public final class Worker implements Suspendable {
             .build();
     SingleWorkerOptions localActivityOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(options.getDataConverter())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
             .setPollerOptions(options.getWorkflowPollerOptions())
-            .setReportCompletionRetryOptions(options.getReportWorkflowCompletionRetryOptions())
-            .setReportFailureRetryOptions(options.getReportWorkflowFailureRetryOptions())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentLocalActivityExecutionSize())
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())

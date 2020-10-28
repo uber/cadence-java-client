@@ -21,7 +21,6 @@ import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.common.RetryOptions;
 
 /**
  * Interface of workflow task handlers.
@@ -34,17 +33,14 @@ public interface DecisionTaskHandler {
     private final RespondDecisionTaskCompletedRequest taskCompleted;
     private final RespondDecisionTaskFailedRequest taskFailed;
     private final RespondQueryTaskCompletedRequest queryCompleted;
-    private final RetryOptions requestRetryOptions;
 
     public Result(
         RespondDecisionTaskCompletedRequest taskCompleted,
         RespondDecisionTaskFailedRequest taskFailed,
-        RespondQueryTaskCompletedRequest queryCompleted,
-        RetryOptions requestRetryOptions) {
+        RespondQueryTaskCompletedRequest queryCompleted) {
       this.taskCompleted = taskCompleted;
       this.taskFailed = taskFailed;
       this.queryCompleted = queryCompleted;
-      this.requestRetryOptions = requestRetryOptions;
     }
 
     public RespondDecisionTaskCompletedRequest getTaskCompleted() {
@@ -59,10 +55,6 @@ public interface DecisionTaskHandler {
       return queryCompleted;
     }
 
-    public RetryOptions getRequestRetryOptions() {
-      return requestRetryOptions;
-    }
-
     @Override
     public String toString() {
       return "Result{"
@@ -72,8 +64,6 @@ public interface DecisionTaskHandler {
           + taskFailed
           + ", queryCompleted="
           + queryCompleted
-          + ", requestRetryOptions="
-          + requestRetryOptions
           + '}';
     }
   }

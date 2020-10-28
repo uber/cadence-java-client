@@ -139,9 +139,6 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     WorkerOptions.Builder builder =
         WorkerOptions.newBuilder()
             .setInterceptorFactory(testEnvironmentOptions.getInterceptorFactory());
-    if (testEnvironmentOptions.getDataConverter() != null) {
-      builder.setDataConverter(testEnvironmentOptions.getDataConverter());
-    }
     builder = overrideOptions.apply(builder);
     return workerFactory.newWorker(taskList, builder.build());
   }

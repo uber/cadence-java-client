@@ -118,9 +118,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     StartWorkflowExecutionResponse result;
     try {
       result =
-          Retryer.retryWithResult(
-              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-              () -> service.StartWorkflowExecution(request));
+          RpcRetryer.retryWithResult(
+              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, () -> service.StartWorkflowExecution(request));
     } catch (WorkflowExecutionAlreadyStartedError e) {
       throw e;
     } catch (TException e) {
@@ -137,7 +136,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     if (timeoutInMillis == null || timeoutInMillis <= 0 || timeoutInMillis == Long.MAX_VALUE) {
       return o;
     }
-    return new RetryOptions.Builder(Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS)
+    return new RetryOptions.Builder(RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS)
         .setExpiration(Duration.ofMillis((timeoutInMillis)))
         .build();
   }
@@ -146,9 +145,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
       StartWorkflowExecutionParameters startParameters, Long timeoutInMillis) {
     StartWorkflowExecutionRequest request = getStartRequest(startParameters);
 
-    return Retryer.retryWithResultAsync(
-        getRetryOptionsWithExpiration(
-            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, timeoutInMillis),
+    return RpcRetryer.retryWithResultAsync(
+        getRetryOptionsWithExpiration(RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, timeoutInMillis),
         () -> {
           CompletableFuture<WorkflowExecution> result = new CompletableFuture<>();
           try {
@@ -272,9 +270,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     SignalWorkflowExecutionRequest request = getSignalRequest(signalParameters);
 
     try {
-      Retryer.retry(
-          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-          () -> service.SignalWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.SignalWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
@@ -290,9 +286,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
   public CompletableFuture<Void> signalWorkflowExecutionAsync(
       SignalExternalWorkflowParameters signalParameters, Long timeoutInMillis) {
     SignalWorkflowExecutionRequest request = getSignalRequest(signalParameters);
-    return Retryer.retryWithResultAsync(
-        getRetryOptionsWithExpiration(
-            Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS, timeoutInMillis),
+    return RpcRetryer.retryWithResultAsync(
+        getRetryOptionsWithExpiration(RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, timeoutInMillis),
         () -> {
           CompletableFuture<Void> result = new CompletableFuture<>();
           try {
@@ -387,8 +382,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     StartWorkflowExecutionResponse result;
     try {
       result =
-          Retryer.retryWithResult(
-              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
+          RpcRetryer.retryWithResult(
+              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
               () -> service.SignalWithStartWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
@@ -405,9 +400,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setDomain(domain);
     request.setWorkflowExecution(execution);
     try {
-      Retryer.retry(
-          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-          () -> service.RequestCancelWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.RequestCancelWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
@@ -427,9 +420,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setQueryRejectCondition(queryParameters.getQueryRejectCondition());
     try {
       QueryWorkflowResponse response =
-          Retryer.retryWithResult(
-              Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-              () -> service.QueryWorkflow(request));
+          RpcRetryer.retryWithResult(
+              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, () -> service.QueryWorkflow(request));
       return response;
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
@@ -451,9 +443,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setReason(terminateParameters.getReason());
     //        request.setChildPolicy(terminateParameters.getChildPolicy());
     try {
-      Retryer.retry(
-          Retryer.DEFAULT_SERVICE_OPERATION_RETRY_OPTIONS,
-          () -> service.TerminateWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.TerminateWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
