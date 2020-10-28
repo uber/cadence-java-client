@@ -270,7 +270,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     SignalWorkflowExecutionRequest request = getSignalRequest(signalParameters);
 
     try {
-      RpcRetryer.retryWithDefaultOption(() -> service.SignalWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.SignalWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
@@ -400,7 +400,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setDomain(domain);
     request.setWorkflowExecution(execution);
     try {
-      RpcRetryer.retryWithDefaultOption(() -> service.RequestCancelWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.RequestCancelWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }
@@ -443,7 +443,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setReason(terminateParameters.getReason());
     //        request.setChildPolicy(terminateParameters.getChildPolicy());
     try {
-      RpcRetryer.retryWithDefaultOption(() -> service.TerminateWorkflowExecution(request));
+      RpcRetryer.retry(() -> service.TerminateWorkflowExecution(request));
     } catch (TException e) {
       throw CheckedExceptionWrapper.wrap(e);
     }

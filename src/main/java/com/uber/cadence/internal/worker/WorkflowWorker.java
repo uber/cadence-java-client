@@ -237,14 +237,13 @@ public final class WorkflowWorker extends SuspendableWorkerBase
       if (taskCompleted != null) {
         taskCompleted.setIdentity(options.getIdentity());
         taskCompleted.setTaskToken(taskToken);
-        RpcRetryer.retryWithDefaultOption(
-            () -> service.RespondDecisionTaskCompleted(taskCompleted));
+        RpcRetryer.retry(() -> service.RespondDecisionTaskCompleted(taskCompleted));
       } else {
         RespondDecisionTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
           taskFailed.setIdentity(options.getIdentity());
           taskFailed.setTaskToken(taskToken);
-          RpcRetryer.retryWithDefaultOption(() -> service.RespondDecisionTaskFailed(taskFailed));
+          RpcRetryer.retry(() -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
           if (queryCompleted != null) {

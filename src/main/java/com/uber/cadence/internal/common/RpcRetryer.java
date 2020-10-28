@@ -63,8 +63,7 @@ public final class RpcRetryer {
         DomainAlreadyExistsError.class,
         QueryFailedError.class,
         DomainNotActiveError.class,
-        CancellationAlreadyRequestedError.class,
-        DomainNotActiveError.class);
+        CancellationAlreadyRequestedError.class);
     DEFAULT_RPC_RETRY_OPTIONS = roBuilder.validateBuildWithDefaults();
   }
 
@@ -114,7 +113,7 @@ public final class RpcRetryer {
         });
   }
 
-  public static <T extends Throwable> void retryWithDefaultOption(RetryableProc<T> r) throws T {
+  public static <T extends Throwable> void retry(RetryableProc<T> r) throws T {
     retry(DEFAULT_RPC_RETRY_OPTIONS, r);
   }
 

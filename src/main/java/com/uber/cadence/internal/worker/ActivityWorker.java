@@ -201,8 +201,7 @@ public final class ActivityWorker extends SuspendableWorkerBase {
       if (taskCompleted != null) {
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
-        RpcRetryer.retryWithDefaultOption(
-            () -> service.RespondActivityTaskCompleted(taskCompleted));
+        RpcRetryer.retry(() -> service.RespondActivityTaskCompleted(taskCompleted));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
         if (response.getTaskFailedResult() != null) {
@@ -210,15 +209,14 @@ public final class ActivityWorker extends SuspendableWorkerBase {
               response.getTaskFailedResult().getTaskFailedRequest();
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
-          RpcRetryer.retryWithDefaultOption(() -> service.RespondActivityTaskFailed(taskFailed));
+          RpcRetryer.retry(() -> service.RespondActivityTaskFailed(taskFailed));
           metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
             taskCancelled.setTaskToken(task.getTaskToken());
             taskCancelled.setIdentity(options.getIdentity());
-            RpcRetryer.retryWithDefaultOption(
-                () -> service.RespondActivityTaskCanceled(taskCancelled));
+            RpcRetryer.retry(() -> service.RespondActivityTaskCanceled(taskCancelled));
             metricsScope.counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
           }
         }
