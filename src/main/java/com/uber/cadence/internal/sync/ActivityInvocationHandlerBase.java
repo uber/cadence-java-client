@@ -47,7 +47,7 @@ abstract class ActivityInvocationHandlerBase implements InvocationHandler {
             invocationHandler);
   }
 
-  protected void init(Class<?> activityInterface) {
+  void init(Class<?> activityInterface) {
     Set<POJOActivityTaskHandler.MethodInterfacePair> activityMethods =
         getAnnotatedInterfaceMethodsFromInterface(activityInterface, ActivityInterface.class);
     if (activityMethods.isEmpty()) {
@@ -66,7 +66,8 @@ abstract class ActivityInvocationHandlerBase implements InvocationHandler {
       }
 
       MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
-      Function<Object[], Object> function = getActivityFunc(method, methodRetry, activityType);
+      Function<Object[], Object> function =
+          getActivityFunc(method, methodRetry, activityMethod, activityType);
       methodFunctions.put(method, function);
     }
   }
@@ -81,5 +82,5 @@ abstract class ActivityInvocationHandlerBase implements InvocationHandler {
   }
 
   protected abstract Function<Object[], Object> getActivityFunc(
-      Method method, MethodRetry methodRetry, String activityName);
+      Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName);
 }

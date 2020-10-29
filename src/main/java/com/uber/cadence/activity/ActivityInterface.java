@@ -55,8 +55,8 @@ import java.lang.annotation.Target;
  *  }
  * </code></pre>
  *
- * When <code>CImpl</code> instance is registered with the {@link com.uber.cadence.worker.Worker} the
- * following activities are registered:
+ * When <code>CImpl</code> instance is registered with the {@link com.uber.cadence.worker.Worker}
+ * the following activities are registered:
  *
  * <p>
  *

@@ -21,6 +21,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.time.Duration;
 
 /**
  * Indicates that the method is an activity method. This annotation applies only to activity
@@ -32,4 +33,46 @@ public @interface ActivityMethod {
 
   /** Name of the workflow type. Default is {short class name}::{method name} */
   String name() default "";
+
+  /**
+   * Overall timeout workflow is willing to wait for activity to complete. It includes time in a
+   * task list (use {@link #scheduleToStartTimeoutSeconds()} to limit it) plus activity execution
+   * time (use {@link #startToCloseTimeoutSeconds()} to limit it). Either this option or both
+   * schedule to start and start to close are required.
+   *
+   * @deprecated use {@link ActivityOptions.Builder#setScheduleToCloseTimeout(Duration)} instead.
+   */
+  int scheduleToCloseTimeoutSeconds() default 0;
+
+  /**
+   * Time activity can stay in task list before it is picked up by a worker. If schedule to close is
+   * not provided then both this and start to close are required.
+   *
+   * @deprecated use {@link ActivityOptions.Builder#setScheduleToStartTimeout(Duration)} instead.
+   */
+  int scheduleToStartTimeoutSeconds() default 0;
+
+  /**
+   * Maximum activity execution time after it was sent to a worker. If schedule to close is not
+   * provided then both this and schedule to start are required.
+   *
+   * @deprecated use {@link ActivityOptions.Builder#setStartToCloseTimeout(Duration)} instead.
+   */
+  int startToCloseTimeoutSeconds() default 0;
+
+  /**
+   * Heartbeat interval. Activity must heartbeat before this interval passes after a last heartbeat
+   * or activity start.
+   *
+   * @deprecated use {@link ActivityOptions.Builder#setHeartbeatTimeout(Duration)} instead.
+   */
+  int heartbeatTimeoutSeconds() default 0;
+
+  /**
+   * Task list to use when dispatching activity task to a worker. By default it is the same task
+   * list name the workflow was started with.
+   *
+   * @deprecated use {@link ActivityOptions.Builder#setTaskList(String)} instead.
+   */
+  String taskList() default "";
 }

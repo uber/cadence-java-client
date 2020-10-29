@@ -17,12 +17,14 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.function.Function;
 
 class LocalActivityInvocationHandler extends ActivityInvocationHandlerBase {
@@ -45,14 +47,21 @@ class LocalActivityInvocationHandler extends ActivityInvocationHandlerBase {
     init(activityInterface);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected Function<Object[], Object> getActivityFunc(
-      Method method, MethodRetry methodRetry, String activityName) {
+      Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
     Function<Object[], Object> function;
-    LocalActivityOptions mergedOptions =
-        LocalActivityOptions.newBuilder(options)
-            .setMethodRetry(methodRetry)
-            .validateAndBuildWithDefaults();
+    LocalActivityOptions.Builder optionsBuilder =
+        LocalActivityOptions.newBuilder(options).setMethodRetry(methodRetry);
+    if (activityMethod != null) {
+      // options always take precedence over activity method annotation.
+      if (options.getScheduleToCloseTimeout() == null) {
+        optionsBuilder.setScheduleToCloseTimeout(
+            Duration.ofSeconds(activityMethod.scheduleToCloseTimeoutSeconds()));
+      }
+    }
+    LocalActivityOptions mergedOptions = optionsBuilder.validateAndBuildWithDefaults();
     ActivityStub stub = LocalActivityStubImpl.newInstance(mergedOptions, activityExecutor);
     function =
         (a) -> stub.execute(activityName, method.getReturnType(), method.getGenericReturnType(), a);

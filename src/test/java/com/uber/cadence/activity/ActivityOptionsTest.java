@@ -40,7 +40,6 @@ public class ActivityOptionsTest {
   @Test
   public void testOnlyAnnotationsPresent() throws NoSuchMethodException {
     Method method = ActivityOptionsTest.class.getMethod("activityAndRetryOptions");
-    ActivityMethod a = method.getAnnotation(ActivityMethod.class);
     MethodRetry r = method.getAnnotation(MethodRetry.class);
     ActivityOptions o = ActivityOptions.newBuilder().build();
     ActivityOptions merged = ActivityOptions.newBuilder(o).setMethodRetry(r).build();
