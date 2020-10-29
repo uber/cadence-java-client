@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -29,36 +29,22 @@ import java.util.Objects;
 /** Options used to configure how an activity is invoked. */
 public final class ActivityOptions {
 
-  /**
-   * Used to merge annotation and options. Options takes precedence. Returns options with all
-   * defaults filled in.
-   */
-  public static ActivityOptions merge(ActivityMethod a, MethodRetry r, ActivityOptions o) {
-    if (a == null) {
-      if (r == null) {
-        return new ActivityOptions.Builder(o).validateAndBuildWithDefaults();
-      }
-      RetryOptions mergedR = RetryOptions.merge(r, o.getRetryOptions());
-      return new ActivityOptions.Builder().setRetryOptions(mergedR).validateAndBuildWithDefaults();
-    }
-    if (o == null) {
-      o = new ActivityOptions.Builder().build();
-    }
-    return new ActivityOptions.Builder()
-        .setScheduleToCloseTimeout(
-            mergeDuration(a.scheduleToCloseTimeoutSeconds(), o.getScheduleToCloseTimeout()))
-        .setScheduleToStartTimeout(
-            mergeDuration(a.scheduleToStartTimeoutSeconds(), o.getScheduleToStartTimeout()))
-        .setStartToCloseTimeout(
-            mergeDuration(a.startToCloseTimeoutSeconds(), o.getStartToCloseTimeout()))
-        .setHeartbeatTimeout(mergeDuration(a.heartbeatTimeoutSeconds(), o.getHeartbeatTimeout()))
-        .setTaskList(
-            o.getTaskList() != null
-                ? o.getTaskList()
-                : (a.taskList().isEmpty() ? null : a.taskList()))
-        .setRetryOptions(RetryOptions.merge(r, o.getRetryOptions()))
-        .setContextPropagators(o.getContextPropagators())
-        .validateAndBuildWithDefaults();
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(ActivityOptions options) {
+    return new Builder(options);
+  }
+
+  public static ActivityOptions getDefaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final ActivityOptions DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = ActivityOptions.newBuilder().build();
   }
 
   public static final class Builder {
@@ -152,6 +138,14 @@ public final class ActivityOptions {
     /** ContextPropagators help propagate the context from the workflow to the activities */
     public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
       this.contextPropagators = contextPropagators;
+      return this;
+    }
+
+    /**
+     * Properties that are set on this builder take precedence over ones found in the annotation.
+     */
+    public Builder setMethodRetry(MethodRetry r) {
+      retryOptions = RetryOptions.merge(r, retryOptions);
       return this;
     }
 
@@ -323,16 +317,5 @@ public final class ActivityOptions {
         taskList,
         retryOptions,
         contextPropagators);
-  }
-
-  static Duration mergeDuration(int annotationSeconds, Duration options) {
-    if (options == null) {
-      if (annotationSeconds == 0) {
-        return null;
-      }
-      return Duration.ofSeconds(annotationSeconds);
-    } else {
-      return options;
-    }
   }
 }

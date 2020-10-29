@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -41,11 +41,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.activity.ActivityOptions;
-import com.uber.cadence.activity.ActivityTask;
-import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.activity.*;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -73,7 +69,11 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.*;
+import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactory;
+import com.uber.cadence.worker.WorkerFactoryOptions;
+import com.uber.cadence.worker.WorkerOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.File;
@@ -771,7 +771,15 @@ public class WorkflowTest {
     private final TestActivities activities;
 
     public TestActivityRetryAnnotated() {
-      this.activities = Workflow.newActivityStub(TestActivities.class);
+      this.activities =
+          Workflow.newActivityStub(
+              TestActivities.class,
+              ActivityOptions.newBuilder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                  .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                  .setHeartbeatTimeout(Duration.ofSeconds(5))
+                  .setStartToCloseTimeout(Duration.ofSeconds(10))
+                  .build());
     }
 
     @Override
@@ -2933,9 +2941,10 @@ public class WorkflowTest {
     }
   }
 
+  @ActivityInterface
   public interface AngryChildActivity {
 
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 5)
+    @ActivityMethod
     void execute();
   }
 
@@ -2960,7 +2969,10 @@ public class WorkflowTest {
       AngryChildActivity activity =
           Workflow.newActivityStub(
               AngryChildActivity.class,
-              new ActivityOptions.Builder().setTaskList(taskList).build());
+              ActivityOptions.newBuilder()
+                  .setTaskList(taskList)
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                  .build());
       activity.execute();
       throw new UnsupportedOperationException("simulated failure");
     }
@@ -3663,6 +3675,7 @@ public class WorkflowTest {
     Assert.assertEquals("run 2", lastCompletionResult);
   }
 
+  @ActivityInterface
   public interface TestActivities {
 
     String sleepActivity(long milliseconds, int input);
@@ -3704,12 +3717,6 @@ public class WorkflowTest {
 
     void neverComplete();
 
-    @ActivityMethod(
-      scheduleToStartTimeoutSeconds = 5,
-      scheduleToCloseTimeoutSeconds = 5,
-      heartbeatTimeoutSeconds = 5,
-      startToCloseTimeoutSeconds = 10
-    )
     @MethodRetry(
       initialIntervalSeconds = 1,
       maximumIntervalSeconds = 1,
@@ -4750,6 +4757,7 @@ public class WorkflowTest {
     tracer.setExpected("sideEffect", "sideEffect", "executeActivity TestActivities::activity2");
   }
 
+  @ActivityInterface
   public interface GenericParametersActivity {
 
     List<UUID> execute(List<UUID> arg1, Set<UUID> arg2);
@@ -4858,9 +4866,8 @@ public class WorkflowTest {
     }
   }
 
+  @ActivityInterface
   public interface NonSerializableExceptionActivity {
-
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 5)
     void execute();
   }
 
@@ -4878,7 +4885,11 @@ public class WorkflowTest {
     @Override
     public String execute(String taskList) {
       NonSerializableExceptionActivity activity =
-          Workflow.newActivityStub(NonSerializableExceptionActivity.class);
+          Workflow.newActivityStub(
+              NonSerializableExceptionActivity.class,
+              ActivityOptions.newBuilder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                  .build());
       try {
         activity.execute();
       } catch (ActivityFailureException e) {
@@ -4900,9 +4911,8 @@ public class WorkflowTest {
     assertTrue(result.contains("NonSerializableException"));
   }
 
+  @ActivityInterface
   public interface NonDeserializableArgumentsActivity {
-
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 5)
     void execute(int arg);
   }
 
@@ -5431,8 +5441,9 @@ public class WorkflowTest {
     void createGreeting(String name);
   }
 
+  @ActivityInterface
   public interface GreetingActivities {
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 60)
+    @ActivityMethod
     String composeGreeting(String string);
   }
 
@@ -5452,7 +5463,9 @@ public class WorkflowTest {
   public static class TimerFiringWorkflowImpl implements GreetingWorkflow {
 
     private final GreetingActivities activities =
-        Workflow.newActivityStub(GreetingActivities.class);
+        Workflow.newActivityStub(
+            GreetingActivities.class,
+            ActivityOptions.newBuilder().setScheduleToCloseTimeout(Duration.ofSeconds(5)).build());
 
     @Override
     public void createGreeting(String name) {

@@ -18,17 +18,19 @@
 package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.common.InternalUtils.getValueOrDefault;
+import static com.uber.cadence.internal.sync.POJOActivityTaskHandler.getAnnotatedInterfaceMethodsFromInterface;
 
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.sync.AsyncInternal.AsyncMarker;
-import com.uber.cadence.workflow.Workflow;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 /** Dynamic implementation of a strongly typed child workflow interface. */
@@ -45,33 +47,36 @@ abstract class ActivityInvocationHandlerBase implements InvocationHandler {
             invocationHandler);
   }
 
+  void init(Class<?> activityInterface) {
+    Set<POJOActivityTaskHandler.MethodInterfacePair> activityMethods =
+        getAnnotatedInterfaceMethodsFromInterface(activityInterface, ActivityInterface.class);
+    if (activityMethods.isEmpty()) {
+      throw new IllegalArgumentException(
+          "Class doesn't implement any non empty interface annotated with @ActivityInterface: "
+              + activityInterface.getName());
+    }
+    for (POJOActivityTaskHandler.MethodInterfacePair pair : activityMethods) {
+      Method method = pair.getMethod();
+      ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
+      String activityType;
+      if (activityMethod != null && !activityMethod.name().isEmpty()) {
+        activityType = activityMethod.name();
+      } else {
+        activityType = InternalUtils.getSimpleName(pair.getType(), method);
+      }
+
+      MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
+      Function<Object[], Object> function =
+          getActivityFunc(method, methodRetry, activityMethod, activityType);
+      methodFunctions.put(method, function);
+    }
+  }
+
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) {
     Function<Object[], Object> function = methodFunctions.get(method);
     if (function == null) {
-      try {
-        if (method.equals(Object.class.getMethod("toString"))) {
-          // TODO: activity info
-          return "ActivityInvocationHandlerBase";
-        }
-        if (!method.getDeclaringClass().isInterface()) {
-          throw new IllegalArgumentException(
-              "Interface type is expected: " + method.getDeclaringClass());
-        }
-        MethodRetry methodRetry = method.getAnnotation(MethodRetry.class);
-        ActivityMethod activityMethod = method.getAnnotation(ActivityMethod.class);
-        String activityName;
-        if (activityMethod == null || activityMethod.name().isEmpty()) {
-          activityName = InternalUtils.getSimpleName(method);
-        } else {
-          activityName = activityMethod.name();
-        }
-
-        function = getActivityFunc(method, methodRetry, activityMethod, activityName);
-        methodFunctions.put(method, function);
-      } catch (NoSuchMethodException e) {
-        throw Workflow.wrap(e);
-      }
+      throw new IllegalArgumentException("Unexpected method: " + method);
     }
     return getValueOrDefault(function.apply(args), method.getReturnType());
   }

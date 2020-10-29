@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -36,7 +36,7 @@ import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.*;
 import com.uber.cadence.context.ContextPropagator;
@@ -162,9 +162,8 @@ public class WorkflowTestingTest {
     }
   }
 
+  @ActivityInterface
   public interface TestActivity {
-
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600)
     String activity1(String input);
   }
 
@@ -178,7 +177,10 @@ public class WorkflowTestingTest {
 
   public static class ActivityWorkflow implements TestWorkflow {
 
-    private final TestActivity activity = Workflow.newActivityStub(TestActivity.class);
+    private final TestActivity activity =
+        Workflow.newActivityStub(
+            TestActivity.class,
+            ActivityOptions.newBuilder().setScheduleToCloseTimeout(Duration.ofHours(1)).build());
 
     @Override
     public String workflow1(String input) {
@@ -486,9 +488,8 @@ public class WorkflowTestingTest {
     log.info(testEnvironment.getDiagnostics());
   }
 
+  @ActivityInterface
   public interface TestCancellationActivity {
-
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1000, heartbeatTimeoutSeconds = 2)
     String activity1(String input);
   }
 
@@ -506,7 +507,12 @@ public class WorkflowTestingTest {
   public static class TestCancellationWorkflow implements TestWorkflow {
 
     private final TestCancellationActivity activity =
-        Workflow.newActivityStub(TestCancellationActivity.class);
+        Workflow.newActivityStub(
+            TestCancellationActivity.class,
+            ActivityOptions.newBuilder()
+                .setScheduleToCloseTimeout(Duration.ofSeconds(1000))
+                .setHeartbeatTimeout(Duration.ofSeconds(2))
+                .build());
 
     @Override
     public String workflow1(String input) {
@@ -542,7 +548,11 @@ public class WorkflowTestingTest {
     public String workflow1(String input) {
       long startTime = Workflow.currentTimeMillis();
       Promise<Void> s = Async.procedure(() -> Workflow.sleep(Duration.ofHours(3)));
-      TestActivity activity = Workflow.newActivityStub(TestActivity.class);
+      TestActivity activity =
+          Workflow.newActivityStub(
+              TestActivity.class,
+              ActivityOptions.newBuilder().setScheduleToCloseTimeout(Duration.ofHours(1)).build());
+
       activity.activity1("input");
       Workflow.sleep(Duration.ofHours(1));
       s.get();
@@ -894,7 +904,11 @@ public class WorkflowTestingTest {
               .setScheduleToCloseTimeout(Duration.ofSeconds(5))
               .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
               .build();
-      TestActivity activity = Workflow.newActivityStub(TestActivity.class, options);
+      TestActivity activity =
+          Workflow.newActivityStub(
+              TestActivity.class,
+              ActivityOptions.newBuilder().setScheduleToCloseTimeout(Duration.ofHours(1)).build());
+
       return activity.activity1("foo");
     }
   }

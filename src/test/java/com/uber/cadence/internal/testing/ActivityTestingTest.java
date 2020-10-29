@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -26,13 +26,15 @@ import static org.mockito.Mockito.when;
 
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.workflow.ActivityFailureException;
 import io.netty.util.internal.ConcurrentSet;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.TException;
@@ -48,6 +50,7 @@ public class ActivityTestingTest {
     testEnvironment = TestActivityEnvironment.newInstance();
   }
 
+  @ActivityInterface
   public interface TestActivity {
 
     String activity1(String input);
@@ -111,9 +114,8 @@ public class ActivityTestingTest {
     assertEquals("details1", details.get());
   }
 
+  @ActivityInterface
   public interface InterruptibleTestActivity {
-
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 1000, heartbeatTimeoutSeconds = 1)
     void activity1() throws InterruptedException;
   }
 
@@ -251,5 +253,64 @@ public class ActivityTestingTest {
         testEnvironment.newActivityStub(InterruptibleTestActivity.class);
     activity.activity1();
     assertEquals(3, count.get());
+  }
+
+  public interface A {
+    void a();
+  }
+
+  @ActivityInterface
+  public interface B extends A {
+    void b();
+  }
+
+  @ActivityInterface
+  public interface C extends B, A {
+    void c();
+  }
+
+  public class CImpl implements C {
+    private List<String> invocations = new ArrayList<>();
+
+    @Override
+    public void a() {
+      invocations.add("a");
+    }
+
+    @Override
+    public void b() {
+      invocations.add("b");
+    }
+
+    @Override
+    public void c() {
+      invocations.add("c");
+    }
+  }
+
+  @Test
+  public void testInvokingActivityByBaseInterface() {
+    CImpl impl = new CImpl();
+    testEnvironment.registerActivitiesImplementations(impl);
+    try {
+      testEnvironment.newActivityStub(A.class);
+      fail("A doesn't implement activity");
+    } catch (IllegalArgumentException e) {
+      // expected as A doesn't implement any activity
+    }
+    B b = testEnvironment.newActivityStub(B.class);
+    b.a();
+    b.b();
+    C c = testEnvironment.newActivityStub(C.class);
+    c.a();
+    c.b();
+    c.c();
+    List<String> expected = new ArrayList<>();
+    expected.add("a");
+    expected.add("b");
+    expected.add("a");
+    expected.add("b");
+    expected.add("c");
+    assertEquals(expected, impl.invocations);
   }
 }

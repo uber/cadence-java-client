@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.common.MethodRetry;
@@ -24,6 +25,7 @@ import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.function.Function;
 
 class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
@@ -31,20 +33,48 @@ class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
   private final WorkflowInterceptor activityExecutor;
 
   static InvocationHandler newInstance(
-      ActivityOptions options, WorkflowInterceptor activityExecutor) {
-    return new ActivityInvocationHandler(options, activityExecutor);
+      Class<?> activityInterface, ActivityOptions options, WorkflowInterceptor activityExecutor) {
+    return new ActivityInvocationHandler(activityInterface, activityExecutor, options);
   }
 
-  private ActivityInvocationHandler(ActivityOptions options, WorkflowInterceptor activityExecutor) {
+  private ActivityInvocationHandler(
+      Class<?> activityInterface, WorkflowInterceptor activityExecutor, ActivityOptions options) {
     this.options = options;
     this.activityExecutor = activityExecutor;
+    init(activityInterface);
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   protected Function<Object[], Object> getActivityFunc(
       Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
     Function<Object[], Object> function;
-    ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
+    ActivityOptions.Builder optionsBuilder =
+        ActivityOptions.newBuilder(options).setMethodRetry(methodRetry);
+    if (activityMethod != null) {
+      // options always take precedence over activity method annotation.
+      if (options.getStartToCloseTimeout() == null) {
+        optionsBuilder.setStartToCloseTimeout(
+            Duration.ofSeconds(activityMethod.startToCloseTimeoutSeconds()));
+      }
+      if (options.getScheduleToStartTimeout() == null) {
+        optionsBuilder.setScheduleToStartTimeout(
+            Duration.ofSeconds(activityMethod.scheduleToStartTimeoutSeconds()));
+      }
+      if (options.getScheduleToCloseTimeout() == null) {
+        optionsBuilder.setScheduleToCloseTimeout(
+            Duration.ofSeconds(activityMethod.scheduleToCloseTimeoutSeconds()));
+      }
+      if (options.getHeartbeatTimeout() == null) {
+        optionsBuilder.setHeartbeatTimeout(
+            Duration.ofSeconds(activityMethod.heartbeatTimeoutSeconds()));
+      }
+      if (Strings.isNullOrEmpty(options.getTaskList())
+          && !Strings.isNullOrEmpty(activityMethod.taskList())) {
+        optionsBuilder.setTaskList(activityMethod.taskList());
+      }
+    }
+    ActivityOptions mergedOptions = optionsBuilder.build();
     ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
 
     function =

@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -27,7 +27,8 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
-import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityInterface;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.ActivityWorkerShutdownException;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
@@ -40,6 +41,7 @@ import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -97,7 +99,12 @@ public class CleanWorkerShutdownTest {
 
   public static class TestWorkflowImpl implements TestWorkflow {
 
-    private final Activities activities = Workflow.newActivityStub(Activities.class);
+    private final Activities activities =
+        Workflow.newActivityStub(
+            Activities.class,
+            ActivityOptions.newBuilder()
+                .setScheduleToCloseTimeout(Duration.ofSeconds(100))
+                .build());
 
     @Override
     public String execute() {
@@ -105,8 +112,8 @@ public class CleanWorkerShutdownTest {
     }
   }
 
+  @ActivityInterface
   public interface Activities {
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 100)
     String execute();
   }
 

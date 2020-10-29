@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -19,7 +19,7 @@ package com.uber.cadence.workflow;
 
 import static junit.framework.TestCase.assertTrue;
 
-import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityInterface;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import org.junit.Test;
@@ -43,8 +43,8 @@ public class TestEnvironmentCloseTest {
     public void signal() {}
   }
 
+  @ActivityInterface
   public interface A {
-    @ActivityMethod
     void bar();
   }
 
