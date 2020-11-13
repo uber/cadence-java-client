@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -17,80 +17,53 @@
 
 package com.uber.cadence.worker;
 
-import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.converter.DataConverter;
-import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
-import com.uber.m3.tally.Scope;
-import java.lang.management.ManagementFactory;
 import java.util.Objects;
 import java.util.function.Function;
 
 public final class WorkerOptions {
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(WorkerOptions options) {
+    return new Builder(options);
+  }
+
+  public static WorkerOptions defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final WorkerOptions DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = WorkerOptions.newBuilder().build();
+  }
 
   public static final class Builder {
 
-    private boolean disableWorkflowWorker;
-    private boolean disableActivityWorker;
     private double workerActivitiesPerSecond;
-    private String identity;
-    private DataConverter dataConverter = JsonDataConverter.getInstance();
     private int maxConcurrentActivityExecutionSize = 100;
     private int maxConcurrentWorkflowExecutionSize = 50;
     private int maxConcurrentLocalActivityExecutionSize = 100;
     private double taskListActivitiesPerSecond = 100000;
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
-    private RetryOptions reportActivityCompletionRetryOptions;
-    private RetryOptions reportActivityFailureRetryOptions;
-    private RetryOptions reportWorkflowCompletionRetryOptions;
-    private RetryOptions reportWorkflowFailureRetryOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
-    private Scope metricsScope;
-    private boolean enableLoggingInReplay;
 
-    /**
-     * When set to true doesn't poll on workflow task list even if there are registered workflows
-     * with a worker. For clarity prefer not registing workflow types with a {@link Worker} to
-     * setting this option. But it can be useful for disabling polling through configuration without
-     * a code change.
-     */
-    public Builder setDisableWorkflowWorker(boolean disableWorkflowWorker) {
-      this.disableWorkflowWorker = disableWorkflowWorker;
-      return this;
-    }
+    private Builder() {}
 
-    /**
-     * When set to true doesn't poll on activity task list even if there are registered activities
-     * with a worker. For clarity prefer not registing activity implementations with a {@link
-     * Worker} to setting this option. But it can be useful for disabling polling through
-     * configuration without a code change.
-     */
-    public Builder setDisableActivityWorker(boolean disableActivityWorker) {
-      this.disableActivityWorker = disableActivityWorker;
-      return this;
-    }
-
-    /**
-     * Override human readable identity of the worker. Identity is used to identify a worker and is
-     * recorded in the workflow history events. For example when a worker gets an activity task the
-     * correspondent ActivityTaskStarted event contains the worker identity as a field. Default is
-     * whatever <code>(ManagementFactory.getRuntimeMXBean().getName()</code> returns.
-     */
-    public Builder setIdentity(String identity) {
-      this.identity = Objects.requireNonNull(identity);
-      return this;
-    }
-
-    /**
-     * Override a data converter implementation used by workflows and activities executed by this
-     * worker. Default is {@link com.uber.cadence.converter.JsonDataConverter} data converter.
-     */
-    public Builder setDataConverter(DataConverter dataConverter) {
-      this.dataConverter = Objects.requireNonNull(dataConverter);
-      return this;
+    private Builder(WorkerOptions options) {
+      this.workerActivitiesPerSecond = options.workerActivitiesPerSecond;
+      this.maxConcurrentActivityExecutionSize = options.maxConcurrentActivityExecutionSize;
+      this.maxConcurrentWorkflowExecutionSize = options.maxConcurrentWorkflowExecutionSize;
+      this.maxConcurrentLocalActivityExecutionSize =
+          options.maxConcurrentLocalActivityExecutionSize;
+      this.taskListActivitiesPerSecond = options.taskListActivitiesPerSecond;
+      this.activityPollerOptions = options.activityPollerOptions;
+      this.workflowPollerOptions = options.workflowPollerOptions;
+      this.interceptorFactory = options.interceptorFactory;
     }
 
     /** Maximum number of activities started per second. Default is 0 which means unlimited. */
@@ -143,47 +116,9 @@ public final class WorkerOptions {
       return this;
     }
 
-    public Builder setReportActivityCompletionRetryOptions(
-        RetryOptions reportActivityCompletionRetryOptions) {
-      this.reportActivityCompletionRetryOptions =
-          Objects.requireNonNull(reportActivityCompletionRetryOptions);
-      return this;
-    }
-
-    public Builder setReportActivityFailureRetryOptions(
-        RetryOptions reportActivityFailureRetryOptions) {
-      this.reportActivityFailureRetryOptions =
-          Objects.requireNonNull(reportActivityFailureRetryOptions);
-      return this;
-    }
-
-    public Builder setReportWorkflowCompletionRetryOptions(
-        RetryOptions reportWorkflowCompletionRetryOptions) {
-      this.reportWorkflowCompletionRetryOptions =
-          Objects.requireNonNull(reportWorkflowCompletionRetryOptions);
-      return this;
-    }
-
-    public Builder setReportWorkflowFailureRetryOptions(
-        RetryOptions reportWorkflowFailureRetryOptions) {
-      this.reportWorkflowFailureRetryOptions =
-          Objects.requireNonNull(reportWorkflowFailureRetryOptions);
-      return this;
-    }
-
     public Builder setInterceptorFactory(
         Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
       this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
-      return this;
-    }
-
-    public Builder setMetricsScope(Scope metricsScope) {
-      this.metricsScope = Objects.requireNonNull(metricsScope);
-      return this;
-    }
-
-    public Builder setEnableLoggingInReplay(boolean enableLoggingInReplay) {
-      this.enableLoggingInReplay = enableLoggingInReplay;
       return this;
     }
 
@@ -201,112 +136,48 @@ public final class WorkerOptions {
     }
 
     public WorkerOptions build() {
-      if (identity == null) {
-        identity = ManagementFactory.getRuntimeMXBean().getName();
-      }
-
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-
       return new WorkerOptions(
-          disableWorkflowWorker,
-          disableActivityWorker,
           workerActivitiesPerSecond,
-          identity,
-          dataConverter,
           maxConcurrentActivityExecutionSize,
           maxConcurrentWorkflowExecutionSize,
           maxConcurrentLocalActivityExecutionSize,
           taskListActivitiesPerSecond,
           activityPollerOptions,
           workflowPollerOptions,
-          reportActivityCompletionRetryOptions,
-          reportActivityFailureRetryOptions,
-          reportWorkflowCompletionRetryOptions,
-          reportWorkflowFailureRetryOptions,
-          interceptorFactory,
-          metricsScope,
-          enableLoggingInReplay);
+          interceptorFactory);
     }
   }
 
-  private final boolean disableWorkflowWorker;
-  private final boolean disableActivityWorker;
   private final double workerActivitiesPerSecond;
-  private final String identity;
-  private final DataConverter dataConverter;
   private final int maxConcurrentActivityExecutionSize;
   private final int maxConcurrentWorkflowExecutionSize;
   private final int maxConcurrentLocalActivityExecutionSize;
   private final double taskListActivitiesPerSecond;
   private final PollerOptions activityPollerOptions;
   private final PollerOptions workflowPollerOptions;
-  private final RetryOptions reportActivityCompletionRetryOptions;
-  private final RetryOptions reportActivityFailureRetryOptions;
-  private final RetryOptions reportWorkflowCompletionRetryOptions;
-  private final RetryOptions reportWorkflowFailureRetryOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
-  private final Scope metricsScope;
-  private final boolean enableLoggingInReplay;
 
   private WorkerOptions(
-      boolean disableWorkflowWorker,
-      boolean disableActivityWorker,
       double workerActivitiesPerSecond,
-      String identity,
-      DataConverter dataConverter,
       int maxConcurrentActivityExecutionSize,
       int maxConcurrentWorkflowExecutionSize,
       int maxConcurrentLocalActivityExecutionSize,
       double taskListActivitiesPerSecond,
       PollerOptions activityPollerOptions,
       PollerOptions workflowPollerOptions,
-      RetryOptions reportActivityCompletionRetryOptions,
-      RetryOptions reportActivityFailureRetryOptions,
-      RetryOptions reportWorkflowCompletionRetryOptions,
-      RetryOptions reportWorkflowFailureRetryOptions,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      Scope metricsScope,
-      boolean enableLoggingInReplay) {
-    this.disableWorkflowWorker = disableWorkflowWorker;
-    this.disableActivityWorker = disableActivityWorker;
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
-    this.identity = identity;
-    this.dataConverter = dataConverter;
     this.maxConcurrentActivityExecutionSize = maxConcurrentActivityExecutionSize;
     this.maxConcurrentWorkflowExecutionSize = maxConcurrentWorkflowExecutionSize;
     this.maxConcurrentLocalActivityExecutionSize = maxConcurrentLocalActivityExecutionSize;
     this.taskListActivitiesPerSecond = taskListActivitiesPerSecond;
     this.activityPollerOptions = activityPollerOptions;
     this.workflowPollerOptions = workflowPollerOptions;
-    this.reportActivityCompletionRetryOptions = reportActivityCompletionRetryOptions;
-    this.reportActivityFailureRetryOptions = reportActivityFailureRetryOptions;
-    this.reportWorkflowCompletionRetryOptions = reportWorkflowCompletionRetryOptions;
-    this.reportWorkflowFailureRetryOptions = reportWorkflowFailureRetryOptions;
     this.interceptorFactory = interceptorFactory;
-    this.metricsScope = metricsScope;
-    this.enableLoggingInReplay = enableLoggingInReplay;
-  }
-
-  public boolean isDisableWorkflowWorker() {
-    return disableWorkflowWorker;
-  }
-
-  public boolean isDisableActivityWorker() {
-    return disableActivityWorker;
   }
 
   public double getWorkerActivitiesPerSecond() {
     return workerActivitiesPerSecond;
-  }
-
-  public String getIdentity() {
-    return identity;
-  }
-
-  public DataConverter getDataConverter() {
-    return dataConverter;
   }
 
   public int getMaxConcurrentActivityExecutionSize() {
@@ -329,48 +200,15 @@ public final class WorkerOptions {
     return workflowPollerOptions;
   }
 
-  public RetryOptions getReportActivityCompletionRetryOptions() {
-    return reportActivityCompletionRetryOptions;
-  }
-
-  public RetryOptions getReportActivityFailureRetryOptions() {
-    return reportActivityFailureRetryOptions;
-  }
-
-  public RetryOptions getReportWorkflowCompletionRetryOptions() {
-    return reportWorkflowCompletionRetryOptions;
-  }
-
-  public RetryOptions getReportWorkflowFailureRetryOptions() {
-    return reportWorkflowFailureRetryOptions;
-  }
-
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
-  }
-
-  public Scope getMetricsScope() {
-    return metricsScope;
-  }
-
-  public boolean getEnableLoggingInReplay() {
-    return enableLoggingInReplay;
   }
 
   @Override
   public String toString() {
     return "WorkerOptions{"
-        + "disableWorkflowWorker="
-        + disableWorkflowWorker
-        + ", disableActivityWorker="
-        + disableActivityWorker
-        + ", workerActivitiesPerSecond="
+        + "workerActivitiesPerSecond="
         + workerActivitiesPerSecond
-        + ", identity='"
-        + identity
-        + '\''
-        + ", dataConverter="
-        + dataConverter
         + ", maxConcurrentActivityExecutionSize="
         + maxConcurrentActivityExecutionSize
         + ", maxConcurrentWorkflowExecutionSize="
@@ -383,14 +221,6 @@ public final class WorkerOptions {
         + activityPollerOptions
         + ", workflowPollerOptions="
         + workflowPollerOptions
-        + ", reportActivityCompletionRetryOptions="
-        + reportActivityCompletionRetryOptions
-        + ", reportActivityFailureRetryOptions="
-        + reportActivityFailureRetryOptions
-        + ", reportWorkflowCompletionRetryOptions="
-        + reportWorkflowCompletionRetryOptions
-        + ", reportWorkflowFailureRetryOptions="
-        + reportWorkflowFailureRetryOptions
         + '}';
   }
 }

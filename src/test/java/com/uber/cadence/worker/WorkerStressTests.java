@@ -23,8 +23,12 @@ import static org.junit.Assert.assertNotNull;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
+import com.uber.cadence.serviceclient.ClientOptions;
+import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.workflow.Async;
@@ -78,9 +82,9 @@ public class WorkerStressTests {
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder().setMaxWorkflowThreadCount(200).build());
-    Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+            WorkerFactoryOptions.newBuilder().setMaxWorkflowThreadCount(200).build());
+    WorkerFactory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
@@ -118,12 +122,12 @@ public class WorkerStressTests {
 
     TestEnvironmentWrapper wrapper =
         new TestEnvironmentWrapper(
-            new Worker.FactoryOptions.Builder()
+            WorkerFactoryOptions.newBuilder()
                 .setDisableStickyExecution(false)
                 .setMaxWorkflowThreadCount(2)
                 .build());
-    Worker.Factory factory = wrapper.getWorkerFactory();
-    Worker worker = factory.newWorker(taskListName, new WorkerOptions.Builder().build());
+    WorkerFactory factory = wrapper.getWorkerFactory();
+    Worker worker = factory.newWorker(taskListName);
     worker.registerWorkflowImplementationTypes(ActivitiesWorkflowImpl.class);
     worker.registerActivitiesImplementations(new ActivitiesImpl());
     factory.start();
@@ -168,32 +172,43 @@ public class WorkerStressTests {
   private class TestEnvironmentWrapper {
 
     private TestWorkflowEnvironment testEnv;
-    private Worker.Factory factory;
+    private WorkerFactory factory;
 
-    public TestEnvironmentWrapper(Worker.FactoryOptions options) {
+    public TestEnvironmentWrapper(WorkerFactoryOptions options) {
       if (options == null) {
-        options = new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+        options = WorkerFactoryOptions.newBuilder().setDisableStickyExecution(false).build();
       }
-      factory = new Worker.Factory(DOMAIN, options);
-      TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).setFactoryOptions(options).build();
-      testEnv = TestWorkflowEnvironment.newInstance(testOptions);
+      WorkflowClientOptions clientOptions =
+          WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
+      if (useDockerService) {
+        IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
+        WorkflowClient client = WorkflowClient.newInstance(service, clientOptions);
+        factory = WorkerFactory.newInstance(client, options);
+      } else {
+        TestEnvironmentOptions testOptions =
+            new TestEnvironmentOptions.Builder()
+                .setWorkflowClientOptions(clientOptions)
+                .setWorkerFactoryOptions(options)
+                .build();
+        testEnv = TestWorkflowEnvironment.newInstance(testOptions);
+      }
     }
 
-    private Worker.Factory getWorkerFactory() {
+    private WorkerFactory getWorkerFactory() {
       return useExternalService ? factory : testEnv.getWorkerFactory();
     }
 
     private WorkflowClient getWorkflowClient() {
-      return useExternalService
-          ? WorkflowClient.newInstance(factory.getWorkflowService(), DOMAIN)
-          : testEnv.newWorkflowClient();
+      return useExternalService ? factory.getWorkflowClient() : testEnv.newWorkflowClient();
     }
 
     private void close() {
-      factory.shutdown();
-      factory.awaitTermination(10, TimeUnit.SECONDS);
-      testEnv.close();
+      if (factory != null) {
+        factory.shutdown();
+        factory.awaitTermination(10, TimeUnit.SECONDS);
+      } else {
+        testEnv.close();
+      }
     }
   }
 

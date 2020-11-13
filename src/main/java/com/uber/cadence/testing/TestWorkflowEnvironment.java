@@ -23,6 +23,7 @@ import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactory;
 import com.uber.cadence.worker.WorkerOptions;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -172,7 +173,7 @@ public interface TestWorkflowEnvironment {
   /** Calls {@link #shutdownNow()} and {@link #awaitTermination(long, TimeUnit)}. */
   void close();
 
-  Worker.Factory getWorkerFactory();
+  WorkerFactory getWorkerFactory();
 
   /** Start all workers created by this factory. */
   void start();

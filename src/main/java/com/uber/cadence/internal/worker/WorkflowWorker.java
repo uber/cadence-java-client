@@ -18,9 +18,6 @@
 package com.uber.cadence.internal.worker;
 
 import com.google.common.base.Strings;
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
@@ -32,9 +29,8 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.common.WorkflowExecutionHistory;
-import com.uber.cadence.internal.common.Retryer;
+import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -46,18 +42,16 @@ import com.uber.m3.util.ImmutableMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
-public final class WorkflowWorker
-    implements SuspendableWorker, Consumer<PollForDecisionTaskResponse> {
+public final class WorkflowWorker extends SuspendableWorkerBase
+    implements Consumer<PollForDecisionTaskResponse> {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Workflow Poller taskList=";
 
-  private SuspendableWorker poller = new NoopSuspendableWorker();
   private PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
   private final DecisionTaskHandler handler;
   private final IWorkflowService service;
@@ -83,12 +77,12 @@ public final class WorkflowWorker
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
       pollerOptions =
-          new PollerOptions.Builder(pollerOptions)
+          PollerOptions.newBuilder(pollerOptions)
               .setPollThreadNamePrefix(
                   POLL_THREAD_NAME_PREFIX + "\"" + taskList + "\", domain=\"" + domain + "\"")
               .build();
     }
-    this.options = new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
+    this.options = SingleWorkerOptions.newBuilder(options).setPollerOptions(pollerOptions).build();
   }
 
   @Override
@@ -96,7 +90,7 @@ public final class WorkflowWorker
     if (handler.isAnyTypeSupported()) {
       pollTaskExecutor =
           new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler));
-      poller =
+      SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
               new WorkflowPollTask(
@@ -105,23 +99,9 @@ public final class WorkflowWorker
               options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
+      setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
-  }
-
-  @Override
-  public boolean isStarted() {
-    return poller.isStarted();
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return poller.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return poller.isTerminated();
   }
 
   public byte[] queryWorkflowExecution(WorkflowExecution exec, String queryType, byte[] args)
@@ -185,40 +165,6 @@ public final class WorkflowWorker
       return r.getQueryResult();
     }
     throw new RuntimeException("Query returned wrong response: " + result);
-  }
-
-  @Override
-  public void shutdown() {
-    poller.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    poller.shutdownNow();
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    if (!poller.isStarted()) {
-      return;
-    }
-
-    poller.awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public void suspendPolling() {
-    poller.suspendPolling();
-  }
-
-  @Override
-  public void resumePolling() {
-    poller.resumePolling();
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return poller.isSuspended();
   }
 
   @Override
@@ -287,32 +233,17 @@ public final class WorkflowWorker
     private void sendReply(
         IWorkflowService service, byte[] taskToken, DecisionTaskHandler.Result response)
         throws TException {
-      RetryOptions ro = response.getRequestRetryOptions();
       RespondDecisionTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
-        ro =
-            options
-                .getReportCompletionRetryOptions()
-                .merge(ro)
-                .addDoNotRetry(
-                    BadRequestError.class, EntityNotExistsError.class, DomainNotActiveError.class);
         taskCompleted.setIdentity(options.getIdentity());
         taskCompleted.setTaskToken(taskToken);
-        Retryer.retry(ro, () -> service.RespondDecisionTaskCompleted(taskCompleted));
+        RpcRetryer.retry(() -> service.RespondDecisionTaskCompleted(taskCompleted));
       } else {
         RespondDecisionTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
-          ro =
-              options
-                  .getReportFailureRetryOptions()
-                  .merge(ro)
-                  .addDoNotRetry(
-                      BadRequestError.class,
-                      EntityNotExistsError.class,
-                      DomainNotActiveError.class);
           taskFailed.setIdentity(options.getIdentity());
           taskFailed.setTaskToken(taskToken);
-          Retryer.retry(ro, () -> service.RespondDecisionTaskFailed(taskFailed));
+          RpcRetryer.retry(() -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
           if (queryCompleted != null) {

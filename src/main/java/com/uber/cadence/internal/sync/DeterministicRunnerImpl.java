@@ -273,6 +273,7 @@ class DeterministicRunnerImpl implements DeterministicRunner {
       if (nextWakeUpTime < currentTimeMillis() || nextWakeUpTime == Long.MAX_VALUE) {
         nextWakeUpTime = 0;
       }
+
     } finally {
       inRunUntilAllBlocked = false;
       // Close was requested while running
@@ -380,7 +381,6 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     StringBuilder result = new StringBuilder();
     lock.lock();
     try {
-      checkClosed();
       for (WorkflowThread coroutine : threads) {
         if (result.length() > 0) {
           result.append("\n");

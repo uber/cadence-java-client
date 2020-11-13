@@ -17,7 +17,6 @@
 
 package com.uber.cadence.serviceclient;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.ClientVersionNotSupportedError;
@@ -93,7 +92,6 @@ import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
-import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.metrics.ServiceMethod;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
@@ -108,7 +106,10 @@ import com.uber.tchannel.messages.ThriftResponse;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
@@ -118,254 +119,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WorkflowServiceTChannel implements IWorkflowService {
-
-  private static final int DEFAULT_LOCAL_CADENCE_SERVER_PORT = 7933;
-
-  private static final String LOCALHOST = "127.0.0.1";
-
-  /** Default RPC timeout used for all non long poll calls. */
-  private static final long DEFAULT_RPC_TIMEOUT_MILLIS = 1000;
-  /** Default RPC timeout used for all long poll calls. */
-  private static final long DEFAULT_POLL_RPC_TIMEOUT_MILLIS = 121 * 1000;
-
-  /** Default RPC timeout for QueryWorkflow */
-  private static final long DEFAULT_QUERY_RPC_TIMEOUT_MILLIS = 10 * 1000;
-
-  /** Default RPC timeout for ListArchivedWorkflow */
-  private static final long DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS = 180 * 1000;
-
-  private static final String DEFAULT_CLIENT_APP_NAME = "cadence-client";
-
-  /** Name of the Cadence service front end as required by TChannel. */
-  private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
-
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
-
-  public static class ClientOptions {
-
-    /** The tChannel timeout in milliseconds */
-    private final long rpcTimeoutMillis;
-
-    /** The tChannel timeout for long poll calls in milliseconds */
-    private final long rpcLongPollTimeoutMillis;
-
-    /** The tChannel timeout for query workflow call in milliseconds */
-    private final long rpcQueryTimeoutMillis;
-
-    /** The tChannel timeout for list archived workflow call in milliseconds */
-    private final long rpcListArchivedWorkflowTimeoutMillis;
-
-    /** TChannel service name that the Cadence service was started with. */
-    private final String serviceName;
-
-    /** Name of the service using the cadence-client. */
-    private final String clientAppName;
-
-    /** Client for metrics reporting. */
-    private final Scope metricsScope;
-
-    /** Optional TChannel transport headers */
-    private final Map<String, String> transportHeaders;
-
-    /** Optional TChannel headers */
-    private final Map<String, String> headers;
-
-    private ClientOptions(Builder builder) {
-      this.rpcTimeoutMillis = builder.rpcTimeoutMillis;
-      if (builder.clientAppName == null) {
-        this.clientAppName = DEFAULT_CLIENT_APP_NAME;
-      } else {
-        this.clientAppName = builder.clientAppName;
-      }
-      if (builder.serviceName == null) {
-        this.serviceName = DEFAULT_SERVICE_NAME;
-      } else {
-        this.serviceName = builder.serviceName;
-      }
-      this.rpcLongPollTimeoutMillis = builder.rpcLongPollTimeoutMillis;
-      this.rpcQueryTimeoutMillis = builder.rpcQueryTimeoutMillis;
-      this.rpcListArchivedWorkflowTimeoutMillis = builder.rpcListArchivedWorkflowTimeoutMillis;
-      if (builder.metricsScope == null) {
-        builder.metricsScope = NoopScope.getInstance();
-      }
-      this.metricsScope = builder.metricsScope;
-      if (builder.transportHeaders != null) {
-        this.transportHeaders = ImmutableMap.copyOf(builder.transportHeaders);
-      } else {
-        this.transportHeaders = ImmutableMap.of();
-      }
-
-      if (builder.headers != null) {
-        this.headers = ImmutableMap.copyOf(builder.headers);
-      } else {
-        this.headers = ImmutableMap.of();
-      }
-    }
-
-    /** @return Returns the rpc timeout value in millis. */
-    public long getRpcTimeoutMillis() {
-      return rpcTimeoutMillis;
-    }
-
-    /** @return Returns the rpc timout for long poll requests in millis. */
-    public long getRpcLongPollTimeoutMillis() {
-      return rpcLongPollTimeoutMillis;
-    }
-
-    /** @return Returns the rpc timout for query workflow requests in millis. */
-    public long getRpcQueryTimeoutMillis() {
-      return rpcQueryTimeoutMillis;
-    }
-
-    /** @return Returns the rpc timout for list archived workflow requests in millis. */
-    public long getRpcListArchivedWorkflowTimeoutMillis() {
-      return rpcListArchivedWorkflowTimeoutMillis;
-    }
-
-    /** Returns the client application name. */
-    public String getClientAppName() {
-      return this.clientAppName;
-    }
-
-    public String getServiceName() {
-      return serviceName;
-    }
-
-    public Scope getMetricsScope() {
-      return metricsScope;
-    }
-
-    public Map<String, String> getTransportHeaders() {
-      return transportHeaders;
-    }
-
-    public Map<String, String> getHeaders() {
-      return headers;
-    }
-
-    /**
-     * Builder is the builder for ClientOptions.
-     *
-     * @author venkat
-     */
-    public static class Builder {
-
-      private String clientAppName = DEFAULT_CLIENT_APP_NAME;
-      //            private MetricsClient metricsClient = new DefaultMetricsClient();
-      private long rpcTimeoutMillis = DEFAULT_RPC_TIMEOUT_MILLIS;
-      private long rpcLongPollTimeoutMillis = DEFAULT_POLL_RPC_TIMEOUT_MILLIS;
-      public long rpcQueryTimeoutMillis = DEFAULT_QUERY_RPC_TIMEOUT_MILLIS;
-      public long rpcListArchivedWorkflowTimeoutMillis =
-          DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS;
-      public String serviceName;
-      private Scope metricsScope;
-      private Map<String, String> transportHeaders;
-      private Map<String, String> headers;
-
-      /**
-       * Sets the rpc timeout value for non query and non long poll calls. Default is 1000.
-       *
-       * @param timeoutMillis timeout, in millis.
-       */
-      public Builder setRpcTimeout(long timeoutMillis) {
-        this.rpcTimeoutMillis = timeoutMillis;
-        return this;
-      }
-
-      /**
-       * Sets the rpc timeout value for the following long poll based operations:
-       * PollForDecisionTask, PollForActivityTask, GetWorkflowExecutionHistory. Should never be
-       * below 60000 as this is server side timeout for the long poll. Default is 61000.
-       *
-       * @param timeoutMillis timeout, in millis.
-       */
-      public Builder setRpcLongPollTimeout(long timeoutMillis) {
-        this.rpcLongPollTimeoutMillis = timeoutMillis;
-        return this;
-      }
-
-      /**
-       * Sets the rpc timeout value for query calls. Default is 10000.
-       *
-       * @param timeoutMillis timeout, in millis.
-       */
-      public Builder setQueryRpcTimeout(long timeoutMillis) {
-        this.rpcQueryTimeoutMillis = timeoutMillis;
-        return this;
-      }
-
-      /**
-       * Sets the rpc timeout value for query calls. Default is 180000.
-       *
-       * @param timeoutMillis timeout, in millis.
-       */
-      public Builder setListArchivedWorkflowRpcTimeout(long timeoutMillis) {
-        this.rpcListArchivedWorkflowTimeoutMillis = timeoutMillis;
-        return this;
-      }
-
-      /**
-       * Sets the client application name.
-       *
-       * <p>This name will be used as the tchannel client service name. It will also be reported as
-       * a tag along with metrics emitted to m3.
-       *
-       * @param clientAppName String representing the client application name.
-       * @return Builder for ClentOptions
-       */
-      public Builder setClientAppName(String clientAppName) {
-        this.clientAppName = clientAppName;
-        return this;
-      }
-
-      /**
-       * Sets the service name that Cadence service was started with.
-       *
-       * @param serviceName String representing the service name
-       * @return Builder for ClentOptions
-       */
-      public Builder setServiceName(String serviceName) {
-        this.serviceName = serviceName;
-        return this;
-      }
-
-      /**
-       * Sets the metrics scope to be used for metrics reporting.
-       *
-       * @param metricsScope
-       * @return Builder for ClentOptions
-       */
-      public Builder setMetricsScope(Scope metricsScope) {
-        this.metricsScope = metricsScope;
-        return this;
-      }
-
-      /**
-       * Sets additional transport headers for tchannel client.
-       *
-       * @param transportHeaders Map with additional transport headers
-       * @return Builder for ClentOptions
-       */
-      public Builder setTransportHeaders(Map<String, String> transportHeaders) {
-        this.transportHeaders = transportHeaders;
-        return this;
-      }
-
-      public Builder setHeaders(Map<String, String> headers) {
-        this.headers = headers;
-        return this;
-      }
-
-      /**
-       * Builds and returns a ClientOptions object.
-       *
-       * @return ClientOptions object with the specified params.
-       */
-      public ClientOptions build() {
-        return new ClientOptions(this);
-      }
-    }
-  }
 
   private static final String INTERFACE_NAME = "WorkflowService";
 
@@ -375,64 +129,33 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final SubChannel subChannel;
 
   /**
-   * Creates Cadence client that connects to the local instance of the Cadence Service that listens
-   * on a default port (7933).
-   */
-  public WorkflowServiceTChannel() {
-    this(
-        Strings.isNullOrEmpty(System.getenv("CADENCE_SEEDS"))
-            ? LOCALHOST
-            : System.getenv("CADENCE_SEEDS"),
-        DEFAULT_LOCAL_CADENCE_SERVER_PORT,
-        new ClientOptions.Builder().build());
-  }
-
-  /**
-   * Creates Cadence client that connects to the specified host and port using default options.
-   *
-   * @param host host to connect
-   * @param port port to connect
-   */
-  public WorkflowServiceTChannel(String host, int port) {
-    this(host, port, new ClientOptions.Builder().build());
-  }
-
-  /**
    * Creates Cadence client that connects to the specified host and port using specified options.
    *
-   * @param host host to connect
-   * @param port port to connect
    * @param options configuration options like rpc timeouts.
    */
-  public WorkflowServiceTChannel(String host, int port, ClientOptions options) {
-    if (host == null) {
-      throw new IllegalArgumentException("null host");
-    }
-    if (port <= 0) {
-      throw new IllegalArgumentException("0 or negative port");
-    }
+  public WorkflowServiceTChannel(ClientOptions options) {
     this.options = options;
     this.thriftHeaders = getThriftHeaders(options);
-    // this.metricsReporter = new MetricsReporter(options.getMetricsClient());
-    // Need to create tChannel last in order to prevent leaking when an exception is thrown
     this.tChannel = new TChannel.Builder(options.getClientAppName()).build();
 
+    InetAddress address;
     try {
-      InetAddress address = InetAddress.getByName(host);
-      ArrayList<InetSocketAddress> peers = new ArrayList<>();
-      peers.add(new InetSocketAddress(address, port));
-      this.subChannel = tChannel.makeSubChannel(options.getServiceName()).setPeers(peers);
-      log.info(
-          "Initialized TChannel for service "
-              + this.subChannel.getServiceName()
-              + ", LibraryVersion: "
-              + Version.LIBRARY_VERSION
-              + ", FeatureVersion: "
-              + Version.FEATURE_VERSION);
+      address = InetAddress.getByName(options.getHost());
     } catch (UnknownHostException e) {
       tChannel.shutdown();
-      throw new RuntimeException("Unable to get name of host " + host, e);
+      throw new RuntimeException("Unable to get name of host " + options.getHost(), e);
     }
+
+    ArrayList<InetSocketAddress> peers = new ArrayList<>();
+    peers.add(new InetSocketAddress(address, options.getPort()));
+    this.subChannel = tChannel.makeSubChannel(options.getServiceName()).setPeers(peers);
+    log.info(
+        "Initialized TChannel for service "
+            + this.subChannel.getServiceName()
+            + ", LibraryVersion: "
+            + Version.LIBRARY_VERSION
+            + ", FeatureVersion: "
+            + Version.FEATURE_VERSION);
   }
 
   /**
@@ -444,7 +167,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public WorkflowServiceTChannel(SubChannel subChannel, ClientOptions options) {
     this.options = options;
     this.thriftHeaders = getThriftHeaders(options);
-    // this.metricsReporter = new MetricsReporter(options.getMetricsClient());
     this.tChannel = null;
     this.subChannel = subChannel;
   }
@@ -466,8 +188,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
             .put("cadence-client-feature-version", Version.FEATURE_VERSION)
             .put("cadence-client-name", "uber-java");
 
-    if (options.headers != null) {
-      for (Map.Entry<String, String> entry : options.headers.entrySet()) {
+    if (options.getHeaders() != null) {
+      for (Map.Entry<String, String> entry : options.getHeaders().entrySet()) {
         builder.put(entry.getKey(), entry.getValue());
       }
     }
@@ -2429,7 +2151,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                     r.getBody(WorkflowService.GetWorkflowExecutionHistory_result.class);
 
                 if (r.getResponseCode() == ResponseCode.OK) {
-                  resultHandler.onComplete(result.getSuccess());
+                  GetWorkflowExecutionHistoryResponse res = result.getSuccess();
+                  if (res.getRawHistory() != null) {
+                    History history =
+                        InternalUtils.DeserializeFromBlobToHistoryEvents(
+                            res.getRawHistory(), getRequest.getHistoryEventFilterType());
+                    res.setHistory(history);
+                  }
+                  resultHandler.onComplete(res);
                   return;
                 }
                 if (result.isSetBadRequestError()) {
@@ -2447,6 +2176,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                 resultHandler.onError(
                     new TException(
                         "GetWorkflowExecutionHistory failed with unknown " + "error:" + result));
+              } catch (TException tException) {
+                resultHandler.onError(tException);
               } finally {
                 if (r != null) {
                   r.release();

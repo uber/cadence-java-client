@@ -25,6 +25,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -65,13 +67,13 @@ import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.serviceclient.ClientOptions;
+import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.Worker;
-import com.uber.cadence.worker.WorkerOptions;
-import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.worker.*;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.File;
@@ -201,15 +203,15 @@ public class WorkflowTest {
 
   private String taskList;
 
-  private Worker.Factory workerFactory;
+  private WorkerFactory workerFactory;
   private Worker worker;
   private TestActivitiesImpl activitiesImpl;
   private WorkflowClient workflowClient;
-  private WorkflowClient workflowClientWithOptions;
   private TestWorkflowEnvironment testEnvironment;
   private ScheduledExecutorService scheduledExecutor;
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
-  private static final WorkflowServiceTChannel service = new WorkflowServiceTChannel();
+  private static final IWorkflowService service =
+      new WorkflowServiceTChannel(ClientOptions.defaultInstance());
 
   @AfterClass
   public static void closeService() {
@@ -276,40 +278,36 @@ public class WorkflowTest {
     }
     tracer = new TracingWorkflowInterceptorFactory();
     // TODO: Create a version of TestWorkflowEnvironment that runs against a real service.
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      Worker.FactoryOptions factoryOptions =
-          new Worker.FactoryOptions.Builder()
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      WorkerFactoryOptions factoryOptions =
+          WorkerFactoryOptions.newBuilder()
               .setDisableStickyExecution(disableStickyExecution)
               .build();
-      workerFactory = new Worker.Factory(service, DOMAIN, factoryOptions);
+      workerFactory = new WorkerFactory(workflowClient, factoryOptions);
       WorkerOptions workerOptions =
-          new WorkerOptions.Builder()
-              .setActivityPollerOptions(new PollerOptions.Builder().setPollThreadCount(5).build())
+          WorkerOptions.newBuilder()
+              .setActivityPollerOptions(PollerOptions.newBuilder().setPollThreadCount(5).build())
               .setMaxConcurrentActivityExecutionSize(1000)
               .setInterceptorFactory(tracer)
               .build();
       worker = workerFactory.newWorker(taskList, workerOptions);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
-      WorkflowClientOptions clientOptions =
-          new WorkflowClientOptions.Builder()
-              .setDataConverter(JsonDataConverter.getInstance())
-              .build();
-      workflowClientWithOptions = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
       scheduledExecutor = new ScheduledThreadPoolExecutor(1);
     } else {
       TestEnvironmentOptions testOptions =
           new TestEnvironmentOptions.Builder()
-              .setDomain(DOMAIN)
+              .setWorkflowClientOptions(clientOptions)
               .setInterceptorFactory(tracer)
-              .setFactoryOptions(
-                  new Worker.FactoryOptions.Builder()
+              .setWorkerFactoryOptions(
+                  WorkerFactoryOptions.newBuilder()
                       .setDisableStickyExecution(disableStickyExecution)
                       .build())
               .build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       worker = testEnvironment.newWorker(taskList);
       workflowClient = testEnvironment.newWorkflowClient();
-      workflowClientWithOptions = testEnvironment.newWorkflowClient();
     }
 
     ActivityCompletionClient completionClient = workflowClient.newActivityCompletionClient();
@@ -409,6 +407,27 @@ public class WorkflowTest {
 
     @QueryMethod(name = "getTrace")
     List<String> getTrace();
+  }
+
+  public interface TestWorkflow3 {
+
+    @WorkflowMethod
+    String execute(String taskList);
+
+    @SignalMethod(name = "testSignal")
+    void signal1(String arg);
+
+    @QueryMethod(name = "getState")
+    String getState();
+  }
+
+  public interface TestWorkflowQuery {
+
+    @WorkflowMethod()
+    String execute(String taskList);
+
+    @QueryMethod()
+    String query();
   }
 
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
@@ -1425,7 +1444,7 @@ public class WorkflowTest {
     }
     // Check that duplicated start is not allowed for AllowDuplicate IdReusePolicy
     TestMultiargsWorkflowsFunc2 stubF2 =
-        workflowClientWithOptions.newWorkflowStub(
+        workflowClient.newWorkflowStub(
             TestMultiargsWorkflowsFunc2.class,
             newWorkflowOptionsBuilder(taskList)
                 .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
@@ -1451,32 +1470,25 @@ public class WorkflowTest {
     assertResult("123456", WorkflowClient.start(stubF6::func6, "1", 2, 3, 4, 5, 6));
 
     TestMultiargsWorkflowsProc stubP =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP::proc));
     TestMultiargsWorkflowsProc1 stubP1 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc1.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc1.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP1::proc1, "1"));
     TestMultiargsWorkflowsProc2 stubP2 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc2.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc2.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP2::proc2, "1", 2));
     TestMultiargsWorkflowsProc3 stubP3 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc3.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc3.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP3::proc3, "1", 2, 3));
     TestMultiargsWorkflowsProc4 stubP4 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc4.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc4.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP4::proc4, "1", 2, 3, 4));
     TestMultiargsWorkflowsProc5 stubP5 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc5.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc5.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP5::proc5, "1", 2, 3, 4, 5));
     TestMultiargsWorkflowsProc6 stubP6 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc6.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc6.class, workflowOptions);
     waitForProc(WorkflowClient.start(stubP6::proc6, "1", 2, 3, 4, 5, 6));
 
     assertEquals("proc", stubP.query());
@@ -1620,32 +1632,25 @@ public class WorkflowTest {
     assertEquals("123456", WorkflowClient.execute(stubF6::func6, "1", 2, 3, 4, 5, 6).get());
 
     TestMultiargsWorkflowsProc stubP =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc.class, workflowOptions);
     WorkflowClient.execute(stubP::proc).get();
     TestMultiargsWorkflowsProc1 stubP1 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc1.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc1.class, workflowOptions);
     WorkflowClient.execute(stubP1::proc1, "1").get();
     TestMultiargsWorkflowsProc2 stubP2 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc2.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc2.class, workflowOptions);
     WorkflowClient.execute(stubP2::proc2, "1", 2).get();
     TestMultiargsWorkflowsProc3 stubP3 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc3.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc3.class, workflowOptions);
     WorkflowClient.execute(stubP3::proc3, "1", 2, 3).get();
     TestMultiargsWorkflowsProc4 stubP4 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc4.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc4.class, workflowOptions);
     WorkflowClient.execute(stubP4::proc4, "1", 2, 3, 4).get();
     TestMultiargsWorkflowsProc5 stubP5 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc5.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc5.class, workflowOptions);
     WorkflowClient.execute(stubP5::proc5, "1", 2, 3, 4, 5).get();
     TestMultiargsWorkflowsProc6 stubP6 =
-        workflowClientWithOptions.newWorkflowStub(
-            TestMultiargsWorkflowsProc6.class, workflowOptions);
+        workflowClient.newWorkflowStub(TestMultiargsWorkflowsProc6.class, workflowOptions);
     WorkflowClient.execute(stubP6::proc6, "1", 2, 3, 4, 5, 6).get();
 
     assertEquals("proc", stubP.query());
@@ -2395,11 +2400,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignal() throws Exception {
+  public void testSignal() {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      WorkerFactory workerFactory = WorkerFactory.newInstance(workflowClient);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);
@@ -2469,11 +2474,11 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignalWithStart() throws Exception {
+  public void testSignalWithStart() {
     // Test getTrace through replay by a local worker.
     Worker queryWorker;
     if (useExternalService) {
-      Worker.Factory workerFactory = new Worker.Factory(service, DOMAIN);
+      WorkerFactory workerFactory = WorkerFactory.newInstance(workflowClient);
       queryWorker = workerFactory.newWorker(taskList);
     } else {
       queryWorker = testEnvironment.newWorker(taskList);
@@ -2973,7 +2978,7 @@ public class WorkflowTest {
     options.setTaskList(taskList);
     AtomicReference<String> capturedWorkflowType = new AtomicReference<>();
     WorkflowClientOptions clientOptions =
-        new WorkflowClientOptions.Builder()
+        WorkflowClientOptions.newBuilder()
             .setInterceptors(
                 new WorkflowClientInterceptorBase() {
                   @Override
@@ -2983,10 +2988,11 @@ public class WorkflowTest {
                     return next;
                   }
                 })
+            .setDomain(DOMAIN)
             .build();
     WorkflowClient wc;
     if (useExternalService) {
-      wc = WorkflowClient.newInstance(service, DOMAIN, clientOptions);
+      wc = WorkflowClient.newInstance(service, clientOptions);
     } else {
       wc = testEnvironment.newWorkflowClient(clientOptions);
     }
@@ -3049,7 +3055,7 @@ public class WorkflowTest {
     options.setTaskList(taskList);
     WorkflowClient wc;
     if (useExternalService) {
-      wc = WorkflowClient.newInstance(service, DOMAIN);
+      wc = workflowClient;
     } else {
       wc = testEnvironment.newWorkflowClient();
     }
@@ -4334,13 +4340,13 @@ public class WorkflowTest {
 
   static CompletableFuture<Boolean> executionStarted = new CompletableFuture<>();
 
-  public static class TestGetVersionWithoutDecisionEventWorkflowImpl
-      implements TestWorkflowSignaled {
+  public static class TestGetVersionWithoutDecisionEventWorkflowImpl implements TestWorkflow3 {
 
     CompletablePromise<Boolean> signalReceived = Workflow.newPromise();
+    String result = "";
 
     @Override
-    public String execute() {
+    public String execute(String taskList) {
       try {
         if (!getVersionExecuted.contains("getVersionWithoutDecisionEvent")) {
           // Execute getVersion in non-replay mode.
@@ -4353,10 +4359,11 @@ public class WorkflowTest {
           int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
           if (version == Workflow.DEFAULT_VERSION) {
             signalReceived.get();
-            return "result 1";
+            result = "result 1";
           } else {
-            return "result 2";
+            result = "result 2";
           }
+          return result;
         }
       } catch (Exception e) {
         throw new RuntimeException("failed to get from signal");
@@ -4369,6 +4376,11 @@ public class WorkflowTest {
     public void signal1(String arg) {
       signalReceived.complete(true);
     }
+
+    @Override
+    public String getState() {
+      return result;
+    }
   }
 
   @Test
@@ -4377,25 +4389,26 @@ public class WorkflowTest {
     executionStarted = new CompletableFuture<>();
     getVersionExecuted.remove("getVersionWithoutDecisionEvent");
     startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
-    TestWorkflowSignaled workflowStub =
+    TestWorkflow3 workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflowSignaled.class, newWorkflowOptionsBuilder(taskList).build());
-    WorkflowClient.start(workflowStub::execute);
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    WorkflowClient.start(workflowStub::execute, taskList);
     executionStarted.get();
     workflowStub.signal1("test signal");
-    String result = workflowStub.execute();
+    String result = workflowStub.execute(taskList);
     assertEquals("result 1", result);
+    assertEquals("result 1", workflowStub.getState());
   }
 
   // The following test covers the scenario where getVersion call is removed before a
   // non-version-marker decision.
-  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplayWorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
       TestActivities testActivities =
           Workflow.newActivityStub(TestActivities.class, newActivityOptions1(taskList));
-      String result;
       // Test removing a version check in replay code.
       if (!getVersionExecuted.contains(taskList)) {
         int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
@@ -4412,25 +4425,33 @@ public class WorkflowTest {
       result += testActivities.activity();
       return result;
     }
+
+    @Override
+    public String query() {
+      return result;
+    }
   }
 
   @Test
   public void testGetVersionRemovedInReplay() {
     startWorkerFor(TestGetVersionRemovedInReplayWorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity22activity", result);
     tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
         "getVersion",
         "executeActivity TestActivities::activity2",
         "executeActivity TestActivities::activity");
+    assertEquals("activity22activity", workflowStub.query());
   }
 
   // The following test covers the scenario where getVersion call is removed before another
   // version-marker decision.
-  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflow1 {
+  public static class TestGetVersionRemovedInReplay2WorkflowImpl implements TestWorkflowQuery {
+    String result = "";
 
     @Override
     public String execute(String taskList) {
@@ -4445,19 +4466,30 @@ public class WorkflowTest {
         Workflow.getVersion("test_change_2", Workflow.DEFAULT_VERSION, 2);
       }
 
-      return testActivities.activity();
+      result = testActivities.activity();
+      return result;
+    }
+
+    @Override
+    public String query() {
+      return result;
     }
   }
 
   @Test
   public void testGetVersionRemovedInReplay2() {
     startWorkerFor(TestGetVersionRemovedInReplay2WorkflowImpl.class);
-    TestWorkflow1 workflowStub =
+    TestWorkflowQuery workflowStub =
         workflowClient.newWorkflowStub(
-            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+            TestWorkflowQuery.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity", result);
-    tracer.setExpected("getVersion", "getVersion", "executeActivity TestActivities::activity");
+    tracer.setExpected(
+        "registerQuery TestWorkflowQuery::query",
+        "getVersion",
+        "getVersion",
+        "executeActivity TestActivities::activity");
+    assertEquals("activity", workflowStub.query());
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
@@ -5162,15 +5194,6 @@ public class WorkflowTest {
         result);
   }
 
-  public interface TestWorkflowQuery {
-
-    @WorkflowMethod()
-    String execute(String taskList);
-
-    @QueryMethod()
-    String query();
-  }
-
   public static final class TestLocalActivityAndQueryWorkflow implements TestWorkflowQuery {
 
     String message = "initial value";
@@ -5845,5 +5868,74 @@ public class WorkflowTest {
       trace.add("upsertSearchAttributes");
       next.upsertSearchAttributes(searchAttributes);
     }
+  }
+
+  public static class TestGetVersionWorkflowRetryImpl implements TestWorkflow3 {
+    private String result = "";
+
+    @Override
+    public String execute(String taskList) {
+      int version = Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+      int act = 0;
+      if (version == 1) {
+        ActivityOptions options =
+            new ActivityOptions.Builder()
+                .setTaskList(taskList)
+                .setHeartbeatTimeout(Duration.ofSeconds(5))
+                .setScheduleToCloseTimeout(Duration.ofSeconds(5))
+                .setScheduleToStartTimeout(Duration.ofSeconds(5))
+                .setStartToCloseTimeout(Duration.ofSeconds(10))
+                .setRetryOptions(
+                    new RetryOptions.Builder()
+                        .setMaximumAttempts(3)
+                        .setInitialInterval(Duration.ofSeconds(1))
+                        .build())
+                .build();
+
+        TestActivities testActivities = Workflow.newActivityStub(TestActivities.class, options);
+        act = testActivities.activity1(1);
+      }
+
+      result += "activity" + act;
+      return result;
+    }
+
+    @Override
+    public void signal1(String arg) {
+      Workflow.sleep(1000);
+    }
+
+    @Override
+    public String getState() {
+      return result;
+    }
+  }
+
+  @Test
+  public void testGetVersionRetry() throws ExecutionException, InterruptedException {
+    TestActivities activity = mock(TestActivities.class);
+    when(activity.activity1(1)).thenReturn(1);
+    worker.registerActivitiesImplementations(activity);
+
+    startWorkerFor(TestGetVersionWorkflowRetryImpl.class);
+    TestWorkflow3 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow3.class, newWorkflowOptionsBuilder(taskList).build());
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    workflowStub.signal1("test");
+    assertEquals("activity1", result.get());
+
+    // test replay
+    assertEquals("activity1", workflowStub.getState());
+  }
+
+  @Test
+  public void testGetVersionWithRetryReplay() throws Exception {
+    // Avoid executing 4 times
+    Assume.assumeFalse("skipping for docker tests", useExternalService);
+    Assume.assumeFalse("skipping for sticky off", disableStickyExecution);
+
+    WorkflowReplayer.replayWorkflowExecutionFromResource(
+        "testGetVersionWithRetryHistory.json", TestGetVersionWorkflowRetryImpl.class);
   }
 }

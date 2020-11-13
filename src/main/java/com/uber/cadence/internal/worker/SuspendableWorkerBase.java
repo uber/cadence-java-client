@@ -18,55 +18,59 @@
 package com.uber.cadence.internal.worker;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Helper class that is used instead of null for non initialized worker. This eliminates needs for
- * null checks when calling into it.
- */
-class NoopSuspendableWorker implements SuspendableWorker {
+public abstract class SuspendableWorkerBase implements SuspendableWorker {
+  private SuspendableWorker poller = new NoopSuspendableWorker();
 
-  private AtomicBoolean shutdown = new AtomicBoolean();
+  final void setPoller(SuspendableWorker poller) {
+    this.poller = poller;
+  }
+
+  @Override
+  public boolean isStarted() {
+    return poller.isStarted();
+  }
 
   @Override
   public boolean isShutdown() {
-    return shutdown.get();
+    return poller.isShutdown();
   }
 
   @Override
   public boolean isTerminated() {
-    return shutdown.get();
+    return poller.isTerminated();
   }
 
   @Override
   public void shutdown() {
-    shutdown.set(true);
+    poller.shutdown();
   }
 
   @Override
   public void shutdownNow() {
-    shutdown.set(true);
+    poller.shutdownNow();
   }
 
   @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {}
-
-  @Override
-  public void start() {}
-
-  @Override
-  public boolean isStarted() {
-    return false;
+  public void awaitTermination(long timeout, TimeUnit unit) {
+    if (!poller.isStarted()) {
+      return;
+    }
+    poller.awaitTermination(timeout, unit);
   }
 
   @Override
-  public void suspendPolling() {}
+  public void suspendPolling() {
+    poller.suspendPolling();
+  }
 
   @Override
-  public void resumePolling() {}
+  public void resumePolling() {
+    poller.resumePolling();
+  }
 
   @Override
   public boolean isSuspended() {
-    return true;
+    return poller.isSuspended();
   }
 }

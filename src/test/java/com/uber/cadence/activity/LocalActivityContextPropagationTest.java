@@ -24,13 +24,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
-import com.uber.cadence.client.WorkflowClientOptions.Builder;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.worker.Worker.FactoryOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.nio.charset.StandardCharsets;
@@ -69,8 +67,8 @@ public class LocalActivityContextPropagationTest {
       testEnv =
           TestWorkflowEnvironment.newInstance(
               new TestEnvironmentOptions.Builder()
-                  .setFactoryOptions(
-                      new FactoryOptions.Builder()
+                  .setWorkflowClientOptions(
+                      WorkflowClientOptions.newBuilder()
                           .setContextPropagators(
                               propagationEnabled ? PROPAGATORS : Collections.emptyList())
                           .build())
@@ -82,10 +80,8 @@ public class LocalActivityContextPropagationTest {
           LocalActivityContextPropagationWorkflowImpl::new);
 
       worker.registerActivitiesImplementations(localActivityContextPropagation);
-
-      WorkflowClientOptions workflowClientOptions = new Builder().build();
-      WorkflowClient workflowClient = testEnv.newWorkflowClient(workflowClientOptions);
-
+      WorkflowClient workflowClient =
+          testEnv.newWorkflowClient(WorkflowClientOptions.defaultInstance());
       testEnv.start();
 
       return workflowClient;

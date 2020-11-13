@@ -2,6 +2,7 @@ package com.uber.cadence;
 
 import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
 
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import org.apache.thrift.TException;
@@ -11,12 +12,12 @@ public class RegisterTestDomain {
   private static final boolean useDockerService =
       Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
 
-  public static void main(String[] args) throws TException, InterruptedException {
+  public static void main(String[] args) throws InterruptedException {
     if (!useDockerService) {
       return;
     }
 
-    IWorkflowService service = new WorkflowServiceTChannel();
+    IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     RegisterDomainRequest request =
         new RegisterDomainRequest().setName(DOMAIN).setWorkflowExecutionRetentionPeriodInDays(1);
     while (true) {

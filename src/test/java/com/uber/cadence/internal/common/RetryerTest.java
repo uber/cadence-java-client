@@ -40,7 +40,7 @@ public class RetryerTest {
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
-      Retryer.retryWithResultAsync(
+      RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 throw new IllegalArgumentException("simulated");
@@ -64,7 +64,7 @@ public class RetryerTest {
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
-      Retryer.retryWithResultAsync(
+      RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 CompletableFuture<Void> result = new CompletableFuture<>();
@@ -91,7 +91,7 @@ public class RetryerTest {
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
-      Retryer.retryWithResultAsync(
+      RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 CompletableFuture<Void> result = new CompletableFuture<>();
@@ -117,7 +117,7 @@ public class RetryerTest {
     options = options.addDoNotRetry(InterruptedException.class);
     long start = System.currentTimeMillis();
     try {
-      Retryer.retryWithResultAsync(
+      RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 CompletableFuture<Void> result = new CompletableFuture<>();
@@ -144,7 +144,7 @@ public class RetryerTest {
             .validateBuildWithDefaults();
     long start = System.currentTimeMillis();
     try {
-      Retryer.retryWithResultAsync(
+      RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 throw new IllegalArgumentException("simulated");

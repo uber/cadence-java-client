@@ -30,7 +30,9 @@ import com.uber.cadence.activity.Activity;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityWorkerShutdownException;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -79,7 +81,7 @@ public class CleanWorkerShutdownTest {
   @Before
   public void setUp() {
     if (useExternalService) {
-      service = new WorkflowServiceTChannel();
+      service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
     }
   }
 
@@ -132,19 +134,21 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);
@@ -184,19 +188,21 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new ActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);
@@ -255,7 +261,7 @@ public class CleanWorkerShutdownTest {
 
   /**
    * Tests that Activity#heartbeat throws ActivityWorkerShutdownException after {@link
-   * Worker.Factory#shutdown()} is closed.
+   * WorkerFactory#shutdown()} is closed.
    */
   @Test
   public void testShutdownHeartbeatingActivity()
@@ -263,19 +269,21 @@ public class CleanWorkerShutdownTest {
     String taskList =
         "CleanWorkerShutdownTest-" + testName.getMethodName() + "-" + UUID.randomUUID().toString();
     WorkflowClient workflowClient;
-    Worker.Factory workerFactory = null;
+    WorkerFactory workerFactory = null;
     TestWorkflowEnvironment testEnvironment = null;
     CompletableFuture<Boolean> started = new CompletableFuture<>();
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build();
     if (useExternalService) {
-      workerFactory = new Worker.Factory(service, DOMAIN);
+      workflowClient = WorkflowClient.newInstance(service, clientOptions);
+      workerFactory = WorkerFactory.newInstance(workflowClient);
       Worker worker = workerFactory.newWorker(taskList);
-      workflowClient = WorkflowClient.newInstance(service, DOMAIN);
       worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class);
       worker.registerActivitiesImplementations(new HeartbeatingActivitiesImpl(started));
       workerFactory.start();
     } else {
       TestEnvironmentOptions testOptions =
-          new TestEnvironmentOptions.Builder().setDomain(DOMAIN).build();
+          new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
       testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
       service = testEnvironment.getWorkflowService();
       Worker worker = testEnvironment.newWorker(taskList);

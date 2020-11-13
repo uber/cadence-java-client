@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -17,19 +17,18 @@
 
 package com.uber.cadence.internal.worker;
 
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.DomainNotActiveError;
-import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.Header;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.context.ContextPropagator;
+
 import com.uber.cadence.context.OpenTracingContextPropagator;
-import com.uber.cadence.internal.common.Retryer;
+
+import com.uber.cadence.internal.common.RpcRetryer;
+
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -54,11 +53,10 @@ import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
-public final class ActivityWorker implements SuspendableWorker {
+public final class ActivityWorker extends SuspendableWorkerBase {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Activity Poller taskList=";
 
-  private SuspendableWorker poller = new NoopSuspendableWorker();
   private final ActivityTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
@@ -79,18 +77,18 @@ public final class ActivityWorker implements SuspendableWorker {
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
       pollerOptions =
-          new PollerOptions.Builder(pollerOptions)
+          PollerOptions.newBuilder(pollerOptions)
               .setPollThreadNamePrefix(
                   POLL_THREAD_NAME_PREFIX + "\"" + taskList + "\", domain=\"" + domain + "\"")
               .build();
     }
-    this.options = new SingleWorkerOptions.Builder(options).setPollerOptions(pollerOptions).build();
+    this.options = SingleWorkerOptions.newBuilder(options).setPollerOptions(pollerOptions).build();
   }
 
   @Override
   public void start() {
     if (handler.isAnyTypeSupported()) {
-      poller =
+      SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
               new ActivityPollTask(service, domain, taskList, options),
@@ -98,53 +96,9 @@ public final class ActivityWorker implements SuspendableWorker {
               options.getPollerOptions(),
               options.getMetricsScope());
       poller.start();
+      setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
-  }
-
-  @Override
-  public boolean isStarted() {
-    return poller.isStarted();
-  }
-
-  @Override
-  public boolean isShutdown() {
-    return poller.isShutdown();
-  }
-
-  @Override
-  public boolean isTerminated() {
-    return poller.isTerminated();
-  }
-
-  @Override
-  public void shutdown() {
-    poller.shutdown();
-  }
-
-  @Override
-  public void shutdownNow() {
-    poller.shutdownNow();
-  }
-
-  @Override
-  public void awaitTermination(long timeout, TimeUnit unit) {
-    poller.awaitTermination(timeout, unit);
-  }
-
-  @Override
-  public void suspendPolling() {
-    poller.suspendPolling();
-  }
-
-  @Override
-  public void resumePolling() {
-    poller.resumePolling();
-  }
-
-  @Override
-  public boolean isSuspended() {
-    return poller.isSuspended();
   }
 
   private class TaskHandlerImpl
@@ -202,10 +156,10 @@ public final class ActivityWorker implements SuspendableWorker {
         sendReply(task, response, metricsScope);
         sw.stop();
 
-        metricsScope
-            .timer(MetricsType.ACTIVITY_E2E_LATENCY)
-            .record(
-                Duration.ofNanos(System.nanoTime() - task.getScheduledTimestampOfThisAttempt()));
+        long nanoTime =
+            TimeUnit.NANOSECONDS.convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+        Duration duration = Duration.ofNanos(nanoTime - task.getScheduledTimestampOfThisAttempt());
+        metricsScope.timer(MetricsType.ACTIVITY_E2E_LATENCY).record(duration);
 
       } catch (CancellationException e) {
         RespondActivityTaskCanceledRequest cancelledRequest =
@@ -213,7 +167,7 @@ public final class ActivityWorker implements SuspendableWorker {
         cancelledRequest.setDetails(
             String.valueOf(e.getMessage()).getBytes(StandardCharsets.UTF_8));
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();
-        sendReply(task, new Result(null, null, cancelledRequest, null), metricsScope);
+        sendReply(task, new Result(null, null, cancelledRequest), metricsScope);
         sw.stop();
       } catch (Exception e) {
         Tags.ERROR.set(span, true);
@@ -286,49 +240,26 @@ public final class ActivityWorker implements SuspendableWorker {
     private void sendReply(
         PollForActivityTaskResponse task, ActivityTaskHandler.Result response, Scope metricsScope)
         throws TException {
-      RetryOptions ro = response.getRequestRetryOptions();
       RespondActivityTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
-        ro =
-            options
-                .getReportCompletionRetryOptions()
-                .merge(ro)
-                .addDoNotRetry(
-                    BadRequestError.class, EntityNotExistsError.class, DomainNotActiveError.class);
         taskCompleted.setTaskToken(task.getTaskToken());
         taskCompleted.setIdentity(options.getIdentity());
-        Retryer.retry(ro, () -> service.RespondActivityTaskCompleted(taskCompleted));
+        RpcRetryer.retry(() -> service.RespondActivityTaskCompleted(taskCompleted));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } else {
         if (response.getTaskFailedResult() != null) {
           RespondActivityTaskFailedRequest taskFailed =
               response.getTaskFailedResult().getTaskFailedRequest();
-          ro =
-              options
-                  .getReportFailureRetryOptions()
-                  .merge(ro)
-                  .addDoNotRetry(
-                      BadRequestError.class,
-                      EntityNotExistsError.class,
-                      DomainNotActiveError.class);
           taskFailed.setTaskToken(task.getTaskToken());
           taskFailed.setIdentity(options.getIdentity());
-          Retryer.retry(ro, () -> service.RespondActivityTaskFailed(taskFailed));
+          RpcRetryer.retry(() -> service.RespondActivityTaskFailed(taskFailed));
           metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
         } else {
           RespondActivityTaskCanceledRequest taskCancelled = response.getTaskCancelled();
           if (taskCancelled != null) {
             taskCancelled.setTaskToken(task.getTaskToken());
             taskCancelled.setIdentity(options.getIdentity());
-            ro =
-                options
-                    .getReportFailureRetryOptions()
-                    .merge(ro)
-                    .addDoNotRetry(
-                        BadRequestError.class,
-                        EntityNotExistsError.class,
-                        DomainNotActiveError.class);
-            Retryer.retry(ro, () -> service.RespondActivityTaskCanceled(taskCancelled));
+            RpcRetryer.retry(() -> service.RespondActivityTaskCanceled(taskCancelled));
             metricsScope.counter(MetricsType.ACTIVITY_TASK_CANCELED_COUNTER).inc(1);
           }
         }

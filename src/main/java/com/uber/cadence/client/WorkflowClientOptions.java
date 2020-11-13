@@ -1,7 +1,7 @@
 /*
+ *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -17,27 +17,63 @@
 
 package com.uber.cadence.client;
 
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
+import com.uber.m3.util.ImmutableMap;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /** Options for WorkflowClient configuration. */
 public final class WorkflowClientOptions {
+  private static final String DEFAULT_DOMAIN = "default";
+  private static final WorkflowClientOptions DEFAULT_INSTANCE;
+  private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
+      new WorkflowClientInterceptor[0];
+  private static final List<ContextPropagator> EMPTY_CONTEXT_PROPAGATORS = Arrays.asList();
+
+  static {
+    DEFAULT_INSTANCE = new Builder().build();
+  }
+
+  public static WorkflowClientOptions defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
+  public static Builder newBuilder(WorkflowClientOptions options) {
+    return new Builder(options);
+  }
 
   public static final class Builder {
-
+    private String domain = DEFAULT_DOMAIN;
     private DataConverter dataConverter = JsonDataConverter.getInstance();
     private WorkflowClientInterceptor[] interceptors = EMPTY_INTERCEPTOR_ARRAY;
-    private Scope metricsScope;
+    private Scope metricsScope = NoopScope.getInstance();
+    private String identity = ManagementFactory.getRuntimeMXBean().getName();;
+    private List<ContextPropagator> contextPropagators = EMPTY_CONTEXT_PROPAGATORS;
 
-    public Builder() {}
+    private Builder() {}
 
-    public Builder(WorkflowClientOptions options) {
+    private Builder(WorkflowClientOptions options) {
+      domain = options.getDomain();
       dataConverter = options.getDataConverter();
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
+      identity = options.getIdentity();
+    }
+
+    public Builder setDomain(String domain) {
+      this.domain = domain;
+      return this;
     }
 
     /**
@@ -71,27 +107,53 @@ public final class WorkflowClientOptions {
       return this;
     }
 
+    /**
+     * Override human readable identity of the worker. Identity is used to identify a worker and is
+     * recorded in the workflow history events. For example when a worker gets an activity task the
+     * correspondent ActivityTaskStarted event contains the worker identity as a field. Default is
+     * whatever <code>(ManagementFactory.getRuntimeMXBean().getName()</code> returns.
+     */
+    public Builder setIdentity(String identity) {
+      this.identity = Objects.requireNonNull(identity);
+      return this;
+    }
+
+    public Builder setContextPropagators(List<ContextPropagator> contextPropagators) {
+      this.contextPropagators = contextPropagators;
+      return this;
+    }
+
     public WorkflowClientOptions build() {
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-      return new WorkflowClientOptions(dataConverter, interceptors, metricsScope);
+      metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.DOMAIN, domain));
+      return new WorkflowClientOptions(
+          domain, dataConverter, interceptors, metricsScope, identity, contextPropagators);
     }
   }
 
-  private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
-      new WorkflowClientInterceptor[0];
+  private final String domain;
   private final DataConverter dataConverter;
-
   private final WorkflowClientInterceptor[] interceptors;
-
   private final Scope metricsScope;
+  private String identity;
+  private List<ContextPropagator> contextPropagators;
 
   private WorkflowClientOptions(
-      DataConverter dataConverter, WorkflowClientInterceptor[] interceptors, Scope metricsScope) {
+      String domain,
+      DataConverter dataConverter,
+      WorkflowClientInterceptor[] interceptors,
+      Scope metricsScope,
+      String identity,
+      List<ContextPropagator> contextPropagators) {
+    this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;
     this.metricsScope = metricsScope;
+    this.identity = identity;
+    this.contextPropagators = contextPropagators;
+  }
+
+  public String getDomain() {
+    return domain;
   }
 
   public DataConverter getDataConverter() {
@@ -104,5 +166,13 @@ public final class WorkflowClientOptions {
 
   public Scope getMetricsScope() {
     return metricsScope;
+  }
+
+  public String getIdentity() {
+    return identity;
+  }
+
+  public List<ContextPropagator> getContextPropagators() {
+    return contextPropagators;
   }
 }

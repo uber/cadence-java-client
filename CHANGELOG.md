@@ -1,5 +1,37 @@
 # Changelog
 
+## 2.7.8
+- Fix get raw history 
+- Improve signal processing error and log 
+- Fix replay error when querying workflow that contains activity retry 
+
+## 2.7.6
+- Fix getVersion override when added new version 
+- Add async signal to untypedstub 
+- Fix RetryOptions.addDoNotRetry
+- Add missing metrics from go client
+- Fix a bug in setting retry expiration while getting history
+- Fix start async return 
+
+## 2.7.5
+- Added supports contextPropagators for localActivity
+
+## v2.7.4
+- Fix prometheus reporting issue 
+- Fix Promise.allOf should not block on empty input
+- Misc: Added project directory to sourceItems path
+- Add async start to untype stub
+
+## v2.7.3
+- Add wf type tag in decider metrics scope
+- Fix WorkflowStub.fromTyped method
+- Added missing fields to local activity task
+- Honor user timeout for get workflow result
+
+## v2.7.2
+- Fix leak in Async GetWorkflowExecutionHistory
+- Fix context timeout in execute workflow
+
 ## v2.7.1
 - Fix a bug in build.gradle that prevented javadoc and sources from being published
 

@@ -18,12 +18,11 @@
 package com.uber.cadence.testing;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.metrics.NoopScope;
-import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactoryOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
-import com.uber.m3.tally.Scope;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -34,25 +33,22 @@ public final class TestEnvironmentOptions {
 
     private DataConverter dataConverter = JsonDataConverter.getInstance();
 
-    private String domain = "unit-test";
-
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
-
-    private Scope metricsScope;
 
     private boolean enableLoggingInReplay;
 
-    private Worker.FactoryOptions factoryOptions;
+    private WorkerFactoryOptions factoryOptions;
+
+    private WorkflowClientOptions workflowClientOptions = WorkflowClientOptions.defaultInstance();
+
+    public Builder setWorkflowClientOptions(WorkflowClientOptions workflowClientOptions) {
+      this.workflowClientOptions = workflowClientOptions;
+      return this;
+    }
 
     /** Sets data converter to use for unit-tests. Default is {@link JsonDataConverter}. */
     public Builder setDataConverter(DataConverter dataConverter) {
       this.dataConverter = Objects.requireNonNull(dataConverter);
-      return this;
-    }
-
-    /** Set domain to use for test workflows. Optional. Default is "unit-test" */
-    public Builder setDomain(String domain) {
-      this.domain = Objects.requireNonNull(domain);
       return this;
     }
 
@@ -67,16 +63,8 @@ public final class TestEnvironmentOptions {
       return this;
     }
 
-    /**
-     * Set scope to use for metrics reporting. Optional. Default is noop scope that skips reporting.
-     */
-    public Builder setMetricsScope(Scope metricsScope) {
-      this.metricsScope = metricsScope;
-      return this;
-    }
-
     /** Set factoryOptions for worker factory used to create workers. */
-    public Builder setFactoryOptions(Worker.FactoryOptions options) {
+    public Builder setWorkerFactoryOptions(WorkerFactoryOptions options) {
       this.factoryOptions = options;
       return this;
     }
@@ -88,44 +76,35 @@ public final class TestEnvironmentOptions {
     }
 
     public TestEnvironmentOptions build() {
-      if (metricsScope == null) {
-        metricsScope = NoopScope.getInstance();
-      }
-
       if (factoryOptions == null) {
-        factoryOptions =
-            new Worker.FactoryOptions.Builder().setDisableStickyExecution(false).build();
+        factoryOptions = WorkerFactoryOptions.newBuilder().setDisableStickyExecution(false).build();
       }
 
       return new TestEnvironmentOptions(
           dataConverter,
-          domain,
           interceptorFactory,
-          metricsScope,
           factoryOptions,
+          workflowClientOptions,
           enableLoggingInReplay);
     }
   }
 
   private final DataConverter dataConverter;
-  private final String domain;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
-  private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
-  private final Worker.FactoryOptions workerFactoryOptions;
+  private final WorkerFactoryOptions workerFactoryOptions;
+  private final WorkflowClientOptions workflowClientOptions;
 
   private TestEnvironmentOptions(
       DataConverter dataConverter,
-      String domain,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      Scope metricsScope,
-      Worker.FactoryOptions options,
+      WorkerFactoryOptions options,
+      WorkflowClientOptions workflowClientOptions,
       boolean enableLoggingInReplay) {
     this.dataConverter = dataConverter;
-    this.domain = domain;
     this.interceptorFactory = interceptorFactory;
-    this.metricsScope = metricsScope;
     this.workerFactoryOptions = options;
+    this.workflowClientOptions = workflowClientOptions;
     this.enableLoggingInReplay = enableLoggingInReplay;
   }
 
@@ -133,24 +112,20 @@ public final class TestEnvironmentOptions {
     return dataConverter;
   }
 
-  public String getDomain() {
-    return domain;
-  }
-
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
-  }
-
-  public Scope getMetricsScope() {
-    return metricsScope;
   }
 
   public boolean isLoggingEnabledInReplay() {
     return enableLoggingInReplay;
   }
 
-  public Worker.FactoryOptions getWorkerFactoryOptions() {
+  public WorkerFactoryOptions getWorkerFactoryOptions() {
     return workerFactoryOptions;
+  }
+
+  public WorkflowClientOptions getWorkflowClientOptions() {
+    return workflowClientOptions;
   }
 
   @Override
@@ -158,9 +133,10 @@ public final class TestEnvironmentOptions {
     return "TestEnvironmentOptions{"
         + "dataConverter="
         + dataConverter
-        + ", domain='"
-        + domain
-        + '\''
+        + ", workerFactoryOptions="
+        + workerFactoryOptions
+        + ", workflowClientOptions="
+        + workflowClientOptions
         + '}';
   }
 }
