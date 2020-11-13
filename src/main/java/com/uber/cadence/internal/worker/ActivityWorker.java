@@ -24,11 +24,8 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.context.ContextPropagator;
-
 import com.uber.cadence.context.OpenTracingContextPropagator;
-
 import com.uber.cadence.internal.common.RpcRetryer;
-
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;

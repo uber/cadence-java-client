@@ -17,6 +17,11 @@
 
 package com.uber.cadence.internal.testing;
 
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.uber.cadence.EventType;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.History;
@@ -49,6 +54,13 @@ import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalMethod;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowMethod;
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Before;
@@ -59,19 +71,6 @@ import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-
-import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class WorkflowTestingTest {
   private static final Logger log = LoggerFactory.getLogger(WorkflowTestingTest.class);
@@ -95,9 +94,7 @@ public class WorkflowTestingTest {
   public void setUp() {
     TestEnvironmentOptions options =
         new TestEnvironmentOptions.Builder()
-            .setWorkflowClientOptions(
-                WorkflowClientOptions.newBuilder()
-                    .build())
+            .setWorkflowClientOptions(WorkflowClientOptions.newBuilder().build())
             .build();
     testEnvironment = TestWorkflowEnvironment.newInstance(options);
   }

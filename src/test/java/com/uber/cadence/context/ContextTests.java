@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowException;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.testing.WorkflowTestingTest.ChildWorkflow;
@@ -81,13 +82,14 @@ public class ContextTests {
   public void setUp() {
     TestEnvironmentOptions options =
         new TestEnvironmentOptions.Builder()
-            .setFactoryOptions(
-                new Worker.FactoryOptions.Builder()
+            .setWorkflowClientOptions(
+                WorkflowClientOptions.newBuilder()
                     .setContextPropagators(
                         Arrays.asList(
                             new TestContextPropagator(), new OpenTracingContextPropagator()))
                     .build())
             .build();
+
     testEnvironment = TestWorkflowEnvironment.newInstance(options);
     GlobalTracer.registerIfAbsent(mockTracer);
   }

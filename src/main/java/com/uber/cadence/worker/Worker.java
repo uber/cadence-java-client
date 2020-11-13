@@ -35,7 +35,6 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
