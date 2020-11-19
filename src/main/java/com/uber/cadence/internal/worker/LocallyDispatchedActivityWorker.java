@@ -58,7 +58,7 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
 
     // used to notify the poller the response from server is completed and the task is ready
     private final CountDownLatch latch = new CountDownLatch(1);
-    private boolean ready;
+    private volatile boolean ready;
     protected final ByteBuffer taskToken;
     protected final WorkflowExecution workflowExecution;
     protected final String activityId;
