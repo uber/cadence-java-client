@@ -25,33 +25,28 @@ import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListMetadata;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.m3.tally.Stopwatch;
-import com.uber.m3.util.Duration;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class ActivityPollTask implements Poller.PollTask<PollForActivityTaskResponse> {
+final class ActivityPollTask extends ActivityPollTaskBase {
 
+  private static final Logger log = LoggerFactory.getLogger(ActivityPollTask.class);
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
-  private final SingleWorkerOptions options;
-  private static final Logger log = LoggerFactory.getLogger(ActivityPollTask.class);
 
   public ActivityPollTask(
       IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
-
+    super(options);
     this.service = service;
     this.domain = domain;
     this.taskList = taskList;
-    this.options = options;
   }
 
   @Override
-  public PollForActivityTaskResponse poll() throws TException {
+  protected PollForActivityTaskResponse pollTask() throws TException {
     options.getMetricsScope().counter(MetricsType.ACTIVITY_POLL_COUNTER).inc(1);
-    Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_POLL_LATENCY).start();
 
     PollForActivityTaskRequest pollRequest = new PollForActivityTaskRequest();
     pollRequest.setDomain(domain);
@@ -90,14 +85,6 @@ final class ActivityPollTask implements Poller.PollTask<PollForActivityTaskRespo
       log.trace("poll request returned " + result);
     }
 
-    options.getMetricsScope().counter(MetricsType.ACTIVITY_POLL_SUCCEED_COUNTER).inc(1);
-    options
-        .getMetricsScope()
-        .timer(MetricsType.ACTIVITY_SCHEDULED_TO_START_LATENCY)
-        .record(
-            Duration.ofNanos(
-                result.getStartedTimestamp() - result.getScheduledTimestampOfThisAttempt()));
-    sw.stop();
     return result;
   }
 }

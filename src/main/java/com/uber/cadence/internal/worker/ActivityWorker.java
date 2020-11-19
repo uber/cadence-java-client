@@ -29,6 +29,7 @@ import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
+import com.uber.cadence.internal.worker.Poller.PollTask;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
-public final class ActivityWorker extends SuspendableWorkerBase {
+public class ActivityWorker extends SuspendableWorkerBase {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Activity Poller taskList=";
 
@@ -51,7 +52,7 @@ public final class ActivityWorker extends SuspendableWorkerBase {
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
-  private final SingleWorkerOptions options;
+  protected final SingleWorkerOptions options;
 
   public ActivityWorker(
       IWorkflowService service,
@@ -69,7 +70,7 @@ public final class ActivityWorker extends SuspendableWorkerBase {
       pollerOptions =
           PollerOptions.newBuilder(pollerOptions)
               .setPollThreadNamePrefix(
-                  POLL_THREAD_NAME_PREFIX + "\"" + taskList + "\", domain=\"" + domain + "\"")
+                  getPollThreadNamePrefix() + "\"" + taskList + "\", domain=\"" + domain + "\"")
               .build();
     }
     this.options = SingleWorkerOptions.newBuilder(options).setPollerOptions(pollerOptions).build();
@@ -81,7 +82,7 @@ public final class ActivityWorker extends SuspendableWorkerBase {
       SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
-              new ActivityPollTask(service, domain, taskList, options),
+              createActivityPollTask(),
               new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
               options.getPollerOptions(),
               options.getMetricsScope());
@@ -89,6 +90,14 @@ public final class ActivityWorker extends SuspendableWorkerBase {
       setPoller(poller);
       options.getMetricsScope().counter(MetricsType.WORKER_START_COUNTER).inc(1);
     }
+  }
+
+  protected PollTask<PollForActivityTaskResponse> createActivityPollTask() {
+    return new ActivityPollTask(service, domain, taskList, options);
+  }
+
+  protected String getPollThreadNamePrefix() {
+    return POLL_THREAD_NAME_PREFIX;
   }
 
   private class TaskHandlerImpl

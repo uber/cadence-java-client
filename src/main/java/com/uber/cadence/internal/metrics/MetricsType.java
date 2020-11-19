@@ -119,6 +119,16 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "local-activity-panic";
   public static final String LOCAL_ACTIVITY_EXECUTION_LATENCY =
       CADENCE_METRICS_PREFIX + "local-activity-execution-latency";
+  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_TOTAL_COUNTER =
+      CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-total";
+  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK__COUNTER =
+      CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-no-task";
+  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_SUCCEED_COUNTER =
+      CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-succeed";
+  public static final String ACTIVITY_LOCAL_DISPATCH_FAILED_COUNTER =
+      CADENCE_METRICS_PREFIX + "activity-local-dispatch-failed";
+  public static final String ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER =
+      CADENCE_METRICS_PREFIX + "activity-local-dispatch-succeed";
   public static final String WORKER_PANIC_COUNTER = CADENCE_METRICS_PREFIX + "worker-panic";
 
   public static final String TASK_LIST_QUEUE_LATENCY =
