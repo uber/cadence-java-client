@@ -46,16 +46,15 @@ final class LocallyDispatchedActivityPollTask extends ActivityPollTaskBase
       throw new RuntimeException("locally dispatch activity poll task interrupted", e);
     }
     try {
-      task.latch.await();
+      if (!task.await()) {
+        options
+            .getMetricsScope()
+            .counter(MetricsType.LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK__COUNTER)
+            .inc(1);
+        return null;
+      }
     } catch (InterruptedException e) {
       throw new RuntimeException("locally dispatch activity await task interrupted", e);
-    }
-    if (!task.ready) {
-      options
-          .getMetricsScope()
-          .counter(MetricsType.LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK__COUNTER)
-          .inc(1);
-      return null;
     }
     options.getMetricsScope().counter(MetricsType.ACTIVITY_POLL_COUNTER).inc(1);
     options

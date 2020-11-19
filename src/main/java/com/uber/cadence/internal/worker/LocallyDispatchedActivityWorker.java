@@ -57,7 +57,8 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
   public static class Task {
 
     // used to notify the poller the response from server is completed and the task is ready
-    protected final CountDownLatch latch = new CountDownLatch(1);
+    private final CountDownLatch latch = new CountDownLatch(1);
+    private boolean ready;
     protected final ByteBuffer taskToken;
     protected final WorkflowExecution workflowExecution;
     protected final String activityId;
@@ -72,7 +73,6 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
     protected final WorkflowType workflowType;
     protected final String workflowDomain;
     protected final Header header;
-    protected boolean ready;
 
     public Task(
         ByteBuffer taskToken,
@@ -103,6 +103,16 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
       this.workflowType = workflowType;
       this.workflowDomain = workflowDomain;
       this.header = header;
+    }
+
+    public boolean await() throws InterruptedException {
+      latch.await();
+      return ready;
+    }
+
+    public void notify(boolean ready) {
+      this.ready = ready;
+      latch.countDown();
     }
   }
 }
