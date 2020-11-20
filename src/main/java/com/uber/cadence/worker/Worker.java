@@ -124,6 +124,7 @@ public final class Worker implements Suspendable {
             this.options.getInterceptorFactory(),
             workflowOptions,
             localActivityOptions,
+            activityOptions,
             cache,
             stickyTaskListName,
             stickyDecisionScheduleToStartTimeout,
@@ -234,6 +235,7 @@ public final class Worker implements Suspendable {
 
     if (activityWorker != null) {
       activityWorker.setActivitiesImplementation(activityImplementations);
+      workflowWorker.setActivitiesImplementationToDispatchLocally(activityImplementations);
     }
 
     workflowWorker.setLocalActivitiesImplementation(activityImplementations);

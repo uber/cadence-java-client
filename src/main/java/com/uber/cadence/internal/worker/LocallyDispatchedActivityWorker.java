@@ -105,7 +105,7 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
       this.header = header;
     }
 
-    public boolean await() throws InterruptedException {
+    protected boolean await() throws InterruptedException {
       latch.await();
       return ready;
     }
