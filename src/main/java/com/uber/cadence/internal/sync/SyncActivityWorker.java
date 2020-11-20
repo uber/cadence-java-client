@@ -37,7 +37,9 @@ public class SyncActivityWorker implements SuspendableWorker {
       IWorkflowService service, String domain, String taskList, SingleWorkerOptions options) {
     taskHandler =
         new POJOActivityTaskHandler(service, domain, options.getDataConverter(), heartbeatExecutor);
-    worker = new ActivityWorker(service, domain, taskList, options, taskHandler);
+    worker =
+        new ActivityWorker(
+            service, domain, taskList, options, taskHandler, "Activity Poller taskList=");
   }
 
   public void setActivitiesImplementation(Object... activitiesImplementation) {

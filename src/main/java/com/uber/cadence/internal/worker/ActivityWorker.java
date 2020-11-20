@@ -46,20 +46,19 @@ import org.slf4j.MDC;
 
 public class ActivityWorker extends SuspendableWorkerBase {
 
-  private static final String POLL_THREAD_NAME_PREFIX = "Activity Poller taskList=";
-
+  protected final SingleWorkerOptions options;
   private final ActivityTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
-  protected final SingleWorkerOptions options;
 
   public ActivityWorker(
       IWorkflowService service,
       String domain,
       String taskList,
       SingleWorkerOptions options,
-      ActivityTaskHandler handler) {
+      ActivityTaskHandler handler,
+      String pollThreadNamePrefix) {
     this.service = Objects.requireNonNull(service);
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
@@ -70,7 +69,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
       pollerOptions =
           PollerOptions.newBuilder(pollerOptions)
               .setPollThreadNamePrefix(
-                  getPollThreadNamePrefix() + "\"" + taskList + "\", domain=\"" + domain + "\"")
+                  pollThreadNamePrefix + "\"" + taskList + "\", domain=\"" + domain + "\"")
               .build();
     }
     this.options = SingleWorkerOptions.newBuilder(options).setPollerOptions(pollerOptions).build();
@@ -82,7 +81,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
       SuspendableWorker poller =
           new Poller<>(
               options.getIdentity(),
-              createActivityPollTask(),
+              getOrCreateActivityPollTask(),
               new PollTaskExecutor<>(domain, taskList, options, new TaskHandlerImpl(handler)),
               options.getPollerOptions(),
               options.getMetricsScope());
@@ -92,12 +91,8 @@ public class ActivityWorker extends SuspendableWorkerBase {
     }
   }
 
-  protected PollTask<PollForActivityTaskResponse> createActivityPollTask() {
+  protected PollTask<PollForActivityTaskResponse> getOrCreateActivityPollTask() {
     return new ActivityPollTask(service, domain, taskList, options);
-  }
-
-  protected String getPollThreadNamePrefix() {
-    return POLL_THREAD_NAME_PREFIX;
   }
 
   private class TaskHandlerImpl

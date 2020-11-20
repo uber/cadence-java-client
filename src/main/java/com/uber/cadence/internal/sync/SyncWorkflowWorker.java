@@ -109,7 +109,13 @@ public class SyncWorkflowWorker
 
     workflowWorker =
         new WorkflowWorker(
-            service, domain, taskList, workflowOptions, taskHandler, stickyTaskListName);
+            service,
+            domain,
+            taskList,
+            workflowOptions,
+            taskHandler,
+            ldaWorker.getLocallyDispatchedActivityTaskPoller(),
+            stickyTaskListName);
   }
 
   public void setWorkflowImplementationTypes(
@@ -157,12 +163,16 @@ public class SyncWorkflowWorker
 
   @Override
   public boolean isTerminated() {
-    return workflowWorker.isTerminated() && laWorker.isTerminated() && ldaWorker.isTerminated();
+    return workflowWorker.isTerminated()
+        && laWorker.isTerminated()
+        && ldaHeartbeatExecutor.isTerminated()
+        && ldaWorker.isTerminated();
   }
 
   @Override
   public void shutdown() {
     laWorker.shutdown();
+    ldaHeartbeatExecutor.shutdown();
     ldaWorker.shutdown();
     workflowWorker.shutdown();
   }
@@ -170,6 +180,7 @@ public class SyncWorkflowWorker
   @Override
   public void shutdownNow() {
     laWorker.shutdownNow();
+    ldaHeartbeatExecutor.shutdownNow();
     ldaWorker.shutdownNow();
     workflowWorker.shutdownNow();
   }
@@ -177,6 +188,7 @@ public class SyncWorkflowWorker
   @Override
   public void awaitTermination(long timeout, TimeUnit unit) {
     long timeoutMillis = InternalUtils.awaitTermination(laWorker, unit.toMillis(timeout));
+    timeoutMillis = InternalUtils.awaitTermination(ldaHeartbeatExecutor, timeoutMillis);
     timeoutMillis = InternalUtils.awaitTermination(ldaWorker, timeoutMillis);
     InternalUtils.awaitTermination(workflowWorker, timeoutMillis);
   }

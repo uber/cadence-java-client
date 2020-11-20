@@ -38,16 +38,18 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
       String taskList,
       SingleWorkerOptions options,
       ActivityTaskHandler handler) {
-    super(service, domain, taskList, options, handler);
-  }
-
-  protected PollTask<PollForActivityTaskResponse> createActivityPollTask() {
+    super(
+        service,
+        domain,
+        taskList,
+        options,
+        handler,
+        "Locally Dispatched Activity Poller taskList=");
     ldaPollTask = new LocallyDispatchedActivityPollTask(options);
-    return ldaPollTask;
   }
 
-  protected String GetPollThreadNamePrefix() {
-    return "Locally Dispatched Activity Poller taskList=";
+  protected PollTask<PollForActivityTaskResponse> getOrCreateActivityPollTask() {
+    return ldaPollTask;
   }
 
   public Function<Task, Boolean> getLocallyDispatchedActivityTaskPoller() {
@@ -56,50 +58,42 @@ public final class LocallyDispatchedActivityWorker extends ActivityWorker {
 
   public static class Task {
 
-    // used to notify the poller the response from server is completed and the task is ready
-    private final CountDownLatch latch = new CountDownLatch(1);
-    private volatile boolean ready;
-    protected final ByteBuffer taskToken;
     protected final WorkflowExecution workflowExecution;
     protected final String activityId;
     protected final ActivityType activityType;
     protected final ByteBuffer input;
-    protected final long scheduledTimestamp;
     protected final int scheduleToCloseTimeoutSeconds;
-    protected final long startedTimestamp;
     protected final int startToCloseTimeoutSeconds;
     protected final int heartbeatTimeoutSeconds;
-    protected final long scheduledTimestampOfThisAttempt;
     protected final WorkflowType workflowType;
     protected final String workflowDomain;
     protected final Header header;
+    // used to notify the poller the response from server is completed and the task is ready
+    private final CountDownLatch latch = new CountDownLatch(1);
+    protected long scheduledTimestamp;
+    protected long scheduledTimestampOfThisAttempt;
+    protected long startedTimestamp;
+    protected ByteBuffer taskToken;
+    private volatile boolean ready;
 
     public Task(
-        ByteBuffer taskToken,
-        WorkflowExecution workflowExecution,
         String activityId,
         ActivityType activityType,
         ByteBuffer input,
-        long scheduledTimestamp,
         int scheduleToCloseTimeoutSeconds,
-        long startedTimestamp,
         int startToCloseTimeoutSeconds,
         int heartbeatTimeoutSeconds,
-        long scheduledTimestampOfThisAttempt,
         WorkflowType workflowType,
         String workflowDomain,
-        Header header) {
-      this.taskToken = taskToken;
+        Header header,
+        WorkflowExecution workflowExecution) {
       this.workflowExecution = workflowExecution;
       this.activityId = activityId;
       this.activityType = activityType;
       this.input = input;
-      this.scheduledTimestamp = scheduledTimestamp;
       this.scheduleToCloseTimeoutSeconds = scheduleToCloseTimeoutSeconds;
-      this.startedTimestamp = startedTimestamp;
       this.startToCloseTimeoutSeconds = startToCloseTimeoutSeconds;
       this.heartbeatTimeoutSeconds = heartbeatTimeoutSeconds;
-      this.scheduledTimestampOfThisAttempt = scheduledTimestampOfThisAttempt;
       this.workflowType = workflowType;
       this.workflowDomain = workflowDomain;
       this.header = header;

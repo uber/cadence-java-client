@@ -82,6 +82,7 @@ final class LocallyDispatchedActivityPollTask extends ActivityPollTaskBase
 
   @Override
   public Boolean apply(Task task) {
+    // non blocking put to the unbuffered queue
     return pendingTasks.offer(task);
   }
 }

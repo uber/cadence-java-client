@@ -19,7 +19,6 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.internal.metrics.MetricsType;
-import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import org.apache.thrift.TException;
 
@@ -32,7 +31,7 @@ abstract class ActivityPollTaskBase implements Poller.PollTask<PollForActivityTa
   }
 
   public PollForActivityTaskResponse poll() throws TException {
-    Stopwatch sw = options.getMetricsScope().timer(MetricsType.ACTIVITY_POLL_LATENCY).start();
+
     PollForActivityTaskResponse result = pollTask();
     if (result == null || result.getTaskToken() == null) {
       return null;
@@ -44,7 +43,6 @@ abstract class ActivityPollTaskBase implements Poller.PollTask<PollForActivityTa
         .record(
             Duration.ofNanos(
                 result.getStartedTimestamp() - result.getScheduledTimestampOfThisAttempt()));
-    sw.stop();
     return result;
   }
 
