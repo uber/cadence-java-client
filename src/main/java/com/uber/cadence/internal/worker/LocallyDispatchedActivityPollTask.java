@@ -49,7 +49,7 @@ final class LocallyDispatchedActivityPollTask extends ActivityPollTaskBase
       if (!task.await()) {
         options
             .getMetricsScope()
-            .counter(MetricsType.LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK__COUNTER)
+            .counter(MetricsType.LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK_COUNTER)
             .inc(1);
         return null;
       }

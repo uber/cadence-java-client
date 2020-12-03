@@ -57,6 +57,15 @@ public class ActivityWorker extends SuspendableWorkerBase {
       String domain,
       String taskList,
       SingleWorkerOptions options,
+      ActivityTaskHandler handler) {
+    this(service, domain, taskList, options, handler, "Activity Poller taskList=");
+  }
+
+  public ActivityWorker(
+      IWorkflowService service,
+      String domain,
+      String taskList,
+      SingleWorkerOptions options,
       ActivityTaskHandler handler,
       String pollThreadNamePrefix) {
     this.service = Objects.requireNonNull(service);

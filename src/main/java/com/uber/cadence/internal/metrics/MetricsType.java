@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.metrics;
 
 public class MetricsType {
+
   public static final String CADENCE_METRICS_PREFIX = "cadence-";
   public static final String WORKFLOW_START_COUNTER = CADENCE_METRICS_PREFIX + "workflow-start";
   public static final String WORKFLOW_COMPLETED_COUNTER =
@@ -121,7 +122,7 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "local-activity-execution-latency";
   public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_TOTAL_COUNTER =
       CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-total";
-  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK__COUNTER =
+  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK_COUNTER =
       CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-no-task";
   public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_SUCCEED_COUNTER =
       CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-succeed";
