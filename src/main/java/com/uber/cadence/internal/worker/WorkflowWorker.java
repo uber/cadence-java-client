@@ -18,13 +18,17 @@
 package com.uber.cadence.internal.worker;
 
 import com.google.common.base.Strings;
+import com.uber.cadence.ActivityLocalDispatchInfo;
+import com.uber.cadence.Decision;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
+import com.uber.cadence.RespondDecisionTaskCompletedResponse;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
@@ -35,15 +39,18 @@ import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.cadence.internal.worker.LocallyDispatchedActivityWorker.Task;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 
@@ -51,8 +58,6 @@ public final class WorkflowWorker extends SuspendableWorkerBase
     implements Consumer<PollForDecisionTaskResponse> {
 
   private static final String POLL_THREAD_NAME_PREFIX = "Workflow Poller taskList=";
-
-  private PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
   private final DecisionTaskHandler handler;
   private final IWorkflowService service;
   private final String domain;
@@ -60,6 +65,8 @@ public final class WorkflowWorker extends SuspendableWorkerBase
   private final SingleWorkerOptions options;
   private final String stickyTaskListName;
   private final WorkflowRunLockManager runLocks = new WorkflowRunLockManager();
+  private final Function<Task, Boolean> ldaTaskPoller;
+  private PollTaskExecutor<PollForDecisionTaskResponse> pollTaskExecutor;
 
   public WorkflowWorker(
       IWorkflowService service,
@@ -67,11 +74,13 @@ public final class WorkflowWorker extends SuspendableWorkerBase
       String taskList,
       SingleWorkerOptions options,
       DecisionTaskHandler handler,
+      Function<Task, Boolean> ldaTaskPoller,
       String stickyTaskListName) {
     this.service = Objects.requireNonNull(service);
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
+    this.ldaTaskPoller = ldaTaskPoller;
     this.stickyTaskListName = stickyTaskListName;
 
     PollerOptions pollerOptions = options.getPollerOptions();
@@ -204,7 +213,7 @@ public final class WorkflowWorker extends SuspendableWorkerBase
         sw.stop();
 
         sw = metricsScope.timer(MetricsType.DECISION_RESPONSE_LATENCY).start();
-        sendReply(service, task.getTaskToken(), response);
+        sendReply(service, task, response);
         sw.stop();
 
         metricsScope.counter(MetricsType.DECISION_TASK_COMPLETED_COUNTER).inc(1);
@@ -231,23 +240,90 @@ public final class WorkflowWorker extends SuspendableWorkerBase
     }
 
     private void sendReply(
-        IWorkflowService service, byte[] taskToken, DecisionTaskHandler.Result response)
+        IWorkflowService service,
+        PollForDecisionTaskResponse task,
+        DecisionTaskHandler.Result response)
         throws TException {
       RespondDecisionTaskCompletedRequest taskCompleted = response.getTaskCompleted();
       if (taskCompleted != null) {
         taskCompleted.setIdentity(options.getIdentity());
-        taskCompleted.setTaskToken(taskToken);
-        RpcRetryer.retry(() -> service.RespondDecisionTaskCompleted(taskCompleted));
+        taskCompleted.setTaskToken(task.getTaskToken());
+        RpcRetryer.retry(
+            () -> {
+              RespondDecisionTaskCompletedResponse taskCompletedResponse = null;
+              List<Task> activityTasks = new ArrayList<>();
+              try {
+                for (Decision decision : taskCompleted.getDecisions()) {
+                  ScheduleActivityTaskDecisionAttributes attr =
+                      decision.getScheduleActivityTaskDecisionAttributes();
+                  if (attr != null && taskList.equals(attr.getTaskList().getName())) {
+                    // assume the activity type is in registry otherwise the activity would be
+                    // failed and retried from server
+                    Task activityTask =
+                        new Task(
+                            attr.getActivityId(),
+                            attr.getActivityType(),
+                            attr.bufferForInput(),
+                            attr.getScheduleToCloseTimeoutSeconds(),
+                            attr.getStartToCloseTimeoutSeconds(),
+                            attr.getHeartbeatTimeoutSeconds(),
+                            task.getWorkflowType(),
+                            domain,
+                            attr.getHeader(),
+                            task.getWorkflowExecution());
+                    if (ldaTaskPoller.apply(activityTask)) {
+                      options
+                          .getMetricsScope()
+                          .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER)
+                          .inc(1);
+                      decision
+                          .getScheduleActivityTaskDecisionAttributes()
+                          .setRequestLocalDispatch(true);
+                      activityTasks.add(activityTask);
+                    } else {
+                      // all pollers are busy - no room to optimize
+                      options
+                          .getMetricsScope()
+                          .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_FAILED_COUNTER)
+                          .inc(1);
+                    }
+                  }
+                }
+                taskCompletedResponse = service.RespondDecisionTaskCompleted(taskCompleted);
+              } finally {
+                for (Task activityTask : activityTasks) {
+                  boolean started = false;
+                  if (taskCompletedResponse != null
+                      && taskCompletedResponse.getActivitiesToDispatchLocally() != null) {
+                    ActivityLocalDispatchInfo activityLocalDispatchInfo =
+                        taskCompletedResponse
+                            .getActivitiesToDispatchLocally()
+                            .getOrDefault(activityTask.activityId, null);
+                    if (activityLocalDispatchInfo != null) {
+                      activityTask.scheduledTimestamp =
+                          activityLocalDispatchInfo.getScheduledTimestamp();
+                      activityTask.startedTimestamp =
+                          activityLocalDispatchInfo.getStartedTimestamp();
+                      activityTask.scheduledTimestampOfThisAttempt =
+                          activityLocalDispatchInfo.getScheduledTimestampOfThisAttempt();
+                      activityTask.taskToken = activityLocalDispatchInfo.bufferForTaskToken();
+                      started = true;
+                    }
+                  }
+                  activityTask.notify(started);
+                }
+              }
+            });
       } else {
         RespondDecisionTaskFailedRequest taskFailed = response.getTaskFailed();
         if (taskFailed != null) {
           taskFailed.setIdentity(options.getIdentity());
-          taskFailed.setTaskToken(taskToken);
+          taskFailed.setTaskToken(task.getTaskToken());
           RpcRetryer.retry(() -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
           if (queryCompleted != null) {
-            queryCompleted.setTaskToken(taskToken);
+            queryCompleted.setTaskToken(task.getTaskToken());
             // Do not retry query response.
             service.RespondQueryTaskCompleted(queryCompleted);
           }
