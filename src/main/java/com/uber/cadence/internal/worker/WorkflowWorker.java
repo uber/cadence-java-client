@@ -253,39 +253,41 @@ public final class WorkflowWorker extends SuspendableWorkerBase
               RespondDecisionTaskCompletedResponse taskCompletedResponse = null;
               List<Task> activityTasks = new ArrayList<>();
               try {
-                for (Decision decision : taskCompleted.getDecisions()) {
-                  ScheduleActivityTaskDecisionAttributes attr =
-                      decision.getScheduleActivityTaskDecisionAttributes();
-                  if (attr != null && taskList.equals(attr.getTaskList().getName())) {
-                    // assume the activity type is in registry otherwise the activity would be
-                    // failed and retried from server
-                    Task activityTask =
-                        new Task(
-                            attr.getActivityId(),
-                            attr.getActivityType(),
-                            attr.bufferForInput(),
-                            attr.getScheduleToCloseTimeoutSeconds(),
-                            attr.getStartToCloseTimeoutSeconds(),
-                            attr.getHeartbeatTimeoutSeconds(),
-                            task.getWorkflowType(),
-                            domain,
-                            attr.getHeader(),
-                            task.getWorkflowExecution());
-                    if (ldaTaskPoller.apply(activityTask)) {
-                      options
-                          .getMetricsScope()
-                          .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER)
-                          .inc(1);
-                      decision
-                          .getScheduleActivityTaskDecisionAttributes()
-                          .setRequestLocalDispatch(true);
-                      activityTasks.add(activityTask);
-                    } else {
-                      // all pollers are busy - no room to optimize
-                      options
-                          .getMetricsScope()
-                          .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_FAILED_COUNTER)
-                          .inc(1);
+                if (ldaTaskPoller != null) {
+                  for (Decision decision : taskCompleted.getDecisions()) {
+                    ScheduleActivityTaskDecisionAttributes attr =
+                        decision.getScheduleActivityTaskDecisionAttributes();
+                    if (attr != null && taskList.equals(attr.getTaskList().getName())) {
+                      // assume the activity type is in registry otherwise the activity would be
+                      // failed and retried from server
+                      Task activityTask =
+                          new Task(
+                              attr.getActivityId(),
+                              attr.getActivityType(),
+                              attr.bufferForInput(),
+                              attr.getScheduleToCloseTimeoutSeconds(),
+                              attr.getStartToCloseTimeoutSeconds(),
+                              attr.getHeartbeatTimeoutSeconds(),
+                              task.getWorkflowType(),
+                              domain,
+                              attr.getHeader(),
+                              task.getWorkflowExecution());
+                      if (ldaTaskPoller.apply(activityTask)) {
+                        options
+                            .getMetricsScope()
+                            .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER)
+                            .inc(1);
+                        decision
+                            .getScheduleActivityTaskDecisionAttributes()
+                            .setRequestLocalDispatch(true);
+                        activityTasks.add(activityTask);
+                      } else {
+                        // all pollers are busy - no room to optimize
+                        options
+                            .getMetricsScope()
+                            .counter(MetricsType.ACTIVITY_LOCAL_DISPATCH_FAILED_COUNTER)
+                            .inc(1);
+                      }
                     }
                   }
                 }

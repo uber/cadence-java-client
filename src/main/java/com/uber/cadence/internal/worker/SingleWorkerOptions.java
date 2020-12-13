@@ -173,7 +173,7 @@ public final class SingleWorkerOptions {
     return pollerOptions;
   }
 
-  double getTaskListActivitiesPerSecond() {
+  public double getTaskListActivitiesPerSecond() {
     return taskListActivitiesPerSecond;
   }
 
