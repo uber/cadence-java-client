@@ -48,6 +48,7 @@ import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -59,12 +60,16 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implements decider that relies on replay of a workflow code. An instance of this class is created
  * per decision.
  */
 class ReplayDecider implements Decider {
+
+  private static final Logger log = LoggerFactory.getLogger(ReplayDecider.class);
 
   private static final int MAXIMUM_PAGE_SIZE = 10000;
 
@@ -676,6 +681,14 @@ class ReplayDecider implements Decider {
           } catch (TException e) {
             metricsScope.counter(MetricsType.WORKFLOW_GET_HISTORY_FAILED_COUNTER).inc(1);
             throw new Error(e);
+          }
+          if (!current.hasNext()) {
+            log.error(
+                "GetWorkflowExecutionHistory returns empty history, maybe a bug in server, workflowID"
+                        + request.execution.workflowId+", runID:"+request.execution.runId+", domain:"+request.domain
+                        +" token:" + Arrays.toString(request.getNextPageToken()));
+            throw new Error(
+                "GetWorkflowExecutionHistory return empty history, maybe a bug in server");
           }
           return current.next();
         }
