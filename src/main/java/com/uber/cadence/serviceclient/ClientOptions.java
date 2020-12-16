@@ -31,7 +31,7 @@ public class ClientOptions {
   /** Default RPC timeout used for all non long poll calls. */
   private static final long DEFAULT_RPC_TIMEOUT_MILLIS = 5 * 1000;
   /** Default RPC timeout used for all long poll calls. */
-  private static final long DEFAULT_POLL_RPC_TIMEOUT_MILLIS = 125 * 1000;
+  private static final long DEFAULT_POLL_RPC_TIMEOUT_MILLIS = 20 * 1000;
 
   /** Default RPC timeout for QueryWorkflow */
   private static final long DEFAULT_QUERY_RPC_TIMEOUT_MILLIS = 10 * 1000;
