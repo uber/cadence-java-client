@@ -48,6 +48,7 @@ import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -682,7 +683,8 @@ class ReplayDecider implements Decider {
             throw new Error(e);
           }
           if (!current.hasNext()) {
-            log.error("GetWorkflowExecutionHistory return empty history, maybe a bug in server, token:" + request.getNextPageToken());
+            log.error("GetWorkflowExecutionHistory return empty history, maybe a bug in server, token:"
+                    + Arrays.toString(request.getNextPageToken()));
             throw new Error("GetWorkflowExecutionHistory return empty history, maybe a bug in server");
           }
           return current.next();
