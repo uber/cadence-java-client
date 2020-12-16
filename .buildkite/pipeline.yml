@@ -34,7 +34,7 @@ steps:
           run: unit-test-docker-sticky-on
           config: docker/buildkite/docker-compose.yaml
 
-  - label: ":java: Unit test with docker services sticky off "
+  - label: ":java: Unit test with docker services sticky off"
     agents:
       queue: "workers"
       docker: "*"
