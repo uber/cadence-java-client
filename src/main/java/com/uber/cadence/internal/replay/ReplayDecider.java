@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implements decider that relies on replay of a workflow code. An instance of this class is created
- * per decision.
+ * per decision. 
  */
 class ReplayDecider implements Decider {
 
