@@ -105,17 +105,26 @@ import com.uber.tchannel.api.errors.TChannelError;
 import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class WorkflowServiceTChannel implements IWorkflowService {
 
@@ -135,7 +144,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private static final long DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS = 180 * 1000;
 
   private static final String DEFAULT_CLIENT_APP_NAME = "cadence-client";
-
+  
   /** Name of the Cadence service front end as required by TChannel. */
   private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
 
@@ -170,6 +179,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     /** Optional TChannel headers */
     private final Map<String, String> headers;
 
+    private final boolean enforcePollTaskTimeout;
+
     private ClientOptions(Builder builder) {
       this.rpcTimeoutMillis = builder.rpcTimeoutMillis;
       if (builder.clientAppName == null) {
@@ -182,6 +193,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       } else {
         this.serviceName = builder.serviceName;
       }
+      this.enforcePollTaskTimeout = builder.enforcePollTaskTimeout;
       this.rpcLongPollTimeoutMillis = builder.rpcLongPollTimeoutMillis;
       this.rpcQueryTimeoutMillis = builder.rpcQueryTimeoutMillis;
       this.rpcListArchivedWorkflowTimeoutMillis = builder.rpcListArchivedWorkflowTimeoutMillis;
@@ -200,6 +212,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       } else {
         this.headers = ImmutableMap.of();
       }
+    }
+
+    public boolean getEnforcePollTaskTimeout() {
+      return enforcePollTaskTimeout;
     }
 
     /** @return Returns the rpc timeout value in millis. */
@@ -261,6 +277,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       private Scope metricsScope;
       private Map<String, String> transportHeaders;
       private Map<String, String> headers;
+      private  boolean enforcePollTaskTimeout = false;
+
+      public Builder setEnforcePollTaskTimeout(boolean enforce){
+        this.enforcePollTaskTimeout = enforce;
+        return this;
+      }
 
       /**
        * Sets the rpc timeout value for non query and non long poll calls. Default is 1000.
@@ -515,6 +537,49 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       throw new TException(e);
     } catch (TChannelError e) {
       throw new TException("Rpc error", e);
+    }
+    this.throwOnRpcError(response);
+    return response;
+  }
+
+  /**
+   * The timeout enforcement is based on a scheduledExecutorService, so it's a little expensive.
+   * Right now this is only used for long poll like PollForDecision/PollForActivity API.
+   */
+  private <T> ThriftResponse<T> doRemoteCallWithTimeout(ThriftRequest<?> request, long timeoutMillis) throws TException {
+    ThriftResponse<T> response = null;
+    final Exception[] exInFuture = {null};
+    try {
+      TFuture<ThriftResponse<T>> future = subChannel.send(request);
+
+      // NOTE: use CompletableFuture to double enforce timeout by 2x of the expected timeout
+      CompletableFuture<ThriftResponse<T>> completableFuture = CompletableFuture.supplyAsync(() -> {
+        ThriftResponse<T> result = null;
+        try {
+          result = future.get();
+        } catch (InterruptedException e) {
+          exInFuture[0] = e;
+        } catch (ExecutionException e) {
+          exInFuture[0] = e;
+        }
+        return result;
+      });
+      response = completableFuture.get(2 * timeoutMillis, TimeUnit.MILLISECONDS);
+      // TODO uncomment the below when it's implemented
+      //future.cancel(true)
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new TException(e);
+    } catch (ExecutionException e) {
+      throw new TException(e);
+    } catch (TChannelError e) {
+      throw new TException("Rpc error", e);
+    } catch (TimeoutException e) {
+      log.warn("doRemoteCall couldn't return after twice of expected timeout");
+      throw new TException(e);
+    }
+    if (exInFuture.length > 0) {
+      throw new TException(exInFuture[0]);
     }
     this.throwOnRpcError(response);
     return response;
@@ -911,7 +976,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
               "PollForDecisionTask",
               new WorkflowService.PollForDecisionTask_args(pollRequest),
               options.getRpcLongPollTimeoutMillis());
-      response = doRemoteCall(request);
+
+      if(options.enforcePollTaskTimeout){
+        response = doRemoteCallWithTimeout(request, options.getRpcLongPollTimeoutMillis());
+      }else{
+        response = doRemoteCall(request);
+      }
+
       WorkflowService.PollForDecisionTask_result result =
           response.getBody(WorkflowService.PollForDecisionTask_result.class);
       if (response.getResponseCode() == ResponseCode.OK) {
@@ -1057,7 +1128,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
               "PollForActivityTask",
               new WorkflowService.PollForActivityTask_args(pollRequest),
               options.getRpcLongPollTimeoutMillis());
-      response = doRemoteCall(request);
+
+      if(options.enforcePollTaskTimeout){
+        response = doRemoteCallWithTimeout(request, options.getRpcLongPollTimeoutMillis());
+      }else{
+        response = doRemoteCall(request);
+      }
+
       WorkflowService.PollForActivityTask_result result =
           response.getBody(WorkflowService.PollForActivityTask_result.class);
       if (response.getResponseCode() == ResponseCode.OK) {
