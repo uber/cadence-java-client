@@ -32,7 +32,7 @@ Overcommit adds some requirements to your commit messages. At Uber, we follow th
 [Chris Beams](http://chris.beams.io/posts/git-commit/) guide to writing git
 commit messages. Read it, follow it, learn it, love it.
 
-## Test and Build
+## Test
 
 Testing and building cadence-java-client requires running cadence docker locally, execute:
 
@@ -49,8 +49,37 @@ Then run all the tests with:
 ./gradlew test
 ```
 
+The test by default will run with TestEnvironment without Cadence service. If you want to run with Cadence serivce:
+```bash
+USE_DOCKER_SERVICE=true ./gradlew test
+```
+And sometimes it's important to test the non-sticky mode 
+```bash
+STICKY_OFF=true USE_DOCKER_SERVICE=true ./gradlew test
+```
+
+Also, if there is any Buildkite test failure that you cannot reproduce locally, 
+follow [buildkite docker-compose](./docker/buildkite/README.md) instructions to run the tests.
+
+##  Build & Publish
 Build with:
 
 ```bash
 ./gradlew build
 ```
+
+To test locally, change `build.gradle`:
+1. Comment out the whole `publications`  
+2. Change 
+```
+group = 'com.uber.cadence'
+```` 
+to 
+```
+group = 'com.local.cadence'
+``` 
+Then run the command
+```bash
+./gradlew publishToMavenLocal
+```
+Now you can use the local cadence-java-client in your laptop.
