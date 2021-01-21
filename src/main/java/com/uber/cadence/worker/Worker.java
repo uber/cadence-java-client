@@ -84,10 +84,11 @@ public final class Worker implements Suspendable {
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
-            .setDataConverter(client.getOptions().getDataConverter())
             .setIdentity(client.getOptions().getIdentity())
-            .setPollerOptions(options.getActivityPollerOptions())
+            .setDataConverter(client.getOptions().getDataConverter())
             .setTaskExecutorThreadPoolSize(options.getMaxConcurrentActivityExecutionSize())
+            .setTaskListActivitiesPerSecond(options.getTaskListActivitiesPerSecond())
+            .setPollerOptions(options.getActivityPollerOptions())
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
             .setContextPropagators(contextPropagators)

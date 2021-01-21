@@ -192,6 +192,10 @@ public final class WorkerOptions {
     return maxConcurrentLocalActivityExecutionSize;
   }
 
+  public double getTaskListActivitiesPerSecond() {
+    return taskListActivitiesPerSecond;
+  }
+
   public PollerOptions getActivityPollerOptions() {
     return activityPollerOptions;
   }
