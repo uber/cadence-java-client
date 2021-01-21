@@ -27,6 +27,8 @@ import com.uber.cadence.internal.replay.ReplayDecisionTaskHandler;
 import com.uber.cadence.internal.worker.DecisionTaskHandler;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.internal.worker.LocallyDispatchedActivityWorker;
+import com.uber.cadence.internal.worker.LocallyDispatchedActivityWorker.Task;
+import com.uber.cadence.internal.worker.NoopSuspendableWorker;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.internal.worker.SuspendableWorker;
 import com.uber.cadence.internal.worker.WorkflowWorker;
@@ -50,14 +52,13 @@ public class SyncWorkflowWorker
 
   private final WorkflowWorker workflowWorker;
   private final LocalActivityWorker laWorker;
-  private final LocallyDispatchedActivityWorker ldaWorker;
-
   private final POJOWorkflowImplementationFactory factory;
   private final DataConverter dataConverter;
   private final POJOActivityTaskHandler laTaskHandler;
-  private final POJOActivityTaskHandler ldaTaskHandler;
   private final ScheduledExecutorService heartbeatExecutor = Executors.newScheduledThreadPool(4);
   private final ScheduledExecutorService ldaHeartbeatExecutor = Executors.newScheduledThreadPool(4);
+  private SuspendableWorker ldaWorker;
+  private POJOActivityTaskHandler ldaTaskHandler;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -97,15 +98,24 @@ public class SyncWorkflowWorker
             stickyDecisionScheduleToStartTimeout,
             service,
             laWorker.getLocalActivityTaskPoller());
-    ldaTaskHandler =
-        new POJOActivityTaskHandler(
-            service,
-            domain,
-            locallyDispatchedActivityOptions.getDataConverter(),
-            ldaHeartbeatExecutor);
-    ldaWorker =
-        new LocallyDispatchedActivityWorker(
-            service, domain, taskList, locallyDispatchedActivityOptions, ldaTaskHandler);
+
+    Function<Task, Boolean> locallyDispatchedActivityTaskPoller = null;
+    // do not dispatch locally if TaskListActivitiesPerSecond is set
+    if (locallyDispatchedActivityOptions.getTaskListActivitiesPerSecond() == 0) {
+      ldaTaskHandler =
+          new POJOActivityTaskHandler(
+              service,
+              domain,
+              locallyDispatchedActivityOptions.getDataConverter(),
+              ldaHeartbeatExecutor);
+      ldaWorker =
+          new LocallyDispatchedActivityWorker(
+              service, domain, taskList, locallyDispatchedActivityOptions, ldaTaskHandler);
+      locallyDispatchedActivityTaskPoller =
+          ((LocallyDispatchedActivityWorker) ldaWorker).getLocallyDispatchedActivityTaskPoller();
+    } else {
+      ldaWorker = new NoopSuspendableWorker();
+    }
 
     workflowWorker =
         new WorkflowWorker(
@@ -114,7 +124,7 @@ public class SyncWorkflowWorker
             taskList,
             workflowOptions,
             taskHandler,
-            ldaWorker.getLocallyDispatchedActivityTaskPoller(),
+            locallyDispatchedActivityTaskPoller,
             stickyTaskListName);
   }
 
@@ -137,7 +147,9 @@ public class SyncWorkflowWorker
   }
 
   public void setActivitiesImplementationToDispatchLocally(Object... activitiesImplementation) {
-    this.ldaTaskHandler.setActivitiesImplementation(activitiesImplementation);
+    if (this.ldaTaskHandler != null) {
+      this.ldaTaskHandler.setActivitiesImplementation(activitiesImplementation);
+    }
   }
 
   @Override

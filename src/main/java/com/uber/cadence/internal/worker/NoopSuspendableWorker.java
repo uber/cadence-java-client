@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Helper class that is used instead of null for non initialized worker. This eliminates needs for
  * null checks when calling into it.
  */
-class NoopSuspendableWorker implements SuspendableWorker {
+public class NoopSuspendableWorker implements SuspendableWorker {
 
   private AtomicBoolean shutdown = new AtomicBoolean();
 
