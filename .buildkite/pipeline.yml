@@ -9,7 +9,7 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
-    timeout_in_minutes: 15
+    timeout_in_minutes: 20
     retry:
       automatic:
         - exit_status: "*"
@@ -24,7 +24,7 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
-    timeout_in_minutes: 15
+    timeout_in_minutes: 20
     retry:
       automatic:
         - exit_status: "*"
@@ -39,7 +39,7 @@ steps:
       queue: "workers"
       docker: "*"
     command: "./gradlew --no-daemon test"
-    timeout_in_minutes: 15
+    timeout_in_minutes: 20
     retry:
       automatic:
         - exit_status: "*"
