@@ -47,7 +47,7 @@ public final class WorkerOptions {
     private int maxConcurrentActivityExecutionSize = 100;
     private int maxConcurrentWorkflowExecutionSize = 50;
     private int maxConcurrentLocalActivityExecutionSize = 100;
-    private double taskListActivitiesPerSecond = 100000;
+    private double taskListActivitiesPerSecond = 0; // No limit
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
