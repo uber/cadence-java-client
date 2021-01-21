@@ -3,6 +3,11 @@ version: '3.5'
 services:
   cassandra:
     image: cassandra:3.11
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 12000M
     logging:
       driver: none
     ports:
@@ -10,6 +15,11 @@ services:
 
   statsd:
     image: hopsoft/graphite-statsd
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1024M
     logging:
       driver: none
     ports:
@@ -20,6 +30,11 @@ services:
 
   cadence:
     image: ubercadence/server:latestRelease-auto-setup
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     logging:
       driver: none
     ports:
