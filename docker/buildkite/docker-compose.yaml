@@ -54,6 +54,11 @@ services:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile
     command: "./gradlew --no-daemon test"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     environment:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"
@@ -69,6 +74,11 @@ services:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile
     command: "./gradlew --no-daemon test"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     environment:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"
