@@ -3,15 +3,21 @@ version: '3.5'
 services:
   cassandra:
     image: cassandra:3.11
-    logging:
-      driver: none
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 12000M
     ports:
       - "9042:9042"
 
   statsd:
     image: hopsoft/graphite-statsd
-    logging:
-      driver: none
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 1024M
     ports:
       - "8080:80"
       - "2003:2003"
@@ -20,8 +26,11 @@ services:
 
   cadence:
     image: ubercadence/server:latestRelease-auto-setup
-    logging:
-      driver: none
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     ports:
       - "7933:7933"
       - "7934:7934"
@@ -39,6 +48,11 @@ services:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile
     command: "./gradlew --no-daemon test"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     environment:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"
@@ -54,6 +68,11 @@ services:
       context: ../../
       dockerfile: ./docker/buildkite/Dockerfile
     command: "./gradlew --no-daemon test"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 8192M
     environment:
       - "USER=unittest"
       - "CADENCE_SEEDS=cadence"

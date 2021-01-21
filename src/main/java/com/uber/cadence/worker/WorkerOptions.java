@@ -47,7 +47,7 @@ public final class WorkerOptions {
     private int maxConcurrentActivityExecutionSize = 100;
     private int maxConcurrentWorkflowExecutionSize = 50;
     private int maxConcurrentLocalActivityExecutionSize = 100;
-    private double taskListActivitiesPerSecond = 100000;
+    private double taskListActivitiesPerSecond;
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
@@ -128,7 +128,7 @@ public final class WorkerOptions {
      * Notice that the number is represented in double, so that you can set it to less than 1 if
      * needed. For example, set the number to 0.1 means you want your activity to be executed once
      * every 10 seconds. This can be used to protect down stream services from flooding. The zero
-     * value of this uses the default value. Default: 100k
+     * value means there's no limit.
      */
     public Builder setTaskListActivitiesPerSecond(double taskListActivitiesPerSecond) {
       this.taskListActivitiesPerSecond = taskListActivitiesPerSecond;

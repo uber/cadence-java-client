@@ -685,8 +685,13 @@ class ReplayDecider implements Decider {
           if (!current.hasNext()) {
             log.error(
                 "GetWorkflowExecutionHistory returns an empty history, maybe a bug in server, workflowID:"
-                        + request.execution.workflowId+", runID:"+request.execution.runId+", domain:"+request.domain
-                        +" token:" + Arrays.toString(request.getNextPageToken()));
+                    + request.execution.workflowId
+                    + ", runID:"
+                    + request.execution.runId
+                    + ", domain:"
+                    + request.domain
+                    + " token:"
+                    + Arrays.toString(request.getNextPageToken()));
             throw new Error(
                 "GetWorkflowExecutionHistory return empty history, maybe a bug in server");
           }
