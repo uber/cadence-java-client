@@ -8,8 +8,6 @@ services:
         limits:
           cpus: '4'
           memory: 12000M
-    logging:
-      driver: none
     ports:
       - "9042:9042"
 
@@ -20,8 +18,6 @@ services:
         limits:
           cpus: '0.50'
           memory: 1024M
-    logging:
-      driver: none
     ports:
       - "8080:80"
       - "2003:2003"
@@ -35,8 +31,6 @@ services:
         limits:
           cpus: '2'
           memory: 8192M
-    logging:
-      driver: none
     ports:
       - "7933:7933"
       - "7934:7934"
