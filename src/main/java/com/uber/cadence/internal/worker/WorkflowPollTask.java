@@ -22,11 +22,13 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.ServiceBusyError;
 import com.uber.cadence.TaskList;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
+import com.uber.m3.util.ImmutableMap;
 import java.util.Objects;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -34,12 +36,12 @@ import org.slf4j.LoggerFactory;
 
 final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskResponse> {
 
+  private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
   private final Scope metricScope;
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
   private final String identity;
-  private static final Logger log = LoggerFactory.getLogger(WorkflowWorker.class);
 
   WorkflowPollTask(
       IWorkflowService service,
@@ -92,8 +94,8 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
               + ", previousStartedEventId="
               + result.getPreviousStartedEventId()
               + (result.getQuery() != null
-                  ? ", queryType=" + result.getQuery().getQueryType()
-                  : ""));
+              ? ", queryType=" + result.getQuery().getQueryType()
+              : ""));
     }
 
     if (result == null || result.getTaskToken() == null) {
@@ -101,8 +103,11 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
       return null;
     }
 
-    metricScope.counter(MetricsType.DECISION_POLL_SUCCEED_COUNTER).inc(1);
-    metricScope
+    Scope metricsScope =
+        metricScope
+            .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, result.getWorkflowType().getName()));
+    metricsScope.counter(MetricsType.DECISION_POLL_SUCCEED_COUNTER).inc(1);
+    metricsScope
         .timer(MetricsType.DECISION_SCHEDULED_TO_START_LATENCY)
         .record(Duration.ofNanos(result.getStartedTimestamp() - result.getScheduledTimestamp()));
     sw.stop();
