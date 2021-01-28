@@ -18,8 +18,11 @@
 package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.PollForActivityTaskResponse;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
+import com.uber.m3.util.ImmutableMap;
 import org.apache.thrift.TException;
 
 abstract class ActivityPollTaskBase implements Poller.PollTask<PollForActivityTaskResponse> {
@@ -36,10 +39,18 @@ abstract class ActivityPollTaskBase implements Poller.PollTask<PollForActivityTa
     if (result == null || result.getTaskToken() == null) {
       return null;
     }
-    options.getMetricsScope().counter(MetricsType.ACTIVITY_POLL_SUCCEED_COUNTER).inc(1);
-    options
-        .getMetricsScope()
-        .timer(MetricsType.ACTIVITY_SCHEDULED_TO_START_LATENCY)
+
+    Scope metricsScope =
+        options
+            .getMetricsScope()
+            .tagged(
+                ImmutableMap.of(
+                    MetricsTag.ACTIVITY_TYPE,
+                    result.getActivityType().getName(),
+                    MetricsTag.WORKFLOW_TYPE,
+                    result.getWorkflowType().getName()));
+    metricsScope.counter(MetricsType.ACTIVITY_POLL_SUCCEED_COUNTER).inc(1);
+    metricsScope.timer(MetricsType.ACTIVITY_SCHEDULED_TO_START_LATENCY)
         .record(
             Duration.ofNanos(
                 result.getStartedTimestamp() - result.getScheduledTimestampOfThisAttempt()));
