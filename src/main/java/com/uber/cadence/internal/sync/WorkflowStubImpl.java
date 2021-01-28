@@ -25,14 +25,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.client.DuplicateWorkflowException;
-import com.uber.cadence.client.WorkflowException;
-import com.uber.cadence.client.WorkflowFailureException;
-import com.uber.cadence.client.WorkflowNotFoundException;
-import com.uber.cadence.client.WorkflowOptions;
-import com.uber.cadence.client.WorkflowQueryException;
-import com.uber.cadence.client.WorkflowServiceException;
-import com.uber.cadence.client.WorkflowStub;
+import com.uber.cadence.client.*;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
@@ -66,14 +59,16 @@ class WorkflowStubImpl implements WorkflowStub {
   private final Optional<String> workflowType;
   private AtomicReference<WorkflowExecution> execution = new AtomicReference<>();
   private final Optional<WorkflowOptions> options;
+  private final WorkflowClientOptions clientOptions;
 
   WorkflowStubImpl(
+      WorkflowClientOptions clientOptions,
       GenericWorkflowClientExternal genericClient,
-      DataConverter dataConverter,
       Optional<String> workflowType,
       WorkflowExecution execution) {
+    this.clientOptions = clientOptions;
     this.genericClient = genericClient;
-    this.dataConverter = dataConverter;
+    this.dataConverter = clientOptions.getDataConverter();
     this.workflowType = workflowType;
     if (execution == null
         || execution.getWorkflowId() == null
@@ -85,12 +80,13 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   WorkflowStubImpl(
+      WorkflowClientOptions clientOptions,
       GenericWorkflowClientExternal genericClient,
-      DataConverter dataConverter,
       String workflowType,
       WorkflowOptions options) {
+    this.clientOptions = clientOptions;
     this.genericClient = genericClient;
-    this.dataConverter = dataConverter;
+    this.dataConverter = clientOptions.getDataConverter();
     this.workflowType = Optional.of(workflowType);
     this.options = Optional.of(options);
   }
@@ -411,7 +407,8 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public <R> R query(String queryType, Class<R> resultClass, Type resultType, Object... args) {
-    return query(queryType, resultClass, resultType, null, args).getResult();
+    return query(queryType, resultClass, resultType, clientOptions.getQueryRejectCondition(), args)
+        .getResult();
   }
 
   @Override

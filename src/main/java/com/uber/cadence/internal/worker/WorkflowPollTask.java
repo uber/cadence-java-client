@@ -94,8 +94,8 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
               + ", previousStartedEventId="
               + result.getPreviousStartedEventId()
               + (result.getQuery() != null
-              ? ", queryType=" + result.getQuery().getQueryType()
-              : ""));
+                  ? ", queryType=" + result.getQuery().getQueryType()
+                  : ""));
     }
 
     if (result == null || result.getTaskToken() == null) {
@@ -104,8 +104,8 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     }
 
     Scope metricsScope =
-        metricScope
-            .tagged(ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, result.getWorkflowType().getName()));
+        metricScope.tagged(
+            ImmutableMap.of(MetricsTag.WORKFLOW_TYPE, result.getWorkflowType().getName()));
     metricsScope.counter(MetricsType.DECISION_POLL_SUCCEED_COUNTER).inc(1);
     metricsScope
         .timer(MetricsType.DECISION_SCHEDULED_TO_START_LATENCY)
