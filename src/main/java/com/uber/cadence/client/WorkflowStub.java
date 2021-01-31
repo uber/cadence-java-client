@@ -19,7 +19,6 @@ package com.uber.cadence.client;
 
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.internal.common.QueryResponse;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -158,13 +157,13 @@ public interface WorkflowStub {
 
   <R> R query(String queryType, Class<R> resultClass, Type resultType, Object... args);
 
-  <R> QueryResponse<R> query(
+  <R> R query(
       String queryType,
       Class<R> resultClass,
       QueryRejectCondition queryRejectCondition,
       Object... args);
 
-  <R> QueryResponse<R> query(
+  <R> R query(
       String queryType,
       Class<R> resultClass,
       Type resultType,

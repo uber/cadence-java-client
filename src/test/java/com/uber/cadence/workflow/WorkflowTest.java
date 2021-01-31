@@ -46,24 +46,11 @@ import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.activity.LocalActivityOptions;
-import com.uber.cadence.client.ActivityCancelledException;
-import com.uber.cadence.client.ActivityCompletionClient;
-import com.uber.cadence.client.ActivityNotExistsException;
-import com.uber.cadence.client.BatchRequest;
-import com.uber.cadence.client.DuplicateWorkflowException;
-import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.client.WorkflowClientInterceptorBase;
-import com.uber.cadence.client.WorkflowClientOptions;
-import com.uber.cadence.client.WorkflowException;
-import com.uber.cadence.client.WorkflowFailureException;
-import com.uber.cadence.client.WorkflowOptions;
-import com.uber.cadence.client.WorkflowStub;
-import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.client.*;
 import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
-import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
 import com.uber.cadence.internal.worker.PollerOptions;
@@ -2591,11 +2578,13 @@ public class WorkflowTest {
     execution.set(client.start());
     assertEquals("Hello World!", client.getResult(String.class));
     assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
-    QueryResponse<String> queryResponse =
-        client.query("QueryableWorkflow::getState", String.class, QueryRejectCondition.NOT_OPEN);
-    assertNull(queryResponse.getResult());
-    assertEquals(
-        WorkflowExecutionCloseStatus.COMPLETED, queryResponse.getQueryRejected().closeStatus);
+
+    try {
+      client.query("QueryableWorkflow::getState", String.class, QueryRejectCondition.NOT_OPEN);
+      fail("unreachable");
+    } catch (WorkflowQueryRejectedException e) {
+      assertEquals(WorkflowExecutionCloseStatus.COMPLETED, e.getWorkflowExecutionStatus());
+    }
   }
 
   static final AtomicInteger decisionCount = new AtomicInteger();

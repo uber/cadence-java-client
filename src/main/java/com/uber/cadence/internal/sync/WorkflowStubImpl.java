@@ -31,7 +31,6 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.common.SignalWithStartWorkflowExecutionParameters;
 import com.uber.cadence.internal.common.StartWorkflowExecutionParameters;
 import com.uber.cadence.internal.common.WorkflowExecutionFailedException;
@@ -407,12 +406,11 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public <R> R query(String queryType, Class<R> resultClass, Type resultType, Object... args) {
-    return query(queryType, resultClass, resultType, clientOptions.getQueryRejectCondition(), args)
-        .getResult();
+    return query(queryType, resultClass, resultType, clientOptions.getQueryRejectCondition(), args);
   }
 
   @Override
-  public <R> QueryResponse<R> query(
+  public <R> R query(
       String queryType,
       Class<R> resultClass,
       QueryRejectCondition queryRejectCondition,
@@ -421,7 +419,7 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   @Override
-  public <R> QueryResponse<R> query(
+  public <R> R query(
       String queryType,
       Class<R> resultClass,
       Type resultType,
@@ -433,15 +431,10 @@ class WorkflowStubImpl implements WorkflowStub {
     p.setQueryType(queryType);
     p.setWorkflowId(execution.get().getWorkflowId());
     p.setQueryRejectCondition(queryRejectCondition);
-    try {
-      QueryWorkflowResponse result = genericClient.queryWorkflow(p);
-      if (result.queryRejected == null) {
-        return new QueryResponse<>(
-            null, dataConverter.fromData(result.getQueryResult(), resultClass, resultType));
-      } else {
-        return new QueryResponse<>(result.getQueryRejected(), null);
-      }
 
+    QueryWorkflowResponse result;
+    try {
+      result = genericClient.queryWorkflow(p);
     } catch (RuntimeException e) {
       Exception unwrapped = CheckedExceptionWrapper.unwrap(e);
       if (unwrapped instanceof EntityNotExistsError) {
@@ -454,6 +447,13 @@ class WorkflowStubImpl implements WorkflowStub {
         throw new WorkflowServiceException(execution.get(), workflowType, unwrapped);
       }
       throw e;
+    }
+
+    if (result.queryRejected == null) {
+      return dataConverter.fromData(result.getQueryResult(), resultClass, resultType);
+    } else {
+      throw new WorkflowQueryRejectedException(
+          execution.get(), queryRejectCondition, result.getQueryRejected().getCloseStatus());
     }
   }
 
