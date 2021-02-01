@@ -2549,6 +2549,49 @@ public class WorkflowTest {
   }
 
   @Test
+  public void testQueryRejectionConditionDefault() {
+    startWorkerFor(TestNoQueryWorkflowImpl.class);
+    WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
+    QueryableWorkflow client =
+        workflowClient.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build());
+    WorkflowClient.start(client::execute);
+    sleep(Duration.ofSeconds(1));
+    assertEquals("some state", client.getState());
+    client.mySignal("Hello ");
+    client.execute();
+    assertEquals("some state", client.getState());
+  }
+
+  @Test
+  public void testQueryRejectionConditionNotOpen() {
+    startWorkerFor(TestNoQueryWorkflowImpl.class);
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder(workflowClient.getOptions())
+            .setQueryRejectCondition(QueryRejectCondition.NOT_OPEN)
+            .build();
+    WorkflowClient wc;
+    if (useExternalService) {
+      wc = WorkflowClient.newInstance(service, clientOptions);
+    } else {
+      wc = testEnvironment.newWorkflowClient(clientOptions);
+    }
+    WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
+
+    QueryableWorkflow client = wc.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build());
+    WorkflowClient.start(client::execute);
+    sleep(Duration.ofSeconds(1));
+    assertEquals("some state", client.getState());
+    client.mySignal("Hello ");
+    client.execute();
+
+    try {
+      client.getState();
+    } catch (WorkflowQueryRejectedException e) {
+      assertEquals(WorkflowExecutionCloseStatus.COMPLETED, e.getWorkflowExecutionStatus());
+    }
+  }
+
+  @Test
   public void testSignalUntyped() {
     startWorkerFor(TestSignalWorkflowImpl.class);
     String workflowType = QueryableWorkflow.class.getSimpleName() + "::execute";
@@ -4832,6 +4875,9 @@ public class WorkflowTest {
     result.sort(UUID::compareTo);
     expectedResult.sort(UUID::compareTo);
     assertEquals(expectedResult, result);
+
+    // Workflow should still be queryable after completion, if QueryRejectionCondition is not set.
+    workflowStub.query(queryArg);
   }
 
   public static class NonSerializableException extends RuntimeException {
