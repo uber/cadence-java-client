@@ -17,6 +17,7 @@
 
 package com.uber.cadence.client;
 
+import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
@@ -60,6 +61,7 @@ public final class WorkflowClientOptions {
     private Scope metricsScope = NoopScope.getInstance();
     private String identity = ManagementFactory.getRuntimeMXBean().getName();;
     private List<ContextPropagator> contextPropagators = EMPTY_CONTEXT_PROPAGATORS;
+    private QueryRejectCondition queryRejectCondition;
 
     private Builder() {}
 
@@ -69,6 +71,7 @@ public final class WorkflowClientOptions {
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
       identity = options.getIdentity();
+      queryRejectCondition = options.getQueryRejectCondition();
     }
 
     public Builder setDomain(String domain) {
@@ -123,10 +126,29 @@ public final class WorkflowClientOptions {
       return this;
     }
 
+    /**
+     * QueryRejectCondition is an optional field used to reject queries based on workflow state.
+     * QueryRejectConditionNotOpen will reject queries to workflows that are not open.
+     * QueryRejectConditionNotCompletedCleanly will reject queries to workflows that are not
+     * completed successfully. (e.g. terminated, canceled timeout etc...)
+     *
+     * <p>Default is null, which means that queries will not be rejected based on workflow state.
+     */
+    public Builder setQueryRejectCondition(QueryRejectCondition queryRejectCondition) {
+      this.queryRejectCondition = queryRejectCondition;
+      return this;
+    }
+
     public WorkflowClientOptions build() {
       metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.DOMAIN, domain));
       return new WorkflowClientOptions(
-          domain, dataConverter, interceptors, metricsScope, identity, contextPropagators);
+          domain,
+          dataConverter,
+          interceptors,
+          metricsScope,
+          identity,
+          contextPropagators,
+          queryRejectCondition);
     }
   }
 
@@ -134,8 +156,9 @@ public final class WorkflowClientOptions {
   private final DataConverter dataConverter;
   private final WorkflowClientInterceptor[] interceptors;
   private final Scope metricsScope;
-  private String identity;
-  private List<ContextPropagator> contextPropagators;
+  private final String identity;
+  private final List<ContextPropagator> contextPropagators;
+  private final QueryRejectCondition queryRejectCondition;
 
   private WorkflowClientOptions(
       String domain,
@@ -143,13 +166,15 @@ public final class WorkflowClientOptions {
       WorkflowClientInterceptor[] interceptors,
       Scope metricsScope,
       String identity,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      QueryRejectCondition queryRejectCondition) {
     this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;
     this.metricsScope = metricsScope;
     this.identity = identity;
     this.contextPropagators = contextPropagators;
+    this.queryRejectCondition = queryRejectCondition;
   }
 
   public String getDomain() {
@@ -174,5 +199,53 @@ public final class WorkflowClientOptions {
 
   public List<ContextPropagator> getContextPropagators() {
     return contextPropagators;
+  }
+
+  public QueryRejectCondition getQueryRejectCondition() {
+    return queryRejectCondition;
+  }
+
+  @Override
+  public String toString() {
+    return "WorkflowClientOptions{"
+        + "domain='"
+        + domain
+        + '\''
+        + ", dataConverter="
+        + dataConverter
+        + ", interceptors="
+        + Arrays.toString(interceptors)
+        + ", identity='"
+        + identity
+        + '\''
+        + ", contextPropagators="
+        + contextPropagators
+        + ", queryRejectCondition="
+        + queryRejectCondition
+        + '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    WorkflowClientOptions that = (WorkflowClientOptions) o;
+    return com.google.common.base.Objects.equal(domain, that.domain)
+        && com.google.common.base.Objects.equal(dataConverter, that.dataConverter)
+        && Arrays.equals(interceptors, that.interceptors)
+        && com.google.common.base.Objects.equal(identity, that.identity)
+        && com.google.common.base.Objects.equal(contextPropagators, that.contextPropagators)
+        && queryRejectCondition == that.queryRejectCondition;
+  }
+
+  @Override
+  public int hashCode() {
+    return com.google.common.base.Objects.hashCode(
+        domain,
+        dataConverter,
+        Arrays.hashCode(interceptors),
+        identity,
+        contextPropagators,
+        queryRejectCondition);
   }
 }

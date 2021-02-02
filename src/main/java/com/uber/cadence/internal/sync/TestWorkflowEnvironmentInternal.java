@@ -89,7 +89,6 @@ import com.uber.cadence.client.WorkflowClientInterceptor;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
-import com.uber.cadence.internal.common.QueryResponse;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -965,7 +964,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public <R> QueryResponse<R> query(
+      public <R> R query(
           String queryType,
           Class<R> resultClass,
           QueryRejectCondition queryRejectCondition,
@@ -974,7 +973,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public <R> QueryResponse<R> query(
+      public <R> R query(
           String queryType,
           Class<R> resultClass,
           Type resultType,

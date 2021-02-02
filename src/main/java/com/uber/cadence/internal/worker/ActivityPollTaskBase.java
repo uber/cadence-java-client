@@ -50,7 +50,8 @@ abstract class ActivityPollTaskBase implements Poller.PollTask<PollForActivityTa
                     MetricsTag.WORKFLOW_TYPE,
                     result.getWorkflowType().getName()));
     metricsScope.counter(MetricsType.ACTIVITY_POLL_SUCCEED_COUNTER).inc(1);
-    metricsScope.timer(MetricsType.ACTIVITY_SCHEDULED_TO_START_LATENCY)
+    metricsScope
+        .timer(MetricsType.ACTIVITY_SCHEDULED_TO_START_LATENCY)
         .record(
             Duration.ofNanos(
                 result.getStartedTimestamp() - result.getScheduledTimestampOfThisAttempt()));
