@@ -17,8 +17,9 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
-import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class QueryWorkflowParameters implements Cloneable {
 
@@ -31,6 +32,8 @@ public class QueryWorkflowParameters implements Cloneable {
   private String workflowId;
 
   private QueryRejectCondition queryRejectCondition;
+
+  private QueryConsistencyLevel queryConsistencyLevel;
 
   public QueryWorkflowParameters() {}
 
@@ -100,17 +103,18 @@ public class QueryWorkflowParameters implements Cloneable {
     return this;
   }
 
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("{");
-    sb.append("QueryName: " + queryType + ", ");
-    sb.append("Input: " + new String(input, 0, 512, StandardCharsets.UTF_8) + ", ");
-    sb.append("WorkflowId: " + workflowId + ", ");
-    sb.append("RunId: " + runId + ", ");
-    sb.append("QueryRejectCondition: " + queryRejectCondition + ", ");
-    sb.append("}");
-    return sb.toString();
+  public QueryConsistencyLevel getQueryConsistencyLevel() {
+    return queryConsistencyLevel;
+  }
+
+  public void setQueryConsistencyLevel(QueryConsistencyLevel queryConsistencyLevel) {
+    this.queryConsistencyLevel = queryConsistencyLevel;
+  }
+
+  public QueryWorkflowParameters withQueryConsistencyLevel(
+      QueryConsistencyLevel queryConsistencyLevel) {
+    this.queryConsistencyLevel = queryConsistencyLevel;
+    return this;
   }
 
   public QueryWorkflowParameters copy() {
@@ -121,5 +125,26 @@ public class QueryWorkflowParameters implements Cloneable {
     result.setWorkflowId(workflowId);
     result.setQueryRejectCondition(queryRejectCondition);
     return result;
+  }
+
+  @Override
+  public String toString() {
+    return "QueryWorkflowParameters{"
+        + "input="
+        + Arrays.toString(input)
+        + ", runId='"
+        + runId
+        + '\''
+        + ", queryType='"
+        + queryType
+        + '\''
+        + ", workflowId='"
+        + workflowId
+        + '\''
+        + ", queryRejectCondition="
+        + queryRejectCondition
+        + ", queryConsistencyLevel="
+        + queryConsistencyLevel
+        + '}';
   }
 }

@@ -19,6 +19,7 @@ package com.uber.cadence.internal.replay;
 
 import static com.uber.cadence.internal.common.InternalUtils.createStickyTaskList;
 
+import com.google.common.base.Throwables;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
@@ -108,11 +109,8 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
       }
       RespondDecisionTaskFailedRequest failedRequest = new RespondDecisionTaskFailedRequest();
       failedRequest.setTaskToken(decisionTask.getTaskToken());
-      StringWriter sw = new StringWriter();
-      PrintWriter pw = new PrintWriter(sw);
-      e.printStackTrace(pw);
-      String stackTrace = sw.toString();
-      failedRequest.setDetails(stackTrace.getBytes(StandardCharsets.UTF_8));
+      failedRequest.setDetails(
+          Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8));
       return new DecisionTaskHandler.Result(null, failedRequest, null);
     }
   }
@@ -246,6 +244,7 @@ public final class ReplayDecisionTaskHandler implements DecisionTaskHandler {
     completedRequest.setTaskToken(decisionTask.getTaskToken());
     completedRequest.setDecisions(result.getDecisions());
     completedRequest.setForceCreateNewDecisionTask(result.getForceCreateNewDecisionTask());
+    completedRequest.setQueryResults(result.getQueryResults());
 
     if (stickyTaskListName != null) {
       StickyExecutionAttributes attributes = new StickyExecutionAttributes();

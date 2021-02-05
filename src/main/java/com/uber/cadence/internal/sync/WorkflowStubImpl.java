@@ -17,15 +17,17 @@
 
 package com.uber.cadence.internal.sync;
 
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.QueryFailedError;
-import com.uber.cadence.QueryRejectCondition;
-import com.uber.cadence.QueryWorkflowResponse;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
-import com.uber.cadence.WorkflowType;
-import com.uber.cadence.client.*;
+import com.uber.cadence.*;
+import com.uber.cadence.client.DuplicateWorkflowException;
+import com.uber.cadence.client.WorkflowClientOptions;
+import com.uber.cadence.client.WorkflowException;
+import com.uber.cadence.client.WorkflowFailureException;
+import com.uber.cadence.client.WorkflowNotFoundException;
+import com.uber.cadence.client.WorkflowOptions;
+import com.uber.cadence.client.WorkflowQueryException;
+import com.uber.cadence.client.WorkflowQueryRejectedException;
+import com.uber.cadence.client.WorkflowServiceException;
+import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.DataConverterException;
@@ -431,6 +433,7 @@ class WorkflowStubImpl implements WorkflowStub {
     p.setQueryType(queryType);
     p.setWorkflowId(execution.get().getWorkflowId());
     p.setQueryRejectCondition(queryRejectCondition);
+    p.setQueryConsistencyLevel(QueryConsistencyLevel.STRONG);
 
     QueryWorkflowResponse result;
     try {

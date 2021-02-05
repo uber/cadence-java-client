@@ -49,6 +49,7 @@ import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -853,7 +854,7 @@ public class DeterministicRunnerTest {
 
     @Override
     public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
-      return new DecisionResult(new ArrayList<>(), false);
+      return new DecisionResult(new ArrayList<>(), new HashMap<>(), false);
     }
 
     @Override

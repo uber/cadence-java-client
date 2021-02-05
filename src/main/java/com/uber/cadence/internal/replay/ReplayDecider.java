@@ -19,17 +19,8 @@ package com.uber.cadence.internal.replay;
 
 import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.FailWorkflow;
 
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.TimerFiredEventAttributes;
-import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
-import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
-import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.WorkflowType;
+import com.google.common.base.Throwables;
+import com.uber.cadence.*;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.internal.common.RpcRetryer;
@@ -46,11 +37,14 @@ import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
@@ -87,6 +81,7 @@ class ReplayDecider implements Decider {
   private final WorkflowExecutionStartedEventAttributes startedEvent;
   private final Lock lock = new ReentrantLock();
   private final Consumer<HistoryEvent> localActivityCompletionSink;
+  private final Map<String, WorkflowQueryResult> queryResults = new HashMap<>();
 
   ReplayDecider(
       IWorkflowService service,
@@ -204,12 +199,6 @@ class ReplayDecider implements Decider {
       case WorkflowExecutionStarted:
         handleWorkflowExecutionStarted(event);
         break;
-      case WorkflowExecutionTerminated:
-        // NOOP
-        break;
-      case WorkflowExecutionTimedOut:
-        // NOOP
-        break;
       case ActivityTaskScheduled:
         decisionsHelper.handleActivityTaskScheduled(event);
         break;
@@ -223,12 +212,12 @@ class ReplayDecider implements Decider {
         context.handleMarkerRecorded(event);
         break;
       case WorkflowExecutionCompleted:
-        break;
       case WorkflowExecutionFailed:
-        break;
       case WorkflowExecutionCanceled:
-        break;
       case WorkflowExecutionContinuedAsNew:
+      case WorkflowExecutionTerminated:
+      case WorkflowExecutionTimedOut:
+        decisionsHelper.handleWorkflowExecutionCompleted(event);
         break;
       case TimerStarted:
         decisionsHelper.handleTimerStarted(event);
@@ -387,8 +376,10 @@ class ReplayDecider implements Decider {
   public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
     lock.lock();
     try {
+      queryResults.clear();
       boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
-      return new DecisionResult(decisionsHelper.getDecisions(), forceCreateNewDecisionTask);
+      return new DecisionResult(
+          decisionsHelper.getDecisions(), queryResults, forceCreateNewDecisionTask);
     } finally {
       lock.unlock();
     }
@@ -396,7 +387,8 @@ class ReplayDecider implements Decider {
 
   // Returns boolean to indicate whether we need to force create new decision task for local
   // activity heartbeating.
-  private boolean decideImpl(PollForDecisionTaskResponse decisionTask, Functions.Proc query)
+  private boolean decideImpl(
+      PollForDecisionTaskResponse decisionTask, Functions.Proc legacyQueryCallback)
       throws Throwable {
     boolean forceCreateNewDecisionTask = false;
     try {
@@ -477,8 +469,29 @@ class ReplayDecider implements Decider {
         throw e;
       }
     } finally {
-      if (query != null) {
-        query.apply();
+      if (decisionTask.getQueries() != null) {
+        for (Map.Entry<String, WorkflowQuery> entry : decisionTask.getQueries().entrySet()) {
+          WorkflowQuery query = entry.getValue();
+          try {
+            byte[] queryResult = workflow.query(query);
+            queryResults.put(
+                entry.getKey(),
+                new WorkflowQueryResult()
+                    .setResultType(QueryResultType.ANSWERED)
+                    .setAnswer(queryResult));
+          } catch (Exception e) {
+            queryResults.put(
+                entry.getKey(),
+                new WorkflowQueryResult()
+                    .setResultType(QueryResultType.FAILED)
+                    .setErrorMessage(e.getMessage())
+                    .setAnswer(
+                        Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8)));
+          }
+        }
+      }
+      if (legacyQueryCallback != null) {
+        legacyQueryCallback.apply();
       }
       if (completed) {
         close();
