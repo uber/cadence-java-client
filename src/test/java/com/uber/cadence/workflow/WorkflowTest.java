@@ -2605,12 +2605,11 @@ public class WorkflowTest {
         Duration.ofSeconds(1),
         () -> {
           assertEquals("initial", client.query("QueryableWorkflow::getState", String.class));
+
           client.signal("testSignal", "Hello ");
-          sleep(Duration.ofMillis(500));
-          while (!"Hello ".equals(client.query("QueryableWorkflow::getState", String.class))) {}
           assertEquals("Hello ", client.query("QueryableWorkflow::getState", String.class));
+
           client.signal("testSignal", "World!");
-          while (!"World!".equals(client.query("QueryableWorkflow::getState", String.class))) {}
           assertEquals("World!", client.query("QueryableWorkflow::getState", String.class));
           assertEquals(
               "Hello World!",
