@@ -162,7 +162,7 @@ public final class InternalUtils {
       History history = new History();
       try {
         byte[] dataByte = data.getData();
-        dataByte = Arrays.copyOfRange(dataByte, 1, dataByte.length);
+        dataByte = Arrays.copyOfRange(dataByte, 0, dataByte.length);
         deSerializer.deserialize(history, dataByte);
 
         if (history == null || history.getEvents() == null || history.getEvents().size() == 0) {
