@@ -157,6 +157,7 @@ public final class InternalUtils {
   public static History DeserializeFromBlobToHistoryEvents(
       List<DataBlob> blobData, HistoryEventFilterType historyEventFilterType) throws TException {
 
+    TDeserializer deSerializer = new TDeserializer();
     List<HistoryEvent> events = new ArrayList<HistoryEvent>();
     for (DataBlob data : blobData) {
       History history = new History();
@@ -184,6 +185,8 @@ public final class InternalUtils {
 
   // This method serializes history event to blob data
   public static List<DataBlob> SerializeFromHistoryEventToBlobData(List<HistoryEvent> events) {
+
+    TSerializer serializer = new TSerializer();
     List<DataBlob> blobs = new ArrayList<>(events.size());
     for (HistoryEvent event : events) {
       DataBlob blob = new DataBlob();
@@ -197,9 +200,6 @@ public final class InternalUtils {
 
     return blobs;
   }
-
-  private static final TDeserializer deSerializer = new TDeserializer();
-  private static final TSerializer serializer = new TSerializer();
 
   /** Prohibit instantiation */
   private InternalUtils() {}
