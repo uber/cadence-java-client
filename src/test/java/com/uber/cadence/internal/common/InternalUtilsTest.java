@@ -22,6 +22,8 @@ import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.google.common.collect.Lists;
+import com.googlecode.junittoolbox.MultithreadingTester;
+import com.googlecode.junittoolbox.RunnableAssert;
 import com.uber.cadence.*;
 import com.uber.cadence.converter.DataConverterException;
 import com.uber.cadence.workflow.WorkflowUtils;
@@ -57,70 +59,98 @@ public class InternalUtilsTest {
 
   @Test
   public void testSerialization_History() {
-    HistoryEvent event =
-        new HistoryEvent()
-            .setEventId(1)
-            .setVersion(1)
-            .setEventType(WorkflowExecutionStarted)
-            .setTimestamp(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
-            .setWorkflowExecutionStartedEventAttributes(
-                new WorkflowExecutionStartedEventAttributes()
-                    .setAttempt(1)
-                    .setFirstExecutionRunId("test"));
 
-    List<HistoryEvent> historyEvents = Lists.newArrayList(event);
-    History history = new History().setEvents(historyEvents);
-    DataBlob blob = InternalUtils.SerializeFromHistoryToBlobData(history);
-    assertNotNull(blob);
+    RunnableAssert r =
+        new RunnableAssert("history_serialization") {
+          @Override
+          public void run() {
+            HistoryEvent event =
+                new HistoryEvent()
+                    .setEventId(1)
+                    .setVersion(1)
+                    .setEventType(WorkflowExecutionStarted)
+                    .setTimestamp(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                    .setWorkflowExecutionStartedEventAttributes(
+                        new WorkflowExecutionStartedEventAttributes()
+                            .setAttempt(1)
+                            .setFirstExecutionRunId("test"));
+
+            List<HistoryEvent> historyEvents = Lists.newArrayList(event);
+            History history = new History().setEvents(historyEvents);
+            DataBlob blob = InternalUtils.SerializeFromHistoryToBlobData(history);
+            assertNotNull(blob);
+
+            try {
+              History result =
+                  InternalUtils.DeserializeFromBlobDataToHistory(
+                      Lists.newArrayList(blob), HistoryEventFilterType.ALL_EVENT);
+              assertNotNull(result);
+              assertEquals(1, result.events.size());
+              assertEquals(event.getEventId(), result.events.get(0).getEventId());
+              assertEquals(event.getVersion(), result.events.get(0).getVersion());
+              assertEquals(event.getEventType(), result.events.get(0).getEventType());
+              assertEquals(event.getTimestamp(), result.events.get(0).getTimestamp());
+              assertEquals(
+                  event.getWorkflowExecutionStartedEventAttributes(),
+                  result.events.get(0).getWorkflowExecutionStartedEventAttributes());
+            } catch (Exception e) {
+              TestCase.fail("Received unexpected error during deserialization");
+            }
+          }
+        };
 
     try {
-      History result =
-          InternalUtils.DeserializeFromBlobDataToHistory(
-              Lists.newArrayList(blob), HistoryEventFilterType.ALL_EVENT);
-      assertNotNull(result);
-      assertEquals(1, result.events.size());
-      assertEquals(event.getEventId(), result.events.get(0).getEventId());
-      assertEquals(event.getVersion(), result.events.get(0).getVersion());
-      assertEquals(event.getEventType(), result.events.get(0).getEventType());
-      assertEquals(event.getTimestamp(), result.events.get(0).getTimestamp());
-      assertEquals(
-          event.getWorkflowExecutionStartedEventAttributes(),
-          result.events.get(0).getWorkflowExecutionStartedEventAttributes());
+      new MultithreadingTester().add(r).numThreads(50).numRoundsPerThread(10).run();
     } catch (Exception e) {
-      TestCase.fail("Received unexpected error during deserialization");
+      TestCase.fail("Received unexpected error during concurrent deserialization");
     }
   }
 
   @Test
   public void testSerialization_HistoryEvent() {
-    HistoryEvent event =
-        new HistoryEvent()
-            .setEventId(1)
-            .setVersion(1)
-            .setEventType(WorkflowExecutionStarted)
-            .setTimestamp(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
-            .setWorkflowExecutionStartedEventAttributes(
-                new WorkflowExecutionStartedEventAttributes()
-                    .setAttempt(1)
-                    .setFirstExecutionRunId("test"));
 
-    List<HistoryEvent> historyEvents = Lists.newArrayList(event);
-    List<DataBlob> blobList = InternalUtils.SerializeFromHistoryEventToBlobData(historyEvents);
-    assertEquals(1, blobList.size());
+    RunnableAssert r =
+        new RunnableAssert("history_event_serialization") {
+          @Override
+          public void run() {
+            HistoryEvent event =
+                new HistoryEvent()
+                    .setEventId(1)
+                    .setVersion(1)
+                    .setEventType(WorkflowExecutionStarted)
+                    .setTimestamp(LocalDateTime.now().toEpochSecond(ZoneOffset.UTC))
+                    .setWorkflowExecutionStartedEventAttributes(
+                        new WorkflowExecutionStartedEventAttributes()
+                            .setAttempt(1)
+                            .setFirstExecutionRunId("test"));
+
+            List<HistoryEvent> historyEvents = Lists.newArrayList(event);
+            List<DataBlob> blobList =
+                InternalUtils.SerializeFromHistoryEventToBlobData(historyEvents);
+            assertEquals(1, blobList.size());
+
+            try {
+              List<HistoryEvent> result =
+                  InternalUtils.DeserializeFromBlobDataToHistoryEvents(blobList);
+              assertNotNull(result);
+              assertEquals(1, result.size());
+              assertEquals(event.getEventId(), result.get(0).getEventId());
+              assertEquals(event.getVersion(), result.get(0).getVersion());
+              assertEquals(event.getEventType(), result.get(0).getEventType());
+              assertEquals(event.getTimestamp(), result.get(0).getTimestamp());
+              assertEquals(
+                  event.getWorkflowExecutionStartedEventAttributes(),
+                  result.get(0).getWorkflowExecutionStartedEventAttributes());
+            } catch (Exception e) {
+              TestCase.fail("Received unexpected error during deserialization");
+            }
+          }
+        };
 
     try {
-      List<HistoryEvent> result = InternalUtils.DeserializeFromBlobDataToHistoryEvents(blobList);
-      assertNotNull(result);
-      assertEquals(1, result.size());
-      assertEquals(event.getEventId(), result.get(0).getEventId());
-      assertEquals(event.getVersion(), result.get(0).getVersion());
-      assertEquals(event.getEventType(), result.get(0).getEventType());
-      assertEquals(event.getTimestamp(), result.get(0).getTimestamp());
-      assertEquals(
-          event.getWorkflowExecutionStartedEventAttributes(),
-          result.get(0).getWorkflowExecutionStartedEventAttributes());
+      new MultithreadingTester().add(r).numThreads(50).numRoundsPerThread(10).run();
     } catch (Exception e) {
-      TestCase.fail("Received unexpected error during deserialization");
+      TestCase.fail("Received unexpected error during concurrent deserialization");
     }
   }
 }
