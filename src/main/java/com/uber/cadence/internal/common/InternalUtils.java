@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.common;
 
 import com.google.common.base.Defaults;
+import com.google.common.collect.Lists;
 import com.uber.cadence.DataBlob;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
@@ -31,7 +32,6 @@ import com.uber.cadence.internal.worker.Shutdownable;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -153,23 +153,41 @@ public final class InternalUtils {
     return new SearchAttributes().setIndexedFields(mapOfByteBuffer);
   }
 
-  // This method deserialize the DataBlob data to the HistoriyEvent data
-  public static History DeserializeFromBlobToHistoryEvents(
+  // This method serializes history to blob data
+  public static DataBlob SerializeFromHistoryToBlobData(History history) {
+
+    // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
+    TSerializer serializer = new TSerializer();
+    DataBlob blob = new DataBlob();
+    try {
+      blob.setData(serializer.serialize(history));
+    } catch (org.apache.thrift.TException err) {
+      throw new RuntimeException("Serialize history to blob data failed", err);
+    }
+
+    return blob;
+  }
+
+  // This method deserialize the DataBlob data to the History data
+  public static History DeserializeFromBlobDataToHistory(
       List<DataBlob> blobData, HistoryEventFilterType historyEventFilterType) throws TException {
 
-    List<HistoryEvent> events = new ArrayList<HistoryEvent>();
+    // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
+    TDeserializer deSerializer = new TDeserializer();
+    List<HistoryEvent> events = Lists.newArrayList();
     for (DataBlob data : blobData) {
       History history = new History();
       try {
         byte[] dataByte = data.getData();
-        dataByte = Arrays.copyOfRange(dataByte, 1, dataByte.length);
+        // TODO: verify the beginning index
+        dataByte = Arrays.copyOfRange(dataByte, 0, dataByte.length);
         deSerializer.deserialize(history, dataByte);
 
         if (history == null || history.getEvents() == null || history.getEvents().size() == 0) {
           return null;
         }
       } catch (org.apache.thrift.TException err) {
-        throw new TException("Deserialize blob data to history event failed with unknown error");
+        throw new TException("Deserialize blob data to history failed with unknown error");
       }
 
       events.addAll(history.getEvents());
@@ -184,22 +202,43 @@ public final class InternalUtils {
 
   // This method serializes history event to blob data
   public static List<DataBlob> SerializeFromHistoryEventToBlobData(List<HistoryEvent> events) {
-    List<DataBlob> blobs = new ArrayList<>(events.size());
+
+    // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
+    TSerializer serializer = new TSerializer();
+    List<DataBlob> blobs = Lists.newArrayListWithCapacity(events.size());
     for (HistoryEvent event : events) {
       DataBlob blob = new DataBlob();
       try {
         blob.setData(serializer.serialize(event));
       } catch (org.apache.thrift.TException err) {
-        throw new RuntimeException("Serialize to blob data failed", err);
+        throw new RuntimeException("Serialize history event to blob data failed", err);
       }
       blobs.add(blob);
     }
-
     return blobs;
   }
 
-  private static final TDeserializer deSerializer = new TDeserializer();
-  private static final TSerializer serializer = new TSerializer();
+  // This method serializes blob data to history event
+  public static List<HistoryEvent> DeserializeFromBlobDataToHistoryEvents(List<DataBlob> blobData)
+      throws TException {
+
+    // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
+    TDeserializer deSerializer = new TDeserializer();
+    List<HistoryEvent> events = Lists.newArrayList();
+    for (DataBlob data : blobData) {
+      try {
+        HistoryEvent event = new HistoryEvent();
+        byte[] dataByte = data.getData();
+        // TODO: verify the beginning index
+        dataByte = Arrays.copyOfRange(dataByte, 0, dataByte.length);
+        deSerializer.deserialize(event, dataByte);
+        events.add(event);
+      } catch (org.apache.thrift.TException err) {
+        throw new TException("Deserialize blob data to history event failed with unknown error");
+      }
+    }
+    return events;
+  }
 
   /** Prohibit instantiation */
   private InternalUtils() {}

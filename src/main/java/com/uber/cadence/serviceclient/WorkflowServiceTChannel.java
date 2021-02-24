@@ -574,7 +574,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         GetWorkflowExecutionHistoryResponse res = result.getSuccess();
         if (res.getRawHistory() != null) {
           History history =
-              InternalUtils.DeserializeFromBlobToHistoryEvents(
+              InternalUtils.DeserializeFromBlobDataToHistory(
                   res.getRawHistory(), getRequest.getHistoryEventFilterType());
           res.setHistory(history);
         }
@@ -2154,7 +2154,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                   GetWorkflowExecutionHistoryResponse res = result.getSuccess();
                   if (res.getRawHistory() != null) {
                     History history =
-                        InternalUtils.DeserializeFromBlobToHistoryEvents(
+                        InternalUtils.DeserializeFromBlobDataToHistory(
                             res.getRawHistory(), getRequest.getHistoryEventFilterType());
                     res.setHistory(history);
                   }
