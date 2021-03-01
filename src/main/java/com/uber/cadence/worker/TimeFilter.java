@@ -1,5 +1,5 @@
 /*
- *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
@@ -20,68 +20,68 @@ import java.util.Objects;
 
 public class TimeFilter {
 
-    public static TimeFilter.Builder newBuilder() {
-        return new TimeFilter.Builder();
+  public static TimeFilter.Builder newBuilder() {
+    return new TimeFilter.Builder();
+  }
+
+  public static TimeFilter.Builder newBuilder(TimeFilter options) {
+    return new TimeFilter.Builder(options);
+  }
+
+  public static TimeFilter defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final TimeFilter DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = TimeFilter.newBuilder().build();
+  }
+
+  public static final class Builder {
+    private ZonedDateTime minTimestamp;
+    private ZonedDateTime maxTimestamp;
+
+    private Builder() {}
+
+    private Builder(TimeFilter options) {
+      this.minTimestamp = options.minTimestamp;
+      this.maxTimestamp = options.maxTimestamp;
     }
 
-    public static TimeFilter.Builder newBuilder(TimeFilter options) {
-        return new TimeFilter.Builder(options);
+    public Builder setMinTimestamp(ZonedDateTime minTimestamp) {
+      this.minTimestamp = Objects.requireNonNull(minTimestamp);
+      return this;
     }
 
-    public static TimeFilter defaultInstance() {
-        return DEFAULT_INSTANCE;
+    public Builder setMaxTimestamp(ZonedDateTime maxTimestamp) {
+      this.maxTimestamp = Objects.requireNonNull(maxTimestamp);
+      return this;
     }
 
-    private static final TimeFilter DEFAULT_INSTANCE;
-
-    static {
-        DEFAULT_INSTANCE = TimeFilter.newBuilder().build();
+    public TimeFilter build() {
+      return new TimeFilter(minTimestamp, maxTimestamp);
     }
+  }
 
-    public static final class Builder {
-        private ZonedDateTime minTimestamp;
-        private ZonedDateTime maxTimestamp;
+  private final ZonedDateTime minTimestamp;
+  private final ZonedDateTime maxTimestamp;
 
-        private Builder() {}
+  private TimeFilter(ZonedDateTime minTimestamp, ZonedDateTime maxTimestamp) {
+    this.minTimestamp = minTimestamp;
+    this.maxTimestamp = maxTimestamp;
+  }
 
-        private Builder(TimeFilter options) {
-            this.minTimestamp = options.minTimestamp;
-            this.maxTimestamp = options.maxTimestamp;
-        }
+  public ZonedDateTime getMinTimestamp() {
+    return minTimestamp;
+  }
 
-        public Builder setMinTimestamp(ZonedDateTime minTimestamp) {
-            this.minTimestamp = Objects.requireNonNull(minTimestamp);
-            return this;
-        }
+  public ZonedDateTime getMaxTimestamp() {
+    return maxTimestamp;
+  }
 
-        public Builder setMaxTimestamp(ZonedDateTime maxTimestamp) {
-            this.maxTimestamp = Objects.requireNonNull(maxTimestamp);
-            return this;
-        }
-
-        public TimeFilter build() {
-            return new TimeFilter(minTimestamp, maxTimestamp);
-        }
-    }
-
-    private final ZonedDateTime minTimestamp;
-    private final ZonedDateTime maxTimestamp;
-
-    private TimeFilter(ZonedDateTime minTimestamp, ZonedDateTime maxTimestamp) {
-        this.minTimestamp = minTimestamp;
-        this.maxTimestamp = maxTimestamp;
-    }
-
-    public ZonedDateTime getMinTimestamp() {
-        return minTimestamp;
-    }
-
-    public ZonedDateTime getMaxTimestamp() {
-        return maxTimestamp;
-    }
-
-    @Override
-    public String toString() {
-        return "TimeFilter{" + "minTimestamp=" + minTimestamp + ", maxTimestamp=" + maxTimestamp + '}';
-    }
+  @Override
+  public String toString() {
+    return "TimeFilter{" + "minTimestamp=" + minTimestamp + ", maxTimestamp=" + maxTimestamp + '}';
+  }
 }

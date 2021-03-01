@@ -1,5 +1,5 @@
 /*
- *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
@@ -20,80 +20,85 @@ import java.util.Objects;
 
 public class ShadowingExitCondition {
 
-    public static ShadowingExitCondition.Builder newBuilder() {
-        return new ShadowingExitCondition.Builder();
+  public static ShadowingExitCondition.Builder newBuilder() {
+    return new ShadowingExitCondition.Builder();
+  }
+
+  public static ShadowingExitCondition.Builder newBuilder(ShadowingExitCondition options) {
+    return new ShadowingExitCondition.Builder(options);
+  }
+
+  public static ShadowingExitCondition defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  private static final ShadowingExitCondition DEFAULT_INSTANCE;
+
+  static {
+    DEFAULT_INSTANCE = ShadowingExitCondition.newBuilder().build();
+  }
+
+  public static final class Builder {
+    private int shadowingCount;
+    private Duration shadowingDuration;
+
+    private Builder() {}
+
+    private Builder(ShadowingExitCondition options) {
+      this.shadowingCount = options.shadowingCount;
+      this.shadowingDuration = options.shadowingDuration;
     }
 
-    public static ShadowingExitCondition.Builder newBuilder(ShadowingExitCondition options) {
-        return new ShadowingExitCondition.Builder(options);
+    /** Optional: The number of workflow to shadow. Default: 0 means to shadow all workflows. */
+    public Builder setShadowingCount(int shadowingCount) {
+      if (shadowingCount < 0) {
+        throw new IllegalArgumentException("Negative value: " + shadowingCount);
+      }
+      this.shadowingCount = shadowingCount;
+      return this;
     }
 
-    public static ShadowingExitCondition defaultInstance() {
-        return DEFAULT_INSTANCE;
+    /**
+     * Optional: Time duration for shadowing. Default: Empty means to shadow with unbounded time
+     * window.
+     */
+    public Builder setShadowingDuration(Duration shadowingDuration) {
+      Objects.requireNonNull(shadowingDuration);
+      if (shadowingDuration.isNegative() || shadowingDuration.isZero()) {
+        throw new IllegalArgumentException("Negative or zero value : " + shadowingDuration);
+      }
+      this.shadowingDuration = shadowingDuration;
+      return this;
     }
 
-    private static final ShadowingExitCondition DEFAULT_INSTANCE;
-
-    static {
-        DEFAULT_INSTANCE = ShadowingExitCondition.newBuilder().build();
+    public ShadowingExitCondition build() {
+      return new ShadowingExitCondition(shadowingCount, shadowingDuration);
     }
+  }
 
-    public static final class Builder {
-        private int shadowingCount;
-        private Duration shadowingDuration;
+  private final int shadowingCount;
+  private final Duration shadowingDuration;
 
-        private Builder() {}
+  private ShadowingExitCondition(int shadowingCount, Duration shadowingDuration) {
+    this.shadowingCount = shadowingCount;
+    this.shadowingDuration = shadowingDuration;
+  }
 
-        private Builder(ShadowingExitCondition options) {
-            this.shadowingCount = options.shadowingCount;
-            this.shadowingDuration = options.shadowingDuration;
-        }
+  public int getShadowingCount() {
+    return shadowingCount;
+  }
 
-        public Builder setShadowingCount(int shadowingCount) {
-            if (shadowingCount < 0) {
-                throw new IllegalArgumentException("Negative value: " + shadowingCount);
-            }
-            this.shadowingCount = shadowingCount;
-            return this;
-        }
+  public Duration getShadowingDuration() {
+    return shadowingDuration;
+  }
 
-        public Builder setShadowingDuration(Duration shadowingDuration) {
-            Objects.requireNonNull(shadowingDuration);
-            if (shadowingDuration.isNegative() || shadowingDuration.isZero()) {
-                throw new IllegalArgumentException("Negative or zero value : " + shadowingDuration);
-            }
-            this.shadowingDuration = shadowingDuration;
-            return this;
-        }
-
-        public ShadowingExitCondition build() {
-            return new ShadowingExitCondition(shadowingCount, shadowingDuration);
-        }
-    }
-
-    private final int shadowingCount;
-    private final Duration shadowingDuration;
-
-    private ShadowingExitCondition(int shadowingCount, Duration shadowingDuration) {
-        this.shadowingCount = shadowingCount;
-        this.shadowingDuration = shadowingDuration;
-    }
-
-    public int getShadowingCount() {
-        return shadowingCount;
-    }
-
-    public Duration getShadowingDuration() {
-        return shadowingDuration;
-    }
-
-    @Override
-    public String toString() {
-        return "ShadowingExitCondition{"
-                + "shadowingCount="
-                + shadowingCount
-                + ", shadowingDuration="
-                + shadowingDuration
-                + '}';
-    }
+  @Override
+  public String toString() {
+    return "ShadowingExitCondition{"
+        + "shadowingCount="
+        + shadowingCount
+        + ", shadowingDuration="
+        + shadowingDuration
+        + '}';
+  }
 }

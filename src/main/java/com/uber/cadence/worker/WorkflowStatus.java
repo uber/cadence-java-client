@@ -1,5 +1,5 @@
 /*
- *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
+ *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
@@ -18,27 +18,27 @@ package com.uber.cadence.worker;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 
 public enum WorkflowStatus {
-    OPEN("OPEN"),
-    CLOSED("CLOSED"),
-    CANCELED(WorkflowExecutionCloseStatus.CANCELED.name()),
-    CONTINUED_AS_NEW(WorkflowExecutionCloseStatus.CONTINUED_AS_NEW.name()),
-    COMPLETED(WorkflowExecutionCloseStatus.COMPLETED.name()),
-    FAILED(WorkflowExecutionCloseStatus.FAILED.name()),
-    TERMINATED(WorkflowExecutionCloseStatus.TERMINATED.name()),
-    TIMED_OUT(WorkflowExecutionCloseStatus.TIMED_OUT.name());
+  OPEN("OPEN"),
+  CLOSED("CLOSED"),
+  CANCELED(WorkflowExecutionCloseStatus.CANCELED.name()),
+  CONTINUED_AS_NEW(WorkflowExecutionCloseStatus.CONTINUED_AS_NEW.name()),
+  COMPLETED(WorkflowExecutionCloseStatus.COMPLETED.name()),
+  FAILED(WorkflowExecutionCloseStatus.FAILED.name()),
+  TERMINATED(WorkflowExecutionCloseStatus.TERMINATED.name()),
+  TIMED_OUT(WorkflowExecutionCloseStatus.TIMED_OUT.name());
 
-    private String status;
+  private String status;
 
-    WorkflowStatus(String status) {
-        this.status = status;
-    }
+  WorkflowStatus(String status) {
+    this.status = status;
+  }
 
-    public String getValue() {
-        return status;
-    }
+  public String getValue() {
+    return status;
+  }
 
-    @Override
-    public String toString() {
-        return this.getValue();
-    }
+  @Override
+  public String toString() {
+    return this.getValue();
+  }
 }
