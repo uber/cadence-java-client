@@ -79,13 +79,25 @@ public class ShadowingOptionsTest {
     ShadowingOptions.newBuilder().setDomain("").build();
   }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testShadowingOptions_setSamplingRate_ExpectedIllegalArgumentException() {
+  @Test
+  public void testShadowingOptions_setSamplingRate_IllegalInput() {
 
-        try {
-            ShadowingOptions.newBuilder().setWorkflowSamplingRate(0.0).build();
-        } catch (Exception e) {
-            assertEquals(IllegalArgumentException.class.getCanonicalName(), e.g);
-        }
+    try {
+      ShadowingOptions.newBuilder().setWorkflowSamplingRate(0.0).build();
+    } catch (Exception e) {
+      assertEquals(IllegalArgumentException.class, e.getClass());
     }
+
+    try {
+      ShadowingOptions.newBuilder().setWorkflowSamplingRate(2.0).build();
+    } catch (Exception e) {
+      assertEquals(IllegalArgumentException.class, e.getClass());
+    }
+
+    try {
+      ShadowingOptions.newBuilder().setWorkflowSamplingRate(-2.0).build();
+    } catch (Exception e) {
+      assertEquals(IllegalArgumentException.class, e.getClass());
+    }
+  }
 }
