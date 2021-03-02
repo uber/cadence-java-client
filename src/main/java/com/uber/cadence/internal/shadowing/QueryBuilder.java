@@ -1,0 +1,121 @@
+/*
+ *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+package com.uber.cadence.internal.shadowing;
+
+import com.google.common.collect.Lists;
+import com.uber.cadence.worker.TimeFilter;
+import com.uber.cadence.worker.WorkflowStatus;
+import java.util.Collection;
+import java.util.stream.Collectors;
+
+public class QueryBuilder {
+  public static QueryBuilder newQueryBuilder() {
+    return new QueryBuilder();
+  }
+
+  public QueryBuilder setWorkflowTypes(Collection<String> workflowTypes) {
+    if (workflowTypes == null) {
+      return this;
+    }
+
+    Collection<String> types =
+        workflowTypes
+            .stream()
+            .map((wfType) -> WORKFLOW_TYPE_PLACEHOLDER + wfType)
+            .collect(Collectors.toList());
+
+    String query = String.join(OR_QUERY_JOIN, types);
+    this.appendPartialQuery(query);
+    return this;
+  }
+
+  public QueryBuilder setWorkflowStatuses(Collection<WorkflowStatus> workflowStatuses) {
+    if (workflowStatuses == null) {
+      return this;
+    }
+
+    Collection<String> wfStatuses = Lists.newArrayListWithCapacity(workflowStatuses.size());
+    for (WorkflowStatus workflowStatus : workflowStatuses) {
+      switch (workflowStatus) {
+        case OPEN:
+          wfStatuses.add(CLOSE_TIME_PLACEHOLDER + " = " + MISSING_QUERY);
+          break;
+        case CLOSED:
+          wfStatuses.add(CLOSE_TIME_PLACEHOLDER + " != " + MISSING_QUERY);
+          break;
+        default:
+          wfStatuses.add(WORKFLOW_STATUS_PLACEHOLDER + '"' + workflowStatus + '"');
+          break;
+      }
+    }
+
+    String query = String.join(OR_QUERY_JOIN, wfStatuses);
+    this.appendPartialQuery(query);
+    return this;
+  }
+
+  public QueryBuilder setWorkflowStartTime(TimeFilter timeFilter) {
+    if (timeFilter == null) {
+      return this;
+    }
+
+    Collection<String> timerFilters = Lists.newArrayListWithCapacity(2);
+    if (timeFilter.getMinTimestamp() != null) {
+      timerFilters.add(
+          START_TIME_PLACEHOLDER + " >= " + timeFilter.getMinTimestamp().toEpochSecond());
+    }
+
+    if (timeFilter.getMaxTimestamp() != null) {
+      timerFilters.add(
+          START_TIME_PLACEHOLDER + " <= " + timeFilter.getMaxTimestamp().toEpochSecond());
+    }
+
+    String query = String.join(AND_QUERY_JOIN, timerFilters);
+    this.appendPartialQuery(query);
+    return this;
+  }
+
+  public String build() {
+    return this.stringBuffer.toString();
+  }
+
+  private static final String OR_QUERY_JOIN = " or ";
+  private static final String AND_QUERY_JOIN = " and ";
+  private static final String MISSING_QUERY = "missing";
+  private static final String WORKFLOW_TYPE_PLACEHOLDER = "WorkflowType = ";
+  private static final String WORKFLOW_STATUS_PLACEHOLDER = "CloseStatus = ";
+  private static final String START_TIME_PLACEHOLDER = "StartTime";
+  private static final String CLOSE_TIME_PLACEHOLDER = "CloseTime";
+  private StringBuffer stringBuffer;
+
+  private QueryBuilder() {
+    this.stringBuffer = new StringBuffer();
+  }
+
+  private void appendPartialQuery(String query) {
+    if (query == null || query.length() == 0) {
+      return;
+    }
+
+    if (this.stringBuffer.length() != 0) {
+      this.stringBuffer.append(" and ");
+    }
+
+    this.stringBuffer.append("(");
+    this.stringBuffer.append(query);
+    this.stringBuffer.append(")");
+  }
+}
