@@ -161,11 +161,4 @@ public class MetricsType {
 
   public static final String NON_DETERMINISTIC_ERROR =
       CADENCE_METRICS_PREFIX + "non-deterministic-error";
-
-  public static final String SHADOWING_NON_DETERMINISTIC_ERROR =
-          CADENCE_METRICS_PREFIX + "shadowing-non-deterministic-error";
-  public static final String SHADOWING_SKIPPED_COUNT =
-          CADENCE_METRICS_PREFIX + "shadowing-skipped-workflow";
-  public static final String SHADOWING_SUCCESS_COUNT =
-          CADENCE_METRICS_PREFIX + "shadowing-success-workflow";
 }
