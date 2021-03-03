@@ -54,9 +54,9 @@ public class QueryBuilderTest {
     String query = QueryBuilder.newQueryBuilder().setWorkflowStartTime(timeFilter).build();
     assertEquals(
         "(StartTime >= "
-            + now.toEpochSecond()
+            + QueryBuilder.toNanoSeconds(now)
             + " and StartTime <= "
-            + now.plusHours(1).toEpochSecond()
+            + QueryBuilder.toNanoSeconds(now.plusHours(1))
             + ")",
         query);
   }
@@ -74,9 +74,9 @@ public class QueryBuilderTest {
             .build();
     assertEquals(
         "(StartTime >= "
-            + now.toEpochSecond()
+            + QueryBuilder.toNanoSeconds(now)
             + " and StartTime <= "
-            + now.plusHours(1).toEpochSecond()
+            + QueryBuilder.toNanoSeconds(now.plusHours(1))
             + ")"
             + " and "
             + "(WorkflowType = test1 or WorkflowType = test2)",

@@ -18,6 +18,7 @@ package com.uber.cadence.internal.shadowing;
 import com.google.common.collect.Lists;
 import com.uber.cadence.worker.TimeFilter;
 import com.uber.cadence.worker.WorkflowStatus;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
@@ -37,7 +38,7 @@ public class QueryBuilder {
             .map((wfType) -> WORKFLOW_TYPE_PLACEHOLDER + wfType)
             .collect(Collectors.toList());
 
-    String query = String.join(OR_QUERY_JOIN, types);
+    String query = String.join(OR_QUERY, types);
     this.appendPartialQuery(query);
     return this;
   }
@@ -62,7 +63,7 @@ public class QueryBuilder {
       }
     }
 
-    String query = String.join(OR_QUERY_JOIN, wfStatuses);
+    String query = String.join(OR_QUERY, wfStatuses);
     this.appendPartialQuery(query);
     return this;
   }
@@ -75,15 +76,15 @@ public class QueryBuilder {
     Collection<String> timerFilters = Lists.newArrayListWithCapacity(2);
     if (timeFilter.getMinTimestamp() != null) {
       timerFilters.add(
-          START_TIME_PLACEHOLDER + " >= " + timeFilter.getMinTimestamp().toEpochSecond());
+          START_TIME_PLACEHOLDER + " >= " + toNanoSeconds(timeFilter.getMinTimestamp()));
     }
 
     if (timeFilter.getMaxTimestamp() != null) {
       timerFilters.add(
-          START_TIME_PLACEHOLDER + " <= " + timeFilter.getMaxTimestamp().toEpochSecond());
+          START_TIME_PLACEHOLDER + " <= " + toNanoSeconds(timeFilter.getMaxTimestamp()));
     }
 
-    String query = String.join(AND_QUERY_JOIN, timerFilters);
+    String query = String.join(AND_QUERY, timerFilters);
     this.appendPartialQuery(query);
     return this;
   }
@@ -92,13 +93,14 @@ public class QueryBuilder {
     return this.stringBuffer.toString();
   }
 
-  private static final String OR_QUERY_JOIN = " or ";
-  private static final String AND_QUERY_JOIN = " and ";
+  private static final String OR_QUERY = " or ";
+  private static final String AND_QUERY = " and ";
   private static final String MISSING_QUERY = "missing";
   private static final String WORKFLOW_TYPE_PLACEHOLDER = "WorkflowType = ";
   private static final String WORKFLOW_STATUS_PLACEHOLDER = "CloseStatus = ";
   private static final String START_TIME_PLACEHOLDER = "StartTime";
   private static final String CLOSE_TIME_PLACEHOLDER = "CloseTime";
+  private static final long TIMESTAMP_SCALE = 1_000_000_000L;
   private StringBuffer stringBuffer;
 
   private QueryBuilder() {
@@ -117,5 +119,9 @@ public class QueryBuilder {
     this.stringBuffer.append("(");
     this.stringBuffer.append(query);
     this.stringBuffer.append(")");
+  }
+
+  protected static long toNanoSeconds(ZonedDateTime time) {
+    return time.toEpochSecond() * TIMESTAMP_SCALE + time.getNano();
   }
 }
