@@ -1,15 +1,23 @@
 # Changelog
 
 ## 3.0.0
-- [New feature] Activity dispatch optimization
-- [Breaking changes] Refactoring on WorkflowClient.newInstance, WorkflowClientOptions.newBuilder, PollerOptions.newBuilder WorkerOptions.newBuilder, Worker.Factory 
+- [New feature] Allow worker to dispatch activity tasks through local tunnel after decisions are made. This is a performance optimization option to skip activity scheduling efforts.
+- [Breaking changes] Refactoring code:
+  - Worker.Factory -> WorkerFactory
+  - Worker.FactoryOptions -> WorkerFactoryOptions
+  - PollerOptions.Builder -> PollerOptions.newBuilder
+  - SingleWorkerOptions.Builder -> SingleWorkerOptions.newBuilder
+  - Added WorkerOptions Builder
+  - WorkflowClient.newInstance(IWorkflowService, Domain, WorkflowClientOptions) -> WorkflowClient.newInstance(IWorkflowService, WorkflowClientOptions)
+  - WorkflowClientOptions.Builder -> WorkflowClientOptions.newBuilder
+  - Testing framework
 - Fix activity end-to-end latency metric
 - Fix newProxyInstance with the correct class
 - Fix bug in worker.isSuspended()
 - Improve worker start/shutdown logic
 - Improve retry logic
-- Remove TaskListActivitiesPerSecond limit
-- Add workflow type and activity type metrics tags
+- Pass TaskListActivitiesPerSecond to activity worker and remove the limit
+- Add missing workflowtype and activitytype metric tags
 - Fix race condition during serialization
 
 ## 2.7.8
