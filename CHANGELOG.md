@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.0.0
+- [New feature] Activity dispatch optimization
+- [Breaking changes] Update WorkflowClient.newInstance, WorkflowClientOptions.newBuilder, PollerOptions.newBuilder WorkerOptions.newBuilder, Worker.Factory naming, 
+- Fix activity end-to-end latency metric
+- Fix newProxyInstance with the correct class
+- Fix bug in worker.isSuspended()
+- Improve worker start/shutdown logic
+- Improve retry logic
+- Remove TaskListActivitiesPerSecond limit
+- Add workflow type and activity type metrics tags
+- Fix race condition during serialization
+
 ## 2.7.8
 - Fix get raw history 
 - Improve signal processing error and log 
