@@ -95,6 +95,8 @@ public class QueryBuilder {
 
   private static final String OR_QUERY = " or ";
   private static final String AND_QUERY = " and ";
+  private static final String LEFT_PARENTHESES = "(";
+  private static final String RIGHT_PARENTHESES = ")";
   private static final String MISSING_QUERY = "missing";
   private static final String WORKFLOW_TYPE_PLACEHOLDER = "WorkflowType = ";
   private static final String WORKFLOW_STATUS_PLACEHOLDER = "CloseStatus = ";
@@ -113,12 +115,12 @@ public class QueryBuilder {
     }
 
     if (this.stringBuffer.length() != 0) {
-      this.stringBuffer.append(" and ");
+      this.stringBuffer.append(AND_QUERY);
     }
 
-    this.stringBuffer.append("(");
+    this.stringBuffer.append(LEFT_PARENTHESES);
     this.stringBuffer.append(query);
-    this.stringBuffer.append(")");
+    this.stringBuffer.append(RIGHT_PARENTHESES);
   }
 
   protected static long toNanoSeconds(ZonedDateTime time) {
