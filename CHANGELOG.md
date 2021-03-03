@@ -2,7 +2,7 @@
 
 ## 3.0.0
 - [New feature] Activity dispatch optimization
-- [Breaking changes] Update WorkflowClient.newInstance, WorkflowClientOptions.newBuilder, PollerOptions.newBuilder WorkerOptions.newBuilder, Worker.Factory naming, 
+- [Breaking changes] Refactoring on WorkflowClient.newInstance, WorkflowClientOptions.newBuilder, PollerOptions.newBuilder WorkerOptions.newBuilder, Worker.Factory 
 - Fix activity end-to-end latency metric
 - Fix newProxyInstance with the correct class
 - Fix bug in worker.isSuspended()
