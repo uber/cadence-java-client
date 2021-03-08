@@ -81,7 +81,6 @@ class ReplayDecider implements Decider {
   private final WorkflowExecutionStartedEventAttributes startedEvent;
   private final Lock lock = new ReentrantLock();
   private final Consumer<HistoryEvent> localActivityCompletionSink;
-  private final Map<String, WorkflowQueryResult> queryResults = new HashMap<>();
 
   ReplayDecider(
       IWorkflowService service,
@@ -376,19 +375,48 @@ class ReplayDecider implements Decider {
   public DecisionResult decide(PollForDecisionTaskResponse decisionTask) throws Throwable {
     lock.lock();
     try {
-      queryResults.clear();
-      boolean forceCreateNewDecisionTask = decideImpl(decisionTask, null);
+      AtomicReference<Map<String, WorkflowQueryResult>> queryResults = new AtomicReference<>();
+      boolean forceCreateNewDecisionTask =
+          decideImpl(decisionTask, () -> queryResults.set(runConsistentQueries(decisionTask)));
       return new DecisionResult(
-          decisionsHelper.getDecisions(), queryResults, forceCreateNewDecisionTask);
+          decisionsHelper.getDecisions(), queryResults.get(), forceCreateNewDecisionTask);
     } finally {
       lock.unlock();
     }
   }
 
-  // Returns boolean to indicate whether we need to force create new decision task for local
-  // activity heartbeating.
-  private boolean decideImpl(
-      PollForDecisionTaskResponse decisionTask, Functions.Proc legacyQueryCallback)
+  private Map<String, WorkflowQueryResult> runConsistentQueries(
+      PollForDecisionTaskResponse decisionTask) {
+    if (decisionTask.getQueries() == null) {
+      return null;
+    }
+
+    Map<String, WorkflowQueryResult> queryResults = new HashMap<>();
+    for (Map.Entry<String, WorkflowQuery> entry : decisionTask.getQueries().entrySet()) {
+      try {
+        byte[] queryResult = workflow.query(entry.getValue());
+        queryResults.put(
+            entry.getKey(),
+            new WorkflowQueryResult()
+                .setResultType(QueryResultType.ANSWERED)
+                .setAnswer(queryResult));
+      } catch (Exception e) {
+        queryResults.put(
+            entry.getKey(),
+            new WorkflowQueryResult()
+                .setResultType(QueryResultType.FAILED)
+                .setErrorMessage(e.getMessage())
+                .setAnswer(Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8)));
+      }
+    }
+    return queryResults;
+  }
+
+  // Run the decider event loop, and returns a boolean to indicate whether we need to immediately
+  // create a new decision task for further local activity processing.
+  // The method also takes a query call back that will be applied after the main event loop
+  // finishes.
+  private boolean decideImpl(PollForDecisionTaskResponse decisionTask, Functions.Proc queryCallback)
       throws Throwable {
     boolean forceCreateNewDecisionTask = false;
     try {
@@ -456,7 +484,7 @@ class ReplayDecider implements Decider {
       }
       return forceCreateNewDecisionTask;
     } catch (Error e) {
-      if (this.workflow.getWorkflowImplementationOptions().getNonDeterministicWorkflowPolicy()
+      if (workflow.getWorkflowImplementationOptions().getNonDeterministicWorkflowPolicy()
           == FailWorkflow) {
         // fail workflow
         failure = workflow.mapError(e);
@@ -469,29 +497,8 @@ class ReplayDecider implements Decider {
         throw e;
       }
     } finally {
-      if (decisionTask.getQueries() != null) {
-        for (Map.Entry<String, WorkflowQuery> entry : decisionTask.getQueries().entrySet()) {
-          WorkflowQuery query = entry.getValue();
-          try {
-            byte[] queryResult = workflow.query(query);
-            queryResults.put(
-                entry.getKey(),
-                new WorkflowQueryResult()
-                    .setResultType(QueryResultType.ANSWERED)
-                    .setAnswer(queryResult));
-          } catch (Exception e) {
-            queryResults.put(
-                entry.getKey(),
-                new WorkflowQueryResult()
-                    .setResultType(QueryResultType.FAILED)
-                    .setErrorMessage(e.getMessage())
-                    .setAnswer(
-                        Throwables.getStackTraceAsString(e).getBytes(StandardCharsets.UTF_8)));
-          }
-        }
-      }
-      if (legacyQueryCallback != null) {
-        legacyQueryCallback.apply();
+      if (queryCallback != null) {
+        queryCallback.apply();
       }
       if (completed) {
         close();

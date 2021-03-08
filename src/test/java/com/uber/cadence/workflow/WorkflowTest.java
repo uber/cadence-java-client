@@ -60,7 +60,11 @@ import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
-import com.uber.cadence.worker.*;
+import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkerFactory;
+import com.uber.cadence.worker.WorkerFactoryOptions;
+import com.uber.cadence.worker.WorkerOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.io.File;
@@ -89,17 +93,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
@@ -2500,6 +2494,57 @@ public class WorkflowTest {
     assertEquals(
         "Hello World!",
         workflowClient.newUntypedWorkflowStub(execution, Optional.empty()).getResult(String.class));
+  }
+
+  public static class TestConsistentQueryImpl implements QueryableWorkflow {
+    String state = "initial";
+
+    @Override
+    public String execute() {
+      TestActivities testActivities =
+          Workflow.newActivityStub(TestActivities.class, newActivityOptions2());
+
+      while (!state.equals("exit")) {
+        String oldState = state;
+        Workflow.await(() -> !Objects.equals(state, oldState));
+        testActivities.activity();
+      }
+      return "";
+    }
+
+    @Override
+    public String getState() {
+      return state;
+    }
+
+    @Override
+    public void mySignal(String newState) {
+      log.info("TestConsistentQueryImpl.mySignal newState=" + newState);
+      state = newState;
+    }
+  }
+
+  @Test
+  public void testConsistentQuery() {
+    startWorkerFor(TestConsistentQueryImpl.class);
+
+    String workflowType = QueryableWorkflow.class.getSimpleName() + "::execute";
+    WorkflowOptions workflowOptions = newWorkflowOptionsBuilder(taskList).build();
+    WorkflowStub workflowStub =
+        workflowClient.newUntypedWorkflowStub(workflowType, workflowOptions);
+
+    Supplier<String> query =
+        () -> workflowStub.query("QueryableWorkflow::getState", String.class, String.class);
+
+    workflowStub.start();
+
+    workflowStub.signal("testSignal", "A");
+    assertEquals("A", query.get());
+
+    workflowStub.signal("testSignal", "B");
+    assertEquals("B", query.get());
+
+    workflowStub.signal("testSignal", "exit");
   }
 
   public static class TestNoQueryWorkflowImpl implements QueryableWorkflow {
