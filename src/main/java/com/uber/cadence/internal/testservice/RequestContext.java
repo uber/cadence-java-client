@@ -17,17 +17,11 @@
 
 package com.uber.cadence.internal.testservice;
 
-import com.uber.cadence.BadRequestError;
-import com.uber.cadence.EntityNotExistsError;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.ActivityTask;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.DecisionTask;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
@@ -226,5 +220,11 @@ final class RequestContext {
 
   public boolean isEmpty() {
     return events.isEmpty() && activityTasks.isEmpty() && decisionTask == null && timers.isEmpty();
+  }
+
+  public void setConsistentQueries(Map<String, WorkflowQuery> consistentQueries) {
+    if (decisionTask != null) {
+      decisionTask.getTask().setQueries(new HashMap<>(consistentQueries));
+    }
   }
 }

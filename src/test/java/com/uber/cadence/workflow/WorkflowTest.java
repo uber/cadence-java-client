@@ -2533,16 +2533,15 @@ public class WorkflowTest {
     WorkflowStub workflowStub =
         workflowClient.newUntypedWorkflowStub(workflowType, workflowOptions);
 
-    Supplier<String> query =
-        () -> workflowStub.query("QueryableWorkflow::getState", String.class, String.class);
-
     workflowStub.start();
 
     workflowStub.signal("testSignal", "A");
-    assertEquals("A", query.get());
+    assertEquals(
+        "A", workflowStub.query("QueryableWorkflow::getState", String.class, String.class));
 
     workflowStub.signal("testSignal", "B");
-    assertEquals("B", query.get());
+    assertEquals(
+        "B", workflowStub.query("QueryableWorkflow::getState", String.class, String.class));
 
     workflowStub.signal("testSignal", "exit");
   }
