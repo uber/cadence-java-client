@@ -13,14 +13,8 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.shadowing;
+package com.uber.cadence.internal.errors;
 
-import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
-import com.uber.cadence.shadower.shadowerConstants;
-
-public interface ReplayWorkflowActivity {
-  @ActivityMethod(name = shadowerConstants.ReplayWorkflowActivityName)
-  ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams params);
+public class ErrorType {
+  public static final String UNKNOWN_WORKFLOW_TYPE = "Unknown workflow type";
 }

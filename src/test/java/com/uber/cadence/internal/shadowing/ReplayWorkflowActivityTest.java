@@ -1,0 +1,230 @@
+/*
+ *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
+ *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+package com.uber.cadence.internal.shadowing;
+
+import static com.uber.cadence.EventType.DecisionTaskCompleted;
+import static com.uber.cadence.EventType.DecisionTaskScheduled;
+import static com.uber.cadence.EventType.DecisionTaskStarted;
+import static com.uber.cadence.EventType.TimerStarted;
+import static com.uber.cadence.EventType.WorkflowExecutionStarted;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.google.common.collect.Lists;
+import com.uber.cadence.DataBlob;
+import com.uber.cadence.DecisionTaskCompletedEventAttributes;
+import com.uber.cadence.DecisionTaskScheduledEventAttributes;
+import com.uber.cadence.DecisionTaskStartedEventAttributes;
+import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
+import com.uber.cadence.History;
+import com.uber.cadence.HistoryEvent;
+import com.uber.cadence.TaskList;
+import com.uber.cadence.TaskListKind;
+import com.uber.cadence.TimerStartedEventAttributes;
+import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowType;
+import com.uber.cadence.common.WorkflowExecutionHistory;
+import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.testing.WorkflowTestingTest;
+import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
+import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
+import com.uber.m3.tally.RootScopeBuilder;
+import com.uber.m3.tally.Scope;
+import com.uber.m3.util.Duration;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+public class ReplayWorkflowActivityTest {
+
+  private IWorkflowService mockServiceClient;
+  private Scope metricsScope;
+  private ReplayWorkflowActivityImpl activity;
+
+  private static String domain;
+  private static WorkflowExecution execution;
+  private static List<HistoryEvent> historyEvents;
+
+  @BeforeClass
+  public static void beforeClass() {
+    domain = UUID.randomUUID().toString();
+    execution = new WorkflowExecution().setWorkflowId("wid").setRunId("rid");
+
+    HistoryEvent event1 =
+        new HistoryEvent()
+            .setEventId(1)
+            .setVersion(1)
+            .setEventType(WorkflowExecutionStarted)
+            .setTimestamp(ZonedDateTime.now().toEpochSecond())
+            .setWorkflowExecutionStartedEventAttributes(
+                new WorkflowExecutionStartedEventAttributes()
+                    .setAttempt(1)
+                    .setTaskList(new TaskList().setKind(TaskListKind.NORMAL).setName("tasklist"))
+                    .setFirstExecutionRunId(execution.getRunId())
+                    .setWorkflowType(new WorkflowType().setName("TestWorkflow::workflow1")));
+    HistoryEvent event2 =
+        new HistoryEvent()
+            .setEventId(2)
+            .setVersion(1)
+            .setTimestamp(ZonedDateTime.now().toEpochSecond())
+            .setEventType(DecisionTaskScheduled)
+            .setDecisionTaskScheduledEventAttributes(new DecisionTaskScheduledEventAttributes());
+    HistoryEvent event3 =
+        new HistoryEvent()
+            .setEventId(3)
+            .setVersion(1)
+            .setTimestamp(ZonedDateTime.now().toEpochSecond())
+            .setEventType(DecisionTaskStarted)
+            .setDecisionTaskStartedEventAttributes(new DecisionTaskStartedEventAttributes());
+    HistoryEvent event4 =
+        new HistoryEvent()
+            .setEventId(4)
+            .setVersion(1)
+            .setTimestamp(ZonedDateTime.now().toEpochSecond())
+            .setEventType(DecisionTaskCompleted)
+            .setDecisionTaskCompletedEventAttributes(new DecisionTaskCompletedEventAttributes());
+    HistoryEvent event5 =
+        new HistoryEvent()
+            .setEventId(5)
+            .setVersion(1)
+            .setTimestamp(ZonedDateTime.now().toEpochSecond())
+            .setEventType(TimerStarted)
+            .setTimerStartedEventAttributes(new TimerStartedEventAttributes());
+    historyEvents = Lists.newArrayList(event1, event2, event3, event4, event5);
+  }
+
+  @Before
+  public void init() {
+    mockServiceClient = mock(IWorkflowService.class);
+    metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
+    activity =
+        new ReplayWorkflowActivityImpl(
+            mockServiceClient, metricsScope, WorkflowTestingTest.EmptyWorkflowImpl.class);
+  }
+
+  @Test
+  public void testGetFullHistory_DecodedHistory_ExpectedSuccessResponse() throws Exception {
+    History history = new History().setEvents(Lists.newArrayList(historyEvents.get(0)));
+    GetWorkflowExecutionHistoryResponse response =
+        new GetWorkflowExecutionHistoryResponse().setHistory(history);
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
+
+    WorkflowExecutionHistory result = activity.getFullHistory(domain, execution);
+    assertEquals(1, result.getEvents().size());
+  }
+
+  @Test
+  public void testGetFullHistory_RawHistory_ExpectedSuccessResponse() throws Exception {
+    History history = new History().setEvents(Lists.newArrayList(historyEvents.get(0)));
+    DataBlob blob = InternalUtils.SerializeFromHistoryToBlobData(history);
+
+    GetWorkflowExecutionHistoryResponse response =
+        new GetWorkflowExecutionHistoryResponse().setRawHistory(Lists.newArrayList(blob));
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
+    WorkflowExecutionHistory result = activity.getFullHistory(domain, execution);
+    assertEquals(1, result.getEvents().size());
+  }
+
+  @Test(expected = Error.class)
+  public void testGetFullHistory_DecodedHistory_ThrowException() throws Exception {
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenThrow(new Error());
+    activity.getFullHistory(domain, execution);
+  }
+
+  @Test
+  public void testReplayWorkflowHistory_ExpectedTrue() throws Exception {
+    boolean isSuccess =
+        activity.replayWorkflowHistory(
+            domain,
+            execution,
+            new WorkflowExecutionHistory(
+                Lists.newArrayList(historyEvents.get(0), historyEvents.get(1))));
+    assertTrue(isSuccess);
+  }
+
+  @Test
+  public void testReplayWorkflowHistory_ExpectedFalse() throws Exception {
+    HistoryEvent event = historyEvents.get(0);
+    WorkflowExecutionStartedEventAttributes attributes =
+        event.getWorkflowExecutionStartedEventAttributes();
+    attributes.setTaskList(null);
+    boolean isSuccess =
+        activity.replayWorkflowHistory(
+            domain, execution, new WorkflowExecutionHistory(Lists.newArrayList(event)));
+    assertFalse(isSuccess);
+  }
+
+  @Test(expected = RuntimeException.class)
+  public void testReplayWorkflowHistory_ThrowException() throws Exception {
+    activity.replayWorkflowHistory(domain, execution, new WorkflowExecutionHistory(historyEvents));
+  }
+
+  @Test
+  public void testReplay_ExpectedSuccess() throws Exception {
+    History history =
+        new History().setEvents(Lists.newArrayList(historyEvents.get(0), historyEvents.get(1)));
+    GetWorkflowExecutionHistoryResponse response =
+        new GetWorkflowExecutionHistoryResponse().setHistory(history);
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
+    ReplayWorkflowActivityParams params =
+        new ReplayWorkflowActivityParams()
+            .setDomain(domain)
+            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityResult result = activity.replay(params);
+    assertEquals(1, result.getSucceeded());
+  }
+
+  @Test
+  public void testReplay_ExpectedSkipped() throws Exception {
+    HistoryEvent event = historyEvents.get(0);
+    WorkflowExecutionStartedEventAttributes attributes =
+        event.getWorkflowExecutionStartedEventAttributes();
+    attributes.setTaskList(null);
+    History history = new History().setEvents(Lists.newArrayList(historyEvents.get(0)));
+    GetWorkflowExecutionHistoryResponse response =
+        new GetWorkflowExecutionHistoryResponse().setHistory(history);
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
+    ReplayWorkflowActivityParams params =
+        new ReplayWorkflowActivityParams()
+            .setDomain(domain)
+            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityResult result = activity.replay(params);
+    assertEquals(1, result.getSkipped());
+  }
+
+  @Test
+  public void testReplay_ExpectedFailed() throws Exception {
+    History history = new History().setEvents(historyEvents);
+    GetWorkflowExecutionHistoryResponse response =
+        new GetWorkflowExecutionHistoryResponse().setHistory(history);
+    when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
+    ReplayWorkflowActivityParams params =
+        new ReplayWorkflowActivityParams()
+            .setDomain(domain)
+            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityResult result = activity.replay(params);
+    assertEquals(1, result.getFailed());
+  }
+}
