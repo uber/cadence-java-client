@@ -77,12 +77,13 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
 
   public List<WorkflowExecution> samplingWorkflows(
       List<WorkflowExecutionInfo> executionInfoList, double samplingRate) {
-    int capacity = executionInfoList.size();
+    int capacity = (int) (executionInfoList.size() * samplingRate);
+    capacity = Math.max(capacity, 1);
     return executionInfoList
         .stream()
         .unordered()
         .map((executionInfo -> executionInfo.getExecution()))
-        .limit((long) (capacity * samplingRate))
+        .limit((long) (capacity))
         .collect(Collectors.toList());
   }
 }
