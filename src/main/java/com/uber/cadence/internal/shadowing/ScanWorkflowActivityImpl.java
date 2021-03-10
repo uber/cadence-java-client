@@ -18,9 +18,13 @@ package com.uber.cadence.internal.shadowing;
 import com.uber.cadence.ListWorkflowExecutionsRequest;
 import com.uber.cadence.ListWorkflowExecutionsResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.shadower.ScanWorkflowActivityParams;
+import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,38 +36,53 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
   private final IWorkflowService serviceClient;
 
   public ScanWorkflowActivityImpl(IWorkflowService serviceClient) {
-    this.serviceClient = serviceClient;
+    this.serviceClient = Objects.requireNonNull(serviceClient);
   }
 
   @Override
-  public ScanWorkflowActivityResponse scan(ScanWorkflowActivityRequest request) throws Throwable {
+  public ScanWorkflowActivityResult scan(ScanWorkflowActivityParams params) throws Throwable {
     ListWorkflowExecutionsRequest scanRequest =
         new ListWorkflowExecutionsRequest()
-            .setDomain(request.getDomain())
-            .setNextPageToken(request.getPageToken())
-            .setPageSize(request.getPageSize())
-            .setQuery(request.getWorkflowQuery());
+            .setDomain(params.getDomain())
+            .setNextPageToken(params.getNextPageToken())
+            .setPageSize(params.getPageSize())
+            .setQuery(params.getWorkflowQuery());
+    ListWorkflowExecutionsResponse resp = scanWorkflows(scanRequest);
 
+    List<WorkflowExecution> executions =
+        samplingWorkflows(resp.getExecutions(), params.getSamplingRate());
+
+    return new ScanWorkflowActivityResult()
+        .setExecutions(executions)
+        .setNextPageToken(resp.getNextPageToken());
+  }
+
+  public ListWorkflowExecutionsResponse scanWorkflows(ListWorkflowExecutionsRequest request)
+      throws Throwable {
     try {
-      ListWorkflowExecutionsResponse resp =
-          RpcRetryer.retryWithResult(
-              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
-              () -> this.serviceClient.ScanWorkflowExecutions(scanRequest));
-      List<WorkflowExecution> executions =
-          resp.getExecutions()
-              .stream()
-              .map((executionInfo -> executionInfo.getExecution()))
-              .collect(Collectors.toList());
-      return new ScanWorkflowActivityResponse(executions, resp.getNextPageToken());
+      return RpcRetryer.retryWithResult(
+          RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
+          () -> this.serviceClient.ScanWorkflowExecutions(request));
     } catch (Throwable t) {
+      // TODO: handle non retryable error
       log.error(
           "failed to scan workflow records with domain: "
               + request.getDomain()
-              + " ; query "
-              + request.getWorkflowQuery(),
+              + "; query: "
+              + request.getQuery(),
           t);
-
       throw t;
     }
+  }
+
+  public List<WorkflowExecution> samplingWorkflows(
+      List<WorkflowExecutionInfo> executionInfoList, double samplingRate) {
+    int capacity = executionInfoList.size();
+    return executionInfoList
+        .stream()
+        .unordered()
+        .map((executionInfo -> executionInfo.getExecution()))
+        .limit((long) (capacity * samplingRate))
+        .collect(Collectors.toList());
   }
 }
