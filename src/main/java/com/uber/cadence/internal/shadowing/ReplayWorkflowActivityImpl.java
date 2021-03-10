@@ -24,6 +24,8 @@ import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
+import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.testing.WorkflowReplayer;
 import com.uber.m3.tally.Scope;
 import java.util.List;
@@ -54,7 +56,7 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
   }
 
   @Override
-  public ReplayWorkflowActivityResponse replay(ReplayWorkflowActivityRequest request)
+  public ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams request)
       throws Throwable {
     if (request == null) {
       throw new NullPointerException("Replay activity request is null.");
@@ -64,7 +66,7 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
     int successCount = 0;
     int failedCount = 0;
     int skippedCount = 0;
-    List<WorkflowExecution> failedExecution = Lists.newArrayList();
+
     for (WorkflowExecution execution : request.getExecutions()) {
 
       WorkflowExecutionHistory workflowHistory;
@@ -94,11 +96,12 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
         // Count any error with keyword 'nondeterministic' as non deterministic error.
         if (e.getCause().getMessage().contains("nondeterministic")) {
           failedCount++;
-          failedExecution.add(execution);
           this.metricsScope.counter(MetricsType.SHADOWING_NON_DETERMINISTIC_ERROR).inc(1);
           if (this.failFast) {
-            return new ReplayWorkflowActivityResponse(
-                successCount, failedCount, skippedCount, failedExecution);
+            return new ReplayWorkflowActivityResult()
+                .setSucceeded(successCount)
+                .setFailed(failedCount)
+                .setSkipped(skippedCount);
           }
         } else {
           this.metricsScope.counter(MetricsType.SHADOWING_SKIPPED_COUNT).inc(1);
@@ -109,11 +112,13 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
       this.metricsScope.counter(MetricsType.SHADOWING_SUCCESS_COUNT).inc(1);
       successCount++;
     }
-    return new ReplayWorkflowActivityResponse(
-        successCount, failedCount, skippedCount, failedExecution);
+    return new ReplayWorkflowActivityResult()
+        .setSucceeded(successCount)
+        .setFailed(failedCount)
+        .setSkipped(skippedCount);
   }
 
-  private WorkflowExecutionHistory getFullHistory(String domain, WorkflowExecution execution) {
+  public WorkflowExecutionHistory getFullHistory(String domain, WorkflowExecution execution) {
     byte[] pageToken = null;
     List<HistoryEvent> histories = Lists.newArrayList();
     do {
@@ -125,7 +130,12 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
                   WorkflowExecutionUtils.getHistoryPage(
                       nextPageToken, this.serviceClient, domain, execution));
       pageToken = resp.getNextPageToken();
-      histories.addAll(resp.getHistory().getEvents());
+
+      if (resp.getRawHistory() != null && resp.getRawHistory().size() > 0) {
+        // TODO: handle raw history
+      } else {
+        histories.addAll(resp.getHistory().getEvents());
+      }
     } while (pageToken != null);
 
     return new WorkflowExecutionHistory(histories);
