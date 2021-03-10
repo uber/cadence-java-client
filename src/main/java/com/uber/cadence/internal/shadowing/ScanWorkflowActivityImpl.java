@@ -20,7 +20,6 @@ import com.uber.cadence.ListWorkflowExecutionsResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.m3.tally.Scope;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
