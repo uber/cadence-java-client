@@ -86,51 +86,50 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
 
     for (; replayIndex < executions.size(); replayIndex++) {
       WorkflowExecution execution = executions.get(replayIndex);
-      WorkflowExecutionHistory workflowHistory;
-      try {
-        workflowHistory = getFullHistory(domain, execution);
-      } catch (Exception e) {
-        log.error(
-            "skipped workflow execution with domain: "
-                + request.getDomain()
-                + ". Execution: "
-                + execution.toString(),
-            e);
-        skippedCount++;
-        continue;
-      }
-
-      try {
-        boolean isSuccess = replayWorkflowHistory(request.getDomain(), execution, workflowHistory);
-        if (isSuccess) {
-          this.metricsScope.counter(MetricsType.REPLAY_SUCCESS_COUNTER).inc(1);
-          successCount++;
-        } else {
-          this.metricsScope.counter(MetricsType.REPLAY_SKIPPED_COUNTER).inc(1);
-          skippedCount++;
-        }
-      } catch (Exception e) {
-        this.metricsScope.counter(MetricsType.REPLAY_FAILED_COUNTER).inc(1);
-        failedCount++;
-        if (isWorkflowTypeNotRegisterError(e)) {
-          return new ReplayWorkflowActivityResult()
+      ReplayWorkflowActivityResult oneReplayResult = replayHelper(request.getDomain(), execution);
+      successCount += oneReplayResult.getSucceeded();
+      failedCount += oneReplayResult.getFailed();
+      skippedCount += oneReplayResult.getSkipped();
+      ReplayWorkflowActivityResult heartbeatResult =
+          new ReplayWorkflowActivityResult()
               .setSucceeded(successCount)
               .setFailed(failedCount)
               .setSkipped(skippedCount);
-        }
-      } finally {
-        ReplayWorkflowActivityResult heartbeatResult =
-            new ReplayWorkflowActivityResult()
-                .setSucceeded(successCount)
-                .setFailed(failedCount)
-                .setSkipped(skippedCount);
-        Activity.heartbeat(new HeartbeatDetail(heartbeatResult, replayIndex));
-      }
+      Activity.heartbeat(new HeartbeatDetail(heartbeatResult, replayIndex));
     }
     return new ReplayWorkflowActivityResult()
         .setSucceeded(successCount)
         .setFailed(failedCount)
         .setSkipped(skippedCount);
+  }
+
+  public ReplayWorkflowActivityResult replayHelper(String domain, WorkflowExecution execution) {
+    WorkflowExecutionHistory workflowHistory;
+    try {
+      workflowHistory = getFullHistory(domain, execution);
+    } catch (Exception e) {
+      log.error(
+          "skipped workflow execution with domain: "
+              + domain
+              + ". Execution: "
+              + execution.toString(),
+          e);
+      return new ReplayWorkflowActivityResult().setSkipped(1);
+    }
+
+    try {
+      boolean isSuccess = replayWorkflowHistory(domain, execution, workflowHistory);
+      if (isSuccess) {
+        this.metricsScope.counter(MetricsType.REPLAY_SUCCESS_COUNTER).inc(1);
+        return new ReplayWorkflowActivityResult().setSucceeded(1);
+      } else {
+        this.metricsScope.counter(MetricsType.REPLAY_SKIPPED_COUNTER).inc(1);
+        return new ReplayWorkflowActivityResult().setSkipped(1);
+      }
+    } catch (Exception e) {
+      this.metricsScope.counter(MetricsType.REPLAY_FAILED_COUNTER).inc(1);
+      return new ReplayWorkflowActivityResult().setFailed(1);
+    }
   }
 
   public WorkflowExecutionHistory getFullHistory(String domain, WorkflowExecution execution)
