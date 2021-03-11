@@ -23,6 +23,7 @@ import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.activity.Activity;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RpcRetryer;
@@ -36,6 +37,7 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,9 +71,21 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
     int successCount = 0;
     int failedCount = 0;
     int skippedCount = 0;
+    int replayIndex = 0;
+    List<WorkflowExecution> executions = request.getExecutions();
 
-    for (WorkflowExecution execution : request.getExecutions()) {
+    // Retrieve process from heartbeat
+    Optional<HeartbeatDetail> heartbeatDetail = Activity.getHeartbeatDetails(HeartbeatDetail.class);
+    if (heartbeatDetail.isPresent()) {
+      ReplayWorkflowActivityResult heartbeatResult = heartbeatDetail.get().getReplayResult();
+      successCount = heartbeatResult.getSucceeded();
+      failedCount = heartbeatResult.getFailed();
+      skippedCount = heartbeatResult.getSkipped();
+      replayIndex = heartbeatDetail.get().getReplayExecutionIndex() + 1;
+    }
 
+    for (; replayIndex < executions.size(); replayIndex++) {
+      WorkflowExecution execution = executions.get(replayIndex);
       WorkflowExecutionHistory workflowHistory;
       try {
         workflowHistory = getFullHistory(domain, execution);
@@ -104,6 +118,13 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
               .setFailed(failedCount)
               .setSkipped(skippedCount);
         }
+      } finally {
+        ReplayWorkflowActivityResult heartbeatResult =
+            new ReplayWorkflowActivityResult()
+                .setSucceeded(successCount)
+                .setFailed(failedCount)
+                .setSkipped(skippedCount);
+        Activity.heartbeat(new HeartbeatDetail(heartbeatResult, replayIndex));
       }
     }
     return new ReplayWorkflowActivityResult()
@@ -182,6 +203,24 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
       return true;
     } else {
       return false;
+    }
+  }
+
+  private class HeartbeatDetail {
+    private final ReplayWorkflowActivityResult replayResult;
+    private final int replayExecutionIndex;
+
+    public HeartbeatDetail(ReplayWorkflowActivityResult replayResult, int replayExecutionIndex) {
+      this.replayResult = replayResult;
+      this.replayExecutionIndex = replayExecutionIndex;
+    }
+
+    public ReplayWorkflowActivityResult getReplayResult() {
+      return replayResult;
+    }
+
+    public int getReplayExecutionIndex() {
+      return replayExecutionIndex;
     }
   }
 }

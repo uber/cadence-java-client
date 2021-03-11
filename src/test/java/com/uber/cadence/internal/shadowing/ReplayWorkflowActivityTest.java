@@ -47,6 +47,7 @@ import com.uber.cadence.internal.testing.WorkflowTestingTest;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
+import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -54,24 +55,38 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ReplayWorkflowActivityTest {
 
+  private TestActivityEnvironment testEnv;
   private IWorkflowService mockServiceClient;
   private Scope metricsScope;
   private ReplayWorkflowActivityImpl activity;
+  private ReplayWorkflowActivity activityStub;
 
-  private static String domain;
-  private static WorkflowExecution execution;
-  private static List<HistoryEvent> historyEvents;
+  private String domain;
+  private WorkflowExecution execution;
+  private List<HistoryEvent> historyEvents;
 
-  @BeforeClass
-  public static void beforeClass() {
+  @Before
+  public void init() {
+    mockServiceClient = mock(IWorkflowService.class);
+    metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
+    activity =
+        new ReplayWorkflowActivityImpl(
+            mockServiceClient, metricsScope, WorkflowTestingTest.EmptyWorkflowImpl.class);
+
     domain = UUID.randomUUID().toString();
     execution = new WorkflowExecution().setWorkflowId("wid").setRunId("rid");
+    reset();
 
+    testEnv = TestActivityEnvironment.newInstance();
+    testEnv.registerActivitiesImplementations(activity);
+    activityStub = testEnv.newActivityStub(ReplayWorkflowActivity.class);
+  }
+
+  private void reset() {
     HistoryEvent event1 =
         new HistoryEvent()
             .setEventId(1)
@@ -113,15 +128,6 @@ public class ReplayWorkflowActivityTest {
             .setEventType(TimerStarted)
             .setTimerStartedEventAttributes(new TimerStartedEventAttributes());
     historyEvents = Lists.newArrayList(event1, event2, event3, event4, event5);
-  }
-
-  @Before
-  public void init() {
-    mockServiceClient = mock(IWorkflowService.class);
-    metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
-    activity =
-        new ReplayWorkflowActivityImpl(
-            mockServiceClient, metricsScope, WorkflowTestingTest.EmptyWorkflowImpl.class);
   }
 
   @Test
@@ -192,7 +198,7 @@ public class ReplayWorkflowActivityTest {
         new ReplayWorkflowActivityParams()
             .setDomain(domain)
             .setExecutions(Lists.newArrayList(execution));
-    ReplayWorkflowActivityResult result = activity.replay(params);
+    ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getSucceeded());
   }
 
@@ -210,7 +216,7 @@ public class ReplayWorkflowActivityTest {
         new ReplayWorkflowActivityParams()
             .setDomain(domain)
             .setExecutions(Lists.newArrayList(execution));
-    ReplayWorkflowActivityResult result = activity.replay(params);
+    ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getSkipped());
   }
 
@@ -224,7 +230,7 @@ public class ReplayWorkflowActivityTest {
         new ReplayWorkflowActivityParams()
             .setDomain(domain)
             .setExecutions(Lists.newArrayList(execution));
-    ReplayWorkflowActivityResult result = activity.replay(params);
+    ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getFailed());
   }
 }
