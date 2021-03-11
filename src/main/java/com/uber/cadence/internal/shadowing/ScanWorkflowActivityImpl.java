@@ -15,10 +15,14 @@
  */
 package com.uber.cadence.internal.shadowing;
 
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.ClientVersionNotSupportedError;
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.ListWorkflowExecutionsRequest;
 import com.uber.cadence.ListWorkflowExecutionsResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
+import com.uber.cadence.activity.Activity;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
@@ -63,8 +67,15 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
       return RpcRetryer.retryWithResult(
           RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
           () -> this.serviceClient.ScanWorkflowExecutions(request));
+    } catch (BadRequestError | EntityNotExistsError | ClientVersionNotSupportedError e) {
+      log.error(
+          "failed to scan workflow records with non-retryable error. domain: "
+              + request.getDomain()
+              + "; query: "
+              + request.getQuery(),
+          e);
+      throw Activity.wrap(e);
     } catch (Throwable t) {
-      // TODO: handle non retryable error
       log.error(
           "failed to scan workflow records with domain: "
               + request.getDomain()
