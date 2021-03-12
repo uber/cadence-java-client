@@ -15,7 +15,6 @@
  */
 package com.uber.cadence.internal.shadowing;
 
-import com.uber.cadence.ActivityType;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.ClientVersionNotSupportedError;
 import com.uber.cadence.EntityNotExistsError;
@@ -27,7 +26,6 @@ import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
 import com.uber.cadence.shadower.ScanWorkflowActivityResult;
-import com.uber.cadence.workflow.ActivityFailureException;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -37,10 +35,7 @@ import org.slf4j.LoggerFactory;
 public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
 
   private static final Logger log = LoggerFactory.getLogger(ScanWorkflowActivityImpl.class);
-  // use ActivityFailureException to handle non retryable error in golang workflow code.
-  private static final ActivityFailureException nonRetryableException =
-      new ActivityFailureException(
-          0L, new ActivityType(), "", new Exception("non retryable error"));
+
   private final IWorkflowService serviceClient;
 
   public ScanWorkflowActivityImpl(IWorkflowService serviceClient) {
@@ -78,7 +73,7 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
               + "; query: "
               + request.getQuery(),
           e);
-      throw nonRetryableException;
+      throw new NonRetryableException(e);
     } catch (Throwable t) {
       log.error(
           "failed to scan workflow records with domain: "
