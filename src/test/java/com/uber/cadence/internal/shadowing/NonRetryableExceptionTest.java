@@ -23,7 +23,7 @@ import org.junit.Test;
 public class NonRetryableExceptionTest {
 
   @Test
-  public void testNonRetryableException() {
+  public void testNonRetryableException_ExpectedCanonicalNameEqualsToIDL() {
     assertEquals(ErrNonRetryableType, NonRetryableException.class.getCanonicalName());
   }
 }
