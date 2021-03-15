@@ -31,7 +31,6 @@ import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
 import com.uber.cadence.shadower.ScanWorkflowActivityResult;
-import com.uber.cadence.workflow.ActivityFailureException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -80,7 +79,7 @@ public class ScanWorkflowActivityTest {
     assertEquals(response, resp);
   }
 
-  @Test(expected = ActivityFailureException.class)
+  @Test(expected = NonRetryableException.class)
   public void testScanWorkflows_ThrowBadRequestError() throws Throwable {
     ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
     when(mockServiceClient.ScanWorkflowExecutions(any())).thenThrow(new BadRequestError());
