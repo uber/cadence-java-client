@@ -178,14 +178,14 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
             e);
         throw e;
       } else {
-        log.info("replay workflow skipped", e);
+        log.info("replay workflow execution: {} skipped", execution.toString(), e);
         return false;
       }
     } finally {
       sw.stop();
     }
 
-    log.info("replay workflow succeed");
+    log.info("replay workflow execution: {} succeed", execution.toString());
     return true;
   }
 
