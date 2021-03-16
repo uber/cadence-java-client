@@ -22,5 +22,5 @@ import com.uber.cadence.shadower.shadowerConstants;
 
 public interface ReplayWorkflowActivity {
   @ActivityMethod(name = shadowerConstants.ReplayWorkflowActivityName)
-  ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams params);
+  ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams params) throws Exception;
 }

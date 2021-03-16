@@ -32,7 +32,7 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
-import com.uber.cadence.testing.WorkflowReplayer;
+import com.uber.cadence.worker.Worker;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import java.util.List;
@@ -47,22 +47,18 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
 
   private final IWorkflowService serviceClient;
   private final Scope metricsScope;
-  private final Class<?> workflowClass;
-  private final Class<?>[] workflowClasses;
+  private final Worker worker;
 
   public ReplayWorkflowActivityImpl(
-      IWorkflowService serviceClient,
-      Scope metricsScope,
-      Class<?> workflowClass,
-      Class<?>... workflowClasses) {
+      IWorkflowService serviceClient, Scope metricsScope, Worker worker) {
     this.serviceClient = Objects.requireNonNull(serviceClient);
     this.metricsScope = Objects.requireNonNull(metricsScope);
-    this.workflowClass = Objects.requireNonNull(workflowClass);
-    this.workflowClasses = workflowClasses;
+    this.worker = Objects.requireNonNull(worker);
   }
 
   @Override
-  public ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams request) {
+  public ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams request)
+      throws Exception {
     if (request == null) {
       throw new NullPointerException("Replay activity request is null.");
     }
@@ -126,6 +122,8 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
         this.metricsScope.counter(MetricsType.REPLAY_SKIPPED_COUNTER).inc(1);
         return new ReplayWorkflowActivityResult().setSkipped(1);
       }
+    } catch (NonRetryableException e) {
+      throw e;
     } catch (Exception e) {
       this.metricsScope.counter(MetricsType.REPLAY_FAILED_COUNTER).inc(1);
       return new ReplayWorkflowActivityResult().setFailed(1);
@@ -167,9 +165,9 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
       throws Exception {
     Stopwatch sw = this.metricsScope.timer(MetricsType.REPLAY_LATENCY).start();
     try {
-      WorkflowReplayer.replayWorkflowExecution(workflowHistory, workflowClass, workflowClasses);
+      worker.replayWorkflowExecution(workflowHistory);
     } catch (Exception e) {
-      if (isNonDeterministicError(e) || isWorkflowTypeNotRegisterError(e)) {
+      if (isNonDeterministicError(e)) {
         log.error(
             "failed to replay workflow history with domain: "
                 + domain
@@ -177,6 +175,9 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
                 + execution.toString(),
             e);
         throw e;
+      } else if (isWorkflowTypeNotRegisterError(e)) {
+        log.info("replay unregistered workflow execution: {}", execution.toString(), e);
+        throw new NonRetryableException(e);
       } else {
         log.info("replay workflow execution: {} skipped", execution.toString(), e);
         return false;
