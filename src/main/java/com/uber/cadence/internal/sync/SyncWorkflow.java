@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.sync;
 
+import static com.uber.cadence.internal.errors.ErrorType.UNKNOWN_WORKFLOW_TYPE;
+
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.WorkflowQuery;
@@ -81,7 +83,7 @@ class SyncWorkflow implements ReplayWorkflow {
     WorkflowType workflowType =
         event.getWorkflowExecutionStartedEventAttributes().getWorkflowType();
     if (workflow == null) {
-      throw new IllegalArgumentException("Unknown workflow type: " + workflowType);
+      throw new IllegalArgumentException(UNKNOWN_WORKFLOW_TYPE + ": " + workflowType);
     }
     if (event.getEventType() != EventType.WorkflowExecutionStarted) {
       throw new IllegalArgumentException(

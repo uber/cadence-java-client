@@ -161,4 +161,9 @@ public class MetricsType {
 
   public static final String NON_DETERMINISTIC_ERROR =
       CADENCE_METRICS_PREFIX + "non-deterministic-error";
+
+  public static final String REPLAY_FAILED_COUNTER = CADENCE_METRICS_PREFIX + "replay-failed";
+  public static final String REPLAY_SKIPPED_COUNTER = CADENCE_METRICS_PREFIX + "replay-skipped";
+  public static final String REPLAY_SUCCESS_COUNTER = CADENCE_METRICS_PREFIX + "replay-succeed";
+  public static final String REPLAY_LATENCY = CADENCE_METRICS_PREFIX + "replay-latency";
 }
