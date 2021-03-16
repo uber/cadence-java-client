@@ -16,8 +16,10 @@
 package com.uber.cadence.worker;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.Sets;
+import com.uber.cadence.shadower.ShadowMode;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
@@ -28,6 +30,7 @@ public class ShadowingOptionsTest {
   public void testShadowingOptions_DefaultOptions() {
     ShadowingOptions shadowingOptions = ShadowingOptions.defaultInstance();
     assertEquals("", shadowingOptions.getDomain());
+    assertEquals(ShadowMode.Normal, shadowingOptions.getShadowMode());
     assertEquals("", shadowingOptions.getWorkflowQuery());
     assertEquals(0, shadowingOptions.getWorkflowTypes().size());
     assertEquals(1.0, shadowingOptions.getSamplingRate(), 0.0);
@@ -50,6 +53,7 @@ public class ShadowingOptionsTest {
     ShadowingOptions shadowingOptions =
         ShadowingOptions.newBuilder()
             .setDomain(domain)
+            .setShadowMode(ShadowMode.Continuous)
             .setWorkflowQuery(query)
             .setWorkflowTypes(wfTypes)
             .setWorkflowSamplingRate(samplingRate)
@@ -58,6 +62,7 @@ public class ShadowingOptionsTest {
             .setWorkflowStatuses(workflowStatuses)
             .build();
     assertEquals(domain, shadowingOptions.getDomain());
+    assertEquals(ShadowMode.Continuous, shadowingOptions.getShadowMode());
     assertEquals(query, shadowingOptions.getWorkflowQuery());
     assertTrue(shadowingOptions.getWorkflowTypes().contains("workflowType"));
     assertEquals(0.5, shadowingOptions.getSamplingRate(), 0.0);

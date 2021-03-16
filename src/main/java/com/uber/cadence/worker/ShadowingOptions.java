@@ -16,6 +16,7 @@
 package com.uber.cadence.worker;
 
 import com.google.common.collect.Sets;
+import com.uber.cadence.shadower.ShadowMode;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -41,6 +42,7 @@ public final class ShadowingOptions {
 
   public static final class Builder {
     private String domain = "";
+    private ShadowMode shadowMode = ShadowMode.Normal;
     private String workflowQuery = "";
     private Set<String> workflowTypes = Sets.newHashSet();
     private TimeFilter workflowStartTimeFilter = TimeFilter.defaultInstance();
@@ -52,6 +54,7 @@ public final class ShadowingOptions {
 
     private Builder(ShadowingOptions options) {
       this.domain = options.domain;
+      this.shadowMode = options.shadowMode;
       this.workflowQuery = options.getWorkflowQuery();
       this.workflowTypes = options.workflowTypes;
       this.workflowStartTimeFilter = options.workflowStartTimeFilter;
@@ -67,6 +70,12 @@ public final class ShadowingOptions {
         throw new IllegalArgumentException("Empty domain value");
       }
       this.domain = domain;
+      return this;
+    }
+
+    /** The domain to start workflow shadowing. */
+    public Builder setShadowMode(ShadowMode mode) {
+      this.shadowMode = Objects.requireNonNull(mode);
       return this;
     }
 
@@ -129,6 +138,7 @@ public final class ShadowingOptions {
     public ShadowingOptions build() {
       return new ShadowingOptions(
           domain,
+          shadowMode,
           workflowQuery,
           workflowTypes,
           workflowStartTimeFilter,
@@ -139,6 +149,7 @@ public final class ShadowingOptions {
   }
 
   private final String domain;
+  private final ShadowMode shadowMode;
   private final String workflowQuery;
   private final Set<String> workflowTypes;
   private final TimeFilter workflowStartTimeFilter;
@@ -148,6 +159,7 @@ public final class ShadowingOptions {
 
   private ShadowingOptions(
       String domain,
+      ShadowMode shadowMode,
       String workflowQuery,
       Set<String> workflowTypes,
       TimeFilter workflowStartTimeFilter,
@@ -155,6 +167,7 @@ public final class ShadowingOptions {
       double samplingRate,
       ShadowingExitCondition exitCondition) {
     this.domain = domain;
+    this.shadowMode = shadowMode;
     this.workflowQuery = workflowQuery;
     this.workflowTypes = workflowTypes;
     this.workflowStartTimeFilter = workflowStartTimeFilter;
@@ -165,6 +178,10 @@ public final class ShadowingOptions {
 
   public String getDomain() {
     return domain;
+  }
+
+  public ShadowMode getShadowMode() {
+    return shadowMode;
   }
 
   public String getWorkflowQuery() {
@@ -196,6 +213,8 @@ public final class ShadowingOptions {
     return "ShadowOptions{"
         + ", domain="
         + domain
+        + ", shadowMode="
+        + shadowMode
         + ", workflowQuery="
         + workflowQuery
         + ", workflowTypes="
