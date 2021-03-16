@@ -51,6 +51,7 @@ public final class WorkerOptions {
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
+    private ShadowingOptions shadowingOptions;
 
     private Builder() {}
 
@@ -64,6 +65,7 @@ public final class WorkerOptions {
       this.activityPollerOptions = options.activityPollerOptions;
       this.workflowPollerOptions = options.workflowPollerOptions;
       this.interceptorFactory = options.interceptorFactory;
+      this.shadowingOptions = options.shadowingOptions;
     }
 
     /** Maximum number of activities started per second. Default is 0 which means unlimited. */
@@ -135,6 +137,17 @@ public final class WorkerOptions {
       return this;
     }
 
+    /**
+     * Optional: Sets the shadowing option and the worker performs a traffic shadowing to detect
+     * non-deterministic errors.
+     *
+     * @param shadowingOptions configs worker shadowing mode
+     */
+    public Builder setShadowingOptions(ShadowingOptions shadowingOptions) {
+      this.shadowingOptions = Objects.requireNonNull(shadowingOptions);
+      return this;
+    }
+
     public WorkerOptions build() {
       return new WorkerOptions(
           workerActivitiesPerSecond,
@@ -144,7 +157,8 @@ public final class WorkerOptions {
           taskListActivitiesPerSecond,
           activityPollerOptions,
           workflowPollerOptions,
-          interceptorFactory);
+          interceptorFactory,
+          shadowingOptions);
     }
   }
 
@@ -156,6 +170,7 @@ public final class WorkerOptions {
   private final PollerOptions activityPollerOptions;
   private final PollerOptions workflowPollerOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final ShadowingOptions shadowingOptions;
 
   private WorkerOptions(
       double workerActivitiesPerSecond,
@@ -165,7 +180,8 @@ public final class WorkerOptions {
       double taskListActivitiesPerSecond,
       PollerOptions activityPollerOptions,
       PollerOptions workflowPollerOptions,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      ShadowingOptions shadowingOptions) {
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
     this.maxConcurrentActivityExecutionSize = maxConcurrentActivityExecutionSize;
     this.maxConcurrentWorkflowExecutionSize = maxConcurrentWorkflowExecutionSize;
@@ -174,6 +190,7 @@ public final class WorkerOptions {
     this.activityPollerOptions = activityPollerOptions;
     this.workflowPollerOptions = workflowPollerOptions;
     this.interceptorFactory = interceptorFactory;
+    this.shadowingOptions = shadowingOptions;
   }
 
   public double getWorkerActivitiesPerSecond() {
@@ -208,6 +225,10 @@ public final class WorkerOptions {
     return interceptorFactory;
   }
 
+  public ShadowingOptions getShadowingOptions() {
+    return shadowingOptions;
+  }
+
   @Override
   public String toString() {
     return "WorkerOptions{"
@@ -225,6 +246,8 @@ public final class WorkerOptions {
         + activityPollerOptions
         + ", workflowPollerOptions="
         + workflowPollerOptions
+        + ", shadowingOptions="
+        + shadowingOptions.toString()
         + '}';
   }
 }

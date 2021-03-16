@@ -326,4 +326,11 @@ public final class Worker implements Suspendable {
   public boolean isSuspended() {
     return workflowWorker.isSuspended() && activityWorker.isSuspended();
   }
+
+  private boolean isShadowingEnabled() {
+    if (this.options == null) {
+      return false;
+    }
+    return this.options.getShadowingOptions() != null;
+  }
 }
