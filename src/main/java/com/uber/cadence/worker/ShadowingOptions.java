@@ -16,7 +16,8 @@
 package com.uber.cadence.worker;
 
 import com.google.common.collect.Sets;
-import com.uber.cadence.shadower.ShadowMode;
+import com.uber.cadence.shadower.ExitCondition;
+import com.uber.cadence.shadower.Mode;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -42,14 +43,14 @@ public final class ShadowingOptions {
 
   public static final class Builder {
     private String domain = "";
-    private ShadowMode shadowMode = ShadowMode.Normal;
+    private Mode shadowMode = Mode.Normal;
     private String workflowQuery = "";
     private Set<String> workflowTypes = Sets.newHashSet();
     private TimeFilter workflowStartTimeFilter = TimeFilter.defaultInstance();
     private Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.OPEN);
     private double samplingRate = 1.0;
-    private ShadowingExitCondition exitCondition = ShadowingExitCondition.defaultInstance();
-    private int concurrency;
+    private ExitCondition exitCondition;
+    private int concurrency = 1;
 
     private Builder() {}
 
@@ -76,7 +77,7 @@ public final class ShadowingOptions {
     }
 
     /** The domain to start workflow shadowing. */
-    public Builder setShadowMode(ShadowMode mode) {
+    public Builder setShadowMode(Mode mode) {
       this.shadowMode = Objects.requireNonNull(mode);
       return this;
     }
@@ -132,8 +133,8 @@ public final class ShadowingOptions {
     }
 
     /** Optional: the exit condition is to define the shadowing exit condition. */
-    public Builder setExitCondition(ShadowingExitCondition shadowingExitCondition) {
-      this.exitCondition = Objects.requireNonNull(shadowingExitCondition);
+    public Builder setExitCondition(ExitCondition exitCondition) {
+      this.exitCondition = Objects.requireNonNull(exitCondition);
       return this;
     }
 
@@ -161,24 +162,24 @@ public final class ShadowingOptions {
   }
 
   private final String domain;
-  private final ShadowMode shadowMode;
+  private final Mode shadowMode;
   private final String workflowQuery;
   private final Set<String> workflowTypes;
   private final TimeFilter workflowStartTimeFilter;
   private final Set<WorkflowStatus> workflowStatuses;
   private final double samplingRate;
-  private final ShadowingExitCondition exitCondition;
+  private final ExitCondition exitCondition;
   private int concurrency;
 
   private ShadowingOptions(
       String domain,
-      ShadowMode shadowMode,
+      Mode shadowMode,
       String workflowQuery,
       Set<String> workflowTypes,
       TimeFilter workflowStartTimeFilter,
       Set<WorkflowStatus> workflowStatuses,
       double samplingRate,
-      ShadowingExitCondition exitCondition,
+      ExitCondition exitCondition,
       int concurrency) {
     this.domain = domain;
     this.shadowMode = shadowMode;
@@ -195,7 +196,7 @@ public final class ShadowingOptions {
     return domain;
   }
 
-  public ShadowMode getShadowMode() {
+  public Mode getShadowMode() {
     return shadowMode;
   }
 
@@ -219,7 +220,7 @@ public final class ShadowingOptions {
     return samplingRate;
   }
 
-  public ShadowingExitCondition getExitCondition() {
+  public ExitCondition getExitCondition() {
     return exitCondition;
   }
 
