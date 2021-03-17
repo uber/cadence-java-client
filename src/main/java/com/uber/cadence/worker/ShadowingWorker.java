@@ -50,8 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ShadowingWorker implements Suspendable {
 
   private final IWorkflowService service;
-  private final Worker worker;
   private final SyncActivityWorker activityWorker;
+  private final ReplayWorkflowActivity replayActivity;
   private final String taskList;
   private final ShadowingOptions shadowingOptions;
   private final AtomicBoolean started = new AtomicBoolean();
@@ -70,8 +70,6 @@ public class ShadowingWorker implements Suspendable {
             .getOptions()
             .getMetricsScope()
             .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
-
-    worker = TestWorkflowEnvironment.newInstance().newWorker(taskList);
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
             .setIdentity(client.getOptions().getIdentity())
@@ -85,8 +83,7 @@ public class ShadowingWorker implements Suspendable {
         new SyncActivityWorker(
             client.getService(), client.getOptions().getDomain(), this.taskList, activityOptions);
     ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
-    ReplayWorkflowActivity replayActivity =
-        new ReplayWorkflowActivityImpl(client.getService(), metricsScope, worker);
+    replayActivity = new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList);
     activityWorker.setActivitiesImplementation(scanActivity, replayActivity);
   }
 
@@ -130,24 +127,25 @@ public class ShadowingWorker implements Suspendable {
   }
 
   public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
-    worker.registerWorkflowImplementationTypes(workflowImplementationClasses);
+    replayActivity.registerWorkflowImplementationTypes(workflowImplementationClasses);
   }
 
   public void registerWorkflowImplementationTypes(
       WorkflowImplementationOptions options, Class<?>... workflowImplementationClasses) {
-    worker.registerWorkflowImplementationTypes(options, workflowImplementationClasses);
+    replayActivity.registerWorkflowImplementationTypesWithOptions(
+        options, workflowImplementationClasses);
   }
 
   public <R> void addWorkflowImplementationFactory(
       WorkflowImplementationOptions options,
       Class<R> workflowInterface,
       Functions.Func<R> factory) {
-    worker.addWorkflowImplementationFactory(options, workflowInterface, factory);
+    replayActivity.addWorkflowImplementationFactoryWithOptions(options, workflowInterface, factory);
   }
 
   public <R> void addWorkflowImplementationFactory(
       Class<R> workflowInterface, Functions.Func<R> factory) {
-    worker.addWorkflowImplementationFactory(workflowInterface, factory);
+    replayActivity.addWorkflowImplementationFactory(workflowInterface, factory);
   }
 
   private void startShadowingWorkflow() throws Exception {

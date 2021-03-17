@@ -32,7 +32,10 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
+import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import java.util.List;
@@ -50,10 +53,35 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
   private final Worker worker;
 
   public ReplayWorkflowActivityImpl(
-      IWorkflowService serviceClient, Scope metricsScope, Worker worker) {
+      IWorkflowService serviceClient, Scope metricsScope, String taskList) {
     this.serviceClient = Objects.requireNonNull(serviceClient);
     this.metricsScope = Objects.requireNonNull(metricsScope);
-    this.worker = Objects.requireNonNull(worker);
+    worker = TestWorkflowEnvironment.newInstance().newWorker(taskList);
+  }
+
+  @Override
+  public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
+    worker.registerWorkflowImplementationTypes(workflowImplementationClasses);
+  }
+
+  @Override
+  public void registerWorkflowImplementationTypesWithOptions(
+      WorkflowImplementationOptions options, Class<?>... workflowImplementationClasses) {
+    worker.registerWorkflowImplementationTypes(options, workflowImplementationClasses);
+  }
+
+  @Override
+  public <R> void addWorkflowImplementationFactory(
+      Class<R> workflowInterface, Functions.Func<R> factory) {
+    worker.addWorkflowImplementationFactory(workflowInterface, factory);
+  }
+
+  @Override
+  public <R> void addWorkflowImplementationFactoryWithOptions(
+      WorkflowImplementationOptions options,
+      Class<R> workflowInterface,
+      Functions.Func<R> factory) {
+    worker.addWorkflowImplementationFactory(options, workflowInterface, factory);
   }
 
   @Override

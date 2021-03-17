@@ -48,8 +48,6 @@ import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.testing.TestActivityEnvironment;
-import com.uber.cadence.testing.TestWorkflowEnvironment;
-import com.uber.cadence.worker.Worker;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -75,10 +73,8 @@ public class ReplayWorkflowActivityTest {
   public void init() {
     mockServiceClient = mock(IWorkflowService.class);
     metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
-    TestWorkflowEnvironment testWorkflowEnv = TestWorkflowEnvironment.newInstance();
-    Worker worker = testWorkflowEnv.newWorker("test");
-    worker.registerWorkflowImplementationTypes(WorkflowTestingTest.EmptyWorkflowImpl.class);
-    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, worker);
+    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, "test");
+    activity.registerWorkflowImplementationTypes(WorkflowTestingTest.EmptyWorkflowImpl.class);
 
     domain = UUID.randomUUID().toString();
     execution = new WorkflowExecution().setWorkflowId("wid").setRunId("rid");
