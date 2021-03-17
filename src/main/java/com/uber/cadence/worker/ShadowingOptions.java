@@ -49,6 +49,7 @@ public final class ShadowingOptions {
     private Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.OPEN);
     private double samplingRate = 1.0;
     private ShadowingExitCondition exitCondition = ShadowingExitCondition.defaultInstance();
+    private int concurrency;
 
     private Builder() {}
 
@@ -61,6 +62,7 @@ public final class ShadowingOptions {
       this.workflowStatuses = options.workflowStatuses;
       this.samplingRate = options.samplingRate;
       this.exitCondition = options.exitCondition;
+      this.concurrency = options.concurrency;
     }
 
     /** The domain to start workflow shadowing. */
@@ -135,6 +137,15 @@ public final class ShadowingOptions {
       return this;
     }
 
+    /** Optional: the concurrent number of replay execution */
+    public Builder setConcurrency(int concurrency) {
+      if (concurrency <= 0.0 || samplingRate > 1.0) {
+        throw new IllegalArgumentException("Negative or zero: " + concurrency);
+      }
+      this.concurrency = concurrency;
+      return this;
+    }
+
     public ShadowingOptions build() {
       return new ShadowingOptions(
           domain,
@@ -144,7 +155,8 @@ public final class ShadowingOptions {
           workflowStartTimeFilter,
           workflowStatuses,
           samplingRate,
-          exitCondition);
+          exitCondition,
+          concurrency);
     }
   }
 
@@ -156,6 +168,7 @@ public final class ShadowingOptions {
   private final Set<WorkflowStatus> workflowStatuses;
   private final double samplingRate;
   private final ShadowingExitCondition exitCondition;
+  private int concurrency;
 
   private ShadowingOptions(
       String domain,
@@ -165,7 +178,8 @@ public final class ShadowingOptions {
       TimeFilter workflowStartTimeFilter,
       Set<WorkflowStatus> workflowStatuses,
       double samplingRate,
-      ShadowingExitCondition exitCondition) {
+      ShadowingExitCondition exitCondition,
+      int concurrency) {
     this.domain = domain;
     this.shadowMode = shadowMode;
     this.workflowQuery = workflowQuery;
@@ -174,6 +188,7 @@ public final class ShadowingOptions {
     this.workflowStatuses = workflowStatuses;
     this.samplingRate = samplingRate;
     this.exitCondition = exitCondition;
+    this.concurrency = concurrency;
   }
 
   public String getDomain() {
@@ -208,6 +223,10 @@ public final class ShadowingOptions {
     return exitCondition;
   }
 
+  public int getConcurrency() {
+    return concurrency;
+  }
+
   @Override
   public String toString() {
     return "ShadowOptions{"
@@ -225,6 +244,8 @@ public final class ShadowingOptions {
         + samplingRate
         + ", exitCondition="
         + exitCondition.toString()
+        + ", concurrency="
+        + concurrency
         + '}';
   }
 }
