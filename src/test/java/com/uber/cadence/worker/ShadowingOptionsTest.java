@@ -32,11 +32,11 @@ public class ShadowingOptionsTest {
     ShadowingOptions shadowingOptions = ShadowingOptions.defaultInstance();
     assertEquals("", shadowingOptions.getDomain());
     assertEquals(Mode.Normal, shadowingOptions.getShadowMode());
-    assertEquals("", shadowingOptions.getWorkflowQuery());
-    assertEquals(0, shadowingOptions.getWorkflowTypes().size());
+    assertNull(shadowingOptions.getWorkflowQuery());
+    assertNull(shadowingOptions.getWorkflowTypes());
     assertEquals(1.0, shadowingOptions.getSamplingRate(), 0.0);
     assertNull(shadowingOptions.getExitCondition());
-    assertNotNull(shadowingOptions.getWorkflowStartTimeFilter());
+    assertNull(shadowingOptions.getWorkflowStartTimeFilter());
     assertEquals(1, shadowingOptions.getWorkflowStatuses().size());
     assertTrue(shadowingOptions.getWorkflowStatuses().contains(WorkflowStatus.OPEN));
     assertEquals(1, shadowingOptions.getConcurrency());

@@ -44,9 +44,9 @@ public final class ShadowingOptions {
   public static final class Builder {
     private String domain = "";
     private Mode shadowMode = Mode.Normal;
-    private String workflowQuery = "";
-    private Set<String> workflowTypes = Sets.newHashSet();
-    private TimeFilter workflowStartTimeFilter = TimeFilter.defaultInstance();
+    private String workflowQuery;
+    private Set<String> workflowTypes;
+    private TimeFilter workflowStartTimeFilter;
     private Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.OPEN);
     private double samplingRate = 1.0;
     private ExitCondition exitCondition;
