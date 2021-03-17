@@ -30,7 +30,7 @@ public class ShadowingOptionsTest {
   @Test
   public void testShadowingOptions_DefaultOptions() {
     ShadowingOptions shadowingOptions = ShadowingOptions.defaultInstance();
-    assertEquals("", shadowingOptions.getDomain());
+    assertNull(shadowingOptions.getDomain());
     assertEquals(Mode.Normal, shadowingOptions.getShadowMode());
     assertNull(shadowingOptions.getWorkflowQuery());
     assertNull(shadowingOptions.getWorkflowTypes());

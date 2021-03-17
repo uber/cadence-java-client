@@ -42,7 +42,7 @@ public final class ShadowingOptions {
   }
 
   public static final class Builder {
-    private String domain = "";
+    private String domain;
     private Mode shadowMode = Mode.Normal;
     private String workflowQuery;
     private Set<String> workflowTypes;
