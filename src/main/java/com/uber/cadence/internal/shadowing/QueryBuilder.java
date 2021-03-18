@@ -36,7 +36,7 @@ public class QueryBuilder {
   }
 
   public QueryBuilder setWorkflowTypes(Collection<String> workflowTypes) {
-    if (workflowTypes == null || workflowTypes.size() == 0) {
+    if (workflowTypes == null || workflowTypes.isEmpty()) {
       return this;
     }
 
@@ -52,7 +52,7 @@ public class QueryBuilder {
   }
 
   public QueryBuilder setWorkflowStatuses(Collection<WorkflowStatus> workflowStatuses) {
-    if (workflowStatuses == null) {
+    if (workflowStatuses == null || workflowStatuses.isEmpty()) {
       return this;
     }
 
@@ -77,7 +77,7 @@ public class QueryBuilder {
   }
 
   public QueryBuilder setWorkflowStartTime(TimeFilter timeFilter) {
-    if (timeFilter == null) {
+    if (timeFilter == null || timeFilter.isEmpty()) {
       return this;
     }
 

@@ -86,7 +86,7 @@ public class ShadowingWorkerTest {
             .setWorkflowQuery(shadowingOptions.getWorkflowQuery());
     StartWorkflowExecutionRequest expectedRequest =
         new StartWorkflowExecutionRequest()
-            .setDomain(shadowingOptions.getDomain())
+            .setDomain(shadowerConstants.LocalDomainName)
             .setWorkflowId(shadowingOptions.getDomain() + shadowerConstants.WorkflowIDSuffix)
             .setTaskList(new TaskList().setName(shadowerConstants.TaskList))
             .setWorkflowType(new WorkflowType().setName(shadowerConstants.WorkflowName))

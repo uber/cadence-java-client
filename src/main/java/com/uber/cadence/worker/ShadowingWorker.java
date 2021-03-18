@@ -165,7 +165,7 @@ public final class ShadowingWorker implements Suspendable {
             .setWorkflowQuery(query);
     StartWorkflowExecutionRequest request =
         new StartWorkflowExecutionRequest()
-            .setDomain(shadowingOptions.getDomain())
+            .setDomain(shadowerConstants.LocalDomainName)
             .setWorkflowId(shadowingOptions.getDomain() + shadowerConstants.WorkflowIDSuffix)
             .setTaskList(new TaskList().setName(shadowerConstants.TaskList))
             .setInput(JsonDataConverter.getInstance().toData(params))

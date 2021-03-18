@@ -42,14 +42,14 @@ public final class ShadowingOptions {
   }
 
   public static final class Builder {
-    private String domain;
+    private String domain = "";
     private Mode shadowMode = Mode.Normal;
-    private String workflowQuery;
-    private Set<String> workflowTypes;
-    private TimeFilter workflowStartTimeFilter;
+    private String workflowQuery = "";
+    private Set<String> workflowTypes = Sets.newHashSet();
+    private TimeFilter workflowStartTimeFilter = TimeFilter.defaultInstance();
     private Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.OPEN);
     private double samplingRate = 1.0;
-    private ExitCondition exitCondition;
+    private ExitCondition exitCondition = new ExitCondition();
     private int concurrency = 1;
 
     private Builder() {}
@@ -148,6 +148,21 @@ public final class ShadowingOptions {
     }
 
     public ShadowingOptions build() {
+      if (shadowMode == Mode.Continuous
+          && exitCondition.getShadowCount() == 0
+          && exitCondition.getExpirationIntervalInSeconds() == 0) {
+        throw new IllegalArgumentException(
+            "exit condition must be specified if shadow mode is set to continuous");
+      }
+      if (!workflowQuery.isEmpty()
+          && (!workflowTypes.isEmpty()
+              || !workflowStartTimeFilter.isEmpty()
+              || workflowStatuses.size() != 1
+              || !workflowStatuses.contains(WorkflowStatus.OPEN))) {
+        throw new IllegalArgumentException(
+            "workflow types, status and start time filter can't be specified when workflow query is specified");
+      }
+
       return new ShadowingOptions(
           domain,
           shadowMode,
