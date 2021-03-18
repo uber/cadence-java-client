@@ -61,7 +61,6 @@ public class ShadowingWorkerTest {
     ShadowingOptions shadowingOptions =
         ShadowingOptions.newBuilder()
             .setDomain(UUID.randomUUID().toString())
-            .setWorkflowQuery("test")
             .setWorkflowTypes(Lists.newArrayList("type1", "type2"))
             .setConcurrency(2)
             .setShadowMode(Mode.Continuous)
