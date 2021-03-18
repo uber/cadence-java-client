@@ -14,7 +14,6 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-
 package com.uber.cadence.worker;
 
 import com.google.common.base.MoreObjects;
@@ -38,7 +37,6 @@ import com.uber.cadence.internal.worker.Suspendable;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.WorkflowParams;
 import com.uber.cadence.shadower.shadowerConstants;
-import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
@@ -47,7 +45,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ShadowingWorker implements Suspendable {
+public final class ShadowingWorker implements Suspendable {
 
   private final IWorkflowService service;
   private final SyncActivityWorker activityWorker;
@@ -70,6 +68,9 @@ public class ShadowingWorker implements Suspendable {
             .getOptions()
             .getMetricsScope()
             .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
+    ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
+    replayActivity = new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList);
+
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
             .setIdentity(client.getOptions().getIdentity())
@@ -82,8 +83,6 @@ public class ShadowingWorker implements Suspendable {
     activityWorker =
         new SyncActivityWorker(
             client.getService(), client.getOptions().getDomain(), this.taskList, activityOptions);
-    ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
-    replayActivity = new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList);
     activityWorker.setActivitiesImplementation(scanActivity, replayActivity);
   }
 
@@ -148,7 +147,7 @@ public class ShadowingWorker implements Suspendable {
     replayActivity.addWorkflowImplementationFactory(workflowInterface, factory);
   }
 
-  private void startShadowingWorkflow() throws Exception {
+  protected void startShadowingWorkflow() throws Exception {
     String query;
     if (shadowingOptions.getWorkflowQuery() != null) {
       query = shadowingOptions.getWorkflowQuery();

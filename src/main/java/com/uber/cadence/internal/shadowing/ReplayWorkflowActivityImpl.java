@@ -44,7 +44,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
+public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
 
   private static final Logger log = LoggerFactory.getLogger(ReplayWorkflowActivityImpl.class);
 
@@ -127,7 +127,7 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
         .setSkipped(skippedCount);
   }
 
-  public ReplayWorkflowActivityResult replayHelper(String domain, WorkflowExecution execution) {
+  protected ReplayWorkflowActivityResult replayHelper(String domain, WorkflowExecution execution) {
     WorkflowExecutionHistory workflowHistory;
     try {
       workflowHistory = getFullHistory(domain, execution);
@@ -158,7 +158,7 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
     }
   }
 
-  public WorkflowExecutionHistory getFullHistory(String domain, WorkflowExecution execution)
+  protected WorkflowExecutionHistory getFullHistory(String domain, WorkflowExecution execution)
       throws Exception {
     byte[] pageToken = null;
     List<HistoryEvent> histories = Lists.newArrayList();
@@ -188,7 +188,7 @@ public class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity {
     return new WorkflowExecutionHistory(histories);
   }
 
-  public boolean replayWorkflowHistory(
+  protected boolean replayWorkflowHistory(
       String domain, WorkflowExecution execution, WorkflowExecutionHistory workflowHistory)
       throws Exception {
     Stopwatch sw = this.metricsScope.timer(MetricsType.REPLAY_LATENCY).start();
