@@ -26,7 +26,6 @@ import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.metrics.MetricsTag;
-import com.uber.cadence.internal.shadowing.QueryBuilder;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
@@ -148,12 +147,6 @@ public final class ShadowingWorker implements Suspendable {
   }
 
   protected void startShadowingWorkflow() throws Exception {
-    String query;
-    if (shadowingOptions.getWorkflowQuery() != null) {
-      query = shadowingOptions.getWorkflowQuery();
-    } else {
-      query = QueryBuilder.newQueryBuilder(shadowingOptions).build();
-    }
     WorkflowParams params =
         new WorkflowParams()
             .setDomain(shadowingOptions.getDomain())
@@ -162,7 +155,7 @@ public final class ShadowingWorker implements Suspendable {
             .setShadowMode(shadowingOptions.getShadowMode())
             .setSamplingRate(shadowingOptions.getSamplingRate())
             .setTaskList(taskList)
-            .setWorkflowQuery(query);
+            .setWorkflowQuery(shadowingOptions.getWorkflowQuery());
     StartWorkflowExecutionRequest request =
         new StartWorkflowExecutionRequest()
             .setDomain(shadowerConstants.LocalDomainName)

@@ -16,6 +16,7 @@
 package com.uber.cadence.worker;
 
 import com.google.common.collect.Sets;
+import com.uber.cadence.internal.shadowing.QueryBuilder;
 import com.uber.cadence.shadower.ExitCondition;
 import com.uber.cadence.shadower.Mode;
 import java.util.Collection;
@@ -162,7 +163,14 @@ public final class ShadowingOptions {
         throw new IllegalArgumentException(
             "workflow types, status and start time filter can't be specified when workflow query is specified");
       }
-
+      if (workflowQuery.isEmpty()) {
+        workflowQuery =
+            QueryBuilder.newQueryBuilder()
+                .setWorkflowStatuses(workflowStatuses)
+                .setWorkflowStartTime(workflowStartTimeFilter)
+                .setWorkflowTypes(workflowTypes)
+                .build();
+      }
       return new ShadowingOptions(
           domain,
           shadowMode,

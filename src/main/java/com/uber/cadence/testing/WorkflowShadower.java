@@ -15,7 +15,6 @@
  */
 package com.uber.cadence.testing;
 
-import com.cronutils.utils.VisibleForTesting;
 import com.google.common.collect.Lists;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
@@ -23,6 +22,7 @@ import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivityImpl;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.shadower.Mode;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
@@ -32,7 +32,6 @@ import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
 
 public final class WorkflowShadower {
 
@@ -48,21 +47,18 @@ public final class WorkflowShadower {
 
   public WorkflowShadower(
       IWorkflowService service, ShadowingOptions options, String taskList, Scope metricsScope) {
-    // TODO: replace the null with taskList
     this(
         options,
         new ScanWorkflowActivityImpl(service),
-        new ReplayWorkflowActivityImpl(service, metricsScope, null));
+        new ReplayWorkflowActivityImpl(service, metricsScope, taskList));
   }
 
-  @VisibleForTesting
   public WorkflowShadower(
       ShadowingOptions options,
       ScanWorkflowActivity scanWorkflow,
       ReplayWorkflowActivity replayWorkflow) {
     this.options = options;
-    // TODO: generate query from shadowing options
-    this.query = "";
+    this.query = options.getWorkflowQuery();
     this.scanWorkflow = scanWorkflow;
     this.replayWorkflow = replayWorkflow;
   }
@@ -72,14 +68,15 @@ public final class WorkflowShadower {
     int replayCount = 0;
 
     int maxReplayCount = Integer.MAX_VALUE;
-    Duration maxReplayDuration = ChronoUnit.FOREVER.getDuration();
+    Duration maxReplayDuration = Duration.ZERO;
     ZonedDateTime now = ZonedDateTime.now();
     if (options.getExitCondition() != null) {
-      if (options.getExitCondition().getShadowingCount() != 0) {
-        maxReplayCount = options.getExitCondition().getShadowingCount();
+      if (options.getExitCondition().getShadowCount() != 0) {
+        maxReplayCount = options.getExitCondition().getShadowCount();
       }
-      if (options.getExitCondition().getShadowingDuration() != null) {
-        maxReplayDuration = options.getExitCondition().getShadowingDuration();
+      if (options.getExitCondition().getExpirationIntervalInSeconds() != 0) {
+        maxReplayDuration =
+            Duration.ofSeconds(options.getExitCondition().getExpirationIntervalInSeconds());
       }
     }
     do {
@@ -109,10 +106,11 @@ public final class WorkflowShadower {
         if (replayCount >= maxReplayCount) {
           return;
         }
-        if (ZonedDateTime.now().isAfter(now.plus(maxReplayDuration))) {
+        if (!maxReplayDuration.isZero()
+            && ZonedDateTime.now().isAfter(now.plusSeconds(maxReplayDuration.getSeconds()))) {
           return;
         }
       }
-    } while (nextPageToken != null);
+    } while (nextPageToken != null && options.getShadowMode() == Mode.Normal);
   }
 }
