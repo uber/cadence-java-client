@@ -16,8 +16,11 @@
 package com.uber.cadence.worker;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.Sets;
+import com.uber.cadence.shadower.ExitCondition;
+import com.uber.cadence.shadower.Mode;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.Test;
@@ -27,44 +30,110 @@ public class ShadowingOptionsTest {
   @Test
   public void testShadowingOptions_DefaultOptions() {
     ShadowingOptions shadowingOptions = ShadowingOptions.defaultInstance();
-    assertEquals("", shadowingOptions.getDomain());
-    assertEquals("", shadowingOptions.getWorkflowQuery());
-    assertEquals(0, shadowingOptions.getWorkflowTypes().size());
+    assertNotNull(shadowingOptions.getDomain());
+    assertEquals(Mode.Normal, shadowingOptions.getShadowMode());
+    assertNotNull(shadowingOptions.getWorkflowQuery());
+    assertNotNull(shadowingOptions.getWorkflowTypes());
     assertEquals(1.0, shadowingOptions.getSamplingRate(), 0.0);
     assertNotNull(shadowingOptions.getExitCondition());
     assertNotNull(shadowingOptions.getWorkflowStartTimeFilter());
     assertEquals(1, shadowingOptions.getWorkflowStatuses().size());
     assertTrue(shadowingOptions.getWorkflowStatuses().contains(WorkflowStatus.OPEN));
+    assertEquals(1, shadowingOptions.getConcurrency());
   }
 
   @Test
-  public void testShadowingOptions() {
+  public void testShadowingOptions_DefineQuery_Success() {
     String domain = UUID.randomUUID().toString();
     String query = UUID.randomUUID().toString();
+    double samplingRate = 0.5;
+    ExitCondition exitCondition = new ExitCondition().setShadowCount(1);
+
+    ShadowingOptions shadowingOptions =
+        ShadowingOptions.newBuilder()
+            .setDomain(domain)
+            .setShadowMode(Mode.Continuous)
+            .setWorkflowQuery(query)
+            .setWorkflowSamplingRate(samplingRate)
+            .setExitCondition(exitCondition)
+            .setConcurrency(2)
+            .build();
+    assertEquals(domain, shadowingOptions.getDomain());
+    assertEquals(Mode.Continuous, shadowingOptions.getShadowMode());
+    assertEquals(query, shadowingOptions.getWorkflowQuery());
+    assertEquals(0.5, shadowingOptions.getSamplingRate(), 0.0);
+    assertEquals(exitCondition, shadowingOptions.getExitCondition());
+    assertEquals(1, shadowingOptions.getWorkflowStatuses().size());
+    assertEquals(2, shadowingOptions.getConcurrency());
+  }
+
+  @Test
+  public void testShadowingOptions_DefineFilters_Success() {
+    String domain = UUID.randomUUID().toString();
     Set<String> wfTypes = Sets.newHashSet("workflowType");
     double samplingRate = 0.5;
-    ShadowingExitCondition exitCondition = ShadowingExitCondition.newBuilder().build();
+    ExitCondition exitCondition = new ExitCondition().setShadowCount(1);
     TimeFilter timeFilter = TimeFilter.newBuilder().build();
     Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.CLOSED);
 
     ShadowingOptions shadowingOptions =
         ShadowingOptions.newBuilder()
             .setDomain(domain)
-            .setWorkflowQuery(query)
+            .setShadowMode(Mode.Continuous)
             .setWorkflowTypes(wfTypes)
             .setWorkflowSamplingRate(samplingRate)
             .setExitCondition(exitCondition)
             .setWorkflowStartTimeFilter(timeFilter)
             .setWorkflowStatuses(workflowStatuses)
+            .setConcurrency(2)
             .build();
     assertEquals(domain, shadowingOptions.getDomain());
-    assertEquals(query, shadowingOptions.getWorkflowQuery());
+    assertEquals(Mode.Continuous, shadowingOptions.getShadowMode());
     assertTrue(shadowingOptions.getWorkflowTypes().contains("workflowType"));
     assertEquals(0.5, shadowingOptions.getSamplingRate(), 0.0);
     assertEquals(exitCondition, shadowingOptions.getExitCondition());
     assertEquals(timeFilter, shadowingOptions.getWorkflowStartTimeFilter());
     assertEquals(1, shadowingOptions.getWorkflowStatuses().size());
     assertTrue(shadowingOptions.getWorkflowStatuses().contains(WorkflowStatus.CLOSED));
+    assertEquals(2, shadowingOptions.getConcurrency());
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testShadowingOptions_DefineBothQueryAndFilters_ThrowException() {
+    String domain = UUID.randomUUID().toString();
+    String query = UUID.randomUUID().toString();
+    Set<String> wfTypes = Sets.newHashSet("workflowType");
+    double samplingRate = 0.5;
+    ExitCondition exitCondition = new ExitCondition().setShadowCount(1);
+    TimeFilter timeFilter = TimeFilter.newBuilder().build();
+    Set<WorkflowStatus> workflowStatuses = Sets.newHashSet(WorkflowStatus.CLOSED);
+
+    ShadowingOptions.newBuilder()
+        .setDomain(domain)
+        .setShadowMode(Mode.Continuous)
+        .setWorkflowQuery(query)
+        .setWorkflowTypes(wfTypes)
+        .setWorkflowSamplingRate(samplingRate)
+        .setExitCondition(exitCondition)
+        .setWorkflowStartTimeFilter(timeFilter)
+        .setWorkflowStatuses(workflowStatuses)
+        .setConcurrency(2)
+        .build();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testShadowingOptions_ContinuousMode_WithoutExitCondition() {
+    String domain = UUID.randomUUID().toString();
+    String query = UUID.randomUUID().toString();
+    double samplingRate = 0.5;
+
+    ShadowingOptions.newBuilder()
+        .setDomain(domain)
+        .setShadowMode(Mode.Continuous)
+        .setWorkflowQuery(query)
+        .setWorkflowSamplingRate(samplingRate)
+        .setConcurrency(2)
+        .build();
   }
 
   @Test

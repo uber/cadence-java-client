@@ -80,6 +80,10 @@ public class TimeFilter {
     return maxTimestamp;
   }
 
+  public boolean isEmpty() {
+    return this.minTimestamp == null && this.maxTimestamp == null;
+  }
+
   @Override
   public String toString() {
     return "TimeFilter{" + "minTimestamp=" + minTimestamp + ", maxTimestamp=" + maxTimestamp + '}';

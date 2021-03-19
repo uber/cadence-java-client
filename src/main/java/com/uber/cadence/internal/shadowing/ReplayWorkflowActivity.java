@@ -19,8 +19,20 @@ import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.shadower.shadowerConstants;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.workflow.Functions;
 
 public interface ReplayWorkflowActivity {
   @ActivityMethod(name = shadowerConstants.ReplayWorkflowActivityName)
   ReplayWorkflowActivityResult replay(ReplayWorkflowActivityParams params) throws Exception;
+
+  void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses);
+
+  void registerWorkflowImplementationTypesWithOptions(
+      WorkflowImplementationOptions options, Class<?>... workflowImplementationClasses);
+
+  <R> void addWorkflowImplementationFactory(Class<R> workflowInterface, Functions.Func<R> factory);
+
+  <R> void addWorkflowImplementationFactoryWithOptions(
+      WorkflowImplementationOptions options, Class<R> workflowInterface, Functions.Func<R> factory);
 }

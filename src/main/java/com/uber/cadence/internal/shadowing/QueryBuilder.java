@@ -16,6 +16,7 @@
 package com.uber.cadence.internal.shadowing;
 
 import com.google.common.collect.Lists;
+import com.uber.cadence.worker.ShadowingOptions;
 import com.uber.cadence.worker.TimeFilter;
 import com.uber.cadence.worker.WorkflowStatus;
 import java.time.ZonedDateTime;
@@ -27,8 +28,15 @@ public class QueryBuilder {
     return new QueryBuilder();
   }
 
+  public static QueryBuilder newQueryBuilder(ShadowingOptions options) {
+    return new QueryBuilder()
+        .setWorkflowTypes(options.getWorkflowTypes())
+        .setWorkflowStartTime(options.getWorkflowStartTimeFilter())
+        .setWorkflowStatuses(options.getWorkflowStatuses());
+  }
+
   public QueryBuilder setWorkflowTypes(Collection<String> workflowTypes) {
-    if (workflowTypes == null) {
+    if (workflowTypes == null || workflowTypes.isEmpty()) {
       return this;
     }
 
@@ -44,7 +52,7 @@ public class QueryBuilder {
   }
 
   public QueryBuilder setWorkflowStatuses(Collection<WorkflowStatus> workflowStatuses) {
-    if (workflowStatuses == null) {
+    if (workflowStatuses == null || workflowStatuses.isEmpty()) {
       return this;
     }
 
@@ -69,7 +77,7 @@ public class QueryBuilder {
   }
 
   public QueryBuilder setWorkflowStartTime(TimeFilter timeFilter) {
-    if (timeFilter == null) {
+    if (timeFilter == null || timeFilter.isEmpty()) {
       return this;
     }
 
