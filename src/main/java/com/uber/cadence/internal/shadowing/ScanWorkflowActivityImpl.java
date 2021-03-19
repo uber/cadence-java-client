@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
+public final class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
 
   private static final Logger log = LoggerFactory.getLogger(ScanWorkflowActivityImpl.class);
 
@@ -60,7 +60,7 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
         .setNextPageToken(resp.getNextPageToken());
   }
 
-  public ListWorkflowExecutionsResponse scanWorkflows(ListWorkflowExecutionsRequest request)
+  protected ListWorkflowExecutionsResponse scanWorkflows(ListWorkflowExecutionsRequest request)
       throws Throwable {
     try {
       return RpcRetryer.retryWithResult(
@@ -85,7 +85,7 @@ public class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
     }
   }
 
-  public List<WorkflowExecution> samplingWorkflows(
+  protected List<WorkflowExecution> samplingWorkflows(
       List<WorkflowExecutionInfo> executionInfoList, double samplingRate) {
     int capacity = (int) (executionInfoList.size() * samplingRate);
     capacity = Math.max(capacity, 1);
