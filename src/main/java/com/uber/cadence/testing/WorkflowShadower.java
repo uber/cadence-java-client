@@ -113,7 +113,10 @@ public final class WorkflowShadower {
           return;
         }
       }
-      Thread.sleep(SLEEP_INTERVAL);
+
+      if (nextPageToken == null && options.getShadowMode() == Mode.Continuous) {
+        Thread.sleep(SLEEP_INTERVAL);
+      }
     } while (nextPageToken != null && options.getShadowMode() == Mode.Normal);
   }
 
