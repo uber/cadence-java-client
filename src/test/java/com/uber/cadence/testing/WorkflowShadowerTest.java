@@ -69,11 +69,6 @@ public class WorkflowShadowerTest {
   @Test(expected = Exception.class)
   public void testRun_CallScan_ThrowsException() throws Throwable {
     ShadowingOptions options = ShadowingOptions.defaultInstance();
-    List<WorkflowExecution> workflowExecutions =
-        Lists.newArrayList(
-            new WorkflowExecution()
-                .setWorkflowId(UUID.randomUUID().toString())
-                .setRunId(UUID.randomUUID().toString()));
     when(mockScanWorkflowActivity.scan(any())).thenThrow(new Exception());
     WorkflowShadower shadower =
         new WorkflowShadower(options, mockScanWorkflowActivity, mockReplayWorkflowActivity);
