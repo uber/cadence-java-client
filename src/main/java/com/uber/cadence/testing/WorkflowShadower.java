@@ -32,8 +32,10 @@ import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.Objects;
 
 public final class WorkflowShadower {
+  private static final long SLEEP_INTERVAL = 300L;
 
   private final ShadowingOptions options;
   private final String query;
@@ -57,7 +59,7 @@ public final class WorkflowShadower {
       ShadowingOptions options,
       ScanWorkflowActivity scanWorkflow,
       ReplayWorkflowActivity replayWorkflow) {
-    this.options = options;
+    this.options = validateShadowingOptions(options);
     this.query = options.getWorkflowQuery();
     this.scanWorkflow = scanWorkflow;
     this.replayWorkflow = replayWorkflow;
@@ -111,6 +113,16 @@ public final class WorkflowShadower {
           return;
         }
       }
+      Thread.sleep(SLEEP_INTERVAL);
     } while (nextPageToken != null && options.getShadowMode() == Mode.Normal);
+  }
+
+  private ShadowingOptions validateShadowingOptions(ShadowingOptions options) {
+    Objects.requireNonNull(options);
+
+    if (options.getConcurrency() > 1) {
+      throw new IllegalArgumentException("Concurrency is not supported in workflow shadower");
+    }
+    return options;
   }
 }
