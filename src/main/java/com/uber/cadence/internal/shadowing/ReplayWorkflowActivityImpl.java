@@ -91,7 +91,6 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
       throw new NullPointerException("Replay activity request is null.");
     }
 
-    String domain = request.getDomain();
     int successCount = 0;
     int failedCount = 0;
     int skippedCount = 0;
