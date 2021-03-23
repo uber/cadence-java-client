@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.0.0
+### Added
+- [New feature] Activity Local Dispatch: Allows Cadence worker to dispatch activity tasks through local tunnel after ScheduleActivity decisions are made. This is a performance optimization to reduce activity scheduling efforts.
+- Pass TaskListActivitiesPerSecond to activity worker and remove the limit.
+- Add missing workflowtype and activitytype metric tags.
+### Changed
+- [Breaking changes] Refactoring in Worker initialization path:
+  - Worker.Factory -> WorkerFactory
+  - Worker.FactoryOptions -> WorkerFactoryOptions
+  - PollerOptions.Builder -> PollerOptions.newBuilder
+  - SingleWorkerOptions.Builder -> SingleWorkerOptions.newBuilder
+  - Added WorkerOptions Builder
+  - WorkflowClient.newInstance(IWorkflowService, Domain, WorkflowClientOptions) -> WorkflowClient.newInstance(IWorkflowService, WorkflowClientOptions)
+  - WorkflowClientOptions.Builder -> WorkflowClientOptions.newBuilder
+  - Testing framework
+- Fix activity end-to-end latency metric.
+- Fix newProxyInstance with the correct class.
+- Fix bug in worker.isSuspended().
+- Improve worker start/shutdown logic.
+- Improve retry logic.
+- Fix race condition during serialization.
+
 ## 2.7.8
 - Fix get raw history 
 - Improve signal processing error and log 
