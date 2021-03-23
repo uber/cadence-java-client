@@ -15,7 +15,6 @@
  */
 package com.uber.cadence.testing;
 
-import com.google.common.collect.Lists;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
@@ -23,7 +22,6 @@ import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivityImpl;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.Mode;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
 import com.uber.cadence.shadower.ScanWorkflowActivityResult;
@@ -82,21 +80,18 @@ public final class WorkflowShadower {
       }
     }
     do {
-      ScanWorkflowActivityResult ScanResult =
+      ScanWorkflowActivityResult scanResult =
           scanWorkflow.scan(
               new ScanWorkflowActivityParams()
                   .setDomain(options.getDomain())
                   .setWorkflowQuery(query)
                   .setNextPageToken(nextPageToken)
                   .setSamplingRate(options.getSamplingRate()));
-      nextPageToken = ScanResult.getNextPageToken();
+      nextPageToken = scanResult.getNextPageToken();
 
-      for (WorkflowExecution execution : ScanResult.getExecutions()) {
+      for (WorkflowExecution execution : scanResult.getExecutions()) {
         ReplayWorkflowActivityResult replayResult =
-            replayWorkflow.replay(
-                new ReplayWorkflowActivityParams()
-                    .setDomain(options.getDomain())
-                    .setExecutions(Lists.newArrayList(execution)));
+            replayWorkflow.replayOneExecution(options.getDomain(), execution);
 
         if (replayResult.getFailed() > 0) {
           throw new Error("Replay workflow history failed with execution:" + execution.toString());

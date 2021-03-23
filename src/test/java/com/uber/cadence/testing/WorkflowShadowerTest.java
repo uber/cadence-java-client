@@ -48,7 +48,8 @@ public class WorkflowShadowerTest {
                 .setRunId(UUID.randomUUID().toString()));
     when(mockScanWorkflowActivity.scan(any()))
         .thenReturn(new ScanWorkflowActivityResult().setExecutions(workflowExecutions));
-    when(mockReplayWorkflowActivity.replay(any())).thenReturn(new ReplayWorkflowActivityResult());
+    when(mockReplayWorkflowActivity.replayOneExecution(any(), any()))
+        .thenReturn(new ReplayWorkflowActivityResult());
     WorkflowShadower shadower =
         new WorkflowShadower(options, mockScanWorkflowActivity, mockReplayWorkflowActivity);
     shadower.run();
@@ -63,7 +64,7 @@ public class WorkflowShadowerTest {
         new ReplayWorkflowActivityParams()
             .setDomain(options.getDomain())
             .setExecutions(workflowExecutions);
-    verify(mockReplayWorkflowActivity, times(1)).replay(replayParams);
+    verify(mockReplayWorkflowActivity, times(1)).replayOneExecution("", workflowExecutions.get(0));
   }
 
   @Test(expected = Exception.class)

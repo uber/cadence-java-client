@@ -109,7 +109,8 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
 
     for (; replayIndex < executions.size(); replayIndex++) {
       WorkflowExecution execution = executions.get(replayIndex);
-      ReplayWorkflowActivityResult oneReplayResult = replayHelper(request.getDomain(), execution);
+      ReplayWorkflowActivityResult oneReplayResult =
+          replayOneExecution(request.getDomain(), execution);
       successCount += oneReplayResult.getSucceeded();
       failedCount += oneReplayResult.getFailed();
       skippedCount += oneReplayResult.getSkipped();
@@ -126,7 +127,8 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
         .setSkipped(skippedCount);
   }
 
-  protected ReplayWorkflowActivityResult replayHelper(String domain, WorkflowExecution execution) {
+  public ReplayWorkflowActivityResult replayOneExecution(
+      String domain, WorkflowExecution execution) {
     WorkflowExecutionHistory workflowHistory;
     try {
       workflowHistory = getFullHistory(domain, execution);
