@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import static com.uber.cadence.internal.errors.ErrorType.UNKNOWN_WORKFLOW_TYPE;
 import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.FailWorkflow;
 
 import com.google.common.reflect.TypeToken;
@@ -187,7 +188,8 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
     if (factory == null) {
       // throw Error to abort decision, not fail the workflow
       throw new Error(
-          "Unknown workflow type \""
+          UNKNOWN_WORKFLOW_TYPE
+              + " \""
               + workflowType.getName()
               + "\". Known types are "
               + workflowDefinitions.keySet());
