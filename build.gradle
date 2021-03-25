@@ -287,7 +287,7 @@ jacocoTestReport {
 
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: 'build/**')
+            fileTree(dir: it, excludes: ['com/uber/cadence/shadower/*.class', 'com/uber/cadence/*.class'])
         }))
     }
 }
