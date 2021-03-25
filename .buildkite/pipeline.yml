@@ -8,7 +8,9 @@ steps:
     agents:
       queue: "workers"
       docker: "*"
-    command: "./gradlew --no-daemon test"
+    command: "./gradlew --no-daemon test jacocoTestReport"
+    artifact_paths:
+      - "build/reports/jacoco/test/*.xml"
     timeout_in_minutes: 15
     retry:
       automatic:
@@ -54,7 +56,7 @@ steps:
     agents:
       queue: "workers"
       docker: "*"
-    command: "./gradlew jacocoTestReport coverallsJacoco"
+    command: ".buildkite/scripts/coverage.sh"
     retry:
       automatic:
         - exit_status: "*"
