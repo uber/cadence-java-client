@@ -93,3 +93,14 @@ services:
       - "USE_DOCKER_SERVICE=false"
     volumes:
       - "../../:/cadence-java-client"
+
+  test-coverage-report:
+    build:
+      context: ../../
+      dockerfile: ./docker/buildkite/Dockerfile
+    command: "./gradlew --no-daemon test"
+    environment:
+      - "USER=unittest"
+      - "USE_DOCKER_SERVICE=false"
+    volumes:
+      - "../../:/cadence-java-client"
