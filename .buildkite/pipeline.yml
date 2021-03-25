@@ -49,3 +49,17 @@ steps:
           run: unit-test-docker-sticky-off
           config: docker/buildkite/docker-compose.yaml
   - wait
+
+  - label: ":java: Report test coverage"
+    agents:
+      queue: "workers"
+      docker: "*"
+    command: "./gradlew jacocoTestReport coverallsJacoco"
+    retry:
+      automatic:
+        - exit_status: "*"
+          limit: 3
+    plugins:
+      - docker-compose#v3.0.0:
+          run: test-coverage-report
+          config: docker/buildkite/docker-compose.yaml
