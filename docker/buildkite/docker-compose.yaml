@@ -102,6 +102,23 @@ services:
     environment:
       - "USER=unittest"
       - "USE_DOCKER_SERVICE=false"
+      - CI
+      - BUILDKITE
+      - BUILDKITE_AGENT_ACCESS_TOKEN
+      - BUILDKITE_JOB_ID
+      - BUILDKITE_BUILD_ID
+      - BUILDKITE_BUILD_NUMBER
+      - BUILDKITE_BRANCH
+      - BUILDKITE_BUILD_URL
+      - BUILDKITE_PROJECT_SLUG
+      - BUILDKITE_COMMIT
+      - BUILDKITE_PULL_REQUEST
+      - BUILDKITE_TAG
+      - BUILDKITE_REPO
+      - BUILDKITE_BUILD_CREATOR
+      - BUILDKITE_BUILD_CREATOR_EMAIL
+      - BUILDKITE_BUILD_CREATOR_TEAMS
+      - BUILDKITE_PULL_REQUEST_REPO
     volumes:
       - "../../:/cadence-java-client"
       - /usr/bin/buildkite-agent:/usr/bin/buildkite-agent
