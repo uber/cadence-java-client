@@ -6,9 +6,11 @@ buildscript {
 
 plugins {
     id "com.github.hierynomus.license" version"0.15.0"
+    id 'com.github.nbaztec.coveralls-jacoco' version '1.2.11'
     id 'com.github.sherter.google-java-format' version '0.8'
     id 'net.ltgt.errorprone' version  '1.1.1'
     id 'java-library'
+    id 'jacoco'
 }
 
 repositories {
@@ -16,6 +18,7 @@ repositories {
         url 'https://plugins.gradle.org/m2/'
     }
     mavenCentral()
+    jcenter()
 }
 
 apply plugin: 'maven'
@@ -272,4 +275,19 @@ uploadArchives {
     }
 }
 
-//logging.captureStandardOutput LogLevel.INFO
+jacoco {
+    toolVersion = "0.8.2"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true // coveralls plugin depends on xml format report
+        html.enabled = true
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, excludes: ['com/uber/cadence/shadower/*.class', 'com/uber/cadence/*.class'])
+        }))
+    }
+}
