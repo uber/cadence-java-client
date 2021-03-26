@@ -104,3 +104,4 @@ services:
       - "USE_DOCKER_SERVICE=false"
     volumes:
       - "../../:/cadence-java-client"
+      - /usr/bin/buildkite-agent:/usr/bin/buildkite-agent
