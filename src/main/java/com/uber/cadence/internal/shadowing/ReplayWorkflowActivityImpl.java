@@ -22,7 +22,6 @@ import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.internal.common.InternalUtils;
@@ -30,8 +29,6 @@ import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
@@ -114,21 +111,22 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
       successCount += oneReplayResult.getSucceeded();
       failedCount += oneReplayResult.getFailed();
       skippedCount += oneReplayResult.getSkipped();
-      ReplayWorkflowActivityResult heartbeatResult =
-          new ReplayWorkflowActivityResult()
-              .setSucceeded(successCount)
-              .setFailed(failedCount)
-              .setSkipped(skippedCount);
+      ReplayWorkflowActivityResult heartbeatResult = new ReplayWorkflowActivityResult();
+      heartbeatResult.setSucceeded(successCount);
+      heartbeatResult.setFailed(failedCount);
+      heartbeatResult.setSkipped(skippedCount);
       Activity.heartbeat(new HeartbeatDetail(heartbeatResult, replayIndex));
     }
-    return new ReplayWorkflowActivityResult()
-        .setSucceeded(successCount)
-        .setFailed(failedCount)
-        .setSkipped(skippedCount);
+    ReplayWorkflowActivityResult result = new ReplayWorkflowActivityResult();
+    result.setSucceeded(successCount);
+    result.setFailed(failedCount);
+    result.setSkipped(skippedCount);
+    return result;
   }
 
   public ReplayWorkflowActivityResult replayOneExecution(
       String domain, WorkflowExecution execution) {
+    ReplayWorkflowActivityResult result = new ReplayWorkflowActivityResult();
     WorkflowExecutionHistory workflowHistory;
     try {
       workflowHistory = getFullHistory(domain, execution);
@@ -139,23 +137,27 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
               + ". Execution: "
               + execution.toString(),
           e);
-      return new ReplayWorkflowActivityResult().setSkipped(1);
+      result.setSkipped(1);
+      return result;
     }
 
     try {
       boolean isSuccess = replayWorkflowHistory(domain, execution, workflowHistory);
       if (isSuccess) {
         this.metricsScope.counter(MetricsType.REPLAY_SUCCESS_COUNTER).inc(1);
-        return new ReplayWorkflowActivityResult().setSucceeded(1);
+        result.setSucceeded(1);
+        return result;
       } else {
         this.metricsScope.counter(MetricsType.REPLAY_SKIPPED_COUNTER).inc(1);
-        return new ReplayWorkflowActivityResult().setSkipped(1);
+        result.setSkipped(1);
+        return result;
       }
     } catch (NonRetryableException e) {
       throw e;
     } catch (Exception e) {
       this.metricsScope.counter(MetricsType.REPLAY_FAILED_COUNTER).inc(1);
-      return new ReplayWorkflowActivityResult().setFailed(1);
+      result.setFailed(1);
+      return result;
     }
   }
 
@@ -170,7 +172,7 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
               RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
               () ->
                   WorkflowExecutionUtils.getHistoryPage(
-                      nextPageToken, this.serviceClient, domain, execution));
+                      nextPageToken, this.serviceClient, domain, execution.toThrift()));
       pageToken = resp.getNextPageToken();
 
       // handle raw history
