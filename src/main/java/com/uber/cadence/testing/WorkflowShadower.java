@@ -34,7 +34,6 @@ import java.util.Objects;
 
 public final class WorkflowShadower {
   private static final long SLEEP_INTERVAL = 300L;
-  private static final int PAGE_SIZE = 1000;
 
   private final ShadowingOptions options;
   private final String query;
@@ -85,7 +84,6 @@ public final class WorkflowShadower {
       params.setDomain(options.getDomain());
       params.setWorkflowQuery(query);
       params.setSamplingRate(options.getSamplingRate());
-      params.setPageSize(PAGE_SIZE);
       params.setNextPageToken(nextPageToken);
       ScanWorkflowActivityResult scanResult = scanWorkflow.scan(params);
       nextPageToken = scanResult.getNextPageToken();

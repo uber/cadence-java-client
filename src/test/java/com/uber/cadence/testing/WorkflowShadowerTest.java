@@ -57,7 +57,6 @@ public class WorkflowShadowerTest {
     scanParams.setDomain(options.getDomain());
     scanParams.setWorkflowQuery(options.getWorkflowQuery());
     scanParams.setSamplingRate(options.getSamplingRate());
-    scanParams.setPageSize(1000);
     verify(mockScanWorkflowActivity, times(1))
         .scan(argThat(new ScanWorkflowActivityParamsMatcher(scanParams)));
     verify(mockReplayWorkflowActivity, times(1)).replayOneExecution("", execution);

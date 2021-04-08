@@ -96,8 +96,9 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
 
     // Retrieve process from heartbeat
     Optional<HeartbeatDetail> heartbeatDetail = Activity.getHeartbeatDetails(HeartbeatDetail.class);
+    ReplayWorkflowActivityResult heartbeatResult;
     if (heartbeatDetail.isPresent()) {
-      ReplayWorkflowActivityResult heartbeatResult = heartbeatDetail.get().getReplayResult();
+      heartbeatResult = heartbeatDetail.get().getReplayResult();
       successCount = heartbeatResult.getSucceeded();
       failedCount = heartbeatResult.getFailed();
       skippedCount = heartbeatResult.getSkipped();
@@ -111,7 +112,7 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
       successCount += oneReplayResult.getSucceeded();
       failedCount += oneReplayResult.getFailed();
       skippedCount += oneReplayResult.getSkipped();
-      ReplayWorkflowActivityResult heartbeatResult = new ReplayWorkflowActivityResult();
+      heartbeatResult = new ReplayWorkflowActivityResult();
       heartbeatResult.setSucceeded(successCount);
       heartbeatResult.setFailed(failedCount);
       heartbeatResult.setSkipped(skippedCount);
