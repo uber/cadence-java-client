@@ -29,7 +29,6 @@ import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ExitCondition;
 import com.uber.cadence.shadower.Mode;
@@ -39,6 +38,8 @@ import com.uber.m3.tally.NoopScope;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.UUID;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TSimpleJSONProtocol;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatcher;
@@ -73,6 +74,7 @@ public class ShadowingWorkerTest {
     ShadowingWorker shadowingWorker =
         new ShadowingWorker(
             mockClient, taskList, WorkerOptions.defaultInstance(), shadowingOptions);
+    TSerializer serializer = new TSerializer(new TSimpleJSONProtocol.Factory());
 
     WorkflowParams params =
         new WorkflowParams()
@@ -92,7 +94,7 @@ public class ShadowingWorkerTest {
             .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
             .setExecutionStartToCloseTimeoutSeconds(864000)
             .setTaskStartToCloseTimeoutSeconds(60)
-            .setInput(JsonDataConverter.getInstance().toData(params));
+            .setInput(serializer.serialize(params));
     when(mockService.StartWorkflowExecution(any())).thenReturn(null);
 
     shadowingWorker.startShadowingWorkflow();

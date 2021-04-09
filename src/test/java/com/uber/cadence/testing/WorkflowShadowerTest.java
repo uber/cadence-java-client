@@ -16,23 +16,23 @@
 package com.uber.cadence.testing;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Lists;
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
+import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityResult;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityParams;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityResult;
+import com.uber.cadence.internal.shadowing.WorkflowExecution;
 import com.uber.cadence.worker.ShadowingOptions;
-import java.util.List;
 import java.util.UUID;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
 
 public class WorkflowShadowerTest {
   private ScanWorkflowActivity mockScanWorkflowActivity = mock(ScanWorkflowActivity.class);
@@ -41,30 +41,25 @@ public class WorkflowShadowerTest {
   @Test
   public void testRun_ReturnSuccess() throws Throwable {
     ShadowingOptions options = ShadowingOptions.defaultInstance();
-    List<WorkflowExecution> workflowExecutions =
-        Lists.newArrayList(
-            new WorkflowExecution()
-                .setWorkflowId(UUID.randomUUID().toString())
-                .setRunId(UUID.randomUUID().toString()));
-    when(mockScanWorkflowActivity.scan(any()))
-        .thenReturn(new ScanWorkflowActivityResult().setExecutions(workflowExecutions));
+    WorkflowExecution execution = new WorkflowExecution();
+    execution.setWorkflowId(UUID.randomUUID().toString());
+    execution.setRunId(UUID.randomUUID().toString());
+    ScanWorkflowActivityResult result = new ScanWorkflowActivityResult();
+    result.setExecutions(Lists.newArrayList(execution));
+    when(mockScanWorkflowActivity.scan(any())).thenReturn(result);
     when(mockReplayWorkflowActivity.replayOneExecution(any(), any()))
         .thenReturn(new ReplayWorkflowActivityResult());
     WorkflowShadower shadower =
         new WorkflowShadower(options, mockScanWorkflowActivity, mockReplayWorkflowActivity);
     shadower.run();
 
-    ScanWorkflowActivityParams scanParams =
-        new ScanWorkflowActivityParams()
-            .setDomain(options.getDomain())
-            .setWorkflowQuery(options.getWorkflowQuery())
-            .setSamplingRate(options.getSamplingRate());
-    verify(mockScanWorkflowActivity, times(1)).scan(scanParams);
-    ReplayWorkflowActivityParams replayParams =
-        new ReplayWorkflowActivityParams()
-            .setDomain(options.getDomain())
-            .setExecutions(workflowExecutions);
-    verify(mockReplayWorkflowActivity, times(1)).replayOneExecution("", workflowExecutions.get(0));
+    ScanWorkflowActivityParams scanParams = new ScanWorkflowActivityParams();
+    scanParams.setDomain(options.getDomain());
+    scanParams.setWorkflowQuery(options.getWorkflowQuery());
+    scanParams.setSamplingRate(options.getSamplingRate());
+    verify(mockScanWorkflowActivity, times(1))
+        .scan(argThat(new ScanWorkflowActivityParamsMatcher(scanParams)));
+    verify(mockReplayWorkflowActivity, times(1)).replayOneExecution("", execution);
   }
 
   @Test(expected = Exception.class)
@@ -79,16 +74,33 @@ public class WorkflowShadowerTest {
   @Test(expected = Exception.class)
   public void testRun_CallReplay_ThrowsException() throws Throwable {
     ShadowingOptions options = ShadowingOptions.defaultInstance();
-    List<WorkflowExecution> workflowExecutions =
-        Lists.newArrayList(
-            new WorkflowExecution()
-                .setWorkflowId(UUID.randomUUID().toString())
-                .setRunId(UUID.randomUUID().toString()));
-    when(mockScanWorkflowActivity.scan(any()))
-        .thenReturn(new ScanWorkflowActivityResult().setExecutions(workflowExecutions));
+    WorkflowExecution execution = new WorkflowExecution();
+    execution.setWorkflowId(UUID.randomUUID().toString());
+    execution.setRunId(UUID.randomUUID().toString());
+    ScanWorkflowActivityResult result = new ScanWorkflowActivityResult();
+    result.setExecutions(Lists.newArrayList(execution));
+    when(mockScanWorkflowActivity.scan(any())).thenReturn(result);
     when(mockReplayWorkflowActivity.replay(any())).thenThrow(new Exception());
     WorkflowShadower shadower =
         new WorkflowShadower(options, mockScanWorkflowActivity, mockReplayWorkflowActivity);
     shadower.run();
+  }
+
+  private class ScanWorkflowActivityParamsMatcher
+      extends ArgumentMatcher<ScanWorkflowActivityParams> {
+    ScanWorkflowActivityParams params;
+
+    public ScanWorkflowActivityParamsMatcher(ScanWorkflowActivityParams params) {
+      this.params = params;
+    }
+
+    @Override
+    public boolean matches(Object argument) {
+      ScanWorkflowActivityParams newParams = (ScanWorkflowActivityParams) argument;
+      return params.getDomain().equals(newParams.getDomain())
+          && params.getWorkflowQuery().equals(newParams.getWorkflowQuery())
+          && params.getSamplingRate() == newParams.getSamplingRate()
+          && params.getPageSize() == newParams.getPageSize();
+    }
   }
 }

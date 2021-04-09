@@ -15,16 +15,16 @@
  */
 package com.uber.cadence.testing;
 
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
+import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityResult;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivityImpl;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityParams;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityResult;
+import com.uber.cadence.internal.shadowing.WorkflowExecution;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.Mode;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import com.uber.cadence.worker.ShadowingOptions;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
@@ -80,13 +80,12 @@ public final class WorkflowShadower {
       }
     }
     do {
-      ScanWorkflowActivityResult scanResult =
-          scanWorkflow.scan(
-              new ScanWorkflowActivityParams()
-                  .setDomain(options.getDomain())
-                  .setWorkflowQuery(query)
-                  .setNextPageToken(nextPageToken)
-                  .setSamplingRate(options.getSamplingRate()));
+      ScanWorkflowActivityParams params = new ScanWorkflowActivityParams();
+      params.setDomain(options.getDomain());
+      params.setWorkflowQuery(query);
+      params.setSamplingRate(options.getSamplingRate());
+      params.setNextPageToken(nextPageToken);
+      ScanWorkflowActivityResult scanResult = scanWorkflow.scan(params);
       nextPageToken = scanResult.getNextPageToken();
 
       for (WorkflowExecution execution : scanResult.getExecutions()) {
