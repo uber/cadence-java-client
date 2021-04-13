@@ -15,10 +15,7 @@
  */
 package com.uber.cadence.internal.shadowing;
 
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.shadower.shadowerConstants;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.Functions;
