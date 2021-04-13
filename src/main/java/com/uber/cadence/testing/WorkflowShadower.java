@@ -26,6 +26,8 @@ import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.shadower.ScanWorkflowActivityParams;
 import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import com.uber.cadence.worker.ShadowingOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
@@ -113,6 +115,28 @@ public final class WorkflowShadower {
         Thread.sleep(SLEEP_INTERVAL);
       }
     } while (nextPageToken != null && options.getShadowMode() == Mode.Normal);
+  }
+
+  public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
+    replayWorkflow.registerWorkflowImplementationTypes(workflowImplementationClasses);
+  }
+
+  public void registerWorkflowImplementationTypes(
+      WorkflowImplementationOptions options, Class<?>... workflowImplementationClasses) {
+    replayWorkflow.registerWorkflowImplementationTypesWithOptions(
+        options, workflowImplementationClasses);
+  }
+
+  public <R> void addWorkflowImplementationFactory(
+      WorkflowImplementationOptions options,
+      Class<R> workflowInterface,
+      Functions.Func<R> factory) {
+    replayWorkflow.addWorkflowImplementationFactoryWithOptions(options, workflowInterface, factory);
+  }
+
+  public <R> void addWorkflowImplementationFactory(
+      Class<R> workflowInterface, Functions.Func<R> factory) {
+    replayWorkflow.addWorkflowImplementationFactory(workflowInterface, factory);
   }
 
   private ShadowingOptions validateShadowingOptions(ShadowingOptions options) {
