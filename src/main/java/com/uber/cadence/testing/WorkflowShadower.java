@@ -15,6 +15,7 @@
  */
 package com.uber.cadence.testing;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityResult;
@@ -55,6 +56,7 @@ public final class WorkflowShadower {
         new ReplayWorkflowActivityImpl(service, metricsScope, taskList));
   }
 
+  @VisibleForTesting
   public WorkflowShadower(
       ShadowingOptions options,
       ScanWorkflowActivity scanWorkflow,
