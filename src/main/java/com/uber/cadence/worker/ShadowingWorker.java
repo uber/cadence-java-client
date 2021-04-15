@@ -19,10 +19,10 @@ package com.uber.cadence.worker;
 import com.google.common.base.MoreObjects;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.TaskList;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -44,6 +44,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TSimpleJSONProtocol;
 
 public final class ShadowingWorker implements Suspendable {
 
@@ -76,7 +78,12 @@ public final class ShadowingWorker implements Suspendable {
         client
             .getOptions()
             .getMetricsScope()
-            .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
+            .tagged(
+                ImmutableMap.of(
+                    MetricsTag.DOMAIN,
+                    shadowingOptions.getDomain(),
+                    MetricsTag.TASK_LIST,
+                    this.taskList));
     ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
     replayActivity =
         new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList, testOptions);
@@ -92,11 +99,11 @@ public final class ShadowingWorker implements Suspendable {
             .build();
     activityWorker =
         new SyncActivityWorker(
-            client.getService(), client.getOptions().getDomain(), this.taskList, activityOptions);
+            client.getService(), shadowerConstants.LocalDomainName, this.taskList, activityOptions);
     activityWorker.setActivitiesImplementation(scanActivity, replayActivity);
   }
 
-  void start() throws Exception {
+  public void start() throws Exception {
     if (!started.compareAndSet(false, true)) {
       return;
     }
@@ -104,19 +111,19 @@ public final class ShadowingWorker implements Suspendable {
     activityWorker.start();
   }
 
-  void shutdown() {
+  public void shutdown() {
     activityWorker.shutdown();
   }
 
-  void shutdownNow() {
+  public void shutdownNow() {
     activityWorker.shutdownNow();
   }
 
-  boolean isTerminated() {
+  public boolean isTerminated() {
     return activityWorker.isTerminated();
   }
 
-  void awaitTermination(long timeout, TimeUnit unit) {
+  public void awaitTermination(long timeout, TimeUnit unit) {
     InternalUtils.awaitTermination(activityWorker, unit.toMillis(timeout));
   }
 
@@ -158,6 +165,7 @@ public final class ShadowingWorker implements Suspendable {
   }
 
   protected void startShadowingWorkflow() throws Exception {
+    TSerializer serializer = new TSerializer(new TSimpleJSONProtocol.Factory());
     WorkflowParams params =
         new WorkflowParams()
             .setDomain(shadowingOptions.getDomain())
@@ -172,13 +180,17 @@ public final class ShadowingWorker implements Suspendable {
             .setDomain(shadowerConstants.LocalDomainName)
             .setWorkflowId(shadowingOptions.getDomain() + shadowerConstants.WorkflowIDSuffix)
             .setTaskList(new TaskList().setName(shadowerConstants.TaskList))
-            .setInput(JsonDataConverter.getInstance().toData(params))
+            .setInput(serializer.serialize(params))
             .setWorkflowType(new WorkflowType().setName(shadowerConstants.WorkflowName))
             .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
             .setRequestId(UUID.randomUUID().toString())
             .setExecutionStartToCloseTimeoutSeconds(864000)
             .setTaskStartToCloseTimeoutSeconds(60);
-    RpcRetryer.retryWithResult(
-        RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, () -> service.StartWorkflowExecution(request));
+    try {
+      RpcRetryer.retryWithResult(
+          RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, () -> service.StartWorkflowExecution(request));
+    } catch (WorkflowExecutionAlreadyStartedError e) {
+      // Ignore workflow execution already started error
+    }
   }
 }

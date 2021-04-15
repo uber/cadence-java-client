@@ -29,8 +29,6 @@ import com.uber.cadence.ListWorkflowExecutionsResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -114,13 +112,12 @@ public class ScanWorkflowActivityTest {
             .setNextPageToken(token);
     when(mockServiceClient.ScanWorkflowExecutions(eq(request))).thenReturn(response);
 
-    ScanWorkflowActivityParams params =
-        new ScanWorkflowActivityParams()
-            .setDomain(domain)
-            .setWorkflowQuery(query)
-            .setPageSize(pageSize)
-            .setNextPageToken(token)
-            .setSamplingRate(samplingRate);
+    ScanWorkflowActivityParams params = new ScanWorkflowActivityParams();
+    params.setDomain(domain);
+    params.setWorkflowQuery(query);
+    params.setPageSize(pageSize);
+    params.setNextPageToken(token);
+    params.setSamplingRate(samplingRate);
     ScanWorkflowActivityResult result = activity.scan(params);
     assertEquals(10, result.getExecutions().size());
     assertTrue(Arrays.equals(token, result.getNextPageToken()));

@@ -18,8 +18,6 @@ package com.uber.cadence.internal.shadowing;
 import static com.uber.cadence.shadower.shadowerConstants.ScanWorkflowActivityName;
 
 import com.uber.cadence.activity.ActivityMethod;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 
 public interface ScanWorkflowActivity {
   @ActivityMethod(name = ScanWorkflowActivityName)

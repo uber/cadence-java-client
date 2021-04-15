@@ -24,8 +24,6 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -55,9 +53,14 @@ public final class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
     List<WorkflowExecution> executions =
         samplingWorkflows(resp.getExecutions(), params.getSamplingRate());
 
-    return new ScanWorkflowActivityResult()
-        .setExecutions(executions)
-        .setNextPageToken(resp.getNextPageToken());
+    ScanWorkflowActivityResult result = new ScanWorkflowActivityResult();
+    result.setExecutions(
+        executions
+            .stream()
+            .map(com.uber.cadence.internal.shadowing.WorkflowExecution::new)
+            .collect(Collectors.toList()));
+    result.setNextPageToken(resp.getNextPageToken());
+    return result;
   }
 
   protected ListWorkflowExecutionsResponse scanWorkflows(ListWorkflowExecutionsRequest request)
