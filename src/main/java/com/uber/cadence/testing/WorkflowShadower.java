@@ -46,6 +46,18 @@ public final class WorkflowShadower {
   }
 
   public WorkflowShadower(
+      IWorkflowService service,
+      ShadowingOptions options,
+      String taskList,
+      Scope metricsScope,
+      TestEnvironmentOptions testOptions) {
+    this(
+        options,
+        new ScanWorkflowActivityImpl(service),
+        new ReplayWorkflowActivityImpl(service, metricsScope, taskList, testOptions));
+  }
+
+  public WorkflowShadower(
       IWorkflowService service, ShadowingOptions options, String taskList, Scope metricsScope) {
     this(
         options,

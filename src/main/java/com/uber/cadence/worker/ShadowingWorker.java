@@ -36,6 +36,7 @@ import com.uber.cadence.internal.worker.Suspendable;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.WorkflowParams;
 import com.uber.cadence.shadower.shadowerConstants;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
@@ -53,11 +54,20 @@ public final class ShadowingWorker implements Suspendable {
   private final ShadowingOptions shadowingOptions;
   private final AtomicBoolean started = new AtomicBoolean();
 
-  ShadowingWorker(
+  public ShadowingWorker(
       WorkflowClient client,
       String taskList,
       WorkerOptions options,
       ShadowingOptions shadowingOptions) {
+    this(client, taskList, options, shadowingOptions, new TestEnvironmentOptions.Builder().build());
+  }
+
+  public ShadowingWorker(
+      WorkflowClient client,
+      String taskList,
+      WorkerOptions options,
+      ShadowingOptions shadowingOptions,
+      TestEnvironmentOptions testOptions) {
     options = MoreObjects.firstNonNull(options, WorkerOptions.defaultInstance());
     this.shadowingOptions = Objects.requireNonNull(shadowingOptions);
     this.taskList = shadowingOptions.getDomain() + "-" + taskList;
@@ -68,7 +78,8 @@ public final class ShadowingWorker implements Suspendable {
             .getMetricsScope()
             .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
     ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
-    replayActivity = new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList);
+    replayActivity =
+        new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList, testOptions);
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()

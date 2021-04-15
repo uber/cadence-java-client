@@ -32,6 +32,7 @@ import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
 import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
@@ -54,9 +55,17 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
 
   public ReplayWorkflowActivityImpl(
       IWorkflowService serviceClient, Scope metricsScope, String taskList) {
+    this(serviceClient, metricsScope, taskList, new TestEnvironmentOptions.Builder().build());
+  }
+
+  public ReplayWorkflowActivityImpl(
+      IWorkflowService serviceClient,
+      Scope metricsScope,
+      String taskList,
+      TestEnvironmentOptions testOptions) {
     this.serviceClient = Objects.requireNonNull(serviceClient);
     this.metricsScope = Objects.requireNonNull(metricsScope);
-    worker = TestWorkflowEnvironment.newInstance().newWorker(taskList);
+    worker = TestWorkflowEnvironment.newInstance(testOptions).newWorker(taskList);
   }
 
   @Override
@@ -132,7 +141,7 @@ public final class ReplayWorkflowActivityImpl implements ReplayWorkflowActivity 
     WorkflowExecutionHistory workflowHistory;
     try {
       workflowHistory = getFullHistory(domain, execution);
-    } catch (Exception e) {
+    } catch (Throwable e) {
       log.error(
           "skipped workflow execution with domain: "
               + domain
