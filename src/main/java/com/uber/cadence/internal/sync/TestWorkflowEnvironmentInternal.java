@@ -82,6 +82,7 @@ import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.UpdateDomainRequest;
 import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.WorkflowClient;
@@ -764,13 +765,15 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     @Override
     public RespondDecisionTaskCompletedResponse RespondDecisionTaskCompleted(
         RespondDecisionTaskCompletedRequest completeRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       return impl.RespondDecisionTaskCompleted(completeRequest);
     }
 
     @Override
     public void RespondDecisionTaskFailed(RespondDecisionTaskFailedRequest failedRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondDecisionTaskFailed(failedRequest);
     }
 

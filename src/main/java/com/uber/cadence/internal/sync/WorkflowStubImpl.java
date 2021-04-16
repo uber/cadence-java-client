@@ -23,6 +23,7 @@ import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.client.*;
@@ -390,6 +391,9 @@ class WorkflowStubImpl implements WorkflowStub {
           execution.get(), workflowType, executionFailed.getDecisionTaskCompletedEventId(), cause);
     } else if (failure instanceof EntityNotExistsError) {
       throw new WorkflowNotFoundException(execution.get(), workflowType, failure.getMessage());
+    } else if (failure instanceof WorkflowExecutionAlreadyCompletedError) {
+      throw new WorkflowAlreadyCompletedException(
+          execution.get(), workflowType, failure.getMessage());
     } else if (failure instanceof CancellationException) {
       throw (CancellationException) failure;
     } else if (failure instanceof WorkflowException) {
