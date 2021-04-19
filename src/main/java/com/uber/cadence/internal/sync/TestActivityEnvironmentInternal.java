@@ -337,7 +337,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     @Override
     public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeat(
         RecordActivityTaskHeartbeatRequest heartbeatRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       if (activityHeartbetListener != null) {
         Object details =
             testEnvironmentOptions
@@ -355,60 +356,68 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     @Override
     public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeatByID(
         RecordActivityTaskHeartbeatByIDRequest heartbeatRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, DomainNotActiveError,
-            LimitExceededError, ServiceBusyError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, DomainNotActiveError, LimitExceededError,
+            ServiceBusyError, TException {
       return impl.RecordActivityTaskHeartbeatByID(heartbeatRequest);
     }
 
     @Override
     public void RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest completeRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskCompleted(completeRequest);
     }
 
     @Override
     public void RespondActivityTaskCompletedByID(
         RespondActivityTaskCompletedByIDRequest completeRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskCompletedByID(completeRequest);
     }
 
     @Override
     public void RespondActivityTaskFailed(RespondActivityTaskFailedRequest failRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskFailed(failRequest);
     }
 
     @Override
     public void RespondActivityTaskFailedByID(RespondActivityTaskFailedByIDRequest failRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskFailedByID(failRequest);
     }
 
     @Override
     public void RespondActivityTaskCanceled(RespondActivityTaskCanceledRequest canceledRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskCanceled(canceledRequest);
     }
 
     @Override
     public void RespondActivityTaskCanceledByID(
         RespondActivityTaskCanceledByIDRequest canceledRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondActivityTaskCanceledByID(canceledRequest);
     }
 
     @Override
     public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError,
-            CancellationAlreadyRequestedError, ServiceBusyError, TException {
+            CancellationAlreadyRequestedError, ServiceBusyError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RequestCancelWorkflowExecution(cancelRequest);
     }
 
     @Override
     public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-            TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, ServiceBusyError, TException {
       impl.SignalWorkflowExecution(signalRequest);
     }
 
@@ -431,8 +440,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
-            TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, ServiceBusyError, TException {
       impl.TerminateWorkflowExecution(terminateRequest);
     }
 
@@ -492,7 +501,8 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public void RespondQueryTaskCompleted(RespondQueryTaskCompletedRequest completeRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondQueryTaskCompleted(completeRequest);
     }
 
@@ -882,13 +892,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     @Override
     public RespondDecisionTaskCompletedResponse RespondDecisionTaskCompleted(
         RespondDecisionTaskCompletedRequest completeRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       return impl.RespondDecisionTaskCompleted(completeRequest);
     }
 
     @Override
     public void RespondDecisionTaskFailed(RespondDecisionTaskFailedRequest failedRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, InternalServiceError, EntityNotExistsError,
+            WorkflowExecutionAlreadyCompletedError, TException {
       impl.RespondDecisionTaskFailed(failedRequest);
     }
 

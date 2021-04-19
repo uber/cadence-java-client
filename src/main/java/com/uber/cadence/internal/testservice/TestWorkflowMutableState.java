@@ -48,6 +48,7 @@ import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StickyExecutionAttributes;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import java.util.Optional;
@@ -76,7 +77,8 @@ interface TestWorkflowMutableState {
       throws EntityNotExistsError, InternalServiceError, BadRequestError;
 
   void failDecisionTask(RespondDecisionTaskFailedRequest request)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
@@ -104,34 +106,44 @@ interface TestWorkflowMutableState {
       throws InternalServiceError, EntityNotExistsError, BadRequestError;
 
   void completeActivityTask(String activityId, RespondActivityTaskCompletedRequest request)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void completeActivityTaskById(String activityId, RespondActivityTaskCompletedByIDRequest request)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void failActivityTask(String activityId, RespondActivityTaskFailedRequest request)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void failActivityTaskById(String id, RespondActivityTaskFailedByIDRequest failRequest)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   RecordActivityTaskHeartbeatResponse heartbeatActivityTask(String activityId, byte[] details)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void signal(SignalWorkflowExecutionRequest signalRequest)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void signalFromWorkflow(SignalExternalWorkflowExecutionDecisionAttributes a)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void cancelActivityTask(String id, RespondActivityTaskCanceledRequest canceledRequest)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void cancelActivityTaskById(String id, RespondActivityTaskCanceledByIDRequest canceledRequest)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   QueryWorkflowResponse query(QueryWorkflowRequest queryRequest) throws TException;
 
