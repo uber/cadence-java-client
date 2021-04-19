@@ -131,6 +131,10 @@ public class MetricsType {
   public static final String ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER =
       CADENCE_METRICS_PREFIX + "activity-local-dispatch-succeed";
   public static final String WORKER_PANIC_COUNTER = CADENCE_METRICS_PREFIX + "worker-panic";
+  public static final String LOCAL_ACTIVITY_ACTIVE_THREAD_COUNT =
+      CADENCE_METRICS_PREFIX + "local_activity_active_thread_count";
+  public static final String ACTIVITY_ACTIVE_THREAD_COUNT =
+      CADENCE_METRICS_PREFIX + "activity_active_thread_count";
 
   public static final String TASK_LIST_QUEUE_LATENCY =
       CADENCE_METRICS_PREFIX + "tasklist-queue-latency";
