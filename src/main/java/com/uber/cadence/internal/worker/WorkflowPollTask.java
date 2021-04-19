@@ -22,6 +22,7 @@ import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.ServiceBusyError;
 import com.uber.cadence.TaskList;
+import com.uber.cadence.common.BinaryChecksum;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -64,6 +65,7 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     PollForDecisionTaskRequest pollRequest = new PollForDecisionTaskRequest();
     pollRequest.setDomain(domain);
     pollRequest.setIdentity(identity);
+    pollRequest.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
 
     TaskList tl = new TaskList();
     tl.setName(taskList);
