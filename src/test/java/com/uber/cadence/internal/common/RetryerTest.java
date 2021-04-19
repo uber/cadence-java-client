@@ -21,8 +21,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancellationAlreadyRequestedError;
+import com.uber.cadence.DomainAlreadyExistsError;
+import com.uber.cadence.DomainNotActiveError;
+import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.common.RetryOptions;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.junit.Test;
@@ -115,13 +126,16 @@ public class RetryerTest {
             .setExpiration(Duration.ofSeconds(100))
             .validateBuildWithDefaults();
     options = options.addDoNotRetry(InterruptedException.class);
-    long start = System.currentTimeMillis();
+    // need to use array (or an object) since we cannot change the
+    // value of the variable inside the lambda function.
+    int[] numberOfCalls = {0};
     try {
       RpcRetryer.retryWithResultAsync(
               options,
               () -> {
                 CompletableFuture<Void> result = new CompletableFuture<>();
                 result.completeExceptionally(new InterruptedException("simulated"));
+                ++numberOfCalls[0];
                 return result;
               })
           .get();
@@ -130,7 +144,8 @@ public class RetryerTest {
       assertTrue(e.getCause() instanceof InterruptedException);
       assertEquals("simulated", e.getCause().getMessage());
     }
-    assertTrue(System.currentTimeMillis() - start < 100000);
+    // Make sure the error wasn't retried
+    assertTrue(numberOfCalls[0] == 1);
   }
 
   @Test
@@ -140,13 +155,16 @@ public class RetryerTest {
             .setInitialInterval(Duration.ofMillis(10))
             .setMaximumInterval(Duration.ofMillis(100))
             .setExpiration(Duration.ofMillis(500))
-            .setMaximumAttempts(1)
+            .setMaximumAttempts(3)
             .validateBuildWithDefaults();
-    long start = System.currentTimeMillis();
+    // need to use array (or an object) since we cannot change the
+    // value of the variable inside the lambda function.
+    int[] numberOfCalls = {0};
     try {
       RpcRetryer.retryWithResultAsync(
               options,
               () -> {
+                ++numberOfCalls[0];
                 throw new IllegalArgumentException("simulated");
               })
           .get();
@@ -155,6 +173,34 @@ public class RetryerTest {
       assertTrue(e.getCause() instanceof IllegalArgumentException);
       assertEquals("simulated", e.getCause().getMessage());
     }
-    assertTrue(System.currentTimeMillis() - start < 500);
+    // Make sure the error wasn't retried
+    assertTrue(numberOfCalls[0] == 3);
+  }
+
+  @Test
+  public void testNonRetriableExceptionList() {
+    // Since we tested retry and no-retry logic works correctly above,
+    // In this test we just ensure the default options contain the right
+    // set of Exceptions as non-retriable so we can make sure that any
+    // change to that list would be intentional.
+
+    List<Class<? extends Throwable>> noRetryExceptions =
+        RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS.getDoNotRetry();
+    List<Class<? extends Throwable>> expectedList =
+        new ArrayList<>(
+            Arrays.asList(
+                BadRequestError.class,
+                EntityNotExistsError.class,
+                WorkflowExecutionAlreadyCompletedError.class,
+                WorkflowExecutionAlreadyStartedError.class,
+                DomainAlreadyExistsError.class,
+                QueryFailedError.class,
+                DomainNotActiveError.class,
+                CancellationAlreadyRequestedError.class));
+
+    assertEquals(expectedList.size(), noRetryExceptions.size());
+    for (Class<? extends Throwable> exp : noRetryExceptions) {
+      assertTrue("Missing no retry exception in default options", expectedList.indexOf(exp) >= 0);
+    }
   }
 }
