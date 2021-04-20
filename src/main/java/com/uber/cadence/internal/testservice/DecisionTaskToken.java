@@ -33,7 +33,7 @@ final class DecisionTaskToken {
 
   DecisionTaskToken(ExecutionId executionId, int historySize) {
     this.executionId = Objects.requireNonNull(executionId);
-    this.historySize = Objects.requireNonNull(historySize);
+    this.historySize = historySize;
   }
 
   ExecutionId getExecutionId() {
