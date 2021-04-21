@@ -45,6 +45,7 @@ public final class WorkflowShadower {
 
   /**
    * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   *
    * @param service is the target service to fetch workflow history.
    * @param options is the shadowing options.
    * @param taskList is the task list used in the workflows.
@@ -55,6 +56,7 @@ public final class WorkflowShadower {
 
   /**
    * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   *
    * @param service is the target service to fetch workflow history.
    * @param options is the shadowing options.
    * @param taskList is the task list used in the workflows.

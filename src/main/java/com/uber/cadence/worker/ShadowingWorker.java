@@ -58,6 +58,7 @@ public final class ShadowingWorker implements Suspendable {
 
   /**
    * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   *
    * @param client is the target endpoint to fetch workflow history.
    * @param taskList is the task list used in the workflows.
    * @param options is worker option.
@@ -73,6 +74,7 @@ public final class ShadowingWorker implements Suspendable {
 
   /**
    * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   *
    * @param client is the target endpoint to fetch workflow history.
    * @param taskList is the task list used in the workflows.
    * @param options is worker option.
