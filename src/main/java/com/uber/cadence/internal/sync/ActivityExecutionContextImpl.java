@@ -22,6 +22,7 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionException;
@@ -176,6 +177,8 @@ class ActivityExecutionContextImpl implements ActivityExecutionContext {
       }
     } catch (EntityNotExistsError e) {
       lastException = new ActivityNotExistsException(task, e);
+    } catch (WorkflowExecutionAlreadyCompletedError e) {
+      throw new ActivityNotExistsException(task, e);
     } catch (BadRequestError e) {
       lastException = new ActivityCompletionFailureException(task, e);
     }

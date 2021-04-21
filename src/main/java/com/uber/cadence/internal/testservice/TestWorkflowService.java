@@ -87,6 +87,7 @@ import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.UpdateDomainRequest;
 import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
@@ -567,7 +568,8 @@ public final class TestWorkflowService implements IWorkflowService {
       String signalId,
       SignalExternalWorkflowExecutionDecisionAttributes a,
       TestWorkflowMutableState source)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError {
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError {
     ExecutionId executionId = new ExecutionId(a.getDomain(), a.getExecution());
     TestWorkflowMutableState mutableState = null;
     try {

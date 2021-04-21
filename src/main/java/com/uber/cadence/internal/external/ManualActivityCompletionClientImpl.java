@@ -27,6 +27,7 @@ import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedByIDRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.client.ActivityCompletionFailureException;
 import com.uber.cadence.client.ActivityNotExistsException;
@@ -99,6 +100,8 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
+      } catch (WorkflowExecutionAlreadyCompletedError e) {
+        throw new ActivityNotExistsException(e);
       } catch (TException e) {
         throw new ActivityCompletionFailureException(e);
       }
@@ -118,6 +121,8 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
         service.RespondActivityTaskCompletedByID(request);
         metricsScope.counter(MetricsType.ACTIVITY_TASK_COMPLETED_BY_ID_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
+        throw new ActivityNotExistsException(e);
+      } catch (WorkflowExecutionAlreadyCompletedError e) {
         throw new ActivityNotExistsException(e);
       } catch (TException e) {
         throw new ActivityCompletionFailureException(activityId, e);
@@ -141,6 +146,8 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
         throw new ActivityNotExistsException(e);
+      } catch (WorkflowExecutionAlreadyCompletedError e) {
+        throw new ActivityNotExistsException(e);
       } catch (TException e) {
         throw new ActivityCompletionFailureException(e);
       }
@@ -155,6 +162,8 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
         RpcRetryer.retry(() -> service.RespondActivityTaskFailedByID(request));
         metricsScope.counter(MetricsType.ACTIVITY_TASK_FAILED_BY_ID_COUNTER).inc(1);
       } catch (EntityNotExistsError e) {
+        throw new ActivityNotExistsException(e);
+      } catch (WorkflowExecutionAlreadyCompletedError e) {
         throw new ActivityNotExistsException(e);
       } catch (TException e) {
         throw new ActivityCompletionFailureException(activityId, e);
@@ -175,6 +184,8 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
           throw new ActivityCancelledException();
         }
       } catch (EntityNotExistsError e) {
+        throw new ActivityNotExistsException(e);
+      } catch (WorkflowExecutionAlreadyCompletedError e) {
         throw new ActivityNotExistsException(e);
       } catch (TException e) {
         throw new ActivityCompletionFailureException(e);

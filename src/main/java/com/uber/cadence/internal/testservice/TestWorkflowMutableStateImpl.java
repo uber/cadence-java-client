@@ -84,6 +84,7 @@ import com.uber.cadence.TimeoutType;
 import com.uber.cadence.UpsertWorkflowSearchAttributesDecisionAttributes;
 import com.uber.cadence.UpsertWorkflowSearchAttributesEventAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes;
 import com.uber.cadence.WorkflowExecutionSignaledEventAttributes;
@@ -1181,10 +1182,12 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
         });
   }
 
-  private void checkCompleted() throws EntityNotExistsError {
+  private void checkCompleted()
+      throws EntityNotExistsError, WorkflowExecutionAlreadyCompletedError {
     State workflowState = workflow.getState();
     if (isTerminalState(workflowState)) {
-      throw new EntityNotExistsError("Workflow is already completed: " + workflowState);
+      throw new WorkflowExecutionAlreadyCompletedError(
+          "Workflow is already completed: " + workflowState);
     }
   }
 

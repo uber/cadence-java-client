@@ -85,6 +85,7 @@ import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.UpdateDomainRequest;
 import com.uber.cadence.UpdateDomainResponse;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
@@ -292,6 +293,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       sw.stop();
       return resp;
     } catch (EntityNotExistsError
+        | WorkflowExecutionAlreadyCompletedError
         | BadRequestError
         | DomainAlreadyExistsError
         | WorkflowExecutionAlreadyStartedError
@@ -862,7 +864,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeatByID(
       RecordActivityTaskHeartbeatByIDRequest heartbeatRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, DomainNotActiveError,
-          LimitExceededError, ServiceBusyError, TException {
+          WorkflowExecutionAlreadyCompletedError, LimitExceededError, ServiceBusyError, TException {
     return measureRemoteCall(
         ServiceMethod.RECORD_ACTIVITY_TASK_HEARTBEAT_BY_ID,
         () -> recordActivityTaskHeartbeatByID(heartbeatRequest));
@@ -1818,7 +1820,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public ResetStickyTaskListResponse ResetStickyTaskList(ResetStickyTaskListRequest resetRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, LimitExceededError,
-          ServiceBusyError, DomainNotActiveError, TException {
+          WorkflowExecutionAlreadyCompletedError, ServiceBusyError, DomainNotActiveError,
+          TException {
     return measureRemoteCall(
         ServiceMethod.RESET_STICKY_TASK_LIST, () -> resetStickyTaskList(resetRequest));
   }
