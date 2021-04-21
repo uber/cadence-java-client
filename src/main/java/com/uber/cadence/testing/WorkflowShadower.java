@@ -43,11 +43,24 @@ public final class WorkflowShadower {
   private final ScanWorkflowActivity scanWorkflow;
   private final ReplayWorkflowActivity replayWorkflow;
 
+  /**
+   * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   * @param service is the target service to fetch workflow history.
+   * @param options is the shadowing options.
+   * @param taskList is the task list used in the workflows.
+   */
   public WorkflowShadower(IWorkflowService service, ShadowingOptions options, String taskList) {
-
     this(service, options, taskList, new NoopScope());
   }
 
+  /**
+   * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   * @param service is the target service to fetch workflow history.
+   * @param options is the shadowing options.
+   * @param taskList is the task list used in the workflows.
+   * @param metricsScope uses to emit replay metrics.
+   * @param testOptions uses to set customized data converter, interceptor and context propagator.
+   */
   public WorkflowShadower(
       IWorkflowService service,
       ShadowingOptions options,

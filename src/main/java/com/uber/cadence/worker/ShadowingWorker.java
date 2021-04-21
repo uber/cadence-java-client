@@ -56,6 +56,13 @@ public final class ShadowingWorker implements Suspendable {
   private final ShadowingOptions shadowingOptions;
   private final AtomicBoolean started = new AtomicBoolean();
 
+  /**
+   * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   * @param client is the target endpoint to fetch workflow history.
+   * @param taskList is the task list used in the workflows.
+   * @param options is worker option.
+   * @param shadowingOptions is the shadowing options.
+   */
   public ShadowingWorker(
       WorkflowClient client,
       String taskList,
@@ -64,6 +71,14 @@ public final class ShadowingWorker implements Suspendable {
     this(client, taskList, options, shadowingOptions, new TestEnvironmentOptions.Builder().build());
   }
 
+  /**
+   * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   * @param client is the target endpoint to fetch workflow history.
+   * @param taskList is the task list used in the workflows.
+   * @param options is worker option.
+   * @param shadowingOptions is the shadowing options.
+   * @param testOptions uses to set customized data converter, interceptor and context propagator.
+   */
   public ShadowingWorker(
       WorkflowClient client,
       String taskList,
