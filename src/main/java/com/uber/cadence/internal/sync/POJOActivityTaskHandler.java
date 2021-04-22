@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Joiner;
 import com.google.common.reflect.TypeToken;
+import com.google.common.util.concurrent.RateLimiter;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
@@ -43,6 +44,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 
 class POJOActivityTaskHandler implements ActivityTaskHandler {
+  private static final RateLimiter metricsRateLimiter = RateLimiter.create(1);
 
   private final DataConverter dataConverter;
   private final ScheduledExecutorService heartbeatExecutor;
@@ -185,6 +187,13 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
                   + knownTypes),
           metricsScope,
           isLocalActivity);
+    }
+    if (metricsRateLimiter.tryAcquire(1)) {
+        if (isLocalActivity) {
+            metricsScope.gauge(MetricsType.LOCAL_ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
+        } else {
+            metricsScope.gauge(MetricsType.ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
+        }
     }
     return activity.execute(activityTask, metricsScope);
   }

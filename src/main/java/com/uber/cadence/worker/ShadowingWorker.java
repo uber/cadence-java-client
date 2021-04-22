@@ -36,6 +36,7 @@ import com.uber.cadence.internal.worker.Suspendable;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.WorkflowParams;
 import com.uber.cadence.shadower.shadowerConstants;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
@@ -55,11 +56,37 @@ public final class ShadowingWorker implements Suspendable {
   private final ShadowingOptions shadowingOptions;
   private final AtomicBoolean started = new AtomicBoolean();
 
+  /**
+   * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   *
+   * @param client is the target endpoint to fetch workflow history.
+   * @param taskList is the task list used in the workflows.
+   * @param options is worker option.
+   * @param shadowingOptions is the shadowing options.
+   */
   public ShadowingWorker(
       WorkflowClient client,
       String taskList,
       WorkerOptions options,
       ShadowingOptions shadowingOptions) {
+    this(client, taskList, options, shadowingOptions, new TestEnvironmentOptions.Builder().build());
+  }
+
+  /**
+   * ShadowingWorker starts a shadowing workflow to replay the target workflows.
+   *
+   * @param client is the target endpoint to fetch workflow history.
+   * @param taskList is the task list used in the workflows.
+   * @param options is worker option.
+   * @param shadowingOptions is the shadowing options.
+   * @param testOptions uses to set customized data converter, interceptor and context propagator.
+   */
+  public ShadowingWorker(
+      WorkflowClient client,
+      String taskList,
+      WorkerOptions options,
+      ShadowingOptions shadowingOptions,
+      TestEnvironmentOptions testOptions) {
     options = MoreObjects.firstNonNull(options, WorkerOptions.defaultInstance());
     this.shadowingOptions = Objects.requireNonNull(shadowingOptions);
     this.taskList = shadowingOptions.getDomain() + "-" + taskList;
@@ -75,7 +102,8 @@ public final class ShadowingWorker implements Suspendable {
                     MetricsTag.TASK_LIST,
                     this.taskList));
     ScanWorkflowActivity scanActivity = new ScanWorkflowActivityImpl(client.getService());
-    replayActivity = new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList);
+    replayActivity =
+        new ReplayWorkflowActivityImpl(client.getService(), metricsScope, taskList, testOptions);
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()

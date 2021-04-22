@@ -558,6 +558,8 @@ class DecisionsHelper {
   }
 
   void upsertSearchAttributes(SearchAttributes searchAttributes) {
+    addAllMissingVersionMarker(false, Optional.empty());
+
     UpsertWorkflowSearchAttributesDecisionAttributes decisionAttr =
         new UpsertWorkflowSearchAttributesDecisionAttributes()
             .setSearchAttributes(searchAttributes);

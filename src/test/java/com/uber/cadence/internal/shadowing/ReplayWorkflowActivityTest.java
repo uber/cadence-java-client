@@ -41,10 +41,12 @@ import com.uber.cadence.TimerStartedEventAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.WorkflowExecutionHistory;
+import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.testing.WorkflowTestingTest;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -70,7 +72,11 @@ public class ReplayWorkflowActivityTest {
   public void init() {
     mockServiceClient = mock(IWorkflowService.class);
     metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
-    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, "test");
+    TestEnvironmentOptions testOptions =
+        new TestEnvironmentOptions.Builder()
+            .setDataConverter(JsonDataConverter.getInstance())
+            .build();
+    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, "test", testOptions);
     activity.registerWorkflowImplementationTypes(WorkflowTestingTest.EmptyWorkflowImpl.class);
 
     domain = UUID.randomUUID().toString();

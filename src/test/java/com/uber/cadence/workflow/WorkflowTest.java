@@ -4524,6 +4524,37 @@ public class WorkflowTest {
     assertEquals("activity", workflowStub.query());
   }
 
+  // The following test covers the scenario where getVersion call is removed before
+  // upsertSearchAttributes.
+  public static class TestGetVersionRemovedInReplay3WorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      Map<String, Object> searchAttrMap = new HashMap<>();
+      searchAttrMap.put("CustomKeywordField", "abc");
+      // Test removing a version check in replay code.
+      if (!getVersionExecuted.contains(taskList)) {
+        Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+        Workflow.upsertSearchAttributes(searchAttrMap);
+        getVersionExecuted.add(taskList);
+      } else {
+        Workflow.upsertSearchAttributes(searchAttrMap);
+      }
+
+      return "done";
+    }
+  }
+
+  @Test
+  public void testGetVersionRemovedInReplay3() {
+    startWorkerFor(TestGetVersionRemovedInReplay3WorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("done", result);
+    tracer.setExpected("getVersion", "upsertSearchAttributes");
+  }
+
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
 
     @Override
