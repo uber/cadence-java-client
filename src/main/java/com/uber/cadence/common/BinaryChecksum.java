@@ -23,7 +23,7 @@ public final class BinaryChecksum {
 
   private BinaryChecksum() {}
 
-  public static String getBinaryChecksum() {
+  public static synchronized String getBinaryChecksum() {
     // TODO: should set the binaryChecksum to some auto generated value if it's empty
     return binaryChecksum;
   }
