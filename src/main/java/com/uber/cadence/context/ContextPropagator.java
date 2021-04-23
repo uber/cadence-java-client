@@ -23,6 +23,9 @@ import java.util.Map;
  * Context Propagators are used to propagate information from workflow to activity, workflow to
  * child workflow, and workflow to child thread (using {@link com.uber.cadence.workflow.Async}).
  *
+ * <p>It is important to note that all threads share one ContextPropagator instance, so your
+ * implementation <b>must</b> be thread-safe and store any state in ThreadLocal variables.
+ *
  * <p>A sample <code>ContextPropagator</code> that copies all {@link org.slf4j.MDC} entries starting
  * with a given prefix along the code path looks like this:
  *
@@ -136,4 +139,31 @@ public interface ContextPropagator {
 
   /** Sets the current context */
   void setCurrentContext(Object context);
+
+  /**
+   * This is a lifecycle method, called after the context has been propagated to the
+   * workflow/activity thread but the workflow/activity has not yet started.
+   */
+  default void setUp() {
+    // No-op
+  }
+
+  /**
+   * This is a lifecycle method, called after the workflow/activity has completed. If the method
+   * finished without exception, {@code successful} will be true. Otherwise, it will be false and
+   * {@link #onError(Throwable)} will have already been called.
+   */
+  default void finish(boolean successful) {
+    // No-op
+  }
+
+  /**
+   * This is a lifecycle method, called when the workflow/activity finishes by throwing an unhandled
+   * exception. {@link #finish(boolean)} is called after this method.
+   *
+   * @param t The unhandled exception that caused the workflow/activity to terminate
+   */
+  default void onError(Throwable t) {
+    // No-op
+  }
 }
