@@ -64,46 +64,57 @@ interface TestWorkflowMutableState {
   StartWorkflowExecutionRequest getStartRequest();
 
   void startDecisionTask(PollForDecisionTaskResponse task, PollForDecisionTaskRequest pollRequest)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void completeDecisionTask(int historySize, RespondDecisionTaskCompletedRequest request)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void completeSignalExternalWorkflowExecution(String signalId, String runId)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void failSignalExternalWorkflowExecution(
       String signalId, SignalExternalWorkflowExecutionFailedCause cause)
-      throws EntityNotExistsError, InternalServiceError, BadRequestError;
+      throws EntityNotExistsError, InternalServiceError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void failDecisionTask(RespondDecisionTaskFailedRequest request)
       throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
           BadRequestError;
 
   void childWorkflowStarted(ChildWorkflowExecutionStartedEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void childWorkflowFailed(String workflowId, ChildWorkflowExecutionFailedEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void childWorkflowTimedOut(String activityId, ChildWorkflowExecutionTimedOutEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void failStartChildWorkflow(String workflowId, StartChildWorkflowExecutionFailedEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void childWorkflowCompleted(String workflowId, ChildWorkflowExecutionCompletedEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void childWorkflowCanceled(String workflowId, ChildWorkflowExecutionCanceledEventAttributes a)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void startWorkflow(
       boolean continuedAsNew, Optional<SignalWorkflowExecutionRequest> signalWithStartSignal)
       throws InternalServiceError, BadRequestError;
 
   void startActivityTask(PollForActivityTaskResponse task, PollForActivityTaskRequest pollRequest)
-      throws InternalServiceError, EntityNotExistsError, BadRequestError;
+      throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,
+          BadRequestError;
 
   void completeActivityTask(String activityId, RespondActivityTaskCompletedRequest request)
       throws InternalServiceError, EntityNotExistsError, WorkflowExecutionAlreadyCompletedError,

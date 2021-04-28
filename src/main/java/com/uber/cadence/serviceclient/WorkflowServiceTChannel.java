@@ -591,9 +591,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
-      if (result.isSetEntityNotExistError()) {
-        throw result.getEntityNotExistError();
-      }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -704,6 +701,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetClientVersionNotSupportedError()) {
         throw result.getClientVersionNotSupportedError();
       }
@@ -742,6 +742,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
@@ -750,9 +753,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetLimitExceededError()) {
         throw result.getLimitExceededError();
-      }
-      if (result.isSetEntityNotExistError()) {
-        throw result.getEntityNotExistError();
       }
       if (result.isSetClientVersionNotSupportedError()) {
         throw result.getClientVersionNotSupportedError();
@@ -840,6 +840,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
@@ -890,6 +893,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
@@ -936,6 +942,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -985,6 +994,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
@@ -1031,6 +1043,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -1080,6 +1095,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
@@ -1126,6 +1144,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -1174,6 +1195,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -1224,6 +1248,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
+      }
       if (result.isSetCancellationAlreadyRequestedError()) {
         throw result.getCancellationAlreadyRequestedError();
       }
@@ -1272,6 +1299,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -1420,6 +1450,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -1846,6 +1879,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
+      }
+      if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+        throw result.getWorkflowExecutionAlreadyCompletedError();
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
@@ -2330,6 +2366,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                 }
                 if (result.isSetEntityNotExistError()) {
                   resultHandler.onError(result.getEntityNotExistError());
+                  return;
+                }
+                if (result.isSetWorkflowExecutionAlreadyCompletedError()) {
+                  resultHandler.onError(result.getWorkflowExecutionAlreadyCompletedError());
                   return;
                 }
                 if (result.isSetServiceBusyError()) {

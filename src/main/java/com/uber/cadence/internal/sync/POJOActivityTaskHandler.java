@@ -189,11 +189,13 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
           isLocalActivity);
     }
     if (metricsRateLimiter.tryAcquire(1)) {
-        if (isLocalActivity) {
-            metricsScope.gauge(MetricsType.LOCAL_ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
-        } else {
-            metricsScope.gauge(MetricsType.ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
-        }
+      if (isLocalActivity) {
+        metricsScope
+            .gauge(MetricsType.LOCAL_ACTIVITY_ACTIVE_THREAD_COUNT)
+            .update(Thread.activeCount());
+      } else {
+        metricsScope.gauge(MetricsType.ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
+      }
     }
     return activity.execute(activityTask, metricsScope);
   }
