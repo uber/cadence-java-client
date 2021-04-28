@@ -30,14 +30,21 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.uber.cadence.BadRequestError;
+import com.uber.cadence.CancellationAlreadyRequestedError;
+import com.uber.cadence.DomainAlreadyExistsError;
+import com.uber.cadence.DomainNotActiveError;
+import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.Memo;
+import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
@@ -2432,6 +2439,76 @@ public class WorkflowTest {
     client2.execute();
   }
 
+  // Simple workflow completes immediately after it starts. This workflow
+  // will be used to test sending signals to completed workflows
+  public static class TestSimpleWorkflowImpl implements QueryableWorkflow {
+    @Override
+    public String execute() {
+      return "Execution complete";
+    }
+
+    @Override
+    public String getState() {
+      return "simple_state";
+    }
+
+    @Override
+    public void mySignal(String value) {
+      log.info("#### You should never see this line ####");
+    }
+  }
+
+  @Test
+  public void testSignalingCompletedWorkflow() {
+    Worker queryWorker;
+    if (useExternalService) {
+      WorkerFactory workerFactory = WorkerFactory.newInstance(workflowClient);
+      queryWorker = workerFactory.newWorker(taskList);
+    } else {
+      queryWorker = testEnvironment.newWorker(taskList);
+    }
+    queryWorker.registerWorkflowImplementationTypes(TestSimpleWorkflowImpl.class);
+    startWorkerFor(TestSimpleWorkflowImpl.class);
+
+    String workflowId = UUID.randomUUID().toString();
+    WorkflowOptions.Builder optionsBuilder = newWorkflowOptionsBuilder(taskList);
+    RetryOptions workflowRetryOptions =
+        new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofSeconds(1))
+            .setExpiration(Duration.ofSeconds(1))
+            .setMaximumAttempts(1)
+            .setBackoffCoefficient(1.0)
+            .setDoNotRetry(
+                BadRequestError.class,
+                EntityNotExistsError.class,
+                WorkflowExecutionAlreadyCompletedError.class,
+                WorkflowExecutionAlreadyStartedError.class,
+                DomainAlreadyExistsError.class,
+                QueryFailedError.class,
+                DomainNotActiveError.class,
+                CancellationAlreadyRequestedError.class)
+            .build();
+    optionsBuilder.setRetryOptions(workflowRetryOptions);
+    optionsBuilder.setWorkflowId(workflowId);
+    QueryableWorkflow client =
+        workflowClient.newWorkflowStub(QueryableWorkflow.class, optionsBuilder.build());
+
+    // This completes the workflow, workflow won't receive the signal after here
+    client.execute();
+
+    try {
+      client.mySignal("Hello!");
+      assert (false); // Signal call should throw an exception, so fail if it doesn't
+    } catch (Exception e) {
+      if (e.getCause().getClass() != WorkflowExecutionAlreadyCompletedError.class
+          && e.getCause().getClass() != EntityNotExistsError.class // only for legacy servers
+      ) {
+        // Using assertEquals to output the actual error
+        assertEquals(WorkflowExecutionAlreadyCompletedError.class, e.getCause().getClass());
+      }
+    }
+  }
+
   public static class TestSignalWithStartWorkflowImpl implements QueryableWorkflow {
 
     String state = "initial";
@@ -4522,6 +4599,37 @@ public class WorkflowTest {
         "getVersion",
         "executeActivity TestActivities::activity");
     assertEquals("activity", workflowStub.query());
+  }
+
+  // The following test covers the scenario where getVersion call is removed before
+  // upsertSearchAttributes.
+  public static class TestGetVersionRemovedInReplay3WorkflowImpl implements TestWorkflow1 {
+    @Override
+    public String execute(String taskList) {
+      Map<String, Object> searchAttrMap = new HashMap<>();
+      searchAttrMap.put("CustomKeywordField", "abc");
+      // Test removing a version check in replay code.
+      if (!getVersionExecuted.contains(taskList)) {
+        Workflow.getVersion("test_change", Workflow.DEFAULT_VERSION, 1);
+        Workflow.upsertSearchAttributes(searchAttrMap);
+        getVersionExecuted.add(taskList);
+      } else {
+        Workflow.upsertSearchAttributes(searchAttrMap);
+      }
+
+      return "done";
+    }
+  }
+
+  @Test
+  public void testGetVersionRemovedInReplay3() {
+    startWorkerFor(TestGetVersionRemovedInReplay3WorkflowImpl.class);
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+    String result = workflowStub.execute(taskList);
+    assertEquals("done", result);
+    tracer.setExpected("getVersion", "upsertSearchAttributes");
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {

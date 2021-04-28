@@ -17,6 +17,7 @@ package com.uber.cadence.worker;
 
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 
+/** The WorkflowStatus is only used in shadowing option. */
 public enum WorkflowStatus {
   OPEN("OPEN"),
   CLOSED("CLOSED"),

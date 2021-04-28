@@ -25,6 +25,7 @@ import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.QueryFailedError;
+import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.common.RetryOptions;
 import java.time.Duration;
@@ -59,6 +60,7 @@ public final class RpcRetryer {
     roBuilder.setDoNotRetry(
         BadRequestError.class,
         EntityNotExistsError.class,
+        WorkflowExecutionAlreadyCompletedError.class,
         WorkflowExecutionAlreadyStartedError.class,
         DomainAlreadyExistsError.class,
         QueryFailedError.class,

@@ -15,17 +15,20 @@
  */
 package com.uber.cadence.testing;
 
-import com.uber.cadence.WorkflowExecution;
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityImpl;
+import com.uber.cadence.internal.shadowing.ReplayWorkflowActivityResult;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivity;
 import com.uber.cadence.internal.shadowing.ScanWorkflowActivityImpl;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityParams;
+import com.uber.cadence.internal.shadowing.ScanWorkflowActivityResult;
+import com.uber.cadence.internal.shadowing.WorkflowExecution;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.shadower.Mode;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
-import com.uber.cadence.shadower.ScanWorkflowActivityParams;
-import com.uber.cadence.shadower.ScanWorkflowActivityResult;
 import com.uber.cadence.worker.ShadowingOptions;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
+import com.uber.cadence.workflow.Functions;
 import com.uber.m3.tally.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
@@ -40,9 +43,36 @@ public final class WorkflowShadower {
   private final ScanWorkflowActivity scanWorkflow;
   private final ReplayWorkflowActivity replayWorkflow;
 
+  /**
+   * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   *
+   * @param service is the target service to fetch workflow history.
+   * @param options is the shadowing options.
+   * @param taskList is the task list used in the workflows.
+   */
   public WorkflowShadower(IWorkflowService service, ShadowingOptions options, String taskList) {
-
     this(service, options, taskList, new NoopScope());
+  }
+
+  /**
+   * WorkflowShadower fetches the workflow history from remote and run replay test locally.
+   *
+   * @param service is the target service to fetch workflow history.
+   * @param options is the shadowing options.
+   * @param taskList is the task list used in the workflows.
+   * @param metricsScope uses to emit replay metrics.
+   * @param testOptions uses to set customized data converter, interceptor and context propagator.
+   */
+  public WorkflowShadower(
+      IWorkflowService service,
+      ShadowingOptions options,
+      String taskList,
+      Scope metricsScope,
+      TestEnvironmentOptions testOptions) {
+    this(
+        options,
+        new ScanWorkflowActivityImpl(service),
+        new ReplayWorkflowActivityImpl(service, metricsScope, taskList, testOptions));
   }
 
   public WorkflowShadower(
@@ -53,6 +83,7 @@ public final class WorkflowShadower {
         new ReplayWorkflowActivityImpl(service, metricsScope, taskList));
   }
 
+  @VisibleForTesting
   public WorkflowShadower(
       ShadowingOptions options,
       ScanWorkflowActivity scanWorkflow,
@@ -80,13 +111,12 @@ public final class WorkflowShadower {
       }
     }
     do {
-      ScanWorkflowActivityResult scanResult =
-          scanWorkflow.scan(
-              new ScanWorkflowActivityParams()
-                  .setDomain(options.getDomain())
-                  .setWorkflowQuery(query)
-                  .setNextPageToken(nextPageToken)
-                  .setSamplingRate(options.getSamplingRate()));
+      ScanWorkflowActivityParams params = new ScanWorkflowActivityParams();
+      params.setDomain(options.getDomain());
+      params.setWorkflowQuery(query);
+      params.setSamplingRate(options.getSamplingRate());
+      params.setNextPageToken(nextPageToken);
+      ScanWorkflowActivityResult scanResult = scanWorkflow.scan(params);
       nextPageToken = scanResult.getNextPageToken();
 
       for (WorkflowExecution execution : scanResult.getExecutions()) {
@@ -113,6 +143,28 @@ public final class WorkflowShadower {
         Thread.sleep(SLEEP_INTERVAL);
       }
     } while (nextPageToken != null && options.getShadowMode() == Mode.Normal);
+  }
+
+  public void registerWorkflowImplementationTypes(Class<?>... workflowImplementationClasses) {
+    replayWorkflow.registerWorkflowImplementationTypes(workflowImplementationClasses);
+  }
+
+  public void registerWorkflowImplementationTypes(
+      WorkflowImplementationOptions options, Class<?>... workflowImplementationClasses) {
+    replayWorkflow.registerWorkflowImplementationTypesWithOptions(
+        options, workflowImplementationClasses);
+  }
+
+  public <R> void addWorkflowImplementationFactory(
+      WorkflowImplementationOptions options,
+      Class<R> workflowInterface,
+      Functions.Func<R> factory) {
+    replayWorkflow.addWorkflowImplementationFactoryWithOptions(options, workflowInterface, factory);
+  }
+
+  public <R> void addWorkflowImplementationFactory(
+      Class<R> workflowInterface, Functions.Func<R> factory) {
+    replayWorkflow.addWorkflowImplementationFactory(workflowInterface, factory);
   }
 
   private ShadowingOptions validateShadowingOptions(ShadowingOptions options) {

@@ -1,6 +1,7 @@
 /*
- *  Modifications Copyright (c) 2017-2021 Uber Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+ *
+ *  Modifications copyright (C) 2017 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
@@ -13,13 +14,17 @@
  *  express or implied. See the License for the specific language governing
  *  permissions and limitations under the License.
  */
-package com.uber.cadence.internal.shadowing;
 
-import static com.uber.cadence.shadower.shadowerConstants.ScanWorkflowActivityName;
+package com.uber.cadence.common;
 
-import com.uber.cadence.activity.ActivityMethod;
+import org.junit.Assert;
+import org.junit.Test;
 
-public interface ScanWorkflowActivity {
-  @ActivityMethod(name = ScanWorkflowActivityName)
-  ScanWorkflowActivityResult scan(ScanWorkflowActivityParams request) throws Throwable;
+public class BinaryChecksumTest {
+  @Test
+  public void testSetBinaryChecksum() {
+    BinaryChecksum.setBinaryChecksum("123");
+    BinaryChecksum.setBinaryChecksum("456");
+    Assert.assertEquals("123", BinaryChecksum.getBinaryChecksum());
+  }
 }

@@ -38,16 +38,15 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
 import com.uber.cadence.TimerStartedEventAttributes;
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.common.WorkflowExecutionHistory;
+import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.testing.WorkflowTestingTest;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.shadower.ReplayWorkflowActivityParams;
-import com.uber.cadence.shadower.ReplayWorkflowActivityResult;
 import com.uber.cadence.testing.TestActivityEnvironment;
+import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.Duration;
@@ -73,11 +72,15 @@ public class ReplayWorkflowActivityTest {
   public void init() {
     mockServiceClient = mock(IWorkflowService.class);
     metricsScope = new RootScopeBuilder().reportEvery(Duration.ofMillis(1000));
-    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, "test");
+    TestEnvironmentOptions testOptions =
+        new TestEnvironmentOptions.Builder()
+            .setDataConverter(JsonDataConverter.getInstance())
+            .build();
+    activity = new ReplayWorkflowActivityImpl(mockServiceClient, metricsScope, "test", testOptions);
     activity.registerWorkflowImplementationTypes(WorkflowTestingTest.EmptyWorkflowImpl.class);
 
     domain = UUID.randomUUID().toString();
-    execution = new WorkflowExecution().setWorkflowId("wid").setRunId("rid");
+    execution = new WorkflowExecution("wid", "rid");
     reset();
 
     testEnv = TestActivityEnvironment.newInstance();
@@ -193,10 +196,9 @@ public class ReplayWorkflowActivityTest {
     GetWorkflowExecutionHistoryResponse response =
         new GetWorkflowExecutionHistoryResponse().setHistory(history);
     when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
-    ReplayWorkflowActivityParams params =
-        new ReplayWorkflowActivityParams()
-            .setDomain(domain)
-            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityParams params = new ReplayWorkflowActivityParams();
+    params.setDomain(domain);
+    params.setExecutions(Lists.newArrayList(execution));
     ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getSucceeded());
   }
@@ -211,10 +213,9 @@ public class ReplayWorkflowActivityTest {
     GetWorkflowExecutionHistoryResponse response =
         new GetWorkflowExecutionHistoryResponse().setHistory(history);
     when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
-    ReplayWorkflowActivityParams params =
-        new ReplayWorkflowActivityParams()
-            .setDomain(domain)
-            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityParams params = new ReplayWorkflowActivityParams();
+    params.setDomain(domain);
+    params.setExecutions(Lists.newArrayList(execution));
     ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getSkipped());
   }
@@ -225,10 +226,9 @@ public class ReplayWorkflowActivityTest {
     GetWorkflowExecutionHistoryResponse response =
         new GetWorkflowExecutionHistoryResponse().setHistory(history);
     when(mockServiceClient.GetWorkflowExecutionHistory(any())).thenReturn(response);
-    ReplayWorkflowActivityParams params =
-        new ReplayWorkflowActivityParams()
-            .setDomain(domain)
-            .setExecutions(Lists.newArrayList(execution));
+    ReplayWorkflowActivityParams params = new ReplayWorkflowActivityParams();
+    params.setDomain(domain);
+    params.setExecutions(Lists.newArrayList(execution));
     ReplayWorkflowActivityResult result = activityStub.replay(params);
     assertEquals(1, result.getFailed());
   }

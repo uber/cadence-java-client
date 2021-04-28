@@ -33,6 +33,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowQuery;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.common.BinaryChecksum;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
@@ -248,6 +249,7 @@ public final class WorkflowWorker extends SuspendableWorkerBase
       if (taskCompleted != null) {
         taskCompleted.setIdentity(options.getIdentity());
         taskCompleted.setTaskToken(task.getTaskToken());
+        taskCompleted.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
         RpcRetryer.retry(
             () -> {
               RespondDecisionTaskCompletedResponse taskCompletedResponse = null;
@@ -321,6 +323,7 @@ public final class WorkflowWorker extends SuspendableWorkerBase
         if (taskFailed != null) {
           taskFailed.setIdentity(options.getIdentity());
           taskFailed.setTaskToken(task.getTaskToken());
+          taskFailed.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
           RpcRetryer.retry(() -> service.RespondDecisionTaskFailed(taskFailed));
         } else {
           RespondQueryTaskCompletedRequest queryCompleted = response.getQueryCompleted();
