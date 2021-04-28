@@ -972,7 +972,7 @@ public class WorkflowTest {
     WorkflowStub workflowStub =
         workflowClient.newUntypedWorkflowStub(
             "TestWorkflow1::execute", newWorkflowOptionsBuilder(taskList).build());
-    Long timeout = new Long(200);
+    Long timeout = Long.valueOf(200);
     CompletableFuture<WorkflowExecution> future =
         workflowStub.startAsyncWithTimeout(timeout, TimeUnit.MILLISECONDS, taskList);
     testUntypedAndStackTraceHelper(workflowStub, future.get());
@@ -3386,7 +3386,7 @@ public class WorkflowTest {
     CompletableFuture<WorkflowExecution> future = workflowStub.startAsync(taskList);
     future.get();
 
-    Long timeout = new Long(200);
+    Long timeout = Long.valueOf(200);
     String testSignalInput = "hello";
     CompletableFuture<String> resultFuture =
         workflowStub
