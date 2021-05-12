@@ -5,11 +5,11 @@
 - [New feature] Workflow Shadowing worker and tests. The new shadowing feature provides:
 1. WorkflowShadower to run integration tests to replay workflow traffic from local/test environment.
 2. ShadowingWorker to run worker
-### Changed
-- [Breaking changes] Support new error type WorkflowAlreadyCompletedError in APIs SignalWorkflowExecution, CancelWorkflowExecution and TerminateWorkflowExecution.
+- [Breaking changes] Introduce new error type WorkflowAlreadyCompletedError in APIs SignalWorkflowExecution, CancelWorkflowExecution and TerminateWorkflowExecution.
 - Add Java 11 support.
 - Add binary checksum support.
 - Add activity worker thread count metrics.
+### Changed
 - Add all missing version marker before upsert searchattributes.
 
 ## 3.0.0
