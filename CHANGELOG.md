@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0
+### Added
+- [New feature] Workflow Shadowing worker and tests. The new shadowing feature provides:
+1. WorkflowShadower to run integration tests to replay workflow traffic from local/test environment.
+2. ShadowingWorker to run worker
+- [Breaking changes] Introduce new error type WorkflowAlreadyCompletedError in APIs SignalWorkflowExecution, CancelWorkflowExecution and TerminateWorkflowExecution.
+- Add Java 11 support.
+- Add binary checksum support.
+- Add activity worker thread count metrics.
+### Changed
+- Add all missing version marker before upsert searchattributes.
+
 ## 3.0.0
 ### Added
 - [New feature] Activity Local Dispatch: Allows Cadence worker to dispatch activity tasks through local tunnel after ScheduleActivity decisions are made. This is a performance optimization to reduce activity scheduling efforts.
