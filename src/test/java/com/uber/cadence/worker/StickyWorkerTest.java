@@ -74,6 +74,7 @@ public class StickyWorkerTest {
 
   private static final boolean useDockerService =
       Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
+  private static final String STICKY_TASK_LIST_METRIC_TAG = "__sticky__";
 
   @Parameterized.Parameter public boolean useExternalService;
 
@@ -151,7 +152,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     Thread.sleep(600);
     verify(reporter, atLeastOnce())
@@ -265,7 +266,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
@@ -314,7 +315,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
@@ -370,7 +371,7 @@ public class StickyWorkerTest {
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.DOMAIN, DOMAIN)
-            .put(MetricsTag.TASK_LIST, factory.getStickyTaskListName())
+            .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
         .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());

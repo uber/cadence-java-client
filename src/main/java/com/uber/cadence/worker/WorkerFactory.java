@@ -76,6 +76,7 @@ public final class WorkerFactory {
       "attempted to %s while in %s state. Acceptable States: %s";
   private static final Logger log = LoggerFactory.getLogger(WorkerFactory.class);
   private static final String STICKY_TASK_LIST_PREFIX = "sticky";
+  private static final String STICKY_TASK_LIST_METRIC_TAG = "__" + STICKY_TASK_LIST_PREFIX + "__";
   private static final String POLL_THREAD_NAME = "Sticky Task Poller";
 
   /**
@@ -113,7 +114,7 @@ public final class WorkerFactory {
                     MetricsTag.DOMAIN,
                     workflowClient.getOptions().getDomain(),
                     MetricsTag.TASK_LIST,
-                    getStickyTaskListName()));
+                    STICKY_TASK_LIST_METRIC_TAG));
 
     this.cache = new DeciderCache(this.factoryOptions.getCacheMaximumSize(), stickyScope);
     dispatcher = new PollDecisionTaskDispatcher(workflowClient.getService());
