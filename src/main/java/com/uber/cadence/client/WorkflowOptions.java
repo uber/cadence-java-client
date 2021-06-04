@@ -30,9 +30,11 @@ import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.context.OpenTelemetryContextPropagator;
 import com.uber.cadence.internal.common.OptionsUtils;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,6 +68,7 @@ public final class WorkflowOptions {
         .setMemo(o.getMemo())
         .setSearchAttributes(o.getSearchAttributes())
         .setContextPropagators(o.getContextPropagators())
+        .setDefaultContextPropagators(o.useDefaultContextPropagators)
         .validateBuildWithDefaults();
   }
 
@@ -91,6 +94,8 @@ public final class WorkflowOptions {
 
     private List<ContextPropagator> contextPropagators;
 
+    private Boolean useDefaultContextPropagators;
+
     public Builder() {}
 
     public Builder(WorkflowOptions o) {
@@ -107,6 +112,7 @@ public final class WorkflowOptions {
       this.memo = o.memo;
       this.searchAttributes = o.searchAttributes;
       this.contextPropagators = o.contextPropagators;
+      this.useDefaultContextPropagators = o.useDefaultContextPropagators;
     }
 
     /**
@@ -214,6 +220,13 @@ public final class WorkflowOptions {
       return this;
     }
 
+    /** Specifies that the default context propagators should not be used. */
+    public Builder setDefaultContextPropagators(Boolean useDefaultContextPropagators) {
+      this.useDefaultContextPropagators =
+          (useDefaultContextPropagators == null || useDefaultContextPropagators);
+      return this;
+    }
+
     public WorkflowOptions build() {
       return new WorkflowOptions(
           workflowId,
@@ -225,7 +238,8 @@ public final class WorkflowOptions {
           cronSchedule,
           memo,
           searchAttributes,
-          contextPropagators);
+          contextPropagators,
+          useDefaultContextPropagators);
     }
 
     /**
@@ -261,6 +275,20 @@ public final class WorkflowOptions {
         cron.validate();
       }
 
+      if (useDefaultContextPropagators == null || useDefaultContextPropagators) {
+        // Add OpenTelemetry propagator if not already present.
+        if (contextPropagators != null) {
+          contextPropagators = new ArrayList(contextPropagators);
+        } else {
+          contextPropagators = new ArrayList<>();
+        }
+
+        OpenTelemetryContextPropagator otelPropagator = new OpenTelemetryContextPropagator();
+        if (!contextPropagators.contains(otelPropagator)) {
+          contextPropagators.add(otelPropagator);
+        }
+      }
+
       return new WorkflowOptions(
           workflowId,
           policy,
@@ -272,7 +300,8 @@ public final class WorkflowOptions {
           cronSchedule,
           memo,
           searchAttributes,
-          contextPropagators);
+          contextPropagators,
+          useDefaultContextPropagators);
     }
   }
 
@@ -296,6 +325,8 @@ public final class WorkflowOptions {
 
   private List<ContextPropagator> contextPropagators;
 
+  private Boolean useDefaultContextPropagators;
+
   private WorkflowOptions(
       String workflowId,
       WorkflowIdReusePolicy workflowIdReusePolicy,
@@ -306,7 +337,8 @@ public final class WorkflowOptions {
       String cronSchedule,
       Map<String, Object> memo,
       Map<String, Object> searchAttributes,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      Boolean useDefaultContextPropagators) {
     this.workflowId = workflowId;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.executionStartToCloseTimeout = executionStartToCloseTimeout;
@@ -317,6 +349,7 @@ public final class WorkflowOptions {
     this.memo = memo;
     this.searchAttributes = searchAttributes;
     this.contextPropagators = contextPropagators;
+    this.useDefaultContextPropagators = useDefaultContextPropagators;
   }
 
   public String getWorkflowId() {
@@ -373,7 +406,9 @@ public final class WorkflowOptions {
         && Objects.equals(cronSchedule, that.cronSchedule)
         && Objects.equals(memo, that.memo)
         && Objects.equals(searchAttributes, that.searchAttributes)
-        && Objects.equals(contextPropagators, that.contextPropagators);
+        && Objects.equals(contextPropagators, that.contextPropagators)
+        && (useDefaultContextPropagators == null || useDefaultContextPropagators)
+            == (that.useDefaultContextPropagators == null || that.useDefaultContextPropagators);
   }
 
   @Override
@@ -388,7 +423,8 @@ public final class WorkflowOptions {
         cronSchedule,
         memo,
         searchAttributes,
-        contextPropagators);
+        contextPropagators,
+        useDefaultContextPropagators);
   }
 
   @Override
@@ -418,6 +454,8 @@ public final class WorkflowOptions {
         + searchAttributes
         + ", contextPropagators='"
         + contextPropagators
+        + ", useDefaultContextPropagators='"
+        + useDefaultContextPropagators
         + '\''
         + '}';
   }

@@ -104,6 +104,7 @@ import com.uber.tchannel.api.errors.TChannelError;
 import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
+import com.uber.tchannel.messages.generated.Meta;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -127,7 +128,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final ClientOptions options;
   private final Map<String, String> thriftHeaders;
   private final TChannel tChannel;
-  private final SubChannel subChannel;
+  private SubChannel subChannel;
 
   /**
    * Creates Cadence client that connects to the specified host and port using specified options.
@@ -157,6 +158,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
             + Version.LIBRARY_VERSION
             + ", FeatureVersion: "
             + Version.FEATURE_VERSION);
+  }
+
+  public void resetSubchannelPeers() throws UnknownHostException {
+    InetAddress address = InetAddress.getByName(options.getHost());
+    ArrayList<InetSocketAddress> peers = new ArrayList<>();
+    peers.add(new InetSocketAddress(address, options.getPort()));
+    this.subChannel.setPeers(peers);
   }
 
   /**
@@ -207,6 +215,45 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     return buildThriftRequest(apiName, body, null);
   }
 
+  @Override
+  public CompletableFuture<Boolean> isHealthy() {
+    final ThriftRequest<Meta.health_args> req =
+        new ThriftRequest.Builder<Meta.health_args>("cadence-frontend", "Meta::health")
+            .setBody(new Meta.health_args())
+            .build();
+    final CompletableFuture<Boolean> result = new CompletableFuture<>();
+    try {
+
+      final TFuture<ThriftResponse<Meta.health_result>> future = this.subChannel.send(req);
+      future.addCallback(
+          response -> {
+            req.releaseQuietly();
+            if (response.isError()) {
+              try {
+                this.resetSubchannelPeers();
+              } catch (final Exception inner_e) {
+              }
+              result.completeExceptionally(new TException("Rpc error:" + response.getError()));
+            } else {
+              result.complete(response.getBody(Meta.health_result.class).getSuccess().isOk());
+            }
+            try {
+              response.release();
+            } catch (final Exception e) {
+              // ignore
+            }
+          });
+    } catch (final TChannelError e) {
+      req.releaseQuietly();
+      try {
+        this.resetSubchannelPeers();
+      } catch (final Exception inner_e) {
+      }
+      result.complete(Boolean.FALSE);
+    }
+    return result;
+  }
+
   private <T> ThriftRequest<T> buildThriftRequest(String apiName, T body, Long rpcTimeoutOverride) {
     String endpoint = getEndpoint(INTERFACE_NAME, apiName);
     ThriftRequest.Builder<T> builder =
@@ -237,6 +284,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     } catch (ExecutionException e) {
       throw new TException(e);
     } catch (TChannelError e) {
+      try {
+        resetSubchannelPeers();
+      } catch (UnknownHostException uhe) {
+        // do nothing?
+      }
       throw new TException("Rpc error", e);
     }
     this.throwOnRpcError(response);
@@ -249,6 +301,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     try {
       future = subChannel.send(request);
     } catch (TChannelError tChannelError) {
+      try {
+        resetSubchannelPeers();
+      } catch (UnknownHostException uhe) {
+        // do nothing?
+      }
       result.completeExceptionally(new TException(tChannelError));
     }
     future.addCallback(
