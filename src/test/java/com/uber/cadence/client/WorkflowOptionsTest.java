@@ -46,7 +46,6 @@ public class WorkflowOptionsTest {
             .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.RejectDuplicate)
             .setMemo(getTestMemo())
             .setSearchAttributes(getTestSearchAttributes())
-            .setDefaultContextPropagators(false)
             .build();
     WorkflowMethod a =
         WorkflowOptionsTest.class

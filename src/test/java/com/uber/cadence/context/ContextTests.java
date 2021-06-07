@@ -485,7 +485,7 @@ public class ContextTests {
     testEnvironment.start();
     WorkflowClient client = testEnvironment.newWorkflowClient();
     WorkflowOptions options =
-        new WorkflowOptions.Builder().setDefaultContextPropagators(false).build();
+        new WorkflowOptions.Builder().build();
 
     try (Scope scope = span.makeCurrent()) {
       TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
