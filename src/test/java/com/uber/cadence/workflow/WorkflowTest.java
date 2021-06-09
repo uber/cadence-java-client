@@ -2618,14 +2618,8 @@ public class WorkflowTest {
 
     java.util.function.Function<QueryConsistencyLevel, String> query =
         (consistencyLevel) ->
-            client
-                .query(
-                    "QueryableWorkflow::getState",
-                    String.class,
-                    String.class,
-                    null,
-                    consistencyLevel)
-                .getResult();
+            client.query(
+                "QueryableWorkflow::getState", String.class, String.class, null, consistencyLevel);
 
     client.start();
 

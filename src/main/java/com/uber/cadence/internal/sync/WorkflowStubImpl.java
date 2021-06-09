@@ -440,7 +440,7 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   @Override
-  public <R> QueryResponse<R> query(
+  public <R> R query(
       String queryType,
       Class<R> resultClass,
       Type resultType,
