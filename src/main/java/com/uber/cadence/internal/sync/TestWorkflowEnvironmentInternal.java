@@ -50,6 +50,7 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryWorkflowRequest;
@@ -991,7 +992,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public <R> QueryResponse<R> query(
+      public <R> R query(
           String queryType,
           Class<R> resultClass,
           Type resultType,

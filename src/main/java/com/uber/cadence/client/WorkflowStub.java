@@ -171,7 +171,7 @@ public interface WorkflowStub {
       QueryRejectCondition queryRejectCondition,
       Object... args);
 
-  <R> QueryResponse<R> query(
+  <R> R query(
       String queryType,
       Class<R> resultClass,
       Type resultType,
