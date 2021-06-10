@@ -2609,6 +2609,7 @@ public class WorkflowTest {
   }
 
   @Test
+  @Ignore("until version check is merged in server")
   public void testConsistentQuery() throws Exception {
     startWorkerFor(TestConsistentQueryImpl.class);
 
