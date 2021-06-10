@@ -681,3 +681,4 @@ public interface WorkflowClient {
     return WorkflowClientInternal.execute(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
   }
 }
+
