@@ -17,7 +17,8 @@
 
 package com.uber.cadence.workerFactory;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.serviceclient.ClientOptions;
@@ -64,11 +65,6 @@ public class WorkerFactoryTests {
 
     factory.start();
     assertTrue(factory.isStarted());
-    try {
-      assertTrue(factory.isHealthy().get());
-    } catch (Exception e) {
-      assertNull("Failed to check if cluster is health!", e);
-    }
     factory.shutdown();
     factory.awaitTermination(1, TimeUnit.SECONDS);
   }

@@ -39,7 +39,10 @@ import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -56,7 +59,6 @@ public class SyncWorkflowWorker
   private final ScheduledExecutorService ldaHeartbeatExecutor = Executors.newScheduledThreadPool(4);
   private SuspendableWorker ldaWorker;
   private POJOActivityTaskHandler ldaTaskHandler;
-  private final IWorkflowService service;
 
   public SyncWorkflowWorker(
       IWorkflowService service,
@@ -72,7 +74,6 @@ public class SyncWorkflowWorker
       ThreadPoolExecutor workflowThreadPool) {
     Objects.requireNonNull(workflowThreadPool);
     this.dataConverter = workflowOptions.getDataConverter();
-    this.service = service;
 
     factory =
         new POJOWorkflowImplementationFactory(
@@ -250,9 +251,5 @@ public class SyncWorkflowWorker
   @Override
   public void accept(PollForDecisionTaskResponse pollForDecisionTaskResponse) {
     workflowWorker.accept(pollForDecisionTaskResponse);
-  }
-
-  public CompletableFuture<Boolean> isHealthy() {
-    return service.isHealthy();
   }
 }

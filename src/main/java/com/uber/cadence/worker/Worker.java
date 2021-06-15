@@ -336,8 +336,4 @@ public final class Worker implements Suspendable {
   public boolean isSuspended() {
     return workflowWorker.isSuspended() && activityWorker.isSuspended();
   }
-
-  public CompletableFuture<Boolean> isHealthy() {
-    return workflowWorker.isHealthy();
-  }
 }
