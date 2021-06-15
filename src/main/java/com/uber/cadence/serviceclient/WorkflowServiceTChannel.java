@@ -18,6 +18,8 @@
 package com.uber.cadence.serviceclient;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.ClientVersionNotSupportedError;
 import com.uber.cadence.ClusterInfo;
@@ -201,6 +203,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       for (Map.Entry<String, String> entry : options.getHeaders().entrySet()) {
         builder.put(entry.getKey(), entry.getValue());
       }
+    }
+
+    if (options.getFeatureFlags() != null) {
+      GsonBuilder gsonBuilder = new GsonBuilder();
+      Gson gson = gsonBuilder.create();
+      String serialized = gson.toJson(options.getFeatureFlags());
+      builder.put("cadence-client-feature-flags", serialized);
     }
 
     return builder.build();

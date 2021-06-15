@@ -19,6 +19,7 @@ package com.uber.cadence.serviceclient;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.uber.cadence.FeatureFlags;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
 import java.util.Map;
@@ -76,6 +77,9 @@ public class ClientOptions {
 
   private static final ClientOptions DEFAULT_INSTANCE;
 
+  /** Optional Feature flags to turn on/off some Cadence features */
+  private final FeatureFlags featureFlags;
+
   static {
     DEFAULT_INSTANCE = new Builder().build();
   }
@@ -122,6 +126,8 @@ public class ClientOptions {
     } else {
       this.transportHeaders = ImmutableMap.of();
     }
+
+    this.featureFlags = builder.featureFlags;
 
     if (builder.headers != null) {
       this.headers = ImmutableMap.copyOf(builder.headers);
@@ -179,6 +185,10 @@ public class ClientOptions {
     return headers;
   }
 
+  public FeatureFlags getFeatureFlags() {
+    return this.featureFlags;
+  }
+
   /**
    * Builder is the builder for ClientOptions.
    *
@@ -197,6 +207,7 @@ public class ClientOptions {
     private Scope metricsScope;
     private Map<String, String> transportHeaders;
     private Map<String, String> headers;
+    private FeatureFlags featureFlags;
 
     private Builder() {}
 
@@ -250,6 +261,22 @@ public class ClientOptions {
     public Builder setListArchivedWorkflowRpcTimeout(long timeoutMillis) {
       this.rpcListArchivedWorkflowTimeoutMillis = timeoutMillis;
       return this;
+    }
+
+    /**
+     * Sets the feature flags to turn on/off some Cadence features By default, all features under
+     * FeatureFlags are turned off.
+     *
+     * @param featureFlags FeatureFlags
+     */
+    public Builder setFeatureFlags(FeatureFlags featureFlags) {
+      this.featureFlags = featureFlags;
+      return this;
+    }
+
+    /** Returns the feature flags defined in ClientOptions */
+    public FeatureFlags getFeatureFlags() {
+      return this.featureFlags;
     }
 
     /**
