@@ -218,7 +218,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public CompletableFuture<Boolean> isHealthy() {
     final ThriftRequest<Meta.health_args> req =
-        new ThriftRequest.Builder<Meta.health_args>("cadence-frontend", "Meta::health")
+        new ThriftRequest.Builder<Meta.health_args>(options.getServiceName(), "Meta::health")
             .setBody(new Meta.health_args())
             .build();
     final CompletableFuture<Boolean> result = new CompletableFuture<>();
