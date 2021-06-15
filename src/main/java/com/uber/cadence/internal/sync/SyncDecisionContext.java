@@ -72,7 +72,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -450,18 +449,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     }
     Map<String, byte[]> result = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      // Get the serialized context from the propagator
-      Map<String, byte[]> serializedContext =
-          propagator.serializeContext(propagator.getCurrentContext());
-      // Namespace each entry in case of overlaps, so foo -> bar becomes MyPropagator:foo -> bar
-      Map<String, byte[]> namespacedSerializedContext =
-          serializedContext
-              .entrySet()
-              .stream()
-              .collect(
-                  Collectors.toMap(
-                      e -> propagator.getName() + ":" + e.getKey(), Map.Entry::getValue));
-      result.putAll(namespacedSerializedContext);
+      result.putAll(propagator.serializeContext(propagator.getCurrentContext()));
     }
     return result;
   }

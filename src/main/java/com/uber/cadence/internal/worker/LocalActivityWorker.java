@@ -22,7 +22,6 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.LocalActivityMarkerData;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -38,7 +37,6 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 
 public final class LocalActivityWorker extends SuspendableWorkerBase {
 
@@ -227,19 +225,9 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
   }
 
   private void restoreContext(Map<String, byte[]> context) {
-    for (ContextPropagator propagator : options.getContextPropagators()) {
-      // Only send the context propagator the fields that belong to them
-      // Change the map from MyPropagator:foo -> bar to foo -> bar
-      Map<String, byte[]> filteredData =
-          context
-              .entrySet()
-              .stream()
-              .filter(e -> e.getKey().startsWith(propagator.getName()))
-              .collect(
-                  Collectors.toMap(
-                      e -> e.getKey().substring(propagator.getName().length() + 1),
-                      Map.Entry::getValue));
-      propagator.setCurrentContext(propagator.deserializeContext(filteredData));
-    }
+    options
+        .getContextPropagators()
+        .forEach(
+            propagator -> propagator.setCurrentContext(propagator.deserializeContext(context)));
   }
 }

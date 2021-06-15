@@ -23,7 +23,6 @@ import com.google.common.base.Preconditions;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.context.ContextPropagator;
-import com.uber.cadence.context.OpenTelemetryContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
@@ -37,10 +36,8 @@ import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -84,13 +81,6 @@ public final class Worker implements Suspendable {
             .getOptions()
             .getMetricsScope()
             .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
-    contextPropagators = new ArrayList<>(contextPropagators);
-
-    // Add the OpenTelemetry propagator if it's not already there
-    OpenTelemetryContextPropagator otelPropagator = new OpenTelemetryContextPropagator();
-    if (!contextPropagators.contains(otelPropagator)) {
-      contextPropagators.add(otelPropagator);
-    }
 
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()

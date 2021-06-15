@@ -91,7 +91,6 @@ class WorkflowThreadImpl implements WorkflowThread {
       // Repopulate the context(s)
       ContextThreadLocal.setContextPropagators(this.contextPropagators);
       ContextThreadLocal.propagateContextToCurrentThread(this.propagatedContexts);
-      ContextThreadLocal.setUpContextPropagators();
 
       try {
         // initialYield blocks thread until the first runUntilBlocked is called.
@@ -100,7 +99,6 @@ class WorkflowThreadImpl implements WorkflowThread {
         cancellationScope.run();
       } catch (DestroyWorkflowThreadError e) {
         if (!threadContext.isDestroyRequested()) {
-          ContextThreadLocal.onErrorContextPropagators(e);
           threadContext.setUnhandledException(e);
         }
       } catch (Error e) {
@@ -113,11 +111,9 @@ class WorkflowThreadImpl implements WorkflowThread {
           log.error(
               String.format("Workflow thread \"%s\" run failed with Error:\n%s", name, stackTrace));
         }
-        ContextThreadLocal.onErrorContextPropagators(e);
         threadContext.setUnhandledException(e);
       } catch (CancellationException e) {
         if (!isCancelRequested()) {
-          ContextThreadLocal.onErrorContextPropagators(e);
           threadContext.setUnhandledException(e);
         }
         if (log.isDebugEnabled()) {
@@ -134,10 +130,8 @@ class WorkflowThreadImpl implements WorkflowThread {
                   "Workflow thread \"%s\" run failed with unhandled exception:\n%s",
                   name, stackTrace));
         }
-        ContextThreadLocal.onErrorContextPropagators(e);
         threadContext.setUnhandledException(e);
       } finally {
-        ContextThreadLocal.finishContextPropagators();
         DeterministicRunnerImpl.setCurrentThreadInternal(null);
         threadContext.setStatus(Status.DONE);
         thread.setName(originalName);
