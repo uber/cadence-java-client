@@ -284,11 +284,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     } catch (ExecutionException e) {
       throw new TException(e);
     } catch (TChannelError e) {
-      try {
-        resetSubchannelPeers();
-      } catch (UnknownHostException uhe) {
-        // do nothing?
-      }
       throw new TException("Rpc error", e);
     }
     this.throwOnRpcError(response);
@@ -301,11 +296,6 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     try {
       future = subChannel.send(request);
     } catch (TChannelError tChannelError) {
-      try {
-        resetSubchannelPeers();
-      } catch (UnknownHostException uhe) {
-        // do nothing?
-      }
       result.completeExceptionally(new TException(tChannelError));
     }
     future.addCallback(
