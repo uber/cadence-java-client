@@ -86,12 +86,6 @@ public final class Worker implements Suspendable {
             .tagged(ImmutableMap.of(MetricsTag.TASK_LIST, taskList));
     contextPropagators = new ArrayList<>(contextPropagators);
 
-    // Add the OpenTelemetry propagator if it's not already there
-    OpenTelemetryContextPropagator otelPropagator = new OpenTelemetryContextPropagator();
-    if (!contextPropagators.contains(otelPropagator)) {
-      contextPropagators.add(otelPropagator);
-    }
-
     SingleWorkerOptions activityOptions =
         SingleWorkerOptions.newBuilder()
             .setIdentity(client.getOptions().getIdentity())
