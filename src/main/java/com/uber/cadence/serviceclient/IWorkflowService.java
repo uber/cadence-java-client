@@ -87,5 +87,6 @@ public interface IWorkflowService extends Iface, AsyncIface {
       Long timeoutInMillis)
       throws TException;
 
+  /** Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer list */
   CompletableFuture<Boolean> isHealthy();
 }
