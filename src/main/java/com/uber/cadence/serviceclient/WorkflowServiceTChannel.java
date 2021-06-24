@@ -215,6 +215,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     return buildThriftRequest(apiName, body, null);
   }
 
+  /** Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer list */
   @Override
   public CompletableFuture<Boolean> isHealthy() {
     final ThriftRequest<Meta.health_args> req =

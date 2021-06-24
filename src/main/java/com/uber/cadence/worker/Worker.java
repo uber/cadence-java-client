@@ -327,6 +327,7 @@ public final class Worker implements Suspendable {
     return workflowWorker.isSuspended() && activityWorker.isSuspended();
   }
 
+  /** Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer list */
   public CompletableFuture<Boolean> isHealthy() {
     return workflowWorker.isHealthy();
   }
