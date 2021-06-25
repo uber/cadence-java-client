@@ -846,6 +846,13 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
+  public CompletableFuture<Boolean> isHealthy() {
+    CompletableFuture<Boolean> rval = new CompletableFuture<>();
+    rval.complete(Boolean.TRUE);
+    return rval;
+  }
+
+  @Override
   public void PollForDecisionTask(
       PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws TException {
     throw new UnsupportedOperationException("not implemented");
