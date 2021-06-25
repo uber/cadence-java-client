@@ -23,6 +23,7 @@ import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.WorkflowService.AsyncIface;
 import com.uber.cadence.WorkflowService.Iface;
+import java.util.concurrent.CompletableFuture;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
@@ -70,6 +71,7 @@ public interface IWorkflowService extends Iface, AsyncIface {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException;
+
   /**
    * SignalWorkflowExecutionWithTimeout signal workflow same as SignalWorkflowExecution but with
    * timeout
@@ -84,4 +86,10 @@ public interface IWorkflowService extends Iface, AsyncIface {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException;
+
+  /**
+   * Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer
+   * list
+   */
+  CompletableFuture<Boolean> isHealthy();
 }

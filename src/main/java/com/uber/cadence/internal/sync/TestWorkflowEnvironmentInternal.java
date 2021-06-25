@@ -485,6 +485,11 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public CompletableFuture<Boolean> isHealthy() {
+      return impl.isHealthy();
+    }
+
+    @Override
     public void PollForDecisionTask(
         PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler)
         throws TException {
