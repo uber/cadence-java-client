@@ -289,7 +289,10 @@ public final class WorkerFactory {
     }
   }
 
-  /** Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer list */
+  /**
+   * Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer
+   * list
+   */
   public CompletableFuture<Boolean> isHealthy() {
     List<CompletableFuture<Boolean>> healthyList =
         workers.stream().map(Worker::isHealthy).collect(Collectors.toList());

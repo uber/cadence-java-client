@@ -38,6 +38,7 @@ import com.uber.m3.util.ImmutableMap;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -327,7 +328,10 @@ public final class Worker implements Suspendable {
     return workflowWorker.isSuspended() && activityWorker.isSuspended();
   }
 
-  /** Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer list */
+  /**
+   * Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer
+   * list
+   */
   public CompletableFuture<Boolean> isHealthy() {
     return workflowWorker.isHealthy();
   }
