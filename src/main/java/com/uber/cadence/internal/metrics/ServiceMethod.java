@@ -20,6 +20,8 @@ package com.uber.cadence.internal.metrics;
 public class ServiceMethod {
   public static final String DEPRECATE_DOMAIN =
       MetricsType.CADENCE_METRICS_PREFIX + "DeprecateDomain";
+  public static final String GET_TASK_LISTS_BY_DOMAIN =
+      MetricsType.CADENCE_METRICS_PREFIX + "GetTaskListsByDomain";
   public static final String DESCRIBE_DOMAIN =
       MetricsType.CADENCE_METRICS_PREFIX + "DescribeDomain";
   public static final String LIST_DOMAINS = MetricsType.CADENCE_METRICS_PREFIX + "ListDomains";
