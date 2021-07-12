@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.BadRequestError;
+import com.uber.cadence.ClientVersionNotSupportedError;
 import com.uber.cadence.ClusterInfo;
 import com.uber.cadence.CountWorkflowExecutionsRequest;
 import com.uber.cadence.CountWorkflowExecutionsResponse;
@@ -31,9 +32,12 @@ import com.uber.cadence.DescribeWorkflowExecutionResponse;
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
+import com.uber.cadence.GetTaskListsByDomainRequest;
+import com.uber.cadence.GetTaskListsByDomainResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.LimitExceededError;
 import com.uber.cadence.ListArchivedWorkflowExecutionsRequest;
 import com.uber.cadence.ListArchivedWorkflowExecutionsResponse;
 import com.uber.cadence.ListClosedWorkflowExecutionsRequest;
@@ -454,6 +458,13 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void GetTaskListsByDomain(
+        GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
+        throws org.apache.thrift.TException {
+      impl.GetTaskListsByDomain(request, resultHandler);
+    }
+
+    @Override
     public void StartWorkflowExecution(
         StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -736,6 +747,13 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     public void DeprecateDomain(DeprecateDomainRequest deprecateRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
       impl.DeprecateDomain(deprecateRequest);
+    }
+
+    @Override
+    public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
+        throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
+            ClientVersionNotSupportedError, TException {
+      return impl.GetTaskListsByDomain(request);
     }
 
     @Override
