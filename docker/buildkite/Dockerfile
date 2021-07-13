@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:alpine
+FROM openjdk:8-alpine
 
 # Apache Thrift version
 ENV APACHE_THRIFT_VERSION=0.9.3
@@ -6,7 +6,7 @@ ENV APACHE_THRIFT_VERSION=0.9.3
 # Install dependencies using apk
 RUN apk update && apk add --virtual wget ca-certificates wget && apk add --virtual build-dependencies build-base gcc
 # Git is needed in order to update the dls submodule
-RUN apk add git libstdc++
+RUN apk add --virtual git
 
 # Compile source
 RUN set -ex ;\

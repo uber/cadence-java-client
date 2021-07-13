@@ -6,7 +6,7 @@ This doc is intended for contributors to `cadence-java-client` (hopefully that's
 
 ## Development Environment
 
-* Java 11 (currently, we use Java 11 to compile Java 8 code).
+* Java 8.
 * Thrift 0.9.3
 * Gradle build tool
 * Docker

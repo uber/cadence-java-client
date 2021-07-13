@@ -260,7 +260,7 @@ public class JsonDataConverterTest {
     assertNotNull(causeFromConverted);
     assertEquals(DataConverterException.class, causeFromConverted.getClass());
     assertNotNull(causeFromConverted.getCause());
-    assertEquals(IllegalArgumentException.class, causeFromConverted.getCause().getClass());
+    assertEquals(StackOverflowError.class, causeFromConverted.getCause().getClass());
 
     assertNotNull(causeFromConverted.getSuppressed());
     assertEquals(1, causeFromConverted.getSuppressed().length);
