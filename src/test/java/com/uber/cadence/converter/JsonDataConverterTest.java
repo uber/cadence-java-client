@@ -265,6 +265,7 @@ public class JsonDataConverterTest {
     assertNotNull(causeFromConverted.getSuppressed());
     assertEquals(1, causeFromConverted.getSuppressed().length);
 
+    // test
     assertEquals("root exception", causeFromConverted.getSuppressed()[0].getMessage());
   }
 }
