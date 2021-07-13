@@ -39,12 +39,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -287,20 +285,6 @@ public final class WorkerFactory {
     for (Worker worker : workers) {
       worker.shutdownNow();
     }
-  }
-
-  /**
-   * Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer
-   * list
-   */
-  public CompletableFuture<Boolean> isHealthy() {
-    List<CompletableFuture<Boolean>> healthyList =
-        workers.stream().map(Worker::isHealthy).collect(Collectors.toList());
-    CompletableFuture<Boolean> result = CompletableFuture.supplyAsync(() -> true);
-    for (CompletableFuture<Boolean> future : healthyList) {
-      result = result.thenCombine(future, (current, other) -> current && other);
-    }
-    return result;
   }
 
   /**
