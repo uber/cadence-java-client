@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:alpine
+FROM adoptopenjdk/openjdk11@sha256:13475f4be7d6701a2ebd0516c4c929f2fa78ea773b4483bb580a36a04975e9f9
 
 # Apache Thrift version
 ENV APACHE_THRIFT_VERSION=0.9.3
@@ -10,13 +10,16 @@ RUN apk add git libstdc++
 
 # Compile source
 RUN set -ex ;\
-	wget http://www-us.apache.org/dist/thrift/${APACHE_THRIFT_VERSION}/thrift-${APACHE_THRIFT_VERSION}.tar.gz ;\
-	tar -xvf thrift-${APACHE_THRIFT_VERSION}.tar.gz ;\
-	rm thrift-${APACHE_THRIFT_VERSION}.tar.gz ;\
-	cd thrift-${APACHE_THRIFT_VERSION}/ ;\
-	./configure --enable-libs=no --enable-tests=no --enable-tutorial=no --with-cpp=no --with-c_glib=no --with-java=yes --with-ruby=no --with-erlang=no --with-go=no --with-nodejs=no --with-python=no ;\
-	make -j2 && make install ;\
-	cd .. && rm -rf thrift-${APACHE_THRIFT_VERSION}
+	wget https://downloads.apache.org/thrift/${APACHE_THRIFT_VERSION}/thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	tar -xvf thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	rm thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	cd thrift-${APACHE_THRIFT_VERSION}/ && \
+	./configure --enable-libs=no --enable-tests=no --enable-tutorial=no --with-cpp=no --with-c_glib=no --with-java=yes --with-ruby=no --with-erlang=no --with-go=no --with-nodejs=no --with-python=no && \
+  touch config.h && \
+	make && \
+	make install && \
+	cd .. && \
+	rm -rf thrift-${APACHE_THRIFT_VERSION}
 
 # Cleanup packages and remove cache
 RUN apk del build-dependencies wget && rm -rf /var/cache/apk/*
