@@ -19,6 +19,8 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Defaults;
 import com.uber.cadence.*;
+import com.uber.cadence.GetTaskListsByDomainRequest;
+import com.uber.cadence.GetTaskListsByDomainResponse;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.metrics.NoopScope;
@@ -586,6 +588,13 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void GetTaskListsByDomain(
+        GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
+        throws org.apache.thrift.TException {
+      impl.GetTaskListsByDomain(request, resultHandler);
+    }
+
+    @Override
     public void StartWorkflowExecution(
         StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -861,8 +870,16 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public void DeprecateDomain(DeprecateDomainRequest deprecateRequest)
-        throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+        throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
+            ClientVersionNotSupportedError, TException {
       impl.DeprecateDomain(deprecateRequest);
+    }
+
+    @Override
+    public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
+        throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
+            ClientVersionNotSupportedError, TException {
+      return impl.GetTaskListsByDomain(request);
     }
 
     @Override

@@ -33,6 +33,8 @@ import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
+import com.uber.cadence.GetTaskListsByDomainRequest;
+import com.uber.cadence.GetTaskListsByDomainResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.InternalServiceError;
@@ -207,6 +209,13 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void DeprecateDomain(DeprecateDomainRequest deprecateRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
+      throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
+          ClientVersionNotSupportedError, TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -792,6 +801,13 @@ public final class TestWorkflowService implements IWorkflowService {
   public void DeprecateDomain(
       DeprecateDomainRequest deprecateRequest, AsyncMethodCallback resultHandler)
       throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void GetTaskListsByDomain(
+      GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
+      throws org.apache.thrift.TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
