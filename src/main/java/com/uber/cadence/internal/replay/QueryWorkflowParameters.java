@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
 import java.nio.charset.StandardCharsets;
 
@@ -31,6 +32,8 @@ public class QueryWorkflowParameters implements Cloneable {
   private String workflowId;
 
   private QueryRejectCondition queryRejectCondition;
+
+  private QueryConsistencyLevel queryConsistencyLevel;
 
   public QueryWorkflowParameters() {}
 
@@ -100,6 +103,20 @@ public class QueryWorkflowParameters implements Cloneable {
     return this;
   }
 
+  public QueryConsistencyLevel getQueryConsistencyLevel() {
+    return queryConsistencyLevel;
+  }
+
+  public void setQueryConsistencyLevel(QueryConsistencyLevel queryConsistencyLevel) {
+    this.queryConsistencyLevel = queryConsistencyLevel;
+  }
+
+  public QueryWorkflowParameters withQueryConsistencyLevel(
+      QueryConsistencyLevel queryConsistencyLevel) {
+    this.queryConsistencyLevel = queryConsistencyLevel;
+    return this;
+  }
+
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -109,6 +126,7 @@ public class QueryWorkflowParameters implements Cloneable {
     sb.append("WorkflowId: " + workflowId + ", ");
     sb.append("RunId: " + runId + ", ");
     sb.append("QueryRejectCondition: " + queryRejectCondition + ", ");
+    sb.append("queryConsistencyLevel: " + queryConsistencyLevel + ", ");
     sb.append("}");
     return sb.toString();
   }
@@ -120,6 +138,7 @@ public class QueryWorkflowParameters implements Cloneable {
     result.setQueryType(queryType);
     result.setWorkflowId(workflowId);
     result.setQueryRejectCondition(queryRejectCondition);
+    result.setQueryConsistencyLevel(queryConsistencyLevel);
     return result;
   }
 }

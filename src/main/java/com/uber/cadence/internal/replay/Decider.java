@@ -20,7 +20,9 @@ package com.uber.cadence.internal.replay;
 import com.uber.cadence.Decision;
 import com.uber.cadence.PollForDecisionTaskResponse;
 import com.uber.cadence.WorkflowQuery;
+import com.uber.cadence.WorkflowQueryResult;
 import java.util.List;
+import java.util.Map;
 
 public interface Decider {
 
@@ -32,15 +34,24 @@ public interface Decider {
 
   class DecisionResult {
     private final List<Decision> decisions;
+    private final Map<String, WorkflowQueryResult> queryResults;
     private final boolean forceCreateNewDecisionTask;
 
-    public DecisionResult(List<Decision> decisions, boolean forceCreateNewDecisionTask) {
+    public DecisionResult(
+        List<Decision> decisions,
+        Map<String, WorkflowQueryResult> queryResults,
+        boolean forceCreateNewDecisionTask) {
       this.decisions = decisions;
+      this.queryResults = queryResults;
       this.forceCreateNewDecisionTask = forceCreateNewDecisionTask;
     }
 
     public List<Decision> getDecisions() {
       return decisions;
+    }
+
+    public Map<String, WorkflowQueryResult> getQueryResults() {
+      return queryResults;
     }
 
     public boolean getForceCreateNewDecisionTask() {

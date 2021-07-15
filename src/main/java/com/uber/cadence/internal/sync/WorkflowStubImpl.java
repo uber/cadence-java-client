@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryWorkflowResponse;
@@ -429,12 +430,30 @@ class WorkflowStubImpl implements WorkflowStub {
       Type resultType,
       QueryRejectCondition queryRejectCondition,
       Object... args) {
+    return query(
+        queryType,
+        resultClass,
+        resultType,
+        queryRejectCondition,
+        QueryConsistencyLevel.EVENTUAL,
+        args);
+  }
+
+  @Override
+  public <R> R query(
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      QueryRejectCondition queryRejectCondition,
+      QueryConsistencyLevel queryConsistencyLevel,
+      Object... args) {
     checkStarted();
     QueryWorkflowParameters p = new QueryWorkflowParameters();
     p.setInput(dataConverter.toData(args));
     p.setQueryType(queryType);
     p.setWorkflowId(execution.get().getWorkflowId());
     p.setQueryRejectCondition(queryRejectCondition);
+    p.setQueryConsistencyLevel(queryConsistencyLevel);
 
     QueryWorkflowResponse result;
     try {
