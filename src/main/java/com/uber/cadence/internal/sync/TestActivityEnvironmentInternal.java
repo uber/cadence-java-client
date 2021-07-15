@@ -46,6 +46,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -316,6 +317,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
   private class WorkflowServiceWrapper implements IWorkflowService {
 
     private final IWorkflowService impl;
+
+    @Override
+    public CompletableFuture<Boolean> isHealthy() {
+      return impl.isHealthy();
+    }
 
     private WorkflowServiceWrapper(IWorkflowService impl) {
       if (impl == null) {
