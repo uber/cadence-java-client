@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 final class WorkflowContext {
 
@@ -166,7 +167,18 @@ final class WorkflowContext {
 
     Map<String, Object> contextData = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      contextData.put(propagator.getName(), propagator.deserializeContext(headerData));
+      // Only send the context propagator the fields that belong to them
+      // Change the map from MyPropagator:foo -> bar to foo -> bar
+      Map<String, byte[]> filteredData =
+          headerData
+              .entrySet()
+              .stream()
+              .filter(e -> e.getKey().startsWith(propagator.getName()))
+              .collect(
+                  Collectors.toMap(
+                      e -> e.getKey().substring(propagator.getName().length() + 1),
+                      Map.Entry::getValue));
+      contextData.put(propagator.getName(), propagator.deserializeContext(filteredData));
     }
 
     return contextData;
