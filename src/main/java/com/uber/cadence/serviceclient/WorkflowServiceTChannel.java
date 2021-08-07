@@ -108,6 +108,7 @@ import com.uber.tchannel.messages.generated.Meta;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -264,7 +265,12 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         new ThriftRequest.Builder<>(options.getServiceName(), endpoint);
     // Create a mutable hashmap for headers, as tchannel.tracing.PrefixedHeadersCarrier assumes
     // that it can call put directly to add new stuffs (e.g. traces).
-    builder.setHeaders(new HashMap<>(thriftHeaders));
+    final HashMap<String, String> headers = new HashMap<>(thriftHeaders);
+    if(this.options != null && this.options.getAuthProvider() != null){
+      headers.put("cadence-authorization", new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
+    }
+    builder.setHeaders(headers);
+
     if (rpcTimeoutOverride != null) {
       builder.setTimeout(rpcTimeoutOverride);
     } else {

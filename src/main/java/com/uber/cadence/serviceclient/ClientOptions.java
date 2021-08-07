@@ -74,6 +74,9 @@ public class ClientOptions {
   /** Optional TChannel headers */
   private final Map<String, String> headers;
 
+  /** Optional authorization provider */
+  private final IAuthorizationProvider authProvider;
+
   private static final ClientOptions DEFAULT_INSTANCE;
 
   static {
@@ -128,6 +131,7 @@ public class ClientOptions {
     } else {
       this.headers = ImmutableMap.of();
     }
+    this.authProvider = builder.authProvider;
   }
 
   public String getHost() {
@@ -179,6 +183,10 @@ public class ClientOptions {
     return headers;
   }
 
+  public IAuthorizationProvider getAuthProvider(){
+    return authProvider;
+  }
+
   /**
    * Builder is the builder for ClientOptions.
    *
@@ -197,11 +205,17 @@ public class ClientOptions {
     private Scope metricsScope;
     private Map<String, String> transportHeaders;
     private Map<String, String> headers;
+    private IAuthorizationProvider authProvider;
 
     private Builder() {}
 
     public Builder setHost(String host) {
       this.host = host;
+      return this;
+    }
+
+    public Builder setAuthorizationProvider(IAuthorizationProvider provider){
+      this.authProvider = provider;
       return this;
     }
 
