@@ -266,7 +266,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     // Create a mutable hashmap for headers, as tchannel.tracing.PrefixedHeadersCarrier assumes
     // that it can call put directly to add new stuffs (e.g. traces).
     final HashMap<String, String> headers = new HashMap<>(thriftHeaders);
-    if(this.options != null && this.options.getAuthProvider() != null){
+    if (this.options.getAuthProvider() != null) {
       headers.put("cadence-authorization", new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
     }
     builder.setHeaders(headers);
