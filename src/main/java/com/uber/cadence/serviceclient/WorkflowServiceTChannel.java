@@ -267,7 +267,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     // that it can call put directly to add new stuffs (e.g. traces).
     final HashMap<String, String> headers = new HashMap<>(thriftHeaders);
     if (this.options.getAuthProvider() != null) {
-      headers.put("cadence-authorization", new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
+      headers.put(
+          "cadence-authorization",
+          new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
     }
     builder.setHeaders(headers);
 

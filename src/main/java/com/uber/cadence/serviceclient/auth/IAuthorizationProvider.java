@@ -15,11 +15,10 @@
  *  permissions and limitations under the License.
  */
 
-
-package com.uber.cadence.serviceclient;
+package com.uber.cadence.serviceclient.auth;
 
 public interface IAuthorizationProvider {
-    // getAuthToken provides the OAuth authorization token
-    // It's called before every request to Cadence server, and sets the token in the request header.
-    byte[] getAuthToken();
+  // getAuthToken provides the OAuth authorization token
+  // It's called before every request to Cadence server, and sets the token in the request header.
+  byte[] getAuthToken();
 }

@@ -20,6 +20,7 @@ package com.uber.cadence.serviceclient;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.internal.metrics.NoopScope;
+import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import com.uber.m3.tally.Scope;
 import java.util.Map;
 
@@ -183,7 +184,7 @@ public class ClientOptions {
     return headers;
   }
 
-  public IAuthorizationProvider getAuthProvider(){
+  public IAuthorizationProvider getAuthProvider() {
     return authProvider;
   }
 
@@ -214,7 +215,7 @@ public class ClientOptions {
       return this;
     }
 
-    public Builder setAuthorizationProvider(IAuthorizationProvider provider){
+    public Builder setAuthorizationProvider(IAuthorizationProvider provider) {
       this.authProvider = provider;
       return this;
     }
