@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.2.0
+### Added
+- Add Health check API to worker and service interface.
+### Changed
+- Replace sticky tasklist metrics scope with the same value.
+
 ## 3.1.0
 ### Added
 - [New feature] Workflow Shadowing worker and tests. The new shadowing feature provides:
