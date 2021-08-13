@@ -25,7 +25,7 @@ services:
       - "8126:8126"
 
   cadence:
-    image: ubercadence/server:latestRelease-auto-setup
+    image: ubercadence/server:master-auto-setup
     deploy:
       resources:
         limits:
