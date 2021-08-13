@@ -17,6 +17,7 @@
 
 package com.uber.cadence.client;
 
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.WorkflowExecution;
 import java.lang.reflect.InvocationHandler;
@@ -168,6 +169,14 @@ public interface WorkflowStub {
       Class<R> resultClass,
       Type resultType,
       QueryRejectCondition queryRejectCondition,
+      Object... args);
+
+  <R> R query(
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      QueryRejectCondition queryRejectCondition,
+      QueryConsistencyLevel queryConsistencyLevel,
       Object... args);
 
   /** Request cancellation. */
