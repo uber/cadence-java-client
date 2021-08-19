@@ -69,7 +69,7 @@ public @interface MethodRetry {
   long maximumIntervalSeconds() default 0;
 
   /**
-   * List of exceptions to retry. When matching an exact match is used. So adding
+   * List of exceptions to skip retry. When matching an exact match is used. So adding
    * RuntimeException.class to this list is going to include only RuntimeException itself, not all
    * of its subclasses. The reason for such behaviour is to be able to support server side retries
    * without knowledge of Java exception hierarchy. {@link Error} and {@link
