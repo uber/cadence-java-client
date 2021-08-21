@@ -50,6 +50,7 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
+import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryWorkflowRequest;
@@ -988,6 +989,18 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
           QueryRejectCondition queryRejectCondition,
           Object... args) {
         return next.query(queryType, resultClass, resultType, queryRejectCondition, args);
+      }
+
+      @Override
+      public <R> R query(
+          String queryType,
+          Class<R> resultClass,
+          Type resultType,
+          QueryRejectCondition queryRejectCondition,
+          QueryConsistencyLevel queryConsistencyLevel,
+          Object... args) {
+        return next.query(
+            queryType, resultClass, resultType, queryRejectCondition, queryConsistencyLevel, args);
       }
 
       @Override
