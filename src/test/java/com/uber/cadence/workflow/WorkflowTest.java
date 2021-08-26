@@ -35,6 +35,7 @@ import com.uber.cadence.CancellationAlreadyRequestedError;
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
+import com.uber.cadence.FeatureFlags;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.Memo;
@@ -206,7 +207,11 @@ public class WorkflowTest {
   private ScheduledExecutorService scheduledExecutor;
   private List<ScheduledFuture<?>> delayedCallbacks = new ArrayList<>();
   private static final IWorkflowService service =
-      new WorkflowServiceTChannel(ClientOptions.defaultInstance());
+      new WorkflowServiceTChannel(
+          ClientOptions.newBuilder()
+              .setFeatureFlags(
+                  new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
+              .build());
 
   @AfterClass
   public static void closeService() {
@@ -2501,12 +2506,7 @@ public class WorkflowTest {
       client.mySignal("Hello!");
       assert (false); // Signal call should throw an exception, so fail if it doesn't
     } catch (Exception e) {
-      if (e.getCause().getClass() != WorkflowExecutionAlreadyCompletedError.class
-          && e.getCause().getClass() != EntityNotExistsError.class // only for legacy servers
-      ) {
-        // Using assertEquals to output the actual error
-        assertEquals(WorkflowExecutionAlreadyCompletedError.class, e.getCause().getClass());
-      }
+      assertEquals(WorkflowExecutionAlreadyCompletedError.class, e.getCause().getClass());
     }
   }
 

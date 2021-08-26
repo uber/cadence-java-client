@@ -18,6 +18,8 @@
 package com.uber.cadence.serviceclient;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.uber.cadence.BadRequestError;
 import com.uber.cadence.ClientVersionNotSupportedError;
 import com.uber.cadence.ClusterInfo;
@@ -34,6 +36,8 @@ import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
+import com.uber.cadence.GetTaskListsByDomainRequest;
+import com.uber.cadence.GetTaskListsByDomainResponse;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
 import com.uber.cadence.History;
@@ -202,6 +206,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       for (Map.Entry<String, String> entry : options.getHeaders().entrySet()) {
         builder.put(entry.getKey(), entry.getValue());
       }
+    }
+
+    if (options.getFeatureFlags() != null) {
+      GsonBuilder gsonBuilder = new GsonBuilder();
+      Gson gson = gsonBuilder.create();
+      String serialized = gson.toJson(options.getFeatureFlags());
+      builder.put("cadence-client-feature-flags", serialized);
     }
 
     return builder.build();
@@ -551,6 +562,51 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         throw result.getDomainNotActiveError();
       }
       throw new TException("DeprecateDomain failed with unknown error:" + result);
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
+  @Override
+  public GetTaskListsByDomainResponse GetTaskListsByDomain(
+      GetTaskListsByDomainRequest getTaskListsByDomainRequest) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.GET_TASK_LISTS_BY_DOMAIN,
+        () -> getTaskListsByDomain(getTaskListsByDomainRequest));
+  }
+
+  private GetTaskListsByDomainResponse getTaskListsByDomain(
+      GetTaskListsByDomainRequest getTaskListsByDomainRequest) throws TException {
+    ThriftResponse<WorkflowService.GetTaskListsByDomain_result> response = null;
+    try {
+      ThriftRequest<WorkflowService.GetTaskListsByDomain_args> request =
+          buildThriftRequest(
+              "GetTaskListsByDomain",
+              new WorkflowService.GetTaskListsByDomain_args(getTaskListsByDomainRequest));
+      response = doRemoteCall(request);
+      WorkflowService.GetTaskListsByDomain_result result =
+          response.getBody(WorkflowService.GetTaskListsByDomain_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return result.getSuccess();
+      }
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      if (result.isSetLimitExceededError()) {
+        throw result.getLimitExceededError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
+      throw new TException("GetTaskListsByDomain failed with unknown error:" + result);
     } finally {
       if (response != null) {
         response.release();
@@ -2599,6 +2655,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public void DeprecateDomain(
       DeprecateDomainRequest deprecateRequest, AsyncMethodCallback resultHandler)
       throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void GetTaskListsByDomain(
+      GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
+      throws org.apache.thrift.TException {
     throw new UnsupportedOperationException("not implemented");
   }
 }
