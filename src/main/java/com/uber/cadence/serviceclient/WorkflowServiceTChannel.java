@@ -388,6 +388,19 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   /**
+   * Creates Cadence client that connects to the local instance of the Cadence Service that listens
+   * on a default port (7933) using specified options.
+   */
+  public WorkflowServiceTChannel(ClientOptions options) {
+    this(
+        Strings.isNullOrEmpty(System.getenv("CADENCE_SEEDS"))
+            ? LOCALHOST
+            : System.getenv("CADENCE_SEEDS"),
+        DEFAULT_LOCAL_CADENCE_SERVER_PORT,
+        options);
+  }
+
+  /**
    * Creates Cadence client that connects to the specified host and port using default options.
    *
    * @param host host to connect

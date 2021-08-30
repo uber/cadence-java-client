@@ -488,7 +488,14 @@ public final class Worker implements Suspendable {
      * @param factoryOptions Options used to configure factory settings
      */
     public Factory(String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(), true, domain, factoryOptions);
+      this(
+          new WorkflowServiceTChannel(
+              new WorkflowServiceTChannel.ClientOptions.Builder()
+                  .setMetricsScope(factoryOptions.getMetricsScope())
+                  .build()),
+          true,
+          domain,
+          factoryOptions);
     }
 
     /**
@@ -501,7 +508,16 @@ public final class Worker implements Suspendable {
      * @param factoryOptions Options used to configure factory settings
      */
     public Factory(String host, int port, String domain, FactoryOptions factoryOptions) {
-      this(new WorkflowServiceTChannel(host, port), true, domain, factoryOptions);
+      this(
+          new WorkflowServiceTChannel(
+              host,
+              port,
+              new WorkflowServiceTChannel.ClientOptions.Builder()
+                  .setMetricsScope(factoryOptions.getMetricsScope())
+                  .build()),
+          true,
+          domain,
+          factoryOptions);
     }
 
     /**
@@ -956,6 +972,10 @@ public final class Worker implements Suspendable {
       } else {
         this.contextPropagators = new ArrayList<>();
       }
+    }
+
+    public Scope getMetricsScope() {
+      return this.metricsScope;
     }
   }
 }

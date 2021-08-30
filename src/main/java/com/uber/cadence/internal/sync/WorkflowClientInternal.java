@@ -72,7 +72,13 @@ public final class WorkflowClientInternal implements WorkflowClient {
    *     configuring client.
    */
   public static WorkflowClient newInstance(String domain, WorkflowClientOptions options) {
-    return new WorkflowClientInternal(new WorkflowServiceTChannel(), domain, options);
+    return new WorkflowClientInternal(
+        new WorkflowServiceTChannel(
+            new WorkflowServiceTChannel.ClientOptions.Builder()
+                .setMetricsScope(options.getMetricsScope())
+                .build()),
+        domain,
+        options);
   }
 
   /**
@@ -100,7 +106,15 @@ public final class WorkflowClientInternal implements WorkflowClient {
    */
   public static WorkflowClient newInstance(
       String host, int port, String domain, WorkflowClientOptions options) {
-    return new WorkflowClientInternal(new WorkflowServiceTChannel(host, port), domain, options);
+    return new WorkflowClientInternal(
+        new WorkflowServiceTChannel(
+            host,
+            port,
+            new WorkflowServiceTChannel.ClientOptions.Builder()
+                .setMetricsScope(options.getMetricsScope())
+                .build()),
+        domain,
+        options);
   }
 
   /**
