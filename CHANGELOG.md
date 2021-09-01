@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.3.0
+### Added
+- Added feature flags to ship breaking changes without impacting old behavior.
+
 ## 3.2.0
 ### Added
 - Add Health check API to worker and service interface.
@@ -41,23 +45,23 @@
 - Fix race condition during serialization.
 
 ## 2.7.8
-- Fix get raw history 
-- Improve signal processing error and log 
-- Fix replay error when querying workflow that contains activity retry 
+- Fix get raw history
+- Improve signal processing error and log
+- Fix replay error when querying workflow that contains activity retry
 
 ## 2.7.6
-- Fix getVersion override when added new version 
-- Add async signal to untypedstub 
+- Fix getVersion override when added new version
+- Add async signal to untypedstub
 - Fix RetryOptions.addDoNotRetry
 - Add missing metrics from go client
 - Fix a bug in setting retry expiration while getting history
-- Fix start async return 
+- Fix start async return
 
 ## 2.7.5
 - Added supports contextPropagators for localActivity
 
 ## v2.7.4
-- Fix prometheus reporting issue 
+- Fix prometheus reporting issue
 - Fix Promise.allOf should not block on empty input
 - Misc: Added project directory to sourceItems path
 - Add async start to untype stub
@@ -81,7 +85,7 @@
 - Fix various bugs around test workflow service and test mutable state implementation
 - Use thrift IDLs from uber/cadence-idl repo as a submodule
 - Various dependency updates including Docker base image and Gradle wrapper
-- Miscellaneous bug fixes 
+- Miscellaneous bug fixes
 
 ## v2.6.3
 - Add Upsert Search Attributes
@@ -166,7 +170,7 @@ queries did not used cached workflows.
 ## v2.1.2
 - Requires minimum server release v0.4.0
 - Introduced WorkerFactory and FactoryOptions
-- Added sticky workflow execution, which is caching of a workflow object between decisions. It is enabled by default, 
+- Added sticky workflow execution, which is caching of a workflow object between decisions. It is enabled by default,
 to disable use FactoryOptions.disableStickyExecution property.
 - Updated Thrift to expose new types of service exceptions: ServiceBusyError, DomainNotActiveError, LimitExceededError
 - Added metric for corrupted signal as well as metrics related to caching and evictions.

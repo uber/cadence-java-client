@@ -193,7 +193,7 @@ public class ClientOptions {
   public IAuthorizationProvider getAuthProvider() {
     return authProvider;
   }
-  
+
   public FeatureFlags getFeatureFlags() {
     return this.featureFlags;
   }
