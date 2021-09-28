@@ -400,7 +400,7 @@ public final class WorkflowOptions {
         && Objects.equals(memo, that.memo)
         && Objects.equals(searchAttributes, that.searchAttributes)
         && Objects.equals(contextPropagators, that.contextPropagators)
-        && delayStart.equals(that.delayStart);
+        && Objects.equals(delayStart, that.delayStart);
   }
 
   @Override
