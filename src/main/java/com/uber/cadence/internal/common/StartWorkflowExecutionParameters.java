@@ -54,6 +54,8 @@ public final class StartWorkflowExecutionParameters {
 
   private Map<String, byte[]> context;
 
+  private Duration delayStart;
+
   /**
    * Returns the value of the WorkflowId property for this object.
    *
@@ -307,6 +309,14 @@ public final class StartWorkflowExecutionParameters {
     this.context = context;
   }
 
+  public void setDelayStart(Duration delayStart) {
+    this.delayStart = delayStart;
+  }
+
+  public Duration getDelayStart() {
+    return delayStart;
+  }
+
   public StartWorkflowExecutionParameters withRetryParameters(RetryParameters retryParameters) {
     this.retryParameters = retryParameters;
     return this;
@@ -383,6 +393,8 @@ public final class StartWorkflowExecutionParameters {
         + searchAttributes
         + ", context='"
         + context
+        + ", delayStart='"
+        + delayStart
         + '\''
         + '}';
   }
@@ -403,7 +415,8 @@ public final class StartWorkflowExecutionParameters {
         && Objects.equals(cronSchedule, that.cronSchedule)
         && Objects.equals(memo, that.memo)
         && Objects.equals(searchAttributes, that.searchAttributes)
-        && Objects.equals(context, that.context);
+        && Objects.equals(context, that.context)
+        && Objects.equals(delayStart, that.delayStart);
   }
 
   @Override
@@ -420,7 +433,8 @@ public final class StartWorkflowExecutionParameters {
             cronSchedule,
             memo,
             searchAttributes,
-            context);
+            context,
+            delayStart);
     result = 31 * result + Arrays.hashCode(input);
     return result;
   }

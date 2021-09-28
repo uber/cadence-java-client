@@ -4467,6 +4467,29 @@ public class WorkflowTest {
         "executeActivity customActivity1");
   }
 
+  @Test
+  public void testDelayStart() {
+    Assume.assumeTrue("skipping for non docker tests", useExternalService);
+
+    int delaySeconds = 5;
+    startWorkerFor(TestGetVersionWorkflowImpl.class);
+    WorkflowOptions options =
+        newWorkflowOptionsBuilder(taskList).setDelayStart(Duration.ofSeconds(delaySeconds)).build();
+
+    LocalDateTime start = LocalDateTime.now();
+    System.out.printf("\n\nSTART: %s \n\n", start.toString());
+
+    TestWorkflow1 workflowStub = workflowClient.newWorkflowStub(TestWorkflow1.class, options);
+    String result = workflowStub.execute(taskList);
+
+    System.out.printf("\n\nRESULT: %s \n\n", result.toString());
+    LocalDateTime end = LocalDateTime.now();
+    System.out.printf("\n\nEND: %s \n\n", end.toString());
+
+    assertTrue(
+        "end time should be at least +10 seconds", start.plusSeconds(delaySeconds).isBefore(end));
+  }
+
   public static class TestGetVersionWorkflow2Impl implements TestWorkflow1 {
 
     @Override

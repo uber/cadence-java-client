@@ -66,6 +66,7 @@ public final class WorkflowOptions {
         .setMemo(o.getMemo())
         .setSearchAttributes(o.getSearchAttributes())
         .setContextPropagators(o.getContextPropagators())
+        .setDelayStart(o.delayStart)
         .validateBuildWithDefaults();
   }
 
@@ -91,6 +92,8 @@ public final class WorkflowOptions {
 
     private List<ContextPropagator> contextPropagators;
 
+    private Duration delayStart;
+
     public Builder() {}
 
     public Builder(WorkflowOptions o) {
@@ -107,6 +110,7 @@ public final class WorkflowOptions {
       this.memo = o.memo;
       this.searchAttributes = o.searchAttributes;
       this.contextPropagators = o.contextPropagators;
+      this.delayStart = o.delayStart;
     }
 
     /**
@@ -214,6 +218,11 @@ public final class WorkflowOptions {
       return this;
     }
 
+    public Builder setDelayStart(Duration delayStart) {
+      this.delayStart = delayStart;
+      return this;
+    }
+
     public WorkflowOptions build() {
       return new WorkflowOptions(
           workflowId,
@@ -225,7 +234,8 @@ public final class WorkflowOptions {
           cronSchedule,
           memo,
           searchAttributes,
-          contextPropagators);
+          contextPropagators,
+          delayStart);
     }
 
     /**
@@ -261,6 +271,13 @@ public final class WorkflowOptions {
         cron.validate();
       }
 
+      if (delayStart != null) {
+        if (delayStart.getSeconds() < 0) {
+          throw new IllegalArgumentException(
+              "Delay start (in seconds) value cannot be lower than zero");
+        }
+      }
+
       return new WorkflowOptions(
           workflowId,
           policy,
@@ -272,7 +289,8 @@ public final class WorkflowOptions {
           cronSchedule,
           memo,
           searchAttributes,
-          contextPropagators);
+          contextPropagators,
+          delayStart);
     }
   }
 
@@ -296,6 +314,8 @@ public final class WorkflowOptions {
 
   private List<ContextPropagator> contextPropagators;
 
+  private Duration delayStart;
+
   private WorkflowOptions(
       String workflowId,
       WorkflowIdReusePolicy workflowIdReusePolicy,
@@ -306,7 +326,8 @@ public final class WorkflowOptions {
       String cronSchedule,
       Map<String, Object> memo,
       Map<String, Object> searchAttributes,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      Duration delayStart) {
     this.workflowId = workflowId;
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.executionStartToCloseTimeout = executionStartToCloseTimeout;
@@ -317,6 +338,7 @@ public final class WorkflowOptions {
     this.memo = memo;
     this.searchAttributes = searchAttributes;
     this.contextPropagators = contextPropagators;
+    this.delayStart = delayStart;
   }
 
   public String getWorkflowId() {
@@ -359,6 +381,10 @@ public final class WorkflowOptions {
     return contextPropagators;
   }
 
+  public Duration getDelayStart() {
+    return delayStart;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -373,7 +399,8 @@ public final class WorkflowOptions {
         && Objects.equals(cronSchedule, that.cronSchedule)
         && Objects.equals(memo, that.memo)
         && Objects.equals(searchAttributes, that.searchAttributes)
-        && Objects.equals(contextPropagators, that.contextPropagators);
+        && Objects.equals(contextPropagators, that.contextPropagators)
+        && delayStart.equals(that.delayStart);
   }
 
   @Override
@@ -388,7 +415,8 @@ public final class WorkflowOptions {
         cronSchedule,
         memo,
         searchAttributes,
-        contextPropagators);
+        contextPropagators,
+        delayStart);
   }
 
   @Override
@@ -418,6 +446,9 @@ public final class WorkflowOptions {
         + searchAttributes
         + ", contextPropagators='"
         + contextPropagators
+        + '\''
+        + ", delayStart='"
+        + delayStart
         + '\''
         + '}';
   }

@@ -169,6 +169,7 @@ class WorkflowStubImpl implements WorkflowStub {
     p.setMemo(convertMemoFromObjectToBytes(o.getMemo()));
     p.setSearchAttributes(convertSearchAttributesFromObjectToBytes(o.getSearchAttributes()));
     p.setContext(extractContextsAndConvertToBytes(o.getContextPropagators()));
+    p.setDelayStart(o.getDelayStart());
     return p;
   }
 

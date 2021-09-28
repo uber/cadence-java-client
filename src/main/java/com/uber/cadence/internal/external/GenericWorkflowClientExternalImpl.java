@@ -210,6 +210,9 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     request.setMemo(toMemoThrift(startParameters.getMemo()));
     request.setSearchAttributes(toSearchAttributesThrift(startParameters.getSearchAttributes()));
     request.setHeader(toHeaderThrift(startParameters.getContext()));
+    if (startParameters.getDelayStart() != null) {
+      request.setDelayStartSeconds((int) startParameters.getDelayStart().getSeconds());
+    }
 
     return request;
   }
@@ -378,6 +381,9 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     }
     if (!Strings.isNullOrEmpty(startParameters.getCronSchedule())) {
       request.setCronSchedule(startParameters.getCronSchedule());
+    }
+    if (startParameters.getDelayStart() != null) {
+      request.setDelayStartSeconds((int) startParameters.getDelayStart().getSeconds());
     }
     StartWorkflowExecutionResponse result;
     try {
