@@ -375,6 +375,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               .setTaskStartToCloseTimeout(options.getTaskStartToCloseTimeout())
               .setWorkflowId(options.getWorkflowId())
               .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+              .setMemo(options.getMemo())
+              .setSearchAttributes(options.getSearchAttributes())
               .setParentClosePolicy(options.getParentClosePolicy())
               .build();
       return WorkflowRetryerInternal.retryAsync(
