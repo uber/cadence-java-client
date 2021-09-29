@@ -28,10 +28,8 @@ import com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes;
 import com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes;
 import com.uber.cadence.Header;
 import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.Memo;
 import com.uber.cadence.ParentClosePolicy;
 import com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes;
-import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes;
@@ -39,6 +37,7 @@ import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RetryParameters;
 import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
@@ -155,19 +154,15 @@ final class WorkflowDecisionContext {
       attributes.setParentClosePolicy(parentClosePolicy);
     }
 
-    Memo memo = new Memo();
-    Map<String, byte[]> memoMap = parameters.getMemo();
+    Map<String, Object> memoMap = parameters.getMemo();
     if (memoMap != null) {
-      memoMap.forEach((key, value) -> memo.putToFields(key, ByteBuffer.wrap(value)));
-      attributes.setMemo(memo);
+      attributes.setMemo(InternalUtils.convertMapToMemo(memoMap));
     }
 
-    SearchAttributes searchAttributes = new SearchAttributes();
-    Map<String, byte[]> searchAttributesMap = parameters.getSearchAttributes();
+    Map<String, Object> searchAttributesMap = parameters.getSearchAttributes();
     if (searchAttributesMap != null) {
-      searchAttributesMap.forEach((key, value) -> searchAttributes.putToIndexedFields(
-          key, ByteBuffer.wrap(value)));
-      attributes.setSearchAttributes(searchAttributes);
+      attributes.setSearchAttributes(
+          InternalUtils.convertMapToSearchAttributes(searchAttributesMap));
     }
 
     long initiatedEventId = decisions.startChildWorkflowExecution(attributes);

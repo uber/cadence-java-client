@@ -51,9 +51,9 @@ public final class StartChildWorkflowExecutionParameters {
 
     private String cronSchedule;
 
-    private Map<String, byte[]> memo;
+    private Map<String, Object> memo;
 
-    private Map<String, byte[]> searchAttributes;
+    private Map<String, Object> searchAttributes;
 
     private Map<String, byte[]> context;
 
@@ -115,12 +115,12 @@ public final class StartChildWorkflowExecutionParameters {
       return this;
     }
 
-    public Builder setMemo(Map<String, byte[]> memo) {
+    public Builder setMemo(Map<String, Object> memo) {
       this.memo = memo;
       return this;
     }
 
-    public Builder setSearchAttributes(Map<String, byte[]> searchAttributes) {
+    public Builder setSearchAttributes(Map<String, Object> searchAttributes) {
       this.searchAttributes = searchAttributes;
       return this;
     }
@@ -177,9 +177,9 @@ public final class StartChildWorkflowExecutionParameters {
 
   private final String cronSchedule;
 
-  private Map<String, byte[]> memo;
+  private Map<String, Object> memo;
 
-  private Map<String, byte[]> searchAttributes;
+  private Map<String, Object> searchAttributes;
 
   private Map<String, byte[]> context;
 
@@ -197,8 +197,8 @@ public final class StartChildWorkflowExecutionParameters {
       WorkflowIdReusePolicy workflowIdReusePolicy,
       RetryParameters retryParameters,
       String cronSchedule,
-      Map<String, byte[]> memo,
-      Map<String, byte[]> searchAttributes,
+      Map<String, Object> memo,
+      Map<String, Object> searchAttributes,
       Map<String, byte[]> context,
       ParentClosePolicy parentClosePolicy) {
     this.domain = domain;
@@ -262,11 +262,11 @@ public final class StartChildWorkflowExecutionParameters {
     return cronSchedule;
   }
 
-  public Map<String, byte[]> getMemo() {
+  public Map<String, Object> getMemo() {
     return memo;
   }
 
-  public Map<String, byte[]> getSearchAttributes() {
+  public Map<String, Object> getSearchAttributes() {
     return searchAttributes;
   }
 
