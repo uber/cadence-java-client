@@ -51,6 +51,10 @@ public final class StartChildWorkflowExecutionParameters {
 
     private String cronSchedule;
 
+    private Map<String, byte[]> memo;
+
+    private Map<String, byte[]> searchAttributes;
+
     private Map<String, byte[]> context;
 
     private ParentClosePolicy parentClosePolicy;
@@ -111,6 +115,16 @@ public final class StartChildWorkflowExecutionParameters {
       return this;
     }
 
+    public Builder setMemo(Map<String, byte[]> memo) {
+      this.memo = memo;
+      return this;
+    }
+
+    public Builder setSearchAttributes(Map<String, byte[]> searchAttributes) {
+      this.searchAttributes = searchAttributes;
+      return this;
+    }
+
     public Builder setContext(Map<String, byte[]> context) {
       this.context = context;
       return this;
@@ -134,6 +148,8 @@ public final class StartChildWorkflowExecutionParameters {
           workflowIdReusePolicy,
           retryParameters,
           cronSchedule,
+          memo,
+          searchAttributes,
           context,
           parentClosePolicy);
     }
@@ -161,6 +177,10 @@ public final class StartChildWorkflowExecutionParameters {
 
   private final String cronSchedule;
 
+  private Map<String, byte[]> memo;
+
+  private Map<String, byte[]> searchAttributes;
+
   private Map<String, byte[]> context;
 
   private final ParentClosePolicy parentClosePolicy;
@@ -177,6 +197,8 @@ public final class StartChildWorkflowExecutionParameters {
       WorkflowIdReusePolicy workflowIdReusePolicy,
       RetryParameters retryParameters,
       String cronSchedule,
+      Map<String, byte[]> memo,
+      Map<String, byte[]> searchAttributes,
       Map<String, byte[]> context,
       ParentClosePolicy parentClosePolicy) {
     this.domain = domain;
@@ -190,6 +212,8 @@ public final class StartChildWorkflowExecutionParameters {
     this.workflowIdReusePolicy = workflowIdReusePolicy;
     this.retryParameters = retryParameters;
     this.cronSchedule = cronSchedule;
+    this.memo = memo;
+    this.searchAttributes = searchAttributes;
     this.context = context;
     this.parentClosePolicy = parentClosePolicy;
   }
@@ -238,6 +262,14 @@ public final class StartChildWorkflowExecutionParameters {
     return cronSchedule;
   }
 
+  public Map<String, byte[]> getMemo() {
+    return memo;
+  }
+
+  public Map<String, byte[]> getSearchAttributes() {
+    return searchAttributes;
+  }
+
   public Map<String, byte[]> getContext() {
     return context;
   }
@@ -262,6 +294,8 @@ public final class StartChildWorkflowExecutionParameters {
         && workflowIdReusePolicy == that.workflowIdReusePolicy
         && Objects.equals(retryParameters, that.retryParameters)
         && Objects.equals(cronSchedule, that.cronSchedule)
+        && Objects.equals(memo, that.memo)
+        && Objects.equals(searchAttributes, that.searchAttributes)
         && Objects.equals(context, that.context)
         && Objects.equals(parentClosePolicy, that.parentClosePolicy);
   }
@@ -280,6 +314,8 @@ public final class StartChildWorkflowExecutionParameters {
             workflowIdReusePolicy,
             retryParameters,
             cronSchedule,
+            memo,
+            searchAttributes,
             context,
             parentClosePolicy);
     result = 31 * result + Arrays.hashCode(input);
@@ -315,6 +351,10 @@ public final class StartChildWorkflowExecutionParameters {
         + retryParameters
         + ", cronSchedule="
         + cronSchedule
+        + ", memo="
+        + memo
+        + ", searchAttributes="
+        + searchAttributes
         + ", context='"
         + context
         + ", parentClosePolicy="
