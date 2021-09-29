@@ -165,7 +165,8 @@ final class WorkflowDecisionContext {
     SearchAttributes searchAttributes = new SearchAttributes();
     Map<String, byte[]> searchAttributesMap = parameters.getSearchAttributes();
     if (searchAttributesMap != null) {
-      searchAttributesMap.forEach((key, value) -> memo.putToFields(key, ByteBuffer.wrap(value)));
+      searchAttributesMap.forEach((key, value) -> searchAttributes.putToIndexedFields(
+          key, ByteBuffer.wrap(value)));
       attributes.setSearchAttributes(searchAttributes);
     }
 
