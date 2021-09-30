@@ -37,6 +37,7 @@ import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowType;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.common.RetryParameters;
 import com.uber.cadence.workflow.ChildWorkflowTerminatedException;
 import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
@@ -151,6 +152,17 @@ final class WorkflowDecisionContext {
     ParentClosePolicy parentClosePolicy = parameters.getParentClosePolicy();
     if (parentClosePolicy != null) {
       attributes.setParentClosePolicy(parentClosePolicy);
+    }
+
+    Map<String, Object> memoMap = parameters.getMemo();
+    if (memoMap != null) {
+      attributes.setMemo(InternalUtils.convertMapToMemo(memoMap));
+    }
+
+    Map<String, Object> searchAttributesMap = parameters.getSearchAttributes();
+    if (searchAttributesMap != null) {
+      attributes.setSearchAttributes(
+          InternalUtils.convertMapToSearchAttributes(searchAttributesMap));
     }
 
     long initiatedEventId = decisions.startChildWorkflowExecution(attributes);
