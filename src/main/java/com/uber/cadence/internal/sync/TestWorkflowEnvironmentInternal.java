@@ -90,6 +90,7 @@ import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.client.ActivityCompletionClient;
+import com.uber.cadence.client.QueryOptions;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientInterceptor;
 import com.uber.cadence.client.WorkflowClientOptions;
@@ -1010,15 +1011,13 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public <R> R query(
+      public <R> R queryWithOptions(
           String queryType,
-          Class<R> resultClass,
+          QueryOptions options,
           Type resultType,
-          QueryRejectCondition queryRejectCondition,
-          QueryConsistencyLevel queryConsistencyLevel,
+          Class<R> resultClass,
           Object... args) {
-        return next.query(
-            queryType, resultClass, resultType, queryRejectCondition, queryConsistencyLevel, args);
+          return next.queryWithOptions(queryType, options, resultType, resultClass,  args);
       }
 
       @Override
