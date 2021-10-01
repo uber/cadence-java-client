@@ -431,17 +431,20 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public <R> R query(
-      String queryType,
-      Class<R> resultClass,
-      Type resultType,
-      QueryRejectCondition queryRejectCondition,
-      Object... args) {
+          String queryType,
+          Class<R> resultClass,
+          Type resultType,
+          QueryRejectCondition queryRejectCondition,
+          Object... args) {
     return queryWithOptions(
-        queryType,
-            new QueryOptions.Builder().setQueryRejectCondition(queryRejectCondition).setQueryConsistencyLevel(QueryConsistencyLevel.EVENTUAL).build(),
+            queryType,
+            new QueryOptions.Builder()
+                    .setQueryRejectCondition(queryRejectCondition)
+                    .setQueryConsistencyLevel(QueryConsistencyLevel.EVENTUAL)
+                    .build(),
             resultType,
-        resultClass,
-        args);
+            resultClass,
+            args);
   }
 
   @Override
