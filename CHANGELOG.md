@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.4.0
+### Added
+- Support delay start for cron workflows
+- Add memo and search attributes to child workflow
+
 ## 3.3.0
 ### Added
 - Added feature flags to ship breaking changes without impacting old behavior.
