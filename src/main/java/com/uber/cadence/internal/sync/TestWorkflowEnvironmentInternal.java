@@ -54,7 +54,6 @@ import com.uber.cadence.PollForActivityTaskRequest;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.QueryWorkflowRequest;
@@ -1017,7 +1016,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
           Type resultType,
           Class<R> resultClass,
           Object... args) {
-          return next.queryWithOptions(queryType, options, resultType, resultClass,  args);
+        return next.queryWithOptions(queryType, options, resultType, resultClass, args);
       }
 
       @Override

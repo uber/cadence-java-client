@@ -19,22 +19,15 @@ package com.uber.cadence.client;
 
 import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
-import com.uber.cadence.common.RetryOptions;
-import com.uber.cadence.context.ContextPropagator;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-
-import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
 
 public final class QueryOptions {
 
   public static final class Builder {
 
     private QueryRejectCondition queryRejectCondition = null; // default to empty condition
-    private QueryConsistencyLevel queryConsistencyLevel = QueryConsistencyLevel.EVENTUAL; // default to eventual consistent query
+    private QueryConsistencyLevel queryConsistencyLevel =
+        QueryConsistencyLevel.EVENTUAL; // default to eventual consistent query
 
     public Builder() {}
 
@@ -46,9 +39,7 @@ public final class QueryOptions {
       this.queryRejectCondition = o.queryRejectCondition;
     }
 
-    /**
-     * queryRejectCondition to decide condition to reject the query
-     */
+    /** queryRejectCondition to decide condition to reject the query */
     public Builder setQueryRejectCondition(QueryRejectCondition queryRejectCondition) {
       this.queryRejectCondition = queryRejectCondition;
       return this;
@@ -59,21 +50,16 @@ public final class QueryOptions {
       return this;
     }
 
-
     public QueryOptions build() {
-      return new QueryOptions(
-              queryRejectCondition,
-              queryConsistencyLevel);
+      return new QueryOptions(queryRejectCondition, queryConsistencyLevel);
     }
-
   }
 
   private QueryRejectCondition queryRejectCondition;
   private QueryConsistencyLevel queryConsistencyLevel;
 
   private QueryOptions(
-          QueryRejectCondition queryRejectCondition,
-          QueryConsistencyLevel queryConsistencyLevel) {
+      QueryRejectCondition queryRejectCondition, QueryConsistencyLevel queryConsistencyLevel) {
     this.queryConsistencyLevel = queryConsistencyLevel;
     this.queryRejectCondition = queryRejectCondition;
   }
@@ -86,7 +72,6 @@ public final class QueryOptions {
     return queryConsistencyLevel;
   }
 
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -98,9 +83,7 @@ public final class QueryOptions {
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-            queryRejectCondition,
-            queryConsistencyLevel);
+    return Objects.hash(queryRejectCondition, queryConsistencyLevel);
   }
 
   @Override
@@ -111,6 +94,6 @@ public final class QueryOptions {
         + '\''
         + ", queryConsistencyLevel="
         + queryConsistencyLevel
-        +'}';
+        + '}';
   }
 }

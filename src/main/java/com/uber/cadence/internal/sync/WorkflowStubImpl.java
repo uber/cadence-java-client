@@ -408,11 +408,7 @@ class WorkflowStubImpl implements WorkflowStub {
   @Override
   public <R> R query(String queryType, Class<R> resultClass, Object... args) {
     return queryWithOptions(
-            queryType,
-            new QueryOptions.Builder().build(),
-            resultClass,
-            resultClass,
-            args);
+        queryType, new QueryOptions.Builder().build(), resultClass, resultClass, args);
   }
 
   @Override
@@ -431,20 +427,20 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public <R> R query(
-          String queryType,
-          Class<R> resultClass,
-          Type resultType,
-          QueryRejectCondition queryRejectCondition,
-          Object... args) {
+      String queryType,
+      Class<R> resultClass,
+      Type resultType,
+      QueryRejectCondition queryRejectCondition,
+      Object... args) {
     return queryWithOptions(
-            queryType,
-            new QueryOptions.Builder()
-                    .setQueryRejectCondition(queryRejectCondition)
-                    .setQueryConsistencyLevel(QueryConsistencyLevel.EVENTUAL)
-                    .build(),
-            resultType,
-            resultClass,
-            args);
+        queryType,
+        new QueryOptions.Builder()
+            .setQueryRejectCondition(queryRejectCondition)
+            .setQueryConsistencyLevel(QueryConsistencyLevel.EVENTUAL)
+            .build(),
+        resultType,
+        resultClass,
+        args);
   }
 
   @Override
@@ -483,7 +479,9 @@ class WorkflowStubImpl implements WorkflowStub {
       return dataConverter.fromData(result.getQueryResult(), resultClass, resultType);
     } else {
       throw new WorkflowQueryRejectedException(
-          execution.get(), queryRejectCondition, result.getQueryRejected().getCloseStatus());
+          execution.get(),
+          options.getQueryRejectCondition(),
+          result.getQueryRejected().getCloseStatus());
     }
   }
 
