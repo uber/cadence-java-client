@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.replay;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
@@ -33,7 +34,9 @@ import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -92,25 +95,25 @@ public final class ClockDecisionContext {
 
   static final class GetVersionResult{
     private final int version;
-    private final byte[] data;
-    private final boolean isNewlyAdded;
+    private final boolean shouldUpdateCadenceChangeVersion;
+    private final Map<String, Object>  searchAttributesForChangeVersion;
 
-    GetVersionResult(final int version, final byte[] data, final boolean isNewlyAdded) {
+    GetVersionResult(final int version, final boolean isNewlyAdded, final Map<String, Object> searchAttributesForChangeVersion) {
       this.version = version;
-      this.data = data;
-      this.isNewlyAdded = isNewlyAdded;
+      this.shouldUpdateCadenceChangeVersion = isNewlyAdded;
+      this.searchAttributesForChangeVersion = searchAttributesForChangeVersion;
     }
 
     public int getVersion() {
       return version;
     }
 
-    public boolean isNewlyAdded() {
-      return isNewlyAdded;
+    public boolean shouldUpdateCadenceChangeVersion() {
+      return shouldUpdateCadenceChangeVersion;
     }
 
-    public byte[] getData() {
-      return data;
+    public Map<String, Object> getSearchAttributesForChangeVersion() {
+      return searchAttributesForChangeVersion;
     }
   }
 
@@ -314,11 +317,11 @@ public final class ClockDecisionContext {
 
   GetVersionResult getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
     Predicate<MarkerRecordedEventAttributes> changeIdEquals =
-        (attributes) -> {
-          MarkerHandler.MarkerInterface markerData =
-              MarkerHandler.MarkerInterface.fromEventAttributes(attributes, converter);
-          return markerData.getId().equals(changeId);
-        };
+            (attributes) -> {
+              MarkerHandler.MarkerInterface markerData =
+                      MarkerHandler.MarkerInterface.fromEventAttributes(attributes, converter);
+              return markerData.getId().equals(changeId);
+            };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
 
     final MarkerHandler.HandleResult result = versionHandler.handle(
@@ -332,28 +335,49 @@ public final class ClockDecisionContext {
             });
 
     final boolean isNewlyAdded = result.isNewlyStored();
+    Map<String, Object> searchAttributesForChangeVersion = null;
+    if (isNewlyAdded) {
+      searchAttributesForChangeVersion = createSearchAttributesForChangeVersion(changeId, maxSupported, versionMap);
+    }
+
     Integer version = versionMap.get(changeId);
     if (version != null) {
       validateVersion(changeId, version, minSupported, maxSupported);
-      return new GetVersionResult(version, result.getStoredData().get(), isNewlyAdded);
+      return new GetVersionResult(version, isNewlyAdded, searchAttributesForChangeVersion);
     }
 
     if (!result.getStoredData().isPresent()) {
-      return new GetVersionResult(WorkflowInternal.DEFAULT_VERSION, null, false);
+      return new GetVersionResult(WorkflowInternal.DEFAULT_VERSION, false, searchAttributesForChangeVersion);
     }
     version = converter.fromData(result.getStoredData().get(), Integer.class, Integer.class);
     validateVersion(changeId, version, minSupported, maxSupported);
-    return new GetVersionResult(version, result.getStoredData().get(), isNewlyAdded);
+    return new GetVersionResult(version, isNewlyAdded, searchAttributesForChangeVersion);
   }
 
   private void validateVersion(String changeID, int version, int minSupported, int maxSupported) {
     if ((version < minSupported || version > maxSupported)
-        && version != WorkflowInternal.DEFAULT_VERSION) {
+            && version != WorkflowInternal.DEFAULT_VERSION) {
       throw new Error(
-          String.format(
-              "Version %d of changeID %s is not supported. Supported version is between %d and %d.",
-              version, changeID, minSupported, maxSupported));
+              String.format(
+                      "Version %d of changeID %s is not supported. Supported version is between %d and %d.",
+                      version, changeID, minSupported, maxSupported));
     }
+  }
+
+  private Map<String, Object> createSearchAttributesForChangeVersion(String changeID, Integer version, Map<String, Integer> existingChangeVersions) {
+    return ImmutableMap.of(WorkflowInternal.CADENCE_CHANGE_VERSION, getChangeVersions(changeID, version, existingChangeVersions));
+  }
+
+  private List<String> getChangeVersions(String changeID, Integer version, Map<String, Integer> existingChangeVersions) {
+    ArrayList<String> res = new ArrayList<>();
+    for (Map.Entry<String, Integer> entry : existingChangeVersions.entrySet()) {
+      res.add(getChangeVersion(entry.getKey(), entry.getValue()));
+    }
+    return res;
+  }
+
+  private String getChangeVersion(String changeID, Integer version) {
+    return changeID + "-" + version;
   }
 
   Consumer<Exception> scheduleLocalActivityTask(
