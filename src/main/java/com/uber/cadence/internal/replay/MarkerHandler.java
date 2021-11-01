@@ -175,6 +175,24 @@ class MarkerHandler {
     }
   }
 
+  static final class HandleResult{
+      private Optional<byte[]> storedData;
+      private boolean isNewlyStored;
+
+    HandleResult(final Optional<byte[]> storedData, final boolean isNewlyStored) {
+      this.storedData = storedData;
+      this.isNewlyStored = isNewlyStored;
+    }
+
+    public boolean isNewlyStored() {
+      return isNewlyStored;
+    }
+
+    public Optional<byte[]> getStoredData() {
+      return storedData;
+    }
+  }
+
   private final DecisionsHelper decisions;
   private final String markerName;
   private final ReplayAware replayContext;
@@ -194,7 +212,7 @@ class MarkerHandler {
    *     nothing is recorded into the history.
    * @return the latest value returned by func
    */
-  Optional<byte[]> handle(
+  HandleResult handle(
       String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
     MarkerResult result = mutableMarkerResults.get(id);
     Optional<byte[]> stored;
@@ -211,7 +229,7 @@ class MarkerHandler {
       if (data.isPresent()) {
         // Need to insert marker to ensure that eventId is incremented
         recordMutableMarker(id, eventId, data.get(), accessCount, converter);
-        return data;
+        return new HandleResult(stored, false);
       }
 
       if (!stored.isPresent()) {
@@ -219,15 +237,15 @@ class MarkerHandler {
             id, new MarkerResult(converter.toData(WorkflowInternal.DEFAULT_VERSION)));
       }
 
-      return stored;
+      return new HandleResult(stored, false);
     }
     Optional<byte[]> toStore = func.apply(stored);
     if (toStore.isPresent()) {
       byte[] data = toStore.get();
       recordMutableMarker(id, eventId, data, accessCount, converter);
-      return toStore;
+      return new HandleResult(stored, true);
     }
-    return stored;
+    return new HandleResult(stored, false);
   }
 
   private Optional<byte[]> getMarkerDataFromHistory(

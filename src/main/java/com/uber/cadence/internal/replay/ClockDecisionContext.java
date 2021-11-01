@@ -90,6 +90,30 @@ public final class ClockDecisionContext {
   private boolean taskCompleted = false;
   private final Map<String, Integer> versionMap = new HashMap<>();
 
+  static final class GetVersionResult{
+    private final int version;
+    private final byte[] data;
+    private final boolean isNewlyAdded;
+
+    GetVersionResult(final int version, final byte[] data, final boolean isNewlyAdded) {
+      this.version = version;
+      this.data = data;
+      this.isNewlyAdded = isNewlyAdded;
+    }
+
+    public int getVersion() {
+      return version;
+    }
+
+    public boolean isNewlyAdded() {
+      return isNewlyAdded;
+    }
+
+    public byte[] getData() {
+      return data;
+    }
+  }
+
   ClockDecisionContext(
       DecisionsHelper decisions,
       BiFunction<LocalActivityWorker.Task, Duration, Boolean> laTaskPoller,
@@ -214,7 +238,8 @@ public final class ClockDecisionContext {
   Optional<byte[]> mutableSideEffect(
       String id, DataConverter converter, Func1<Optional<byte[]>, Optional<byte[]>> func) {
     decisions.addAllMissingVersionMarker(false, Optional.empty());
-    return mutableSideEffectHandler.handle(id, converter, func);
+    final MarkerHandler.HandleResult results = mutableSideEffectHandler.handle(id, converter, func);
+    return results.getStoredData();
   }
 
   void upsertSearchAttributes(SearchAttributes searchAttributes) {
@@ -287,7 +312,7 @@ public final class ClockDecisionContext {
     versionMap.put(versionID, version);
   }
 
-  int getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
+  GetVersionResult getVersion(String changeId, DataConverter converter, int minSupported, int maxSupported) {
     Predicate<MarkerRecordedEventAttributes> changeIdEquals =
         (attributes) -> {
           MarkerHandler.MarkerInterface markerData =
@@ -296,8 +321,7 @@ public final class ClockDecisionContext {
         };
     decisions.addAllMissingVersionMarker(true, Optional.of(changeIdEquals));
 
-    Optional<byte[]> result =
-        versionHandler.handle(
+    final MarkerHandler.HandleResult result = versionHandler.handle(
             changeId,
             converter,
             (stored) -> {
@@ -307,18 +331,19 @@ public final class ClockDecisionContext {
               return Optional.of(converter.toData(maxSupported));
             });
 
+    final boolean isNewlyAdded = result.isNewlyStored();
     Integer version = versionMap.get(changeId);
     if (version != null) {
       validateVersion(changeId, version, minSupported, maxSupported);
-      return version;
+      return new GetVersionResult(version, result.getStoredData().get(), isNewlyAdded);
     }
 
-    if (!result.isPresent()) {
-      return WorkflowInternal.DEFAULT_VERSION;
+    if (!result.getStoredData().isPresent()) {
+      return new GetVersionResult(WorkflowInternal.DEFAULT_VERSION, null, false);
     }
-    version = converter.fromData(result.get(), Integer.class, Integer.class);
+    version = converter.fromData(result.getStoredData().get(), Integer.class, Integer.class);
     validateVersion(changeId, version, minSupported, maxSupported);
-    return version;
+    return new GetVersionResult(version, result.getStoredData().get(), isNewlyAdded);
   }
 
   private void validateVersion(String changeID, int version, int minSupported, int maxSupported) {

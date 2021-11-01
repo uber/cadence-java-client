@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.DecisionTaskFailedEventAttributes;
 import com.uber.cadence.HistoryEvent;
@@ -30,6 +31,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.metrics.ReplayAwareScope;
+import com.uber.cadence.internal.sync.WorkflowInternal;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
 import com.uber.cadence.workflow.Functions.Func;
@@ -37,7 +39,10 @@ import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.m3.tally.Scope;
+
+import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -277,7 +282,14 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public int getVersion(
       String changeID, DataConverter converter, int minSupported, int maxSupported) {
-    return workflowClock.getVersion(changeID, converter, minSupported, maxSupported);
+    final ClockDecisionContext.GetVersionResult results = workflowClock.getVersion(changeID, converter, minSupported, maxSupported);
+    if(results.isNewlyAdded()){
+      SearchAttributes searchAttributes = new SearchAttributes();
+      final ImmutableMap<String, ByteBuffer> map = ImmutableMap.of(WorkflowInternal.CADENCE_CHANGE_VERSION, ByteBuffer.wrap(results.getData()));
+      searchAttributes.setIndexedFields(map);
+      upsertSearchAttributes(searchAttributes);
+    }
+    return results.getVersion();
   }
 
   @Override
