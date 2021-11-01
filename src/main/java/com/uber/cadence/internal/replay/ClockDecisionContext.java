@@ -370,6 +370,9 @@ public final class ClockDecisionContext {
 
   private List<String> getChangeVersions(String changeID, Integer version, Map<String, Integer> existingChangeVersions) {
     ArrayList<String> res = new ArrayList<>();
+    // the first element is always the latest version, this will be used as decisionID
+    res.add(getChangeVersion(changeID, version));
+
     for (Map.Entry<String, Integer> entry : existingChangeVersions.entrySet()) {
       res.add(getChangeVersion(entry.getKey(), entry.getValue()));
     }
