@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
+import static com.uber.cadence.internal.sync.WorkflowInternal.CADENCE_CHANGE_VERSION;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.SearchAttributes;
@@ -746,6 +747,10 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public void upsertSearchAttributes(Map<String, Object> searchAttributes) {
     if (searchAttributes.isEmpty()) {
       throw new IllegalArgumentException("Empty search attributes");
+    }
+
+    if (searchAttributes.containsKey(CADENCE_CHANGE_VERSION)){
+      throw new IllegalArgumentException("CadenceChangeVersion is a reserved key that cannot be set, please use other key");
     }
 
     SearchAttributes attr = InternalUtils.convertMapToSearchAttributes(searchAttributes);
