@@ -19,10 +19,10 @@ This doc is intended for contributors to `cadence-java-client` (hopefully that's
 
 * Make sure you set the gradle path with the right version ([currently 6.x](https://github.com/uber/cadence-java-client/blob/master/gradle/wrapper/gradle-wrapper.properties))
 
-![Screen Shot 2021-10-01 at 4 57 45 PM](https://user-images.githubusercontent.com/4523955/135696878-81c1e62e-eb04-45e6-9bcb-785ac38b6607.png)
+![IntelliJ](https://user-images.githubusercontent.com/4523955/135696878-81c1e62e-eb04-45e6-9bcb-785ac38b6607.png)
 
 * Then all the below `gradlew` command can be replaced with the Gradle plugin operation 
-![Screen Shot 2021-10-01 at 4 58 47 PM](https://user-images.githubusercontent.com/4523955/135696922-d43bc36d-18a4-4b7b-adee-0fe8300bf855.png)
+![Gradle](https://user-images.githubusercontent.com/4523955/135696922-d43bc36d-18a4-4b7b-adee-0fe8300bf855.png)
 
 ## Licence headers
 
