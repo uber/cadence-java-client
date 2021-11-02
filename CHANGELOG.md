@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.5.0
+### Changed 
+- Fix consistent query interface which caused overloading ambiguity with variable argument
+
 ## 3.4.0
 ### Added
 - Support delay start for cron workflows
