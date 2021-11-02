@@ -96,6 +96,7 @@ import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.ServiceMethod;
 import com.uber.m3.tally.Scope;
@@ -355,7 +356,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   private <T> T measureRemoteCall(String scopeName, RemoteCall<T> call) throws TException {
+    return measureRemoteCallWithTags(scopeName, call, null);
+  }
+
+  private <T> T measureRemoteCallWithTags(String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
     Scope scope = options.getMetricsScope().subScope(scopeName);
+    if (tags != null){
+      scope = scope.tagged(tags);
+    }
     scope.counter(MetricsType.CADENCE_REQUEST).inc(1);
     Stopwatch sw = scope.timer(MetricsType.CADENCE_LATENCY).start();
     try {
@@ -665,17 +673,27 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
-    return measureRemoteCall(
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.RequestType, "normal");
+    if (request.isWaitForNewEvent()){
+      tags = ImmutableMap.of(MetricsTag.RequestType, "long-poll");
+    }
+    return measureRemoteCallWithTags(
         ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-        () -> getWorkflowExecutionHistory(request, timeoutInMillis));
+        () -> getWorkflowExecutionHistory(request, timeoutInMillis),
+        tags);
   }
 
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-        () -> getWorkflowExecutionHistory(request, null));
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.RequestType, "normal");
+    if (request.isWaitForNewEvent()){
+      tags = ImmutableMap.of(MetricsTag.RequestType, "long-poll");
+    }
+    return measureRemoteCallWithTags(
+            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+            () -> getWorkflowExecutionHistory(request, null),
+            tags);
   }
 
   private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
