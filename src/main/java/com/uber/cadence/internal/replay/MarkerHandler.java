@@ -229,7 +229,7 @@ class MarkerHandler {
       if (data.isPresent()) {
         // Need to insert marker to ensure that eventId is incremented
         recordMutableMarker(id, eventId, data.get(), accessCount, converter);
-        return new HandleResult(stored, false);
+        return new HandleResult(data, false);
       }
 
       if (!stored.isPresent()) {
@@ -243,7 +243,7 @@ class MarkerHandler {
     if (toStore.isPresent()) {
       byte[] data = toStore.get();
       recordMutableMarker(id, eventId, data, accessCount, converter);
-      return new HandleResult(stored, true);
+      return new HandleResult(toStore, true);
     }
     return new HandleResult(stored, false);
   }
