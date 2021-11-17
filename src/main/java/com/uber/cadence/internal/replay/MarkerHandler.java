@@ -175,9 +175,9 @@ class MarkerHandler {
     }
   }
 
-  static final class HandleResult{
-      private Optional<byte[]> storedData;
-      private boolean isNewlyStored;
+  static final class HandleResult {
+    private Optional<byte[]> storedData;
+    private boolean isNewlyStored;
 
     HandleResult(final Optional<byte[]> storedData, final boolean isNewlyStored) {
       this.storedData = storedData;

@@ -749,8 +749,9 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       throw new IllegalArgumentException("Empty search attributes");
     }
 
-    if (searchAttributes.containsKey(CADENCE_CHANGE_VERSION)){
-      throw new IllegalArgumentException("CadenceChangeVersion is a reserved key that cannot be set, please use other key");
+    if (searchAttributes.containsKey(CADENCE_CHANGE_VERSION)) {
+      throw new IllegalArgumentException(
+          "CadenceChangeVersion is a reserved key that cannot be set, please use other key");
     }
 
     SearchAttributes attr = InternalUtils.convertMapToSearchAttributes(searchAttributes);
