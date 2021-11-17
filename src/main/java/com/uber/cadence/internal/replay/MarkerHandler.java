@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.replay;
 
+import com.uber.cadence.Decision;
 import com.uber.cadence.EventType;
 import com.uber.cadence.Header;
 import com.uber.cadence.HistoryEvent;
@@ -229,6 +230,10 @@ class MarkerHandler {
       if (data.isPresent()) {
         // Need to insert marker to ensure that eventId is incremented
         recordMutableMarker(id, eventId, data.get(), accessCount, converter);
+        // also in crease for search attribute
+        final DecisionId dummyUpsertSearchAttrDecisionId = new DecisionId(DecisionTarget.UPSERT_SEARCH_ATTRIBUTES, 1);
+        decisions.addMissingDecisionForChangeVersionSearchAttribute(
+            dummyUpsertSearchAttrDecisionId, new UpsertSearchAttributesDecisionStateMachine(dummyUpsertSearchAttrDecisionId, new Decision()));
         return new HandleResult(data, false);
       }
 

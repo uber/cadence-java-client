@@ -669,6 +669,11 @@ class DecisionsHelper {
     nextDecisionEventId++;
   }
 
+  public void addMissingDecisionForChangeVersionSearchAttribute(
+      DecisionId decisionId, DecisionStateMachine decision) {
+    this.addDecision(decisionId, decision);
+  }
+
   // This is to support the case where a getVersion call presents during workflow execution but
   // is removed in replay.
   void addAllMissingVersionMarker(
@@ -718,9 +723,19 @@ class DecisionsHelper {
             .setDecisionType(DecisionType.RecordMarker)
             .setRecordMarkerDecisionAttributes(marker);
     DecisionId markerDecisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
-    decisions.put(
-        markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
-    nextDecisionEventId++;
+
+    addDecision(markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
+
+    Decision dummpUpsertSearchAttrDecision =
+        new Decision()
+            .setDecisionType(DecisionType.UpsertWorkflowSearchAttributes)
+            .setUpsertWorkflowSearchAttributesDecisionAttributes(
+                new UpsertWorkflowSearchAttributesDecisionAttributes());
+    DecisionId decisionId =
+        new DecisionId(DecisionTarget.UPSERT_SEARCH_ATTRIBUTES, nextDecisionEventId);
+    addDecision(
+        decisionId, new UpsertSearchAttributesDecisionStateMachine(decisionId, dummpUpsertSearchAttrDecision));
+
     return true;
   }
 
