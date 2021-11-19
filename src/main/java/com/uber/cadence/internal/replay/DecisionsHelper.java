@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.replay;
 
+import static com.uber.cadence.internal.sync.WorkflowInternal.CADENCE_CHANGE_VERSION;
+
 import com.uber.cadence.ActivityTaskCancelRequestedEventAttributes;
 import com.uber.cadence.ActivityTaskCanceledEventAttributes;
 import com.uber.cadence.ActivityTaskScheduledEventAttributes;
@@ -669,6 +671,40 @@ class DecisionsHelper {
     nextDecisionEventId++;
   }
 
+  // GetVersion API may use CadenceChangeVersion, or may not(legacy execution)
+  // This method only adds the decision if the upsert CadenceChangeVersion search attribute event
+  // exists in the history
+  public void addPossibleMissingDecisionForChangeVersionSearchAttribute() {
+    // add next possible event for CadenceChangeVersion search attribute
+    final Optional<HistoryEvent> optionalEvent = getOptionalDecisionEvent(nextDecisionEventId);
+    if (!optionalEvent.isPresent()) {
+      return;
+    }
+    if (optionalEvent.get().getEventType() != EventType.UpsertWorkflowSearchAttributes) {
+      return;
+    }
+    final SearchAttributes searchAttributes =
+        optionalEvent
+            .get()
+            .getUpsertWorkflowSearchAttributesEventAttributes()
+            .getSearchAttributes();
+    if (searchAttributes.getIndexedFields().containsKey(CADENCE_CHANGE_VERSION)) {
+      Decision upsertSearchAttrDecision =
+          new Decision()
+              .setDecisionType(DecisionType.UpsertWorkflowSearchAttributes)
+              .setUpsertWorkflowSearchAttributesDecisionAttributes(
+                  new UpsertWorkflowSearchAttributesDecisionAttributes()
+                      .setSearchAttributes(searchAttributes));
+      DecisionId decisionId =
+          new DecisionId(DecisionTarget.UPSERT_SEARCH_ATTRIBUTES, nextDecisionEventId);
+      addDecision(
+          decisionId,
+          new UpsertSearchAttributesDecisionStateMachine(decisionId, upsertSearchAttrDecision));
+      return;
+    }
+    return;
+  }
+
   // This is to support the case where a getVersion call presents during workflow execution but
   // is removed in replay.
   void addAllMissingVersionMarker(
@@ -718,9 +754,10 @@ class DecisionsHelper {
             .setDecisionType(DecisionType.RecordMarker)
             .setRecordMarkerDecisionAttributes(marker);
     DecisionId markerDecisionId = new DecisionId(DecisionTarget.MARKER, nextDecisionEventId);
-    decisions.put(
-        markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
-    nextDecisionEventId++;
+
+    addDecision(markerDecisionId, new MarkerDecisionStateMachine(markerDecisionId, markerDecision));
+    // also may need to increase for search attribute if using CadenceChangeVersion
+    addPossibleMissingDecisionForChangeVersionSearchAttribute();
     return true;
   }
 

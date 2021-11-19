@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class WorkflowInternal {
   public static final int DEFAULT_VERSION = -1;
+  public static final String CADENCE_CHANGE_VERSION = "CadenceChangeVersion";
 
   public static WorkflowThread newThread(boolean ignoreParentCancellation, Runnable runnable) {
     return WorkflowThread.newThread(runnable, ignoreParentCancellation);

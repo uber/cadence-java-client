@@ -244,6 +244,8 @@ public class JsonDataConverterTest {
     }
   }
 
+  // TODO flaky test in local env: expected:<class java.lang.IllegalArgumentException> but
+  // was:<class java.lang.StackOverflowError>
   @Test
   public void testException() {
     RuntimeException rootException = new RuntimeException("root exception");
