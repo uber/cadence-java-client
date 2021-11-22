@@ -126,6 +126,9 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
+
 public class WorkflowServiceTChannel implements IWorkflowService {
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
 
@@ -361,7 +364,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> T measureRemoteCallWithTags(String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
     Scope scope = options.getMetricsScope().subScope(scopeName);
-    if (tags != null){
+    if (tags != null) {
       scope = scope.tagged(tags);
     }
     scope.counter(MetricsType.CADENCE_REQUEST).inc(1);
@@ -673,9 +676,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.RequestType, "normal");
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_NORMAL);
     if (request.isWaitForNewEvent()){
-      tags = ImmutableMap.of(MetricsTag.RequestType, "long-poll");
+      tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_LONG_POLL);
     }
     return measureRemoteCallWithTags(
         ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
@@ -686,9 +689,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.RequestType, "normal");
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_NORMAL);
     if (request.isWaitForNewEvent()){
-      tags = ImmutableMap.of(MetricsTag.RequestType, "long-poll");
+      tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_LONG_POLL);
     }
     return measureRemoteCallWithTags(
             ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
