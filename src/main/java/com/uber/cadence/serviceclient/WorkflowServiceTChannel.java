@@ -110,6 +110,12 @@ import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import com.uber.tchannel.messages.generated.Meta;
+import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -120,11 +126,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
 import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
@@ -676,23 +677,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_NORMAL);
-    if (request.isWaitForNewEvent()){
-      tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_LONG_POLL);
-    }
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
     return measureRemoteCallWithTags(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-        () -> getWorkflowExecutionHistory(request, timeoutInMillis),
-        tags);
+            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+            () -> getWorkflowExecutionHistory(request, timeoutInMillis),
+            tags);
   }
 
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_NORMAL);
-    if (request.isWaitForNewEvent()){
-      tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, REQUEST_TYPE_LONG_POLL);
-    }
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
     return measureRemoteCallWithTags(
             ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
             () -> getWorkflowExecutionHistory(request, null),
