@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.5.1
+### Added
+- Add CadenceChangeVersion support.
+- Allow using other tags in metric reporter.
+- Add metric tag to differentiate long-poll and normal request.
+### Changed 
+- Fix identity for sticky worker.
+- Improve contributing guide.
+
 ## 3.5.0
 ### Changed 
 - Fix consistent query interface which caused overloading ambiguity with variable argument
