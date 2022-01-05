@@ -256,6 +256,7 @@ public final class Poller<T> implements SuspendableWorker {
   }
 
   private class PollExecutionTask implements Poller.ThrowingRunnable {
+    private final int LOCK_CHECK_SLEEP_MS = 100;
     private Semaphore pollSemaphore;
 
     PollExecutionTask() {
@@ -272,10 +273,23 @@ public final class Poller<T> implements SuspendableWorker {
         }
         taskExecutor.process(task);
       } finally {
+        releasePollSemaphore();
+      }
+    }
+
+    private void releasePollSemaphore() {
+      if (!pollerOptions.getPollOnlyIfHasCapacity()) {
+        pollSemaphore.release();
+      } else {
         while (true) {
           if (taskExecutor.hasCapacity()) {
             pollSemaphore.release();
             break;
+          } else {
+            try {
+              Thread.sleep(LOCK_CHECK_SLEEP_MS);
+            } catch (InterruptedException ignored) {
+            }
           }
         }
       }
