@@ -18,6 +18,8 @@
 package com.uber.cadence.internal.worker;
 
 import java.time.Duration;
+
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,8 @@ public final class PollerOptions {
 
     private String pollThreadNamePrefix;
 
+    private Boolean pollOnlyIfHasCapacity = Boolean.FALSE;
+
     private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     private Builder() {}
@@ -75,6 +79,7 @@ public final class PollerOptions {
       this.pollBackoffMaximumInterval = o.getPollBackoffMaximumInterval();
       this.pollThreadCount = o.getPollThreadCount();
       this.pollThreadNamePrefix = o.getPollThreadNamePrefix();
+      this.pollOnlyIfHasCapacity = o.getPollOnlyIfHasCapacity();
       this.uncaughtExceptionHandler = o.getUncaughtExceptionHandler();
     }
 
@@ -133,6 +138,11 @@ public final class PollerOptions {
       return this;
     }
 
+    public Builder setPollOnlyIfHasCapacity(boolean pollOnlyIfHasCapacity) {
+      this.pollOnlyIfHasCapacity = pollOnlyIfHasCapacity;
+      return this;
+    }
+
     public PollerOptions build() {
       if (uncaughtExceptionHandler == null) {
         uncaughtExceptionHandler = (t, e) -> log.error("uncaught exception", e);
@@ -145,7 +155,8 @@ public final class PollerOptions {
           pollBackoffMaximumInterval,
           pollThreadCount,
           uncaughtExceptionHandler,
-          pollThreadNamePrefix);
+          pollThreadNamePrefix,
+          pollOnlyIfHasCapacity);
     }
   }
 
@@ -165,6 +176,8 @@ public final class PollerOptions {
 
   private final String pollThreadNamePrefix;
 
+  private final Boolean pollOnlyIfHasCapacity;
+
   private PollerOptions(
       int maximumPollRateIntervalMilliseconds,
       double maximumPollRatePerSecond,
@@ -173,7 +186,8 @@ public final class PollerOptions {
       Duration pollBackoffMaximumInterval,
       int pollThreadCount,
       Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
-      String pollThreadNamePrefix) {
+      String pollThreadNamePrefix,
+      boolean pollOnlyIfHasCapacity) {
     this.maximumPollRateIntervalMilliseconds = maximumPollRateIntervalMilliseconds;
     this.maximumPollRatePerSecond = maximumPollRatePerSecond;
     this.pollBackoffCoefficient = pollBackoffCoefficient;
@@ -182,6 +196,7 @@ public final class PollerOptions {
     this.pollThreadCount = pollThreadCount;
     this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     this.pollThreadNamePrefix = pollThreadNamePrefix;
+    this.pollOnlyIfHasCapacity = pollOnlyIfHasCapacity;
   }
 
   public int getMaximumPollRateIntervalMilliseconds() {
@@ -216,6 +231,10 @@ public final class PollerOptions {
     return pollThreadNamePrefix;
   }
 
+  public Boolean getPollOnlyIfHasCapacity() {
+    return pollOnlyIfHasCapacity;
+  }
+
   @Override
   public String toString() {
     return "PollerOptions{"
@@ -233,6 +252,8 @@ public final class PollerOptions {
         + pollThreadCount
         + ", pollThreadNamePrefix='"
         + pollThreadNamePrefix
+        + ", pollOnlyIfHasCapacity='"
+        + pollOnlyIfHasCapacity
         + '\''
         + '}';
   }

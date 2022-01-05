@@ -272,7 +272,12 @@ public final class Poller<T> implements SuspendableWorker {
         }
         taskExecutor.process(task);
       } finally {
-        pollSemaphore.release();
+        while (true) {
+          if (taskExecutor.hasCapacity()) {
+            pollSemaphore.release();
+            break;
+          }
+        }
       }
     }
   }
