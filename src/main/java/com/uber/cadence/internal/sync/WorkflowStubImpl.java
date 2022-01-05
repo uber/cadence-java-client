@@ -169,6 +169,7 @@ class WorkflowStubImpl implements WorkflowStub {
     p.setMemo(convertMemoFromObjectToBytes(o.getMemo()));
     p.setSearchAttributes(convertSearchAttributesFromObjectToBytes(o.getSearchAttributes()));
     p.setContext(extractContextsAndConvertToBytes(o.getContextPropagators()));
+    p.setDelayStart(o.getDelayStart());
     return p;
   }
 
@@ -406,7 +407,8 @@ class WorkflowStubImpl implements WorkflowStub {
 
   @Override
   public <R> R query(String queryType, Class<R> resultClass, Object... args) {
-    return query(queryType, resultClass, resultClass, args);
+    return queryWithOptions(
+        queryType, new QueryOptions.Builder().build(), resultClass, resultClass, args);
   }
 
   @Override
@@ -430,30 +432,31 @@ class WorkflowStubImpl implements WorkflowStub {
       Type resultType,
       QueryRejectCondition queryRejectCondition,
       Object... args) {
-    return query(
+    return queryWithOptions(
         queryType,
-        resultClass,
+        new QueryOptions.Builder()
+            .setQueryRejectCondition(queryRejectCondition)
+            .setQueryConsistencyLevel(QueryConsistencyLevel.EVENTUAL)
+            .build(),
         resultType,
-        queryRejectCondition,
-        QueryConsistencyLevel.EVENTUAL,
+        resultClass,
         args);
   }
 
   @Override
-  public <R> R query(
+  public <R> R queryWithOptions(
       String queryType,
-      Class<R> resultClass,
+      QueryOptions options,
       Type resultType,
-      QueryRejectCondition queryRejectCondition,
-      QueryConsistencyLevel queryConsistencyLevel,
+      Class<R> resultClass,
       Object... args) {
     checkStarted();
     QueryWorkflowParameters p = new QueryWorkflowParameters();
     p.setInput(dataConverter.toData(args));
     p.setQueryType(queryType);
     p.setWorkflowId(execution.get().getWorkflowId());
-    p.setQueryRejectCondition(queryRejectCondition);
-    p.setQueryConsistencyLevel(queryConsistencyLevel);
+    p.setQueryRejectCondition(options.getQueryRejectCondition());
+    p.setQueryConsistencyLevel(options.getQueryConsistencyLevel());
 
     QueryWorkflowResponse result;
     try {
@@ -476,7 +479,9 @@ class WorkflowStubImpl implements WorkflowStub {
       return dataConverter.fromData(result.getQueryResult(), resultClass, resultType);
     } else {
       throw new WorkflowQueryRejectedException(
-          execution.get(), queryRejectCondition, result.getQueryRejected().getCloseStatus());
+          execution.get(),
+          options.getQueryRejectCondition(),
+          result.getQueryRejected().getCloseStatus());
     }
   }
 

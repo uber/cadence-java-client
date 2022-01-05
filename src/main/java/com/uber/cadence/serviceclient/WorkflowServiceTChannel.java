@@ -96,6 +96,7 @@ import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.ServiceMethod;
 import com.uber.m3.tally.Scope;
@@ -109,6 +110,12 @@ import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import com.uber.tchannel.messages.generated.Meta;
+import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -119,11 +126,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
 
 public class WorkflowServiceTChannel implements IWorkflowService {
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
@@ -355,7 +360,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   private <T> T measureRemoteCall(String scopeName, RemoteCall<T> call) throws TException {
+    return measureRemoteCallWithTags(scopeName, call, null);
+  }
+
+  private <T> T measureRemoteCallWithTags(String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
     Scope scope = options.getMetricsScope().subScope(scopeName);
+    if (tags != null) {
+      scope = scope.tagged(tags);
+    }
     scope.counter(MetricsType.CADENCE_REQUEST).inc(1);
     Stopwatch sw = scope.timer(MetricsType.CADENCE_LATENCY).start();
     try {
@@ -665,17 +677,21 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
-    return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-        () -> getWorkflowExecutionHistory(request, timeoutInMillis));
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
+    return measureRemoteCallWithTags(
+            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+            () -> getWorkflowExecutionHistory(request, timeoutInMillis),
+            tags);
   }
 
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    return measureRemoteCall(
-        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-        () -> getWorkflowExecutionHistory(request, null));
+    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
+    return measureRemoteCallWithTags(
+            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+            () -> getWorkflowExecutionHistory(request, null),
+            tags);
   }
 
   private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(

@@ -29,6 +29,7 @@ import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.Duration;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -98,10 +99,18 @@ public class CadenceClientStatsReporter implements StatsReporter {
   }
 
   private Iterable<Tag> getTags(Map<String, String> tags) {
-    return ImmutableList.of(
-        Tag.of(MetricsTag.ACTIVITY_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.ACTIVITY_TYPE))),
-        Tag.of(MetricsTag.DOMAIN, Strings.nullToEmpty(tags.get(MetricsTag.DOMAIN))),
-        Tag.of(MetricsTag.TASK_LIST, Strings.nullToEmpty(tags.get(MetricsTag.TASK_LIST))),
-        Tag.of(MetricsTag.WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.WORKFLOW_TYPE))));
+    // TODO: not sure why we have to fill empty values, maybe we can remove them
+    final HashMap<String, String> tmpMap = new HashMap<>(tags);
+    tmpMap.put(MetricsTag.ACTIVITY_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.ACTIVITY_TYPE)));
+    tmpMap.put(MetricsTag.DOMAIN, Strings.nullToEmpty(tags.get(MetricsTag.DOMAIN)));
+    tmpMap.put(MetricsTag.TASK_LIST, Strings.nullToEmpty(tags.get(MetricsTag.TASK_LIST)));
+    tmpMap.put(MetricsTag.WORKFLOW_TYPE, Strings.nullToEmpty(tags.get(MetricsTag.WORKFLOW_TYPE)));
+
+    final ImmutableList.Builder<Tag> builder = ImmutableList.<Tag>builder();
+    for (Map.Entry<String, String> entry : tmpMap.entrySet()) {
+      final Tag tag = Tag.of(entry.getKey(), entry.getValue());
+      builder.add(tag);
+    }
+    return builder.build();
   }
 }

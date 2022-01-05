@@ -29,6 +29,7 @@ import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.ReplayAwareScope;
 import com.uber.cadence.internal.worker.LocalActivityWorker;
 import com.uber.cadence.internal.worker.SingleWorkerOptions;
@@ -277,7 +278,14 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public int getVersion(
       String changeID, DataConverter converter, int minSupported, int maxSupported) {
-    return workflowClock.getVersion(changeID, converter, minSupported, maxSupported);
+    final ClockDecisionContext.GetVersionResult results =
+        workflowClock.getVersion(changeID, converter, minSupported, maxSupported);
+    if (results.shouldUpdateCadenceChangeVersion()) {
+      upsertSearchAttributes(
+          InternalUtils.convertMapToSearchAttributes(
+              results.getSearchAttributesForChangeVersion()));
+    }
+    return results.getVersion();
   }
 
   @Override

@@ -23,6 +23,7 @@ import com.uber.cadence.DataBlob;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.HistoryEventFilterType;
+import com.uber.cadence.Memo;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
@@ -140,6 +141,16 @@ public final class InternalUtils {
       return value;
     }
     return Defaults.defaultValue(valueClass);
+  }
+
+  public static Memo convertMapToMemo(Map<String, Object> memo) {
+    DataConverter converter = JsonDataConverter.getInstance();
+    Map<String, ByteBuffer> mapOfByteBuffer = new HashMap<>();
+    memo.forEach(
+        (key, value) -> {
+          mapOfByteBuffer.put(key, ByteBuffer.wrap(converter.toData(value)));
+        });
+    return new Memo().setFields(mapOfByteBuffer);
   }
 
   public static SearchAttributes convertMapToSearchAttributes(
