@@ -17,7 +17,6 @@
 
 package com.uber.cadence.client;
 
-import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
 import com.uber.cadence.WorkflowExecution;
 import java.lang.reflect.InvocationHandler;
@@ -156,14 +155,26 @@ public interface WorkflowStub {
    */
   <R> R query(String queryType, Class<R> resultClass, Object... args);
 
+  /**
+   * Deprecated: please use {@link #queryWithOptions(String, QueryOptions, Type, Class, Object...)}
+   * to avoid variable argument ambiguity with Object... args
+   */
   <R> R query(String queryType, Class<R> resultClass, Type resultType, Object... args);
 
+  /**
+   * Deprecated: please use {@link #queryWithOptions(String, QueryOptions, Type, Class, Object...)}
+   * to avoid variable argument ambiguity with Object... args
+   */
   <R> R query(
       String queryType,
       Class<R> resultClass,
       QueryRejectCondition queryRejectCondition,
       Object... args);
 
+  /**
+   * Deprecated: please use {@link #queryWithOptions(String, QueryOptions, Type, Class, Object...)}
+   * to avoid variable argument ambiguity with Object... args
+   */
   <R> R query(
       String queryType,
       Class<R> resultClass,
@@ -171,12 +182,11 @@ public interface WorkflowStub {
       QueryRejectCondition queryRejectCondition,
       Object... args);
 
-  <R> R query(
+  <R> R queryWithOptions(
       String queryType,
-      Class<R> resultClass,
+      QueryOptions options,
       Type resultType,
-      QueryRejectCondition queryRejectCondition,
-      QueryConsistencyLevel queryConsistencyLevel,
+      Class<R> resultClass,
       Object... args);
 
   /** Request cancellation. */

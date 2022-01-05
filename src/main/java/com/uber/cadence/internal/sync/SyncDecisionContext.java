@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import static com.uber.cadence.internal.common.OptionsUtils.roundUpToSeconds;
+import static com.uber.cadence.internal.sync.WorkflowInternal.CADENCE_CHANGE_VERSION;
 
 import com.uber.cadence.ActivityType;
 import com.uber.cadence.SearchAttributes;
@@ -375,6 +376,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
               .setTaskStartToCloseTimeout(options.getTaskStartToCloseTimeout())
               .setWorkflowId(options.getWorkflowId())
               .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
+              .setMemo(options.getMemo())
+              .setSearchAttributes(options.getSearchAttributes())
               .setParentClosePolicy(options.getParentClosePolicy())
               .build();
       return WorkflowRetryerInternal.retryAsync(
@@ -412,6 +415,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
             .setWorkflowIdReusePolicy(options.getWorkflowIdReusePolicy())
             .setRetryParameters(retryParameters)
             .setCronSchedule(options.getCronSchedule())
+            .setMemo(options.getMemo())
+            .setSearchAttributes(options.getSearchAttributes())
             .setContext(extractContextsAndConvertToBytes(propagators))
             .setParentClosePolicy(options.getParentClosePolicy())
             .build();
@@ -742,6 +747,11 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public void upsertSearchAttributes(Map<String, Object> searchAttributes) {
     if (searchAttributes.isEmpty()) {
       throw new IllegalArgumentException("Empty search attributes");
+    }
+
+    if (searchAttributes.containsKey(CADENCE_CHANGE_VERSION)) {
+      throw new IllegalArgumentException(
+          "CadenceChangeVersion is a reserved key that cannot be set, please use other key");
     }
 
     SearchAttributes attr = InternalUtils.convertMapToSearchAttributes(searchAttributes);
