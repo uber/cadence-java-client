@@ -19,7 +19,6 @@ package com.uber.cadence.internal.worker;
 
 import java.time.Duration;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,7 @@ public final class PollerOptions {
 
     private String pollThreadNamePrefix;
 
-    private Boolean pollOnlyIfHasCapacity = Boolean.FALSE;
+    private Boolean pollOnlyIfExecutorHasCapacity = Boolean.FALSE;
 
     private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
@@ -79,7 +78,7 @@ public final class PollerOptions {
       this.pollBackoffMaximumInterval = o.getPollBackoffMaximumInterval();
       this.pollThreadCount = o.getPollThreadCount();
       this.pollThreadNamePrefix = o.getPollThreadNamePrefix();
-      this.pollOnlyIfHasCapacity = o.getPollOnlyIfHasCapacity();
+      this.pollOnlyIfExecutorHasCapacity = o.getPollOnlyIfExecutorHasCapacity();
       this.uncaughtExceptionHandler = o.getUncaughtExceptionHandler();
     }
 
@@ -142,8 +141,8 @@ public final class PollerOptions {
      * The poller will check task executor's remaining capacity before polling tasks.
      * This is to prevent task to get started but not being able to execute in time.
      */
-    public Builder setPollOnlyIfHasCapacity(boolean pollOnlyIfHasCapacity) {
-      this.pollOnlyIfHasCapacity = pollOnlyIfHasCapacity;
+    public Builder setPollOnlyIfExecutorHasCapacity(boolean pollOnlyIfExecutorHasCapacity) {
+      this.pollOnlyIfExecutorHasCapacity = pollOnlyIfExecutorHasCapacity;
       return this;
     }
 
@@ -160,7 +159,7 @@ public final class PollerOptions {
           pollThreadCount,
           uncaughtExceptionHandler,
           pollThreadNamePrefix,
-          pollOnlyIfHasCapacity);
+              pollOnlyIfExecutorHasCapacity);
     }
   }
 
@@ -180,7 +179,7 @@ public final class PollerOptions {
 
   private final String pollThreadNamePrefix;
 
-  private final Boolean pollOnlyIfHasCapacity;
+  private final Boolean pollOnlyIfExecutorHasCapacity;
 
   private PollerOptions(
       int maximumPollRateIntervalMilliseconds,
@@ -191,7 +190,7 @@ public final class PollerOptions {
       int pollThreadCount,
       Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
       String pollThreadNamePrefix,
-      boolean pollOnlyIfHasCapacity) {
+      boolean pollOnlyIfExecutorHasCapacity) {
     this.maximumPollRateIntervalMilliseconds = maximumPollRateIntervalMilliseconds;
     this.maximumPollRatePerSecond = maximumPollRatePerSecond;
     this.pollBackoffCoefficient = pollBackoffCoefficient;
@@ -200,7 +199,7 @@ public final class PollerOptions {
     this.pollThreadCount = pollThreadCount;
     this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     this.pollThreadNamePrefix = pollThreadNamePrefix;
-    this.pollOnlyIfHasCapacity = pollOnlyIfHasCapacity;
+    this.pollOnlyIfExecutorHasCapacity = pollOnlyIfExecutorHasCapacity;
   }
 
   public int getMaximumPollRateIntervalMilliseconds() {
@@ -235,8 +234,8 @@ public final class PollerOptions {
     return pollThreadNamePrefix;
   }
 
-  public Boolean getPollOnlyIfHasCapacity() {
-    return pollOnlyIfHasCapacity;
+  public Boolean getPollOnlyIfExecutorHasCapacity() {
+    return pollOnlyIfExecutorHasCapacity;
   }
 
   @Override
@@ -256,8 +255,8 @@ public final class PollerOptions {
         + pollThreadCount
         + ", pollThreadNamePrefix='"
         + pollThreadNamePrefix
-        + ", pollOnlyIfHasCapacity='"
-        + pollOnlyIfHasCapacity
+        + ", pollOnlyIfExecutorHasCapacity='"
+        + pollOnlyIfExecutorHasCapacity
         + '\''
         + '}';
   }
