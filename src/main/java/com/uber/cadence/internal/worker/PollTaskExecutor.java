@@ -83,7 +83,7 @@ final class PollTaskExecutor<T> implements ShutdownableTaskExecutor<T> {
 
   @Override
   public boolean hasCapacity() {
-    return taskExecutor.getQueue().remainingCapacity() > 0;
+    return taskExecutor.getActiveCount() < taskExecutor.getPoolSize();
   }
 
   @Override
