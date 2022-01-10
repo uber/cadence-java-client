@@ -282,14 +282,14 @@ public final class Poller<T> implements SuspendableWorker {
         pollSemaphore.release();
       } else {
         while (true) {
+          try {
+            Thread.sleep(EXECUTOR_CAPACITY_CHECK_INTERVAL_MS);
+          } catch (InterruptedException ignored) {
+
+          }
           if (taskExecutor.hasCapacity()) {
             pollSemaphore.release();
             break;
-          } else {
-            try {
-              Thread.sleep(EXECUTOR_CAPACITY_CHECK_INTERVAL_MS);
-            } catch (InterruptedException ignored) {
-            }
           }
         }
       }
