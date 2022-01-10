@@ -19,4 +19,5 @@ package com.uber.cadence.internal.worker;
 
 interface TaskExecutor<T> {
   void process(T task);
+  boolean hasCapacity();
 }

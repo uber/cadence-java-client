@@ -60,6 +60,8 @@ public final class PollerOptions {
 
     private String pollThreadNamePrefix;
 
+    private Boolean pollOnlyIfExecutorHasCapacity = Boolean.FALSE;
+
     private Thread.UncaughtExceptionHandler uncaughtExceptionHandler;
 
     private Builder() {}
@@ -75,6 +77,7 @@ public final class PollerOptions {
       this.pollBackoffMaximumInterval = o.getPollBackoffMaximumInterval();
       this.pollThreadCount = o.getPollThreadCount();
       this.pollThreadNamePrefix = o.getPollThreadNamePrefix();
+      this.pollOnlyIfExecutorHasCapacity = o.getPollOnlyIfExecutorHasCapacity();
       this.uncaughtExceptionHandler = o.getUncaughtExceptionHandler();
     }
 
@@ -133,6 +136,15 @@ public final class PollerOptions {
       return this;
     }
 
+    /**
+     * The poller will check task executor's remaining capacity before polling tasks.
+     * This is to prevent task to get started but not being able to execute in time.
+     */
+    public Builder setPollOnlyIfExecutorHasCapacity(boolean pollOnlyIfExecutorHasCapacity) {
+      this.pollOnlyIfExecutorHasCapacity = pollOnlyIfExecutorHasCapacity;
+      return this;
+    }
+
     public PollerOptions build() {
       if (uncaughtExceptionHandler == null) {
         uncaughtExceptionHandler = (t, e) -> log.error("uncaught exception", e);
@@ -145,7 +157,8 @@ public final class PollerOptions {
           pollBackoffMaximumInterval,
           pollThreadCount,
           uncaughtExceptionHandler,
-          pollThreadNamePrefix);
+          pollThreadNamePrefix,
+          pollOnlyIfExecutorHasCapacity);
     }
   }
 
@@ -165,6 +178,8 @@ public final class PollerOptions {
 
   private final String pollThreadNamePrefix;
 
+  private final Boolean pollOnlyIfExecutorHasCapacity;
+
   private PollerOptions(
       int maximumPollRateIntervalMilliseconds,
       double maximumPollRatePerSecond,
@@ -173,7 +188,8 @@ public final class PollerOptions {
       Duration pollBackoffMaximumInterval,
       int pollThreadCount,
       Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
-      String pollThreadNamePrefix) {
+      String pollThreadNamePrefix,
+      boolean pollOnlyIfExecutorHasCapacity) {
     this.maximumPollRateIntervalMilliseconds = maximumPollRateIntervalMilliseconds;
     this.maximumPollRatePerSecond = maximumPollRatePerSecond;
     this.pollBackoffCoefficient = pollBackoffCoefficient;
@@ -182,6 +198,7 @@ public final class PollerOptions {
     this.pollThreadCount = pollThreadCount;
     this.uncaughtExceptionHandler = uncaughtExceptionHandler;
     this.pollThreadNamePrefix = pollThreadNamePrefix;
+    this.pollOnlyIfExecutorHasCapacity = pollOnlyIfExecutorHasCapacity;
   }
 
   public int getMaximumPollRateIntervalMilliseconds() {
@@ -216,6 +233,10 @@ public final class PollerOptions {
     return pollThreadNamePrefix;
   }
 
+  public Boolean getPollOnlyIfExecutorHasCapacity() {
+    return pollOnlyIfExecutorHasCapacity;
+  }
+
   @Override
   public String toString() {
     return "PollerOptions{"
@@ -233,6 +254,8 @@ public final class PollerOptions {
         + pollThreadCount
         + ", pollThreadNamePrefix='"
         + pollThreadNamePrefix
+        + ", pollOnlyIfExecutorHasCapacity='"
+        + pollOnlyIfExecutorHasCapacity
         + '\''
         + '}';
   }
