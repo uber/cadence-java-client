@@ -283,6 +283,7 @@ public final class Poller<T> implements SuspendableWorker {
         pollSemaphore.release();
       } else {
         while (true) {
+          // sleep to avoid racing condition
           try {
             Thread.sleep(EXECUTOR_CAPACITY_CHECK_OFFSET_MS);
           } catch (InterruptedException ignored) {
@@ -291,6 +292,7 @@ public final class Poller<T> implements SuspendableWorker {
             pollSemaphore.release();
             break;
           } else {
+            // sleep to avoid busy loop
             try {
               Thread.sleep(EXECUTOR_CAPACITY_CHECK_INTERVAL_MS);
             } catch (InterruptedException ignored) {
