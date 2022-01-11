@@ -82,6 +82,11 @@ public final class PollDecisionTaskDispatcher
     }
   }
 
+  @Override
+  public boolean hasCapacity() {
+    return true;
+  }
+
   public void subscribe(String taskList, Consumer<PollForDecisionTaskResponse> consumer) {
     subscribers.put(taskList, consumer);
   }

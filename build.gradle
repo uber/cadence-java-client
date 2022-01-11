@@ -108,11 +108,11 @@ compileTestJava {
 // Generation version.properties for value to be included into the request header
 task createProperties(dependsOn: processResources) {
     doLast {
-        def subdir = new File('$buildDir/resources/main/com/uber/cadence/')
+        def subdir = new File("$buildDir/resources/main/com/uber/cadence/")
         if( !subdir.exists() ) {
             subdir.mkdirs()
         }
-        new File('$buildDir/resources/main/com/uber/cadence/version.properties').withWriter { w ->
+        new File("$buildDir/resources/main/com/uber/cadence/version.properties").withWriter { w ->
             Properties p = new Properties()
             p['cadence-client-version'] = project.version.toString()
             p.store w, null
