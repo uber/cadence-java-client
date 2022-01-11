@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.6.0
+### Added
+- Introduce experimental flag and add logic for capacity based polling.
+
 ## 3.5.1
 ### Added
 - Add CadenceChangeVersion support.
