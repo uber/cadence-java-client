@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.6.1
+### Changed
+- Fix a bug for PollOnlyIfExecutorHasCapacity flag about pool size.
+
 ## 3.6.0
 ### Added
 - Introduce experimental flag and add logic for capacity based polling.
@@ -24,7 +28,7 @@
 
 ## 3.3.0
 ### Added
-- Added feature flags to ship breaking changes without impacting old behavior.
+- Added feature flags to ship breaking chgit loganges without impacting old behavior.
 
 ## 3.2.0
 ### Added
