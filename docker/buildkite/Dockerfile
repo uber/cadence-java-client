@@ -13,7 +13,7 @@ RUN apk add git libstdc++
 
 # Compile source
 RUN set -ex ;\
-	wget https://downloads.apache.org/thrift/${APACHE_THRIFT_VERSION}/thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	wget https://archive.apache.org/dist/thrift/${APACHE_THRIFT_VERSION}/thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
 	tar -xvf thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
 	rm thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
 	cd thrift-${APACHE_THRIFT_VERSION}/ && \
