@@ -4782,13 +4782,13 @@ public class WorkflowTest {
   public void testGetVersionAddedWithCadenceChangeVersion() {
     try {
       WorkflowReplayer.replayWorkflowExecutionFromResource(
-              "testGetVersionHistoryWithCadenceChangeVersion.json", TestGetVersionAddedImpl.class);
+          "testGetVersionHistoryWithCadenceChangeVersion.json", TestGetVersionAddedImpl.class);
     } catch (Exception e) {
       e.printStackTrace();
       fail();
     }
   }
-  
+
   public static class TestGetVersionRemovedImpl implements TestWorkflow1 {
 
     @Override

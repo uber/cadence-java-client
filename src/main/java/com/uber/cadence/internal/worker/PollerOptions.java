@@ -137,8 +137,8 @@ public final class PollerOptions {
     }
 
     /**
-     * The poller will check task executor's remaining capacity before polling tasks.
-     * This is to prevent task to get started but not being able to execute in time.
+     * The poller will check task executor's remaining capacity before polling tasks. This is to
+     * prevent task to get started but not being able to execute in time.
      */
     public Builder setPollOnlyIfExecutorHasCapacity(boolean pollOnlyIfExecutorHasCapacity) {
       this.pollOnlyIfExecutorHasCapacity = pollOnlyIfExecutorHasCapacity;
