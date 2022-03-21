@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.google.common.base.Strings;
 import com.google.common.reflect.TypeToken;
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.client.ActivityCompletionClient;
 import com.uber.cadence.client.BatchRequest;
@@ -42,6 +43,7 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
 
@@ -203,6 +205,12 @@ public final class WorkflowClientInternal implements WorkflowClient {
   @Override
   public WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch) {
     return ((SignalWithStartBatchRequest) signalWithStartBatch).invoke();
+  }
+
+  @Override
+  public void refreshWorkflowTasks(RefreshWorkflowTasksRequest refreshWorkflowTasksRequest)
+      throws TException {
+    workflowService.RefreshWorkflowTasks(refreshWorkflowTasksRequest);
   }
 
   public static WorkflowExecution start(Functions.Proc workflow) {

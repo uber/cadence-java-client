@@ -17,6 +17,7 @@
 
 package com.uber.cadence.client;
 
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.Activity;
 import com.uber.cadence.internal.sync.WorkflowClientInternal;
@@ -34,6 +35,7 @@ import com.uber.cadence.workflow.Functions.Proc6;
 import com.uber.cadence.workflow.WorkflowMethod;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import org.apache.thrift.TException;
 
 /**
  * Client to the Cadence service used to start and query workflows by external processes. Also it
@@ -236,6 +238,14 @@ public interface WorkflowClient {
    * @return workflowID and runId of the signaled or started workflow.
    */
   WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch);
+
+  /**
+   * Refreshes all the tasks of a given workflow.
+   *
+   * @param refreshWorkflowTasksRequest that contains WorkflowID and RunID of the started workflow.
+   */
+  void refreshWorkflowTasks(RefreshWorkflowTasksRequest refreshWorkflowTasksRequest)
+      throws TException;
 
   /**
    * Executes zero argument workflow with void return type

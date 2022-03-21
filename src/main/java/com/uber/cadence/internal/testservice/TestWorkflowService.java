@@ -61,6 +61,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.ResetStickyTaskListRequest;
@@ -774,6 +775,13 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
+  public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest request)
+      throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
+          TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
   public void RegisterDomain(
       RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler) throws TException {
     throw new UnsupportedOperationException("not implemented");
@@ -1085,6 +1093,10 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void ListTaskListPartitions(
       ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
+
+  @Override
+  public void RefreshWorkflowTasks(
+      RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
 
   private <R> R requireNotNull(String fieldName, R value) throws BadRequestError {
     if (value == null) {

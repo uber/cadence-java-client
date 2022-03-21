@@ -68,6 +68,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.ResetStickyTaskListRequest;
@@ -2162,6 +2163,38 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         ServiceMethod.LIST_TASK_LIST_PARTITIONS, () -> listTaskListPartitions(request));
   }
 
+  @Override
+  public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest refreshWorkflowTasks)
+      throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
+          TException {
+    ThriftResponse<WorkflowService.RefreshWorkflowTasks_result> response = null;
+    try {
+      ThriftRequest<WorkflowService.RefreshWorkflowTasks_args> request =
+          buildThriftRequest(
+              "RefreshWorkflowTasks",
+              new WorkflowService.RefreshWorkflowTasks_args(refreshWorkflowTasks));
+      response = doRemoteCall(request);
+      WorkflowService.RefreshWorkflowTasks_result result =
+          response.getBody(WorkflowService.RefreshWorkflowTasks_result.class);
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
   private ListTaskListPartitionsResponse listTaskListPartitions(
       ListTaskListPartitionsRequest listRequest) throws TException {
     ThriftResponse<WorkflowService.ListTaskListPartitions_result> response = null;
@@ -2648,6 +2681,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void ListTaskListPartitions(
       ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
+
+  @Override
+  public void RefreshWorkflowTasks(
+      RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
 
   @Override
   public void RegisterDomain(
