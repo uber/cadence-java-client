@@ -267,6 +267,11 @@ uploadArchives {
                         email 'maxim@uber.com'
                     }
                     developer {
+                        id 'mkol'
+                        name 'Max K'
+                        email 'mkol@uber.com'
+                    }
+                    developer {
                         id 'meiliang'
                         name 'Liang Mei'
                         email 'meiliang@uber.com'

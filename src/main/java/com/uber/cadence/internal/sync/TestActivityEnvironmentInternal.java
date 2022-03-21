@@ -555,6 +555,13 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest request)
+        throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
+            TException {
+      impl.RefreshWorkflowTasks(request);
+    }
+
+    @Override
     public void RegisterDomain(
         RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -842,6 +849,10 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     public void ListTaskListPartitions(
         ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler)
         throws TException {}
+
+    @Override
+    public void RefreshWorkflowTasks(
+        RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
 
     @Override
     public void RegisterDomain(RegisterDomainRequest registerRequest)

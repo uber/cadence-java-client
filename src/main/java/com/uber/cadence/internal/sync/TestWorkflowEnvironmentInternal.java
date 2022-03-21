@@ -30,6 +30,7 @@ import com.uber.cadence.DescribeTaskListResponse;
 import com.uber.cadence.DescribeWorkflowExecutionRequest;
 import com.uber.cadence.DescribeWorkflowExecutionResponse;
 import com.uber.cadence.DomainAlreadyExistsError;
+import com.uber.cadence.DomainNotActiveError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.GetSearchAttributesResponse;
 import com.uber.cadence.GetTaskListsByDomainRequest;
@@ -61,6 +62,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.ResetStickyTaskListRequest;
@@ -425,6 +427,13 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest request)
+        throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
+            TException {
+      impl.RefreshWorkflowTasks(request);
+    }
+
+    @Override
     public void RegisterDomain(
         RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -717,6 +726,10 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     public void ListTaskListPartitions(
         ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler)
         throws TException {}
+
+    @Override
+    public void RefreshWorkflowTasks(
+        RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
 
     @Override
     public void RegisterDomain(RegisterDomainRequest registerRequest)

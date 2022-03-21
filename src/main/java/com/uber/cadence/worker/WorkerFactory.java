@@ -33,9 +33,6 @@ import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -48,6 +45,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Maintains worker creation and lifecycle. */
 public final class WorkerFactory {
@@ -123,20 +122,20 @@ public final class WorkerFactory {
     dispatcher = new PollDecisionTaskDispatcher(workflowClient.getService());
     stickyPoller =
         new Poller<>(
-                workflowClient.getOptions().getIdentity(),
-                new WorkflowPollTaskFactory(
-                        workflowClient.getService(),
-                        workflowClient.getOptions().getDomain(),
-                        getStickyTaskListName(),
-                        stickyScope,
-                        workflowClient.getOptions().getIdentity())
-                        .get(),
-                dispatcher,
-                PollerOptions.newBuilder()
-                        .setPollThreadNamePrefix(POLL_THREAD_NAME)
-                        .setPollThreadCount(this.factoryOptions.getStickyPollerCount())
-                        .build(),
-                stickyScope);
+            workflowClient.getOptions().getIdentity(),
+            new WorkflowPollTaskFactory(
+                    workflowClient.getService(),
+                    workflowClient.getOptions().getDomain(),
+                    getStickyTaskListName(),
+                    stickyScope,
+                    workflowClient.getOptions().getIdentity())
+                .get(),
+            dispatcher,
+            PollerOptions.newBuilder()
+                .setPollThreadNamePrefix(POLL_THREAD_NAME)
+                .setPollThreadCount(this.factoryOptions.getStickyPollerCount())
+                .build(),
+            stickyScope);
   }
 
   /**
@@ -337,8 +336,8 @@ public final class WorkerFactory {
   @VisibleForTesting
   String getStickyTaskListName() {
     return this.factoryOptions.isDisableStickyExecution()
-            ? null
-            : String.format("%s:%s:%s", STICKY_TASK_LIST_PREFIX, getHostName(), stickyTasklistRandomId);
+        ? null
+        : String.format("%s:%s:%s", STICKY_TASK_LIST_PREFIX, getHostName(), stickyTasklistRandomId);
   }
 
   public synchronized void suspendPolling() {

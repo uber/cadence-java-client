@@ -17,6 +17,9 @@
 
 package com.uber.cadence.serviceclient;
 
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -65,6 +68,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatByIDRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatRequest;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
+import com.uber.cadence.RefreshWorkflowTasksRequest;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.ResetStickyTaskListRequest;
@@ -110,12 +114,6 @@ import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import com.uber.tchannel.messages.generated.Meta;
-import org.apache.thrift.TException;
-import org.apache.thrift.async.AsyncMethodCallback;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -126,9 +124,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
-import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
+import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WorkflowServiceTChannel implements IWorkflowService {
   private static final Logger log = LoggerFactory.getLogger(WorkflowServiceTChannel.class);
@@ -363,7 +363,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     return measureRemoteCallWithTags(scopeName, call, null);
   }
 
-  private <T> T measureRemoteCallWithTags(String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
+  private <T> T measureRemoteCallWithTags(
+      String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
     Scope scope = options.getMetricsScope().subScope(scopeName);
     if (tags != null) {
       scope = scope.tagged(tags);
@@ -677,21 +678,27 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest request, Long timeoutInMillis) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
+    Map<String, String> tags =
+        ImmutableMap.of(
+            MetricsTag.REQUEST_TYPE,
+            request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
     return measureRemoteCallWithTags(
-            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-            () -> getWorkflowExecutionHistory(request, timeoutInMillis),
-            tags);
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, timeoutInMillis),
+        tags);
   }
 
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest request) throws TException {
-    Map<String, String> tags = ImmutableMap.of(MetricsTag.REQUEST_TYPE, request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
+    Map<String, String> tags =
+        ImmutableMap.of(
+            MetricsTag.REQUEST_TYPE,
+            request.isWaitForNewEvent() ? REQUEST_TYPE_LONG_POLL : REQUEST_TYPE_NORMAL);
     return measureRemoteCallWithTags(
-            ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
-            () -> getWorkflowExecutionHistory(request, null),
-            tags);
+        ServiceMethod.GET_WORKFLOW_EXECUTION_HISTORY,
+        () -> getWorkflowExecutionHistory(request, null),
+        tags);
   }
 
   private GetWorkflowExecutionHistoryResponse getWorkflowExecutionHistory(
@@ -2156,6 +2163,38 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         ServiceMethod.LIST_TASK_LIST_PARTITIONS, () -> listTaskListPartitions(request));
   }
 
+  @Override
+  public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest refreshWorkflowTasks)
+      throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
+          TException {
+    ThriftResponse<WorkflowService.RefreshWorkflowTasks_result> response = null;
+    try {
+      ThriftRequest<WorkflowService.RefreshWorkflowTasks_args> request =
+          buildThriftRequest(
+              "RefreshWorkflowTasks",
+              new WorkflowService.RefreshWorkflowTasks_args(refreshWorkflowTasks));
+      response = doRemoteCall(request);
+      WorkflowService.RefreshWorkflowTasks_result result =
+          response.getBody(WorkflowService.RefreshWorkflowTasks_result.class);
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
   private ListTaskListPartitionsResponse listTaskListPartitions(
       ListTaskListPartitionsRequest listRequest) throws TException {
     ThriftResponse<WorkflowService.ListTaskListPartitions_result> response = null;
@@ -2642,6 +2681,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   @Override
   public void ListTaskListPartitions(
       ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
+
+  @Override
+  public void RefreshWorkflowTasks(
+      RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
 
   @Override
   public void RegisterDomain(
