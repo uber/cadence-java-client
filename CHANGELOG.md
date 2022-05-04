@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.6.2
+### Added
+- Add refresh tasks API to provide ability to refresh tasks on stuck workflows.
+
 ## 3.6.1
 ### Changed
 - Fix a bug for PollOnlyIfExecutorHasCapacity flag about pool size.
