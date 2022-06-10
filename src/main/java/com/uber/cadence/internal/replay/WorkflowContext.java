@@ -19,10 +19,13 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.*;
 import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.internal.common.InternalUtils;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 final class WorkflowContext {
 
@@ -166,7 +169,10 @@ final class WorkflowContext {
 
     Map<String, Object> contextData = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
-      contextData.put(propagator.getName(), propagator.deserializeContext(headerData));
+      // Only send the context propagator the fields that belong to them
+      // Change the map from MyPropagator:foo -> bar to foo -> bar
+      Map<String, byte[]> filteredData = InternalUtils.FilterForPropagator(headerData, propagator);
+      contextData.put(propagator.getName(), propagator.deserializeContext(filteredData));
     }
 
     return contextData;

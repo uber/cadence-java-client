@@ -27,6 +27,7 @@ import com.uber.cadence.Memo;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.TaskList;
 import com.uber.cadence.TaskListKind;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.worker.Shutdownable;
@@ -39,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
@@ -249,6 +252,21 @@ public final class InternalUtils {
       }
     }
     return events;
+  }
+
+  // Filters the data based upon which propagator it is for
+  public static Map<String, byte[]> FilterForPropagator(
+      Map<String, byte[]> data,
+      ContextPropagator propagator
+  ) {
+    return data
+              .entrySet()
+              .stream()
+              .filter(e -> e.getKey().startsWith(propagator.getName()))
+              .collect(
+                  Collectors.toMap(
+                      e -> e.getKey().substring(propagator.getName().length() + 1),
+                      Map.Entry::getValue));
   }
 
   /** Prohibit instantiation */
