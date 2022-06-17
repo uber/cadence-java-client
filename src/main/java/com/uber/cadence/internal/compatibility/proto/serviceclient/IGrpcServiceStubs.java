@@ -19,17 +19,18 @@ import com.uber.cadence.api.v1.DomainAPIGrpc;
 import com.uber.cadence.api.v1.VisibilityAPIGrpc;
 import com.uber.cadence.api.v1.WorkerAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc;
+import com.uber.cadence.serviceclient.ClientOptions;
 import java.util.concurrent.TimeUnit;
 
 public interface IGrpcServiceStubs {
 
   /** Returns gRPC stubs with default options domain service. */
   static IGrpcServiceStubs newInstance() {
-    return new GrpcServiceStubs(GrpcServiceStubsOptions.getDefaultInstance());
+    return new GrpcServiceStubs(ClientOptions.defaultInstance());
   }
 
   /** Returns gRPC stubs with given options domain service. */
-  static IGrpcServiceStubs newInstance(GrpcServiceStubsOptions options) {
+  static IGrpcServiceStubs newInstance(ClientOptions options) {
     return new GrpcServiceStubs(options);
   }
 
