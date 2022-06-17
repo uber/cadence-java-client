@@ -24,38 +24,61 @@ import java.util.concurrent.TimeUnit;
 
 public interface IGrpcServiceStubs {
 
-  /** Returns gRPC stubs with default options domain service. */
+  int DEFAULT_LOCAL_CADENCE_SERVER_GRPC_PORT = 7833;
+
+  /**
+   * Returns gRPC stubs with default options domain service.
+   */
   static IGrpcServiceStubs newInstance() {
-    return new GrpcServiceStubs(ClientOptions.defaultInstance());
+    return new GrpcServiceStubs(ClientOptions.newBuilder()
+        .setPort(DEFAULT_LOCAL_CADENCE_SERVER_GRPC_PORT).build());
   }
 
-  /** Returns gRPC stubs with given options domain service. */
+  /**
+   * Returns gRPC stubs with given options domain service.
+   */
   static IGrpcServiceStubs newInstance(ClientOptions options) {
     return new GrpcServiceStubs(options);
   }
 
-  /** @return Blocking (synchronous) stub to domain service. */
+  /**
+   * @return Blocking (synchronous) stub to domain service.
+   */
   DomainAPIGrpc.DomainAPIBlockingStub domainBlockingStub();
 
-  /** @return Future (asynchronous) stub to domain service. */
+  /**
+   * @return Future (asynchronous) stub to domain service.
+   */
   DomainAPIGrpc.DomainAPIFutureStub domainFutureStub();
 
-  /** @return Blocking (synchronous) stub to visibility service. */
+  /**
+   * @return Blocking (synchronous) stub to visibility service.
+   */
   VisibilityAPIGrpc.VisibilityAPIBlockingStub visibilityBlockingStub();
 
-  /** @return Future (asynchronous) stub to visibility service. */
+  /**
+   * @return Future (asynchronous) stub to visibility service.
+   */
   VisibilityAPIGrpc.VisibilityAPIFutureStub visibilityFutureStub();
 
-  /** @return Blocking (synchronous) stub to worker service. */
+  /**
+   * @return Blocking (synchronous) stub to worker service.
+   */
   WorkerAPIGrpc.WorkerAPIBlockingStub workerBlockingStub();
 
-  /** @return Future (asynchronous) stub to worker service. */
+  /**
+   * @return Future (asynchronous) stub to worker service.
+   */
   WorkerAPIGrpc.WorkerAPIFutureStub workerFutureStub();
 
-  /** @return Blocking (synchronous) stub to workflow service. */
+  /**
+   * @return Blocking (synchronous) stub to workflow service.
+   */
   WorkflowAPIGrpc.WorkflowAPIBlockingStub workflowBlockingStub();
 
-  /** @return Future (asynchronous) stub to workflow service. */
+  /**
+   * @return Future (asynchronous) stub to workflow service.
+   */
   WorkflowAPIGrpc.WorkflowAPIFutureStub workflowFutureStub();
 
   void shutdown();
