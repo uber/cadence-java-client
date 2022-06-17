@@ -71,11 +71,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final WorkflowAPIGrpc.WorkflowAPIFutureStub workflowFutureStub;
 
   GrpcServiceStubs(ClientOptions options) {
-      this.channel =
-          ManagedChannelBuilder.forAddress(options.getHost(), options.getPort())
-              .defaultLoadBalancingPolicy("round_robin")
-              .usePlaintext()
-              .build();
+    this.channel =
+        ManagedChannelBuilder.forAddress(options.getHost(), options.getPort())
+            .defaultLoadBalancingPolicy("round_robin")
+            .usePlaintext()
+            .build();
 
     ClientInterceptor deadlineInterceptor = new GrpcDeadlineInterceptor(options);
     ClientInterceptor tracingInterceptor = newTracingInterceptor();
@@ -177,28 +177,28 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   @Override
   public void shutdown() {
     shutdownRequested.set(true);
-      channel.shutdown();
+    channel.shutdown();
   }
 
   @Override
   public void shutdownNow() {
     shutdownRequested.set(true);
-      channel.shutdownNow();
+    channel.shutdownNow();
   }
 
   @Override
   public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-      return channel.awaitTermination(timeout, unit);
+    return channel.awaitTermination(timeout, unit);
   }
 
   @Override
   public boolean isShutdown() {
-      return channel.isShutdown();
+    return channel.isShutdown();
   }
 
   @Override
   public boolean isTerminated() {
-      return channel.isTerminated();
+    return channel.isTerminated();
   }
 
   private static class GrpcDeadlineInterceptor implements ClientInterceptor {
