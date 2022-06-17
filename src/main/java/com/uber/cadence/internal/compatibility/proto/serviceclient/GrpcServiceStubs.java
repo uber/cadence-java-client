@@ -26,6 +26,7 @@ import com.uber.cadence.api.v1.WorkflowAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
 import com.uber.cadence.internal.Version;
+import com.uber.cadence.serviceclient.ClientOptions;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -47,7 +48,6 @@ import org.slf4j.LoggerFactory;
 final class GrpcServiceStubs implements IGrpcServiceStubs {
 
   private static final Logger log = LoggerFactory.getLogger(GrpcServiceStubs.class);
-
   private static final Metadata.Key<String> LIBRARY_VERSION_HEADER_KEY =
       Metadata.Key.of("cadence-client-library-version", Metadata.ASCII_STRING_MARSHALLER);
 
@@ -60,7 +60,6 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
   private final ManagedChannel channel;
-  private final boolean channelNeedsShutdown;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean();
   private final DomainAPIGrpc.DomainAPIBlockingStub domainBlockingStub;
   private final DomainAPIGrpc.DomainAPIFutureStub domainFutureStub;
@@ -71,19 +70,13 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final WorkflowAPIGrpc.WorkflowAPIBlockingStub workflowBlockingStub;
   private final WorkflowAPIGrpc.WorkflowAPIFutureStub workflowFutureStub;
 
-  GrpcServiceStubs(GrpcServiceStubsOptions options) {
-    options = GrpcServiceStubsOptions.newBuilder(options).validateAndBuildWithDefaults();
-    if (options.getChannel() != null) {
-      this.channel = options.getChannel();
-      channelNeedsShutdown = false;
-    } else {
+  GrpcServiceStubs(ClientOptions options) {
       this.channel =
-          ManagedChannelBuilder.forTarget(options.getTarget())
+          ManagedChannelBuilder.forAddress(options.getHost(), options.getPort())
               .defaultLoadBalancingPolicy("round_robin")
               .usePlaintext()
               .build();
-      channelNeedsShutdown = true;
-    }
+
     ClientInterceptor deadlineInterceptor = new GrpcDeadlineInterceptor(options);
     ClientInterceptor tracingInterceptor = newTracingInterceptor();
     Metadata headers = new Metadata();
@@ -184,48 +177,35 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   @Override
   public void shutdown() {
     shutdownRequested.set(true);
-    if (channelNeedsShutdown) {
       channel.shutdown();
-    }
   }
 
   @Override
   public void shutdownNow() {
     shutdownRequested.set(true);
-    if (channelNeedsShutdown) {
       channel.shutdownNow();
-    }
   }
 
   @Override
   public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    if (channelNeedsShutdown) {
       return channel.awaitTermination(timeout, unit);
-    }
-    return true;
   }
 
   @Override
   public boolean isShutdown() {
-    if (channelNeedsShutdown) {
       return channel.isShutdown();
-    }
-    return shutdownRequested.get();
   }
 
   @Override
   public boolean isTerminated() {
-    if (channelNeedsShutdown) {
       return channel.isTerminated();
-    }
-    return shutdownRequested.get();
   }
 
   private static class GrpcDeadlineInterceptor implements ClientInterceptor {
 
-    private final GrpcServiceStubsOptions options;
+    private final ClientOptions options;
 
-    public GrpcDeadlineInterceptor(GrpcServiceStubsOptions options) {
+    public GrpcDeadlineInterceptor(ClientOptions options) {
       this.options = options;
     }
 
