@@ -17,6 +17,7 @@ package com.uber.cadence.internal.compatibility.thrift;
 
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.archivalStatus;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.domainStatus;
+import static com.uber.cadence.internal.compatibility.thrift.Helpers.byteStringToArray;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToDays;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToSeconds;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.timeToUnixNano;
@@ -146,7 +147,7 @@ public class ResponseMapper {
         new GetWorkflowExecutionHistoryResponse();
     getWorkflowExecutionHistoryResponse.setHistory(history(t.getHistory()));
     getWorkflowExecutionHistoryResponse.setRawHistory(dataBlobArray(t.getRawHistoryList()));
-    getWorkflowExecutionHistoryResponse.setNextPageToken(t.getNextPageToken().toByteArray());
+    getWorkflowExecutionHistoryResponse.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     getWorkflowExecutionHistoryResponse.setArchived(t.getArchived());
     return getWorkflowExecutionHistoryResponse;
   }
@@ -158,7 +159,7 @@ public class ResponseMapper {
     }
     ListArchivedWorkflowExecutionsResponse res = new ListArchivedWorkflowExecutionsResponse();
     res.setExecutions(workflowExecutionInfoArray(t.getExecutionsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 
@@ -169,7 +170,7 @@ public class ResponseMapper {
     }
     ListClosedWorkflowExecutionsResponse res = new ListClosedWorkflowExecutionsResponse();
     res.setExecutions(workflowExecutionInfoArray(t.getExecutionsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 
@@ -180,7 +181,7 @@ public class ResponseMapper {
     }
     ListOpenWorkflowExecutionsResponse res = new ListOpenWorkflowExecutionsResponse();
     res.setExecutions(workflowExecutionInfoArray(t.getExecutionsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 
@@ -204,7 +205,7 @@ public class ResponseMapper {
     }
     ListWorkflowExecutionsResponse res = new ListWorkflowExecutionsResponse();
     res.setExecutions(workflowExecutionInfoArray(t.getExecutionsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 
@@ -214,7 +215,7 @@ public class ResponseMapper {
       return null;
     }
     PollForActivityTaskResponse res = new PollForActivityTaskResponse();
-    res.setTaskToken(t.getTaskToken().toByteArray());
+    res.setTaskToken(byteStringToArray(t.getTaskToken()));
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
     res.setActivityId(t.getActivityId());
     res.setActivityType(activityType(t.getActivityType()));
@@ -239,7 +240,7 @@ public class ResponseMapper {
       return null;
     }
     PollForDecisionTaskResponse res = new PollForDecisionTaskResponse();
-    res.setTaskToken(t.getTaskToken().toByteArray());
+    res.setTaskToken(byteStringToArray(t.getTaskToken()));
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
     res.setWorkflowType(workflowType(t.getWorkflowType()));
     res.setPreviousStartedEventId(toInt64Value(t.getPreviousStartedEventId()));
@@ -247,7 +248,7 @@ public class ResponseMapper {
     res.setAttempt(t.getAttempt());
     res.setBacklogCountHint(t.getBacklogCountHint());
     res.setHistory(history(t.getHistory()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     res.setQuery(workflowQuery(t.getQuery()));
     res.setWorkflowExecutionTaskList(taskList(t.getWorkflowExecutionTaskList()));
     res.setScheduledTimestamp(timeToUnixNano(t.getScheduledTime()));
@@ -317,7 +318,7 @@ public class ResponseMapper {
     }
     ListWorkflowExecutionsResponse res = new ListWorkflowExecutionsResponse();
     res.setExecutions(workflowExecutionInfoArray(t.getExecutionsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 
@@ -372,7 +373,7 @@ public class ResponseMapper {
     }
     ListDomainsResponse res = new ListDomainsResponse();
     res.setDomains(describeDomainResponseArray(t.getDomainsList()));
-    res.setNextPageToken(t.getNextPageToken().toByteArray());
+    res.setNextPageToken(byteStringToArray(t.getNextPageToken()));
     return res;
   }
 

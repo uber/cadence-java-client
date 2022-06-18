@@ -15,15 +15,16 @@
  */
 package com.uber.cadence.internal.compatibility.thrift;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Duration;
-import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 
 class Helpers {
+
   static double toDoubleValue(DoubleValue v) {
     return v.getValue();
   }
@@ -42,6 +43,13 @@ class Helpers {
 
   static int durationToSeconds(Duration d) {
     return (int) Durations.toSeconds(d);
+  }
+
+  static byte[] byteStringToArray(ByteString t) {
+    if (t == null) {
+      return null;
+    }
+    return t.toByteArray();
   }
 
 }
