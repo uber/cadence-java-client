@@ -25,6 +25,7 @@ import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.pendingD
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.queryResultType;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.taskListKind;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.workflowExecutionCloseStatus;
+import static com.uber.cadence.internal.compatibility.thrift.Helpers.byteStringToArray;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToDays;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToSeconds;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.timeToUnixNano;
@@ -89,7 +90,7 @@ class TypeMapper {
       // since we already know p is not null, Data field must be an empty byte array
       return new byte[0];
     }
-    return p.getData().toByteArray();
+    return byteStringToArray(p.getData());
   }
 
   static String failureReason(com.uber.cadence.api.v1.Failure failure) {
@@ -103,7 +104,7 @@ class TypeMapper {
     if (failure == null) {
       return null;
     }
-    return failure.getDetails().toByteArray();
+    return byteStringToArray(failure.getDetails());
   }
 
   static WorkflowExecution workflowExecution(com.uber.cadence.api.v1.WorkflowExecution t) {
@@ -371,7 +372,7 @@ class TypeMapper {
     }
     DataBlob dataBlob = new DataBlob();
     dataBlob.setEncodingType(encodingType(t.getEncodingType()));
-    dataBlob.setData(t.getData().toByteArray());
+    dataBlob.setData(byteStringToArray(t.getData()));
     return dataBlob;
   }
 
@@ -567,8 +568,7 @@ class TypeMapper {
     res.setScheduledTimestamp(timeToUnixNano(t.getScheduledTime()));
     res.setStartedTimestamp(timeToUnixNano(t.getStartedTime()));
     res.setScheduledTimestampOfThisAttempt(timeToUnixNano(t.getScheduledTimeOfThisAttempt()));
-    // TODO check for null
-    res.setTaskToken(t.getTaskToken().toByteArray());
+    res.setTaskToken(byteStringToArray(t.getTaskToken()));
     return res;
   }
 

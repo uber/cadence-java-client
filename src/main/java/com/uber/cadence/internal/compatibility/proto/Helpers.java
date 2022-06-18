@@ -15,6 +15,7 @@
  */
 package com.uber.cadence.internal.compatibility.proto;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Duration;
 import com.google.protobuf.FieldMask;

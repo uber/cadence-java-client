@@ -58,6 +58,7 @@ import static com.uber.cadence.EventType.WorkflowExecutionStarted;
 import static com.uber.cadence.EventType.WorkflowExecutionTerminated;
 import static com.uber.cadence.EventType.WorkflowExecutionTimedOut;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.*;
+import static com.uber.cadence.internal.compatibility.thrift.Helpers.byteStringToArray;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToSeconds;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.timeToUnixNano;
 import static com.uber.cadence.internal.compatibility.thrift.TypeMapper.*;
@@ -624,8 +625,7 @@ class HistoryMapper {
     res.setStartedEventId(t.getStartedEventId());
     res.setIdentity(t.getIdentity());
     res.setBinaryChecksum(t.getBinaryChecksum());
-    // TODO check for null
-    res.setExecutionContext(t.getExecutionContext().toByteArray());
+    res.setExecutionContext(byteStringToArray(t.getExecutionContext()));
     return res;
   }
 
@@ -671,7 +671,7 @@ class HistoryMapper {
     res.setInitiatedEventId(t.getInitiatedEventId());
     res.setDomain(t.getDomain());
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     return res;
   }
 
@@ -715,7 +715,7 @@ class HistoryMapper {
     res.setDomain(t.getDomain());
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
     res.setInitiatedEventId(t.getInitiatedEventId());
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     return res;
   }
 
@@ -731,7 +731,7 @@ class HistoryMapper {
     res.setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId());
     res.setDomain(t.getDomain());
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     res.setChildWorkflowOnly(t.getChildWorkflowOnly());
     return res;
   }
@@ -749,7 +749,7 @@ class HistoryMapper {
     res.setDomain(t.getDomain());
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
     res.setInitiatedEventId(t.getInitiatedEventId());
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     return res;
   }
 
@@ -766,7 +766,7 @@ class HistoryMapper {
     res.setWorkflowExecution(workflowExecution(t.getWorkflowExecution()));
     res.setSignalName(t.getSignalName());
     res.setInput(payload(t.getInput()));
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     res.setChildWorkflowOnly(t.getChildWorkflowOnly());
     return res;
   }
@@ -783,7 +783,7 @@ class HistoryMapper {
     res.setWorkflowId(t.getWorkflowId());
     res.setWorkflowType(workflowType(t.getWorkflowType()));
     res.setCause(childWorkflowExecutionFailedCause(t.getCause()));
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     res.setInitiatedEventId(t.getInitiatedEventId());
     res.setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId());
     return res;
@@ -806,7 +806,7 @@ class HistoryMapper {
         durationToSeconds(t.getExecutionStartToCloseTimeout()));
     res.setTaskStartToCloseTimeoutSeconds(durationToSeconds(t.getTaskStartToCloseTimeout()));
     res.setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()));
-    res.setControl(t.getControl().toByteArray());
+    res.setControl(byteStringToArray(t.getControl()));
     res.setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId());
     res.setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()));
     res.setRetryPolicy(retryPolicy(t.getRetryPolicy()));

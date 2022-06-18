@@ -18,6 +18,7 @@ package com.uber.cadence.internal.compatibility.thrift;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.continueAsNewInitiator;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.parentClosePolicy;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.workflowIdReusePolicy;
+import static com.uber.cadence.internal.compatibility.thrift.Helpers.byteStringToArray;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToSeconds;
 import static com.uber.cadence.internal.compatibility.thrift.TypeMapper.activityType;
 import static com.uber.cadence.internal.compatibility.thrift.TypeMapper.failureDetails;
@@ -144,7 +145,7 @@ class DecisionMapper {
       attrs.setDomain(a.getDomain());
       attrs.setWorkflowId(workflowId(a.getWorkflowExecution()));
       attrs.setRunId(runId(a.getWorkflowExecution()));
-      attrs.setControl(a.getControl().toByteArray());
+      attrs.setControl(byteStringToArray(a.getControl()));
       attrs.setChildWorkflowOnly(a.getChildWorkflowOnly());
     } else if (d.getRecordMarkerDecisionAttributes() != null) {
       decision.setDecisionType(DecisionType.RecordMarker);
@@ -196,7 +197,7 @@ class DecisionMapper {
           durationToSeconds(a.getExecutionStartToCloseTimeout()));
       attrs.setTaskStartToCloseTimeoutSeconds(durationToSeconds(a.getTaskStartToCloseTimeout()));
       attrs.setParentClosePolicy(parentClosePolicy(a.getParentClosePolicy()));
-      attrs.setControl(a.getControl().toByteArray());
+      attrs.setControl(byteStringToArray(a.getControl()));
       attrs.setWorkflowIdReusePolicy(workflowIdReusePolicy(a.getWorkflowIdReusePolicy()));
       attrs.setRetryPolicy(retryPolicy(a.getRetryPolicy()));
       attrs.setCronSchedule(a.getCronSchedule());
@@ -215,7 +216,7 @@ class DecisionMapper {
       attrs.setExecution(workflowExecution(a.getWorkflowExecution()));
       attrs.setSignalName(a.getSignalName());
       attrs.setInput(payload(a.getInput()));
-      attrs.setControl(a.getControl().toByteArray());
+      attrs.setControl(byteStringToArray(a.getControl()));
       attrs.setChildWorkflowOnly(a.getChildWorkflowOnly());
     } else if (d.getUpsertWorkflowSearchAttributesDecisionAttributes() != null) {
       decision.setDecisionType(DecisionType.UpsertWorkflowSearchAttributes);
