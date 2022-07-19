@@ -22,6 +22,7 @@ import static com.uber.cadence.internal.compatibility.proto.EnumMapper.parentClo
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.queryResultType;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.taskListKind;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.workflowExecutionCloseStatus;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteString;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.daysToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.fromDoubleValue;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
@@ -96,14 +97,14 @@ class TypeMapper {
     if (data == null) {
       return null;
     }
-    return Payload.newBuilder().setData(ByteString.copyFrom(data)).build();
+    return Payload.newBuilder().setData(arrayToByteString(data)).build();
   }
 
   static Failure failure(String reason, byte[] details) {
     if (reason == null) {
       return null;
     }
-    return Failure.newBuilder().setReason(reason).setDetails(ByteString.copyFrom(details)).build();
+    return Failure.newBuilder().setReason(reason).setDetails(arrayToByteString(details)).build();
   }
 
   static WorkflowExecution workflowExecution(com.uber.cadence.WorkflowExecution t) {
@@ -349,7 +350,7 @@ class TypeMapper {
     }
     return DataBlob.newBuilder()
         .setEncodingType(encodingType(t.getEncodingType()))
-        .setData(ByteString.copyFrom(t.getData()))
+        .setData(arrayToByteString(t.getData()))
         .build();
   }
 
@@ -550,7 +551,7 @@ class TypeMapper {
         .setScheduledTime(unixNanoToTime(t.getScheduledTimestamp()))
         .setStartedTime(unixNanoToTime(t.getStartedTimestamp()))
         .setScheduledTimeOfThisAttempt(unixNanoToTime(t.getScheduledTimestampOfThisAttempt()))
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .build();
   }
 

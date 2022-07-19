@@ -49,4 +49,11 @@ class Helpers {
   static Duration daysToDuration(int days) {
     return Durations.fromDays(days);
   }
+
+  static ByteString arrayToByteString(byte[] t) {
+    if (t == null) {
+      return null;
+    }
+    return ByteString.copyFrom(t);
+  }
 }
