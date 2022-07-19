@@ -24,6 +24,7 @@ import static com.uber.cadence.internal.compatibility.proto.EnumMapper.queryReje
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.queryTaskCompletedType;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.taskListType;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.workflowIdReusePolicy;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteString;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.daysToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.newFieldMask;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
@@ -145,7 +146,7 @@ public class RequestMapper {
     return ListArchivedWorkflowExecutionsRequest.newBuilder()
         .setDomain(t.getDomain())
         .setPageSize(t.getPageSize())
-        .setNextPageToken(ByteString.copyFrom(t.getNextPageToken()))
+        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
         .setQuery(t.getQuery())
         .build();
   }
@@ -209,7 +210,7 @@ public class RequestMapper {
       return null;
     }
     return RespondActivityTaskCanceledRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setDetails(payload(t.getDetails()))
         .setIdentity(t.getIdentity())
         .build();
@@ -235,7 +236,7 @@ public class RequestMapper {
       return null;
     }
     return RespondActivityTaskCompletedRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setResult(payload(t.getResult()))
         .setIdentity(t.getIdentity())
         .build();
@@ -261,7 +262,7 @@ public class RequestMapper {
       return null;
     }
     return RespondActivityTaskFailedRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setFailure(failure(t.getReason(), t.getDetails()))
         .setIdentity(t.getIdentity())
         .build();
@@ -273,9 +274,9 @@ public class RequestMapper {
       return null;
     }
     return RespondDecisionTaskCompletedRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .addAllDecisions(decisionArray(t.getDecisions()))
-        .setExecutionContext(ByteString.copyFrom(t.getExecutionContext()))
+        .setExecutionContext(arrayToByteString(t.getExecutionContext()))
         .setIdentity(t.getIdentity())
         .setStickyAttributes(stickyExecutionAttributes(t.getStickyAttributes()))
         .setReturnNewDecisionTask(t.isReturnNewDecisionTask())
@@ -291,7 +292,7 @@ public class RequestMapper {
       return null;
     }
     return RespondDecisionTaskFailedRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setCause(decisionTaskFailedCause(t.getCause()))
         .setDetails(payload(t.getDetails()))
         .setIdentity(t.getIdentity())
@@ -305,7 +306,7 @@ public class RequestMapper {
       return null;
     }
     return RespondQueryTaskCompletedRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setResult(
             WorkflowQueryResult.newBuilder()
                 .setResultType(queryTaskCompletedType(t.getCompletedType()))
@@ -324,7 +325,7 @@ public class RequestMapper {
     return ScanWorkflowExecutionsRequest.newBuilder()
         .setDomain(t.getDomain())
         .setPageSize(t.getPageSize())
-        .setNextPageToken(ByteString.copyFrom(t.getNextPageToken()))
+        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
         .setQuery(t.getQuery())
         .build();
   }
@@ -349,7 +350,7 @@ public class RequestMapper {
         .setDomain(t.getDomain())
         .setWorkflowExecution(workflowExecution(t.getExecution()))
         .setPageSize(t.getMaximumPageSize())
-        .setNextPageToken(ByteString.copyFrom(t.getNextPageToken()))
+        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
         .setWaitForNewEvent(t.isWaitForNewEvent())
         .setHistoryEventFilterType(eventFilterType(t.HistoryEventFilterType))
         .setSkipArchival(t.isSkipArchival())
@@ -385,7 +386,7 @@ public class RequestMapper {
                 .build())
         .setSignalName(t.getSignalName())
         .setSignalInput(payload(t.getSignalInput()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .build();
   }
 
@@ -401,7 +402,7 @@ public class RequestMapper {
         .setSignalInput(payload(t.getInput()))
         .setIdentity(t.getIdentity())
         .setRequestId(t.getRequestId())
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .build();
   }
 
@@ -476,7 +477,7 @@ public class RequestMapper {
     }
     return ListDomainsRequest.newBuilder()
         .setPageSize(t.pageSize)
-        .setNextPageToken(ByteString.copyFrom(t.getNextPageToken()))
+        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
         .build();
   }
 
@@ -499,7 +500,7 @@ public class RequestMapper {
     return ListWorkflowExecutionsRequest.newBuilder()
         .setDomain(t.getDomain())
         .setPageSize(t.getPageSize())
-        .setNextPageToken(ByteString.copyFrom(t.getNextPageToken()))
+        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
         .setQuery(t.getQuery())
         .build();
   }
@@ -563,7 +564,7 @@ public class RequestMapper {
       return null;
     }
     return RecordActivityTaskHeartbeatRequest.newBuilder()
-        .setTaskToken(ByteString.copyFrom(t.getTaskToken()))
+        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .setDetails(payload(t.getDetails()))
         .setIdentity(t.getIdentity())
         .build();
@@ -683,7 +684,7 @@ public class RequestMapper {
         ListClosedWorkflowExecutionsRequest.newBuilder()
             .setDomain(r.getDomain())
             .setPageSize(r.getMaximumPageSize())
-            .setNextPageToken(ByteString.copyFrom(r.getNextPageToken()))
+            .setNextPageToken(arrayToByteString(r.getNextPageToken()))
             .setStartTimeFilter(startTimeFilter(r.StartTimeFilter));
 
     if (r.getExecutionFilter() != null) {
@@ -708,7 +709,7 @@ public class RequestMapper {
         ListOpenWorkflowExecutionsRequest.newBuilder()
             .setDomain(r.getDomain())
             .setPageSize(r.getMaximumPageSize())
-            .setNextPageToken(ByteString.copyFrom(r.getNextPageToken()))
+            .setNextPageToken(arrayToByteString(r.getNextPageToken()))
             .setStartTimeFilter(startTimeFilter(r.StartTimeFilter));
 
     if (r.getExecutionFilter() != null) {

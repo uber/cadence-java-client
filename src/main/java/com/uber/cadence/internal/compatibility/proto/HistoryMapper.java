@@ -24,6 +24,7 @@ import static com.uber.cadence.internal.compatibility.proto.EnumMapper.parentClo
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.signalExternalWorkflowExecutionFailedCause;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.timeoutType;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.workflowIdReusePolicy;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteString;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.longToInt;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.unixNanoToTime;
@@ -578,7 +579,7 @@ class HistoryMapper {
         .setStartedEventId(t.getStartedEventId())
         .setIdentity(t.getIdentity())
         .setBinaryChecksum(t.getBinaryChecksum())
-        .setExecutionContext(ByteString.copyFrom(t.getExecutionContext()))
+        .setExecutionContext(arrayToByteString(t.getExecutionContext()))
         .build();
   }
 
@@ -622,7 +623,7 @@ class HistoryMapper {
         .setInitiatedEventId(t.getInitiatedEventId())
         .setDomain(t.getDomain())
         .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .build();
   }
 
@@ -664,7 +665,7 @@ class HistoryMapper {
         .setDomain(t.getDomain())
         .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
         .setInitiatedEventId(t.getInitiatedEventId())
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .build();
   }
 
@@ -678,7 +679,7 @@ class HistoryMapper {
         .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
         .setDomain(t.getDomain())
         .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .setChildWorkflowOnly(t.isChildWorkflowOnly())
         .build();
   }
@@ -695,7 +696,7 @@ class HistoryMapper {
         .setDomain(t.getDomain())
         .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
         .setInitiatedEventId(t.getInitiatedEventId())
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .build();
   }
 
@@ -711,7 +712,7 @@ class HistoryMapper {
         .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
         .setSignalName(t.getSignalName())
         .setInput(payload(t.getInput()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .setChildWorkflowOnly(t.isChildWorkflowOnly())
         .build();
   }
@@ -727,7 +728,7 @@ class HistoryMapper {
         .setWorkflowId(t.getWorkflowId())
         .setWorkflowType(workflowType(t.getWorkflowType()))
         .setCause(childWorkflowExecutionFailedCause(t.getCause()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .setInitiatedEventId(t.getInitiatedEventId())
         .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
         .build();
@@ -749,7 +750,7 @@ class HistoryMapper {
             secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
         .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
         .setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()))
-        .setControl(ByteString.copyFrom(t.getControl()))
+        .setControl(arrayToByteString(t.getControl()))
         .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
         .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
         .setRetryPolicy(retryPolicy(t.getRetryPolicy()))

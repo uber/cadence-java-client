@@ -51,5 +51,4 @@ class Helpers {
     }
     return t.toByteArray();
   }
-
 }

@@ -18,6 +18,7 @@ package com.uber.cadence.internal.compatibility.proto;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.continueAsNewInitiator;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.parentClosePolicy;
 import static com.uber.cadence.internal.compatibility.proto.EnumMapper.workflowIdReusePolicy;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteString;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.longToInt;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.activityType;
@@ -146,7 +147,7 @@ class DecisionMapper {
             RequestCancelExternalWorkflowExecutionDecisionAttributes.newBuilder()
                 .setDomain(attr.getDomain())
                 .setWorkflowExecution(workflowRunPair(attr.getWorkflowId(), attr.getRunId()))
-                .setControl(ByteString.copyFrom(attr.getControl()))
+                .setControl(arrayToByteString(attr.getControl()))
                 .setChildWorkflowOnly(attr.isChildWorkflowOnly()));
       }
       break;
@@ -190,7 +191,7 @@ class DecisionMapper {
                 .setTaskStartToCloseTimeout(
                     secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
                 .setParentClosePolicy(parentClosePolicy(attr.getParentClosePolicy()))
-                .setControl(ByteString.copyFrom(attr.getControl()))
+                .setControl(arrayToByteString(attr.getControl()))
                 .setWorkflowIdReusePolicy(workflowIdReusePolicy(attr.getWorkflowIdReusePolicy()))
                 .setRetryPolicy(retryPolicy(attr.getRetryPolicy()))
                 .setCronSchedule(attr.getCronSchedule())
@@ -208,7 +209,7 @@ class DecisionMapper {
                 .setWorkflowExecution(workflowExecution(attr.getExecution()))
                 .setSignalName(attr.getSignalName())
                 .setInput(payload(attr.getInput()))
-                .setControl(ByteString.copyFrom(attr.getControl()))
+                .setControl(arrayToByteString(attr.getControl()))
                 .setChildWorkflowOnly(attr.isChildWorkflowOnly()));
       }
       break;
