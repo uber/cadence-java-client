@@ -16,6 +16,9 @@
 package com.uber.cadence.internal.compatibility.proto.serviceclient;
 
 import com.uber.cadence.api.v1.DomainAPIGrpc;
+import com.uber.cadence.api.v1.MetaAPIGrpc;
+import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIBlockingStub;
+import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIFutureStub;
 import com.uber.cadence.api.v1.VisibilityAPIGrpc;
 import com.uber.cadence.api.v1.VisibilityAPIGrpc.VisibilityAPIBlockingStub;
 import com.uber.cadence.api.v1.VisibilityAPIGrpc.VisibilityAPIFutureStub;
@@ -61,7 +64,6 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private static final Metadata.Key<String> RPC_ENCODING_HEADER_KEY =
       Metadata.Key.of("rpc-encoding", Metadata.ASCII_STRING_MARSHALLER);
 
-
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
   private final ManagedChannel channel;
@@ -74,6 +76,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final WorkerAPIGrpc.WorkerAPIFutureStub workerFutureStub;
   private final WorkflowAPIGrpc.WorkflowAPIBlockingStub workflowBlockingStub;
   private final WorkflowAPIGrpc.WorkflowAPIFutureStub workflowFutureStub;
+  private final MetaAPIGrpc.MetaAPIBlockingStub metaBlockingStub;
+  private final MetaAPIGrpc.MetaAPIFutureStub metaFutureStub;
 
   GrpcServiceStubs(ClientOptions options) {
     this.channel =
@@ -105,6 +109,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.workerFutureStub = WorkerAPIGrpc.newFutureStub(interceptedChannel);
     this.workflowBlockingStub = WorkflowAPIGrpc.newBlockingStub(interceptedChannel);
     this.workflowFutureStub = WorkflowAPIGrpc.newFutureStub(interceptedChannel);
+    this.metaBlockingStub = MetaAPIGrpc.newBlockingStub(interceptedChannel);
+    this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
   }
 
   private ClientInterceptor newTracingInterceptor() {
@@ -175,6 +181,16 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   @Override
   public WorkflowAPIBlockingStub workflowBlockingStub() {
     return workflowBlockingStub;
+  }
+
+  @Override
+  public MetaAPIFutureStub metaFutureStub() {
+    return metaFutureStub;
+  }
+
+  @Override
+  public MetaAPIBlockingStub metaBlockingStub() {
+    return metaBlockingStub;
   }
 
   @Override

@@ -16,6 +16,8 @@
 package com.uber.cadence.internal.compatibility.proto.serviceclient;
 
 import com.uber.cadence.api.v1.DomainAPIGrpc;
+import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIBlockingStub;
+import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIFutureStub;
 import com.uber.cadence.api.v1.VisibilityAPIGrpc;
 import com.uber.cadence.api.v1.WorkerAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc;
@@ -26,60 +28,46 @@ public interface IGrpcServiceStubs {
 
   int DEFAULT_LOCAL_CADENCE_SERVER_GRPC_PORT = 7833;
 
-  /**
-   * Returns gRPC stubs with default options domain service.
-   */
+  /** Returns gRPC stubs with default options domain service. */
   static IGrpcServiceStubs newInstance() {
-    return new GrpcServiceStubs(ClientOptions.newBuilder()
-        .setPort(DEFAULT_LOCAL_CADENCE_SERVER_GRPC_PORT).build());
+    return new GrpcServiceStubs(
+        ClientOptions.newBuilder().setPort(DEFAULT_LOCAL_CADENCE_SERVER_GRPC_PORT).build());
   }
 
-  /**
-   * Returns gRPC stubs with given options domain service.
-   */
+  /** Returns gRPC stubs with given options domain service. */
   static IGrpcServiceStubs newInstance(ClientOptions options) {
     return new GrpcServiceStubs(options);
   }
 
-  /**
-   * @return Blocking (synchronous) stub to domain service.
-   */
+  /** @return Blocking (synchronous) stub to domain service. */
   DomainAPIGrpc.DomainAPIBlockingStub domainBlockingStub();
 
-  /**
-   * @return Future (asynchronous) stub to domain service.
-   */
+  /** @return Future (asynchronous) stub to domain service. */
   DomainAPIGrpc.DomainAPIFutureStub domainFutureStub();
 
-  /**
-   * @return Blocking (synchronous) stub to visibility service.
-   */
+  /** @return Blocking (synchronous) stub to visibility service. */
   VisibilityAPIGrpc.VisibilityAPIBlockingStub visibilityBlockingStub();
 
-  /**
-   * @return Future (asynchronous) stub to visibility service.
-   */
+  /** @return Future (asynchronous) stub to visibility service. */
   VisibilityAPIGrpc.VisibilityAPIFutureStub visibilityFutureStub();
 
-  /**
-   * @return Blocking (synchronous) stub to worker service.
-   */
+  /** @return Blocking (synchronous) stub to worker service. */
   WorkerAPIGrpc.WorkerAPIBlockingStub workerBlockingStub();
 
-  /**
-   * @return Future (asynchronous) stub to worker service.
-   */
+  /** @return Future (asynchronous) stub to worker service. */
   WorkerAPIGrpc.WorkerAPIFutureStub workerFutureStub();
 
-  /**
-   * @return Blocking (synchronous) stub to workflow service.
-   */
+  /** @return Blocking (synchronous) stub to workflow service. */
   WorkflowAPIGrpc.WorkflowAPIBlockingStub workflowBlockingStub();
 
-  /**
-   * @return Future (asynchronous) stub to workflow service.
-   */
+  /** @return Future (asynchronous) stub to workflow service. */
   WorkflowAPIGrpc.WorkflowAPIFutureStub workflowFutureStub();
+
+  /** @return Blocking (synchronous) stub to meta service. */
+  MetaAPIFutureStub metaFutureStub();
+
+  /** @return Future (asynchronous) stub to meta service. */
+  MetaAPIBlockingStub metaBlockingStub();
 
   void shutdown();
 
