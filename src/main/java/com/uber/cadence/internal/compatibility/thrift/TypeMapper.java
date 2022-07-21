@@ -73,6 +73,7 @@ import com.uber.cadence.WorkflowType;
 import com.uber.cadence.WorkflowTypeFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -233,7 +234,7 @@ class TypeMapper {
   static Map<String, BadBinaryInfo> badBinaryInfoMap(
       Map<String, com.uber.cadence.api.v1.BadBinaryInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, BadBinaryInfo> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -323,7 +324,7 @@ class TypeMapper {
 
   static Map<String, ByteBuffer> payloadMap(Map<String, com.uber.cadence.api.v1.Payload> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, ByteBuffer> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -335,7 +336,7 @@ class TypeMapper {
   static List<ClusterReplicationConfiguration> clusterReplicationConfigurationArray(
       List<com.uber.cadence.api.v1.ClusterReplicationConfiguration> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<ClusterReplicationConfiguration> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -357,7 +358,7 @@ class TypeMapper {
   static Map<String, WorkflowQueryResult> workflowQueryResultMap(
       Map<String, com.uber.cadence.api.v1.WorkflowQueryResult> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, WorkflowQueryResult> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -642,7 +643,7 @@ class TypeMapper {
 
   static List<PollerInfo> pollerInfoArray(List<com.uber.cadence.api.v1.PollerInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PollerInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -653,7 +654,7 @@ class TypeMapper {
 
   static List<ResetPointInfo> resetPointInfoArray(List<com.uber.cadence.api.v1.ResetPointInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<ResetPointInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -665,7 +666,7 @@ class TypeMapper {
   static List<PendingActivityInfo> pendingActivityInfoArray(
       List<com.uber.cadence.api.v1.PendingActivityInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PendingActivityInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -677,7 +678,7 @@ class TypeMapper {
   static List<PendingChildExecutionInfo> pendingChildExecutionInfoArray(
       List<com.uber.cadence.api.v1.PendingChildExecutionInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PendingChildExecutionInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -689,7 +690,7 @@ class TypeMapper {
   static Map<String, IndexedValueType> indexedValueTypeMap(
       Map<String, com.uber.cadence.api.v1.IndexedValueType> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, IndexedValueType> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -700,7 +701,7 @@ class TypeMapper {
 
   static List<DataBlob> dataBlobArray(List<com.uber.cadence.api.v1.DataBlob> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<DataBlob> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -712,7 +713,7 @@ class TypeMapper {
   static List<WorkflowExecutionInfo> workflowExecutionInfoArray(
       List<com.uber.cadence.api.v1.WorkflowExecutionInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<WorkflowExecutionInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -724,7 +725,7 @@ class TypeMapper {
   static List<DescribeDomainResponse> describeDomainResponseArray(
       List<com.uber.cadence.api.v1.Domain> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<DescribeDomainResponse> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -736,7 +737,7 @@ class TypeMapper {
   static List<TaskListPartitionMetadata> taskListPartitionMetadataArray(
       List<com.uber.cadence.api.v1.TaskListPartitionMetadata> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<TaskListPartitionMetadata> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -748,7 +749,7 @@ class TypeMapper {
   static Map<String, WorkflowQuery> workflowQueryMap(
       Map<String, com.uber.cadence.api.v1.WorkflowQuery> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, WorkflowQuery> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -760,7 +761,7 @@ class TypeMapper {
   static Map<String, ActivityLocalDispatchInfo> activityLocalDispatchInfoMap(
       Map<String, com.uber.cadence.api.v1.ActivityLocalDispatchInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, ActivityLocalDispatchInfo> v = new HashMap<>();
     for (String key : t.keySet()) {

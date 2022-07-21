@@ -41,7 +41,6 @@ import static com.uber.cadence.internal.compatibility.proto.TypeMapper.taskList;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.workflowExecution;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.workflowType;
 
-import com.google.protobuf.ByteString;
 import com.uber.cadence.api.v1.ActivityTaskCancelRequestedEventAttributes;
 import com.uber.cadence.api.v1.ActivityTaskCanceledEventAttributes;
 import com.uber.cadence.api.v1.ActivityTaskCompletedEventAttributes;
@@ -378,20 +377,23 @@ class HistoryMapper {
     if (t == null) {
       return null;
     }
-    return ActivityTaskScheduledEventAttributes.newBuilder()
-        .setActivityId(t.getActivityId())
-        .setActivityType(activityType(t.getActivityType()))
-        .setDomain(t.getDomain())
-        .setTaskList(taskList(t.getTaskList()))
-        .setInput(payload(t.getInput()))
-        .setScheduleToCloseTimeout(secondsToDuration(t.getScheduleToCloseTimeoutSeconds()))
-        .setScheduleToStartTimeout(secondsToDuration(t.getScheduleToStartTimeoutSeconds()))
-        .setStartToCloseTimeout(secondsToDuration(t.getStartToCloseTimeoutSeconds()))
-        .setHeartbeatTimeout(secondsToDuration(t.getHeartbeatTimeoutSeconds()))
-        .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
-        .setRetryPolicy(retryPolicy(t.getRetryPolicy()))
-        .setHeader(header(t.getHeader()))
-        .build();
+    ActivityTaskScheduledEventAttributes.Builder builder =
+        ActivityTaskScheduledEventAttributes.newBuilder()
+            .setActivityId(t.getActivityId())
+            .setActivityType(activityType(t.getActivityType()))
+            .setDomain(t.getDomain())
+            .setTaskList(taskList(t.getTaskList()))
+            .setInput(payload(t.getInput()))
+            .setScheduleToCloseTimeout(secondsToDuration(t.getScheduleToCloseTimeoutSeconds()))
+            .setScheduleToStartTimeout(secondsToDuration(t.getScheduleToStartTimeoutSeconds()))
+            .setStartToCloseTimeout(secondsToDuration(t.getStartToCloseTimeoutSeconds()))
+            .setHeartbeatTimeout(secondsToDuration(t.getHeartbeatTimeoutSeconds()))
+            .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
+            .setHeader(header(t.getHeader()));
+    if (t.getRetryPolicy() != null) {
+      builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    return builder.build();
   }
 
   static ActivityTaskStartedEventAttributes activityTaskStartedEventAttributes(
@@ -436,8 +438,8 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionCanceledEventAttributes
-  childWorkflowExecutionCanceledEventAttributes(
-      com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes t) {
+      childWorkflowExecutionCanceledEventAttributes(
+          com.uber.cadence.ChildWorkflowExecutionCanceledEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -452,8 +454,8 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionCompletedEventAttributes
-  childWorkflowExecutionCompletedEventAttributes(
-      com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes t) {
+      childWorkflowExecutionCompletedEventAttributes(
+          com.uber.cadence.ChildWorkflowExecutionCompletedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -497,8 +499,8 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionTerminatedEventAttributes
-  childWorkflowExecutionTerminatedEventAttributes(
-      com.uber.cadence.ChildWorkflowExecutionTerminatedEventAttributes t) {
+      childWorkflowExecutionTerminatedEventAttributes(
+          com.uber.cadence.ChildWorkflowExecutionTerminatedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -512,8 +514,8 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionTimedOutEventAttributes
-  childWorkflowExecutionTimedOutEventAttributes(
-      com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes t) {
+      childWorkflowExecutionTimedOutEventAttributes(
+          com.uber.cadence.ChildWorkflowExecutionTimedOutEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -601,8 +603,8 @@ class HistoryMapper {
   }
 
   static ExternalWorkflowExecutionCancelRequestedEventAttributes
-  externalWorkflowExecutionCancelRequestedEventAttributes(
-      com.uber.cadence.ExternalWorkflowExecutionCancelRequestedEventAttributes t) {
+      externalWorkflowExecutionCancelRequestedEventAttributes(
+          com.uber.cadence.ExternalWorkflowExecutionCancelRequestedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -614,8 +616,8 @@ class HistoryMapper {
   }
 
   static ExternalWorkflowExecutionSignaledEventAttributes
-  externalWorkflowExecutionSignaledEventAttributes(
-      com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes t) {
+      externalWorkflowExecutionSignaledEventAttributes(
+          com.uber.cadence.ExternalWorkflowExecutionSignaledEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -641,8 +643,8 @@ class HistoryMapper {
   }
 
   static RequestCancelActivityTaskFailedEventAttributes
-  requestCancelActivityTaskFailedEventAttributes(
-      com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes t) {
+      requestCancelActivityTaskFailedEventAttributes(
+          com.uber.cadence.RequestCancelActivityTaskFailedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -654,8 +656,8 @@ class HistoryMapper {
   }
 
   static RequestCancelExternalWorkflowExecutionFailedEventAttributes
-  requestCancelExternalWorkflowExecutionFailedEventAttributes(
-      com.uber.cadence.RequestCancelExternalWorkflowExecutionFailedEventAttributes t) {
+      requestCancelExternalWorkflowExecutionFailedEventAttributes(
+          com.uber.cadence.RequestCancelExternalWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -670,8 +672,8 @@ class HistoryMapper {
   }
 
   static RequestCancelExternalWorkflowExecutionInitiatedEventAttributes
-  requestCancelExternalWorkflowExecutionInitiatedEventAttributes(
-      com.uber.cadence.RequestCancelExternalWorkflowExecutionInitiatedEventAttributes t) {
+      requestCancelExternalWorkflowExecutionInitiatedEventAttributes(
+          com.uber.cadence.RequestCancelExternalWorkflowExecutionInitiatedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -685,8 +687,8 @@ class HistoryMapper {
   }
 
   static SignalExternalWorkflowExecutionFailedEventAttributes
-  signalExternalWorkflowExecutionFailedEventAttributes(
-      com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes t) {
+      signalExternalWorkflowExecutionFailedEventAttributes(
+          com.uber.cadence.SignalExternalWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -701,8 +703,8 @@ class HistoryMapper {
   }
 
   static SignalExternalWorkflowExecutionInitiatedEventAttributes
-  signalExternalWorkflowExecutionInitiatedEventAttributes(
-      com.uber.cadence.SignalExternalWorkflowExecutionInitiatedEventAttributes t) {
+      signalExternalWorkflowExecutionInitiatedEventAttributes(
+          com.uber.cadence.SignalExternalWorkflowExecutionInitiatedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -718,8 +720,8 @@ class HistoryMapper {
   }
 
   static StartChildWorkflowExecutionFailedEventAttributes
-  startChildWorkflowExecutionFailedEventAttributes(
-      com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes t) {
+      startChildWorkflowExecutionFailedEventAttributes(
+          com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -735,31 +737,34 @@ class HistoryMapper {
   }
 
   static StartChildWorkflowExecutionInitiatedEventAttributes
-  startChildWorkflowExecutionInitiatedEventAttributes(
-      com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes t) {
+      startChildWorkflowExecutionInitiatedEventAttributes(
+          com.uber.cadence.StartChildWorkflowExecutionInitiatedEventAttributes t) {
     if (t == null) {
       return null;
     }
-    return StartChildWorkflowExecutionInitiatedEventAttributes.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowId(t.getWorkflowId())
-        .setWorkflowType(workflowType(t.getWorkflowType()))
-        .setTaskList(taskList(t.getTaskList()))
-        .setInput(payload(t.getInput()))
-        .setExecutionStartToCloseTimeout(
-            secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
-        .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-        .setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()))
-        .setControl(arrayToByteString(t.getControl()))
-        .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
-        .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
-        .setRetryPolicy(retryPolicy(t.getRetryPolicy()))
-        .setCronSchedule(t.getCronSchedule())
-        .setHeader(header(t.getHeader()))
-        .setMemo(memo(t.getMemo()))
-        .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
-        .setDelayStart(secondsToDuration(t.getDelayStartSeconds()))
-        .build();
+    StartChildWorkflowExecutionInitiatedEventAttributes.Builder builder =
+        StartChildWorkflowExecutionInitiatedEventAttributes.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowId(t.getWorkflowId())
+            .setWorkflowType(workflowType(t.getWorkflowType()))
+            .setTaskList(taskList(t.getTaskList()))
+            .setInput(payload(t.getInput()))
+            .setExecutionStartToCloseTimeout(
+                secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
+            .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
+            .setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()))
+            .setControl(arrayToByteString(t.getControl()))
+            .setDecisionTaskCompletedEventId(t.getDecisionTaskCompletedEventId())
+            .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
+            .setCronSchedule(t.getCronSchedule())
+            .setHeader(header(t.getHeader()))
+            .setMemo(memo(t.getMemo()))
+            .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
+            .setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
+    if (t.getRetryPolicy() != null) {
+      builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    return builder.build();
   }
 
   static TimerCanceledEventAttributes timerCanceledEventAttributes(
@@ -799,8 +804,8 @@ class HistoryMapper {
   }
 
   static UpsertWorkflowSearchAttributesEventAttributes
-  upsertWorkflowSearchAttributesEventAttributes(
-      com.uber.cadence.UpsertWorkflowSearchAttributesEventAttributes t) {
+      upsertWorkflowSearchAttributesEventAttributes(
+          com.uber.cadence.UpsertWorkflowSearchAttributesEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -811,8 +816,8 @@ class HistoryMapper {
   }
 
   static WorkflowExecutionCancelRequestedEventAttributes
-  workflowExecutionCancelRequestedEventAttributes(
-      com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes t) {
+      workflowExecutionCancelRequestedEventAttributes(
+          com.uber.cadence.WorkflowExecutionCancelRequestedEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -848,8 +853,8 @@ class HistoryMapper {
   }
 
   static WorkflowExecutionContinuedAsNewEventAttributes
-  workflowExecutionContinuedAsNewEventAttributes(
-      com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes t) {
+      workflowExecutionContinuedAsNewEventAttributes(
+          com.uber.cadence.WorkflowExecutionContinuedAsNewEventAttributes t) {
     if (t == null) {
       return null;
     }
@@ -900,36 +905,40 @@ class HistoryMapper {
     if (t == null) {
       return null;
     }
-    return WorkflowExecutionStartedEventAttributes.newBuilder()
-        .setWorkflowType(workflowType(t.getWorkflowType()))
-        .setParentExecutionInfo(
-            TypeMapper.parentExecutionInfo(
-                null,
-                t.getParentWorkflowDomain(),
-                t.getParentWorkflowExecution(),
-                t.getParentInitiatedEventId()))
-        .setTaskList(taskList(t.getTaskList()))
-        .setInput(payload(t.getInput()))
-        .setExecutionStartToCloseTimeout(
-            secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
-        .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-        .setContinuedExecutionRunId(t.getContinuedExecutionRunId())
-        .setInitiator(continueAsNewInitiator(t.getInitiator()))
-        .setContinuedFailure(failure(t.getContinuedFailureReason(), t.getContinuedFailureDetails()))
-        .setLastCompletionResult(payload(t.getLastCompletionResult()))
-        .setOriginalExecutionRunId(t.getOriginalExecutionRunId())
-        .setIdentity(t.getIdentity())
-        .setFirstExecutionRunId(t.getFirstExecutionRunId())
-        .setRetryPolicy(retryPolicy(t.getRetryPolicy()))
-        .setAttempt(t.getAttempt())
-        .setExpirationTime(unixNanoToTime(t.getExpirationTimestamp()))
-        .setCronSchedule(t.getCronSchedule())
-        .setFirstDecisionTaskBackoff(secondsToDuration(t.getFirstDecisionTaskBackoffSeconds()))
-        .setMemo(memo(t.getMemo()))
-        .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
-        .setPrevAutoResetPoints(resetPoints(t.getPrevAutoResetPoints()))
-        .setHeader(header(t.getHeader()))
-        .build();
+    WorkflowExecutionStartedEventAttributes.Builder builder =
+        WorkflowExecutionStartedEventAttributes.newBuilder()
+            .setWorkflowType(workflowType(t.getWorkflowType()))
+            .setParentExecutionInfo(
+                TypeMapper.parentExecutionInfo(
+                    null,
+                    t.getParentWorkflowDomain(),
+                    t.getParentWorkflowExecution(),
+                    t.getParentInitiatedEventId()))
+            .setTaskList(taskList(t.getTaskList()))
+            .setInput(payload(t.getInput()))
+            .setExecutionStartToCloseTimeout(
+                secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
+            .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
+            .setContinuedExecutionRunId(t.getContinuedExecutionRunId())
+            .setInitiator(continueAsNewInitiator(t.getInitiator()))
+            .setContinuedFailure(
+                failure(t.getContinuedFailureReason(), t.getContinuedFailureDetails()))
+            .setLastCompletionResult(payload(t.getLastCompletionResult()))
+            .setOriginalExecutionRunId(t.getOriginalExecutionRunId())
+            .setIdentity(t.getIdentity())
+            .setFirstExecutionRunId(t.getFirstExecutionRunId())
+            .setAttempt(t.getAttempt())
+            .setExpirationTime(unixNanoToTime(t.getExpirationTimestamp()))
+            .setCronSchedule(t.getCronSchedule())
+            .setFirstDecisionTaskBackoff(secondsToDuration(t.getFirstDecisionTaskBackoffSeconds()))
+            .setMemo(memo(t.getMemo()))
+            .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
+            .setPrevAutoResetPoints(resetPoints(t.getPrevAutoResetPoints()))
+            .setHeader(header(t.getHeader()));
+    if (t.getRetryPolicy() != null) {
+      builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    return builder.build();
   }
 
   static WorkflowExecutionTerminatedEventAttributes workflowExecutionTerminatedEventAttributes(

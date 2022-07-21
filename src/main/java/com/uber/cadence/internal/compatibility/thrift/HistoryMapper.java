@@ -474,7 +474,7 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionCanceledEventAttributes
-  childWorkflowExecutionCanceledEventAttributes(
+      childWorkflowExecutionCanceledEventAttributes(
           com.uber.cadence.api.v1.ChildWorkflowExecutionCanceledEventAttributes t) {
     if (t == null) {
       return null;
@@ -491,7 +491,7 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionCompletedEventAttributes
-  childWorkflowExecutionCompletedEventAttributes(
+      childWorkflowExecutionCompletedEventAttributes(
           com.uber.cadence.api.v1.ChildWorkflowExecutionCompletedEventAttributes t) {
     if (t == null) {
       return null;
@@ -540,7 +540,7 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionTerminatedEventAttributes
-  childWorkflowExecutionTerminatedEventAttributes(
+      childWorkflowExecutionTerminatedEventAttributes(
           com.uber.cadence.api.v1.ChildWorkflowExecutionTerminatedEventAttributes t) {
     if (t == null) {
       return null;
@@ -556,7 +556,7 @@ class HistoryMapper {
   }
 
   static ChildWorkflowExecutionTimedOutEventAttributes
-  childWorkflowExecutionTimedOutEventAttributes(
+      childWorkflowExecutionTimedOutEventAttributes(
           com.uber.cadence.api.v1.ChildWorkflowExecutionTimedOutEventAttributes t) {
     if (t == null) {
       return null;
@@ -647,7 +647,7 @@ class HistoryMapper {
   }
 
   static ExternalWorkflowExecutionCancelRequestedEventAttributes
-  externalWorkflowExecutionCancelRequestedEventAttributes(
+      externalWorkflowExecutionCancelRequestedEventAttributes(
           com.uber.cadence.api.v1.ExternalWorkflowExecutionCancelRequestedEventAttributes t) {
     if (t == null) {
       return null;
@@ -661,7 +661,7 @@ class HistoryMapper {
   }
 
   static ExternalWorkflowExecutionSignaledEventAttributes
-  externalWorkflowExecutionSignaledEventAttributes(
+      externalWorkflowExecutionSignaledEventAttributes(
           com.uber.cadence.api.v1.ExternalWorkflowExecutionSignaledEventAttributes t) {
     if (t == null) {
       return null;
@@ -689,7 +689,7 @@ class HistoryMapper {
   }
 
   static RequestCancelActivityTaskFailedEventAttributes
-  requestCancelActivityTaskFailedEventAttributes(
+      requestCancelActivityTaskFailedEventAttributes(
           com.uber.cadence.api.v1.RequestCancelActivityTaskFailedEventAttributes t) {
     if (t == null) {
       return null;
@@ -703,7 +703,7 @@ class HistoryMapper {
   }
 
   static RequestCancelExternalWorkflowExecutionFailedEventAttributes
-  requestCancelExternalWorkflowExecutionFailedEventAttributes(
+      requestCancelExternalWorkflowExecutionFailedEventAttributes(
           com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
@@ -720,7 +720,7 @@ class HistoryMapper {
   }
 
   static RequestCancelExternalWorkflowExecutionInitiatedEventAttributes
-  requestCancelExternalWorkflowExecutionInitiatedEventAttributes(
+      requestCancelExternalWorkflowExecutionInitiatedEventAttributes(
           com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionInitiatedEventAttributes
               t) {
     if (t == null) {
@@ -737,7 +737,7 @@ class HistoryMapper {
   }
 
   static SignalExternalWorkflowExecutionFailedEventAttributes
-  signalExternalWorkflowExecutionFailedEventAttributes(
+      signalExternalWorkflowExecutionFailedEventAttributes(
           com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
@@ -754,7 +754,7 @@ class HistoryMapper {
   }
 
   static SignalExternalWorkflowExecutionInitiatedEventAttributes
-  signalExternalWorkflowExecutionInitiatedEventAttributes(
+      signalExternalWorkflowExecutionInitiatedEventAttributes(
           com.uber.cadence.api.v1.SignalExternalWorkflowExecutionInitiatedEventAttributes t) {
     if (t == null) {
       return null;
@@ -772,7 +772,7 @@ class HistoryMapper {
   }
 
   static StartChildWorkflowExecutionFailedEventAttributes
-  startChildWorkflowExecutionFailedEventAttributes(
+      startChildWorkflowExecutionFailedEventAttributes(
           com.uber.cadence.api.v1.StartChildWorkflowExecutionFailedEventAttributes t) {
     if (t == null) {
       return null;
@@ -790,7 +790,7 @@ class HistoryMapper {
   }
 
   static StartChildWorkflowExecutionInitiatedEventAttributes
-  startChildWorkflowExecutionInitiatedEventAttributes(
+      startChildWorkflowExecutionInitiatedEventAttributes(
           com.uber.cadence.api.v1.StartChildWorkflowExecutionInitiatedEventAttributes t) {
     if (t == null) {
       return null;
@@ -855,7 +855,7 @@ class HistoryMapper {
   }
 
   static UpsertWorkflowSearchAttributesEventAttributes
-  upsertWorkflowSearchAttributesEventAttributes(
+      upsertWorkflowSearchAttributesEventAttributes(
           com.uber.cadence.api.v1.UpsertWorkflowSearchAttributesEventAttributes t) {
     if (t == null) {
       return null;
@@ -868,7 +868,7 @@ class HistoryMapper {
   }
 
   static WorkflowExecutionCancelRequestedEventAttributes
-  workflowExecutionCancelRequestedEventAttributes(
+      workflowExecutionCancelRequestedEventAttributes(
           com.uber.cadence.api.v1.WorkflowExecutionCancelRequestedEventAttributes t) {
     if (t == null) {
       return null;
@@ -905,7 +905,7 @@ class HistoryMapper {
   }
 
   static WorkflowExecutionContinuedAsNewEventAttributes
-  workflowExecutionContinuedAsNewEventAttributes(
+      workflowExecutionContinuedAsNewEventAttributes(
           com.uber.cadence.api.v1.WorkflowExecutionContinuedAsNewEventAttributes t) {
     if (t == null) {
       return null;

@@ -15,6 +15,8 @@
  */
 package com.uber.cadence.internal.compatibility.proto;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Strings;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Duration;
@@ -22,7 +24,9 @@ import com.google.protobuf.FieldMask;
 import com.google.protobuf.Timestamp;
 import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 class Helpers {
 
@@ -48,6 +52,18 @@ class Helpers {
 
   static Duration daysToDuration(int days) {
     return Durations.fromDays(days);
+  }
+
+  static Map toNonNull(Map t) {
+    return MoreObjects.firstNonNull(t, Collections.emptyMap());
+  }
+
+  static String toNonNull(String t) {
+    return Strings.nullToEmpty(t);
+  }
+
+  static boolean toNonNull(boolean t) {
+    return MoreObjects.firstNonNull(t, false);
   }
 
   static ByteString arrayToByteString(byte[] t) {

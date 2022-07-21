@@ -381,8 +381,8 @@ class EnumMapper {
   }
 
   public static CancelExternalWorkflowExecutionFailedCause
-  cancelExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
+      cancelExternalWorkflowExecutionFailedCause(
+          com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;
@@ -393,8 +393,8 @@ class EnumMapper {
   }
 
   public static SignalExternalWorkflowExecutionFailedCause
-  signalExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
+      signalExternalWorkflowExecutionFailedCause(
+          com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;
