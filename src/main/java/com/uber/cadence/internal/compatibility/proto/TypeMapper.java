@@ -28,7 +28,6 @@ import static com.uber.cadence.internal.compatibility.proto.Helpers.fromDoubleVa
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.unixNanoToTime;
 
-import com.google.protobuf.ByteString;
 import com.uber.cadence.DomainConfiguration;
 import com.uber.cadence.DomainInfo;
 import com.uber.cadence.DomainReplicationConfiguration;
@@ -76,6 +75,7 @@ import com.uber.cadence.api.v1.WorkflowType;
 import com.uber.cadence.api.v1.WorkflowTypeFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +84,7 @@ class TypeMapper {
 
   static BadBinaryInfo badBinaryInfo(com.uber.cadence.BadBinaryInfo t) {
     if (t == null) {
-      return null;
+      return BadBinaryInfo.newBuilder().build();
     }
     return BadBinaryInfo.newBuilder()
         .setReason(t.getReason())
@@ -95,24 +95,24 @@ class TypeMapper {
 
   static Payload payload(byte[] data) {
     if (data == null) {
-      return null;
+      return Payload.newBuilder().build();
     }
     return Payload.newBuilder().setData(arrayToByteString(data)).build();
   }
 
   static Failure failure(String reason, byte[] details) {
     if (reason == null) {
-      return null;
+      return Failure.newBuilder().build();
     }
     return Failure.newBuilder().setReason(reason).setDetails(arrayToByteString(details)).build();
   }
 
   static WorkflowExecution workflowExecution(com.uber.cadence.WorkflowExecution t) {
     if (t == null) {
-      return null;
+      return WorkflowExecution.newBuilder().build();
     }
     if (t.getWorkflowId() == null && t.getRunId() == null) {
-      return null;
+      return WorkflowExecution.newBuilder().build();
     }
     return WorkflowExecution.newBuilder()
         .setWorkflowId(t.getWorkflowId())
@@ -122,35 +122,35 @@ class TypeMapper {
 
   static WorkflowExecution workflowRunPair(String workflowId, String runId) {
     if (workflowId == "" && runId == "") {
-      return null;
+      return WorkflowExecution.newBuilder().build();
     }
     return WorkflowExecution.newBuilder().setWorkflowId(workflowId).setRunId(runId).build();
   }
 
   static ActivityType activityType(com.uber.cadence.ActivityType t) {
     if (t == null) {
-      return null;
+      return ActivityType.newBuilder().build();
     }
     return ActivityType.newBuilder().setName(t.getName()).build();
   }
 
   static WorkflowType workflowType(com.uber.cadence.WorkflowType t) {
     if (t == null) {
-      return null;
+      return WorkflowType.newBuilder().build();
     }
     return WorkflowType.newBuilder().setName(t.getName()).build();
   }
 
   static TaskList taskList(com.uber.cadence.TaskList t) {
     if (t == null) {
-      return null;
+      return TaskList.newBuilder().build();
     }
     return TaskList.newBuilder().setName(t.getName()).setKind(taskListKind(t.getKind())).build();
   }
 
   static TaskListMetadata taskListMetadata(com.uber.cadence.TaskListMetadata t) {
     if (t == null) {
-      return null;
+      return TaskListMetadata.newBuilder().build();
     }
     return TaskListMetadata.newBuilder()
         .setMaxTasksPerSecond(fromDoubleValue(t.getMaxTasksPerSecond()))
@@ -173,21 +173,21 @@ class TypeMapper {
 
   static Header header(com.uber.cadence.Header t) {
     if (t == null) {
-      return null;
+      return Header.newBuilder().build();
     }
     return Header.newBuilder().putAllFields(payloadByteBufferMap(t.getFields())).build();
   }
 
   static Memo memo(com.uber.cadence.Memo t) {
     if (t == null) {
-      return null;
+      return Memo.newBuilder().build();
     }
     return Memo.newBuilder().putAllFields(payloadByteBufferMap(t.getFields())).build();
   }
 
   static SearchAttributes searchAttributes(com.uber.cadence.SearchAttributes t) {
     if (t == null) {
-      return null;
+      return SearchAttributes.newBuilder().build();
     }
     return SearchAttributes.newBuilder()
         .putAllIndexedFields(payloadByteBufferMap(t.getIndexedFields()))
@@ -196,7 +196,7 @@ class TypeMapper {
 
   static BadBinaries badBinaries(com.uber.cadence.BadBinaries t) {
     if (t == null) {
-      return null;
+      return BadBinaries.newBuilder().build();
     }
     return BadBinaries.newBuilder().putAllBinaries(badBinaryInfoMap(t.getBinaries())).build();
   }
@@ -204,14 +204,14 @@ class TypeMapper {
   static ClusterReplicationConfiguration clusterReplicationConfiguration(
       com.uber.cadence.ClusterReplicationConfiguration t) {
     if (t == null) {
-      return null;
+      return ClusterReplicationConfiguration.newBuilder().build();
     }
     return ClusterReplicationConfiguration.newBuilder().setClusterName(t.getClusterName()).build();
   }
 
   static WorkflowQuery workflowQuery(com.uber.cadence.WorkflowQuery t) {
     if (t == null) {
-      return null;
+      return WorkflowQuery.newBuilder().build();
     }
     return WorkflowQuery.newBuilder()
         .setQueryType(t.getQueryType())
@@ -221,7 +221,7 @@ class TypeMapper {
 
   static WorkflowQueryResult workflowQueryResult(com.uber.cadence.WorkflowQueryResult t) {
     if (t == null) {
-      return null;
+      return WorkflowQueryResult.newBuilder().build();
     }
     return WorkflowQueryResult.newBuilder()
         .setResultType(queryResultType(t.getResultType()))
@@ -233,7 +233,7 @@ class TypeMapper {
   static StickyExecutionAttributes stickyExecutionAttributes(
       com.uber.cadence.StickyExecutionAttributes t) {
     if (t == null) {
-      return null;
+      return StickyExecutionAttributes.newBuilder().build();
     }
     return StickyExecutionAttributes.newBuilder()
         .setWorkerTaskList(taskList(t.getWorkerTaskList()))
@@ -243,7 +243,7 @@ class TypeMapper {
 
   static WorkerVersionInfo workerVersionInfo(com.uber.cadence.WorkerVersionInfo t) {
     if (t == null) {
-      return null;
+      return WorkerVersionInfo.newBuilder().build();
     }
     return WorkerVersionInfo.newBuilder()
         .setImpl(t.getImpl())
@@ -253,7 +253,7 @@ class TypeMapper {
 
   static StartTimeFilter startTimeFilter(com.uber.cadence.StartTimeFilter t) {
     if (t == null) {
-      return null;
+      return StartTimeFilter.newBuilder().build();
     }
     return StartTimeFilter.newBuilder()
         .setEarliestTime(unixNanoToTime(t.getEarliestTime()))
@@ -264,7 +264,7 @@ class TypeMapper {
   static WorkflowExecutionFilter workflowExecutionFilter(
       com.uber.cadence.WorkflowExecutionFilter t) {
     if (t == null) {
-      return null;
+      return WorkflowExecutionFilter.newBuilder().build();
     }
     return WorkflowExecutionFilter.newBuilder()
         .setWorkflowId(t.getWorkflowId())
@@ -274,21 +274,21 @@ class TypeMapper {
 
   static WorkflowTypeFilter workflowTypeFilter(com.uber.cadence.WorkflowTypeFilter t) {
     if (t == null) {
-      return null;
+      return WorkflowTypeFilter.newBuilder().build();
     }
     return WorkflowTypeFilter.newBuilder().setName(t.getName()).build();
   }
 
   static StatusFilter statusFilter(com.uber.cadence.WorkflowExecutionCloseStatus t) {
     if (t == null) {
-      return null;
+      return StatusFilter.newBuilder().build();
     }
     return StatusFilter.newBuilder().setStatus(workflowExecutionCloseStatus(t)).build();
   }
 
   static Map<String, Payload> payloadMap(Map<String, byte[]> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, Payload> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -299,7 +299,7 @@ class TypeMapper {
 
   static Map<String, Payload> payloadByteBufferMap(Map<String, ByteBuffer> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, Payload> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -311,7 +311,7 @@ class TypeMapper {
   static Map<String, BadBinaryInfo> badBinaryInfoMap(
       Map<String, com.uber.cadence.BadBinaryInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, BadBinaryInfo> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -323,7 +323,7 @@ class TypeMapper {
   static List<ClusterReplicationConfiguration> clusterReplicationConfigurationArray(
       List<com.uber.cadence.ClusterReplicationConfiguration> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<ClusterReplicationConfiguration> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -335,7 +335,7 @@ class TypeMapper {
   static Map<String, WorkflowQueryResult> workflowQueryResultMap(
       Map<String, com.uber.cadence.WorkflowQueryResult> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, WorkflowQueryResult> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -346,7 +346,7 @@ class TypeMapper {
 
   static DataBlob dataBlob(com.uber.cadence.DataBlob t) {
     if (t == null) {
-      return null;
+      return DataBlob.newBuilder().build();
     }
     return DataBlob.newBuilder()
         .setEncodingType(encodingType(t.getEncodingType()))
@@ -357,7 +357,7 @@ class TypeMapper {
   static ExternalExecutionInfo externalExecutionInfo(
       com.uber.cadence.WorkflowExecution we, long initiatedID) {
     if (we == null && initiatedID == 0) {
-      return null;
+      return ExternalExecutionInfo.newBuilder().build();
     }
     if (we == null || initiatedID == 0) {
       throw new IllegalArgumentException(
@@ -371,14 +371,14 @@ class TypeMapper {
 
   static ResetPoints resetPoints(com.uber.cadence.ResetPoints t) {
     if (t == null) {
-      return null;
+      return ResetPoints.newBuilder().build();
     }
     return ResetPoints.newBuilder().addAllPoints(resetPointInfoArray(t.getPoints())).build();
   }
 
   static ResetPointInfo resetPointInfo(com.uber.cadence.ResetPointInfo t) {
     if (t == null) {
-      return null;
+      return ResetPointInfo.newBuilder().build();
     }
     return ResetPointInfo.newBuilder()
         .setBinaryChecksum(t.getBinaryChecksum())
@@ -392,7 +392,7 @@ class TypeMapper {
 
   static PollerInfo pollerInfo(com.uber.cadence.PollerInfo t) {
     if (t == null) {
-      return null;
+      return PollerInfo.newBuilder().build();
     }
     return PollerInfo.newBuilder()
         .setLastAccessTime(unixNanoToTime(t.getLastAccessTime()))
@@ -403,7 +403,7 @@ class TypeMapper {
 
   static TaskListStatus taskListStatus(com.uber.cadence.TaskListStatus t) {
     if (t == null) {
-      return null;
+      return TaskListStatus.newBuilder().build();
     }
     return TaskListStatus.newBuilder()
         .setBacklogCountHint(t.getBacklogCountHint())
@@ -416,7 +416,7 @@ class TypeMapper {
 
   static TaskIDBlock taskIdBlock(com.uber.cadence.TaskIDBlock t) {
     if (t == null) {
-      return null;
+      return TaskIDBlock.newBuilder().build();
     }
     return TaskIDBlock.newBuilder().setStartId(t.getStartID()).setEndId(t.getEndID()).build();
   }
@@ -424,7 +424,7 @@ class TypeMapper {
   static WorkflowExecutionConfiguration workflowExecutionConfiguration(
       com.uber.cadence.WorkflowExecutionConfiguration t) {
     if (t == null) {
-      return null;
+      return WorkflowExecutionConfiguration.newBuilder().build();
     }
     return WorkflowExecutionConfiguration.newBuilder()
         .setTaskList(taskList(t.getTaskList()))
@@ -437,7 +437,7 @@ class TypeMapper {
   static ParentExecutionInfo parentExecutionInfo2(
       String domainID, com.uber.cadence.WorkflowExecution we) {
     if (domainID == null && we == null) {
-      return null;
+      return ParentExecutionInfo.newBuilder().build();
     }
 
     return ParentExecutionInfo.newBuilder()
@@ -448,7 +448,7 @@ class TypeMapper {
 
   static WorkflowExecutionInfo workflowExecutionInfo(com.uber.cadence.WorkflowExecutionInfo t) {
     if (t == null) {
-      return null;
+      return WorkflowExecutionInfo.newBuilder().build();
     }
     return WorkflowExecutionInfo.newBuilder()
         .setWorkflowExecution(workflowExecution(t.getExecution()))
@@ -470,7 +470,7 @@ class TypeMapper {
   static ParentExecutionInfo parentExecutionInfo(
       String domainID, String domainName, com.uber.cadence.WorkflowExecution we, long initiatedID) {
     if (domainID == null && domainName == null && we == null && initiatedID == 0) {
-      return null;
+      return ParentExecutionInfo.newBuilder().build();
     }
     // TODO test initiatedID == 0
     if (domainName == null || we == null || initiatedID == 0) {
@@ -497,7 +497,7 @@ class TypeMapper {
 
   static PendingActivityInfo pendingActivityInfo(com.uber.cadence.PendingActivityInfo t) {
     if (t == null) {
-      return null;
+      return PendingActivityInfo.newBuilder().build();
     }
     return PendingActivityInfo.newBuilder()
         .setActivityId(t.getActivityID())
@@ -518,7 +518,7 @@ class TypeMapper {
   static PendingChildExecutionInfo pendingChildExecutionInfo(
       com.uber.cadence.PendingChildExecutionInfo t) {
     if (t == null) {
-      return null;
+      return PendingChildExecutionInfo.newBuilder().build();
     }
     return PendingChildExecutionInfo.newBuilder()
         .setWorkflowExecution(workflowRunPair(t.getWorkflowID(), t.getRunID()))
@@ -530,7 +530,7 @@ class TypeMapper {
 
   static PendingDecisionInfo pendingDecisionInfo(com.uber.cadence.PendingDecisionInfo t) {
     if (t == null) {
-      return null;
+      return PendingDecisionInfo.newBuilder().build();
     }
     return PendingDecisionInfo.newBuilder()
         .setState(EnumMapper.pendingDecisionState(t.getState()))
@@ -544,7 +544,7 @@ class TypeMapper {
   static ActivityLocalDispatchInfo activityLocalDispatchInfo(
       com.uber.cadence.ActivityLocalDispatchInfo t) {
     if (t == null) {
-      return null;
+      return ActivityLocalDispatchInfo.newBuilder().build();
     }
     return ActivityLocalDispatchInfo.newBuilder()
         .setActivityId(t.getActivityId())
@@ -558,7 +558,7 @@ class TypeMapper {
   static SupportedClientVersions supportedClientVersions(
       com.uber.cadence.SupportedClientVersions t) {
     if (t == null) {
-      return null;
+      return SupportedClientVersions.newBuilder().build();
     }
     return SupportedClientVersions.newBuilder()
         .setGoSdk(t.getGoSdk())
@@ -568,7 +568,7 @@ class TypeMapper {
 
   static Domain describeDomainResponseDomain(com.uber.cadence.DescribeDomainResponse t) {
     if (t == null) {
-      return null;
+      return Domain.newBuilder().build();
     }
     Builder domain =
         Domain.newBuilder()
@@ -605,7 +605,7 @@ class TypeMapper {
   static TaskListPartitionMetadata taskListPartitionMetadata(
       com.uber.cadence.TaskListPartitionMetadata t) {
     if (t == null) {
-      return null;
+      return TaskListPartitionMetadata.newBuilder().build();
     }
     return TaskListPartitionMetadata.newBuilder()
         .setKey(t.getKey())
@@ -615,7 +615,7 @@ class TypeMapper {
 
   static QueryRejected queryRejected(com.uber.cadence.QueryRejected t) {
     if (t == null) {
-      return null;
+      return QueryRejected.newBuilder().build();
     }
     return QueryRejected.newBuilder()
         .setCloseStatus(workflowExecutionCloseStatus(t.getCloseStatus()))
@@ -624,7 +624,7 @@ class TypeMapper {
 
   static List<PollerInfo> pollerInfoArray(List<com.uber.cadence.PollerInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PollerInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -635,7 +635,7 @@ class TypeMapper {
 
   static List<ResetPointInfo> resetPointInfoArray(List<com.uber.cadence.ResetPointInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<ResetPointInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -647,7 +647,7 @@ class TypeMapper {
   static List<PendingActivityInfo> pendingActivityInfoArray(
       List<com.uber.cadence.PendingActivityInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PendingActivityInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -659,7 +659,7 @@ class TypeMapper {
   static List<PendingChildExecutionInfo> pendingChildExecutionInfoArray(
       List<com.uber.cadence.PendingChildExecutionInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<PendingChildExecutionInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -671,7 +671,7 @@ class TypeMapper {
   static Map<String, IndexedValueType> indexedValueTypeMap(
       Map<String, com.uber.cadence.IndexedValueType> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, IndexedValueType> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -682,7 +682,7 @@ class TypeMapper {
 
   static List<DataBlob> dataBlobArray(List<com.uber.cadence.DataBlob> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<DataBlob> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -694,7 +694,7 @@ class TypeMapper {
   static List<WorkflowExecutionInfo> workflowExecutionInfoArray(
       List<com.uber.cadence.WorkflowExecutionInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<WorkflowExecutionInfo> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -705,7 +705,7 @@ class TypeMapper {
 
   static List<Domain> describeDomainResponseArray(List<com.uber.cadence.DescribeDomainResponse> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<Domain> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -717,7 +717,7 @@ class TypeMapper {
   static List<TaskListPartitionMetadata> taskListPartitionMetadataArray(
       List<com.uber.cadence.TaskListPartitionMetadata> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyList();
     }
     List<TaskListPartitionMetadata> v = new ArrayList<>();
     for (int i = 0; i < t.size(); i++) {
@@ -729,7 +729,7 @@ class TypeMapper {
   static Map<String, WorkflowQuery> WorkflowQueryMap(
       Map<String, com.uber.cadence.WorkflowQuery> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, WorkflowQuery> v = new HashMap<>();
     for (String key : t.keySet()) {
@@ -741,7 +741,7 @@ class TypeMapper {
   static Map<String, ActivityLocalDispatchInfo> activityLocalDispatchInfoMap(
       Map<String, com.uber.cadence.ActivityLocalDispatchInfo> t) {
     if (t == null) {
-      return null;
+      return Collections.emptyMap();
     }
     Map<String, ActivityLocalDispatchInfo> v = new HashMap<>();
     for (String key : t.keySet()) {

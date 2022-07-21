@@ -28,6 +28,7 @@ import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteS
 import static com.uber.cadence.internal.compatibility.proto.Helpers.daysToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.newFieldMask;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.toNonNull;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.badBinaries;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.clusterReplicationConfigurationArray;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.failure;
@@ -49,7 +50,6 @@ import static com.uber.cadence.internal.compatibility.proto.TypeMapper.workflowQ
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.workflowType;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.workflowTypeFilter;
 
-import com.google.protobuf.ByteString;
 import com.uber.cadence.DomainConfiguration;
 import com.uber.cadence.DomainReplicationConfiguration;
 import com.uber.cadence.UpdateDomainInfo;
@@ -362,28 +362,29 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
+    StartWorkflowExecutionRequest.Builder builder =
+        StartWorkflowExecutionRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowId(t.getWorkflowId())
+            .setWorkflowType(workflowType(t.getWorkflowType()))
+            .setTaskList(taskList(t.getTaskList()))
+            .setInput(payload(t.getInput()))
+            .setExecutionStartToCloseTimeout(
+                secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
+            .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
+            .setIdentity(t.getIdentity())
+            .setRequestId(t.getRequestId())
+            .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
+            .setCronSchedule(t.getCronSchedule())
+            .setMemo(memo(t.getMemo()))
+            .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
+            .setHeader(header(t.getHeader()))
+            .setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
+    if (t.getRetryPolicy() != null) {
+      builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
     return SignalWithStartWorkflowExecutionRequest.newBuilder()
-        .setStartRequest(
-            StartWorkflowExecutionRequest.newBuilder()
-                .setDomain(t.getDomain())
-                .setWorkflowId(t.getWorkflowId())
-                .setWorkflowType(workflowType(t.getWorkflowType()))
-                .setTaskList(taskList(t.getTaskList()))
-                .setInput(payload(t.getInput()))
-                .setExecutionStartToCloseTimeout(
-                    secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
-                .setTaskStartToCloseTimeout(
-                    secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-                .setIdentity(t.getIdentity())
-                .setRequestId(t.getRequestId())
-                .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
-                .setRetryPolicy(retryPolicy(t.getRetryPolicy()))
-                .setCronSchedule(t.getCronSchedule())
-                .setMemo(memo(t.getMemo()))
-                .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
-                .setHeader(header(t.getHeader()))
-                .setDelayStart(secondsToDuration(t.getDelayStartSeconds()))
-                .build())
+        .setStartRequest(builder.build())
         .setSignalName(t.getSignalName())
         .setSignalInput(payload(t.getSignalInput()))
         .setControl(arrayToByteString(t.getControl()))
@@ -411,25 +412,30 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return StartWorkflowExecutionRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowId(t.getWorkflowId())
-        .setWorkflowType(workflowType(t.getWorkflowType()))
-        .setTaskList(taskList(t.getTaskList()))
-        .setInput(payload(t.getInput()))
-        .setExecutionStartToCloseTimeout(
-            secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
-        .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-        .setIdentity(t.getIdentity())
-        .setRequestId(t.getRequestId())
-        .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
-        .setRetryPolicy(retryPolicy(t.getRetryPolicy()))
-        .setCronSchedule(t.getCronSchedule())
-        .setMemo(memo(t.getMemo()))
-        .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
-        .setHeader(header(t.getHeader()))
-        .setDelayStart(secondsToDuration(t.getDelayStartSeconds()))
-        .build();
+    StartWorkflowExecutionRequest.Builder request =
+        StartWorkflowExecutionRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowId(t.getWorkflowId())
+            .setWorkflowType(workflowType(t.getWorkflowType()))
+            .setTaskList(taskList(t.getTaskList()))
+            .setInput(payload(t.getInput()))
+            .setExecutionStartToCloseTimeout(
+                secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
+            .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
+            .setIdentity(toNonNull((t.getIdentity())))
+            .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
+            .setCronSchedule(toNonNull(t.getCronSchedule()))
+            .setMemo(memo(t.getMemo()))
+            .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
+            .setHeader(header(t.getHeader()))
+            .setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
+    if (t.getRetryPolicy() != null) {
+      request.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    if (t.getRequestId() != null) {
+      request.setRequestId(t.getRequestId());
+    }
+    return request.build();
   }
 
   public static TerminateWorkflowExecutionRequest terminateWorkflowExecutionRequest(
@@ -527,7 +533,7 @@ public class RequestMapper {
         .setDomain(t.getDomain())
         .setTaskList(taskList(t.getTaskList()))
         .setIdentity(t.getIdentity())
-        .setBinaryChecksum(t.getBinaryChecksum())
+        .setBinaryChecksum(toNonNull(t.getBinaryChecksum()))
         .build();
   }
 
@@ -577,19 +583,20 @@ public class RequestMapper {
     }
     RegisterDomainRequest request =
         RegisterDomainRequest.newBuilder()
-            .setDescription(t.getDescription())
-            .setOwnerEmail(t.getOwnerEmail())
+            .setName(t.getName())
+            .setDescription(toNonNull(t.getDescription()))
+            .setOwnerEmail(toNonNull(t.getOwnerEmail()))
             .setWorkflowExecutionRetentionPeriod(
                 daysToDuration(t.getWorkflowExecutionRetentionPeriodInDays()))
             .addAllClusters(clusterReplicationConfigurationArray(t.getClusters()))
-            .setActiveClusterName(t.getActiveClusterName())
-            .putAllData(t.getData())
-            .setSecurityToken(t.getSecurityToken())
-            .setIsGlobalDomain(t.isIsGlobalDomain())
+            .setActiveClusterName(toNonNull(t.getActiveClusterName()))
+            .putAllData(toNonNull(t.getData()))
+            .setSecurityToken(toNonNull(t.getSecurityToken()))
+            .setIsGlobalDomain(toNonNull(t.isIsGlobalDomain()))
             .setHistoryArchivalStatus(archivalStatus(t.getHistoryArchivalStatus()))
-            .setHistoryArchivalUri(t.getHistoryArchivalURI())
+            .setHistoryArchivalUri(toNonNull(t.getHistoryArchivalURI()))
             .setVisibilityArchivalStatus(archivalStatus(t.getVisibilityArchivalStatus()))
-            .setVisibilityArchivalUri(t.getVisibilityArchivalURI())
+            .setVisibilityArchivalUri(toNonNull(t.getVisibilityArchivalURI()))
             .build();
     return request;
   }
