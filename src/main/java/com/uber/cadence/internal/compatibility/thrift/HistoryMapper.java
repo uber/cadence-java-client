@@ -146,7 +146,7 @@ class HistoryMapper {
   }
 
   static List<HistoryEvent> historyEventArray(List<com.uber.cadence.api.v1.HistoryEvent> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<HistoryEvent> v = new ArrayList<>();
