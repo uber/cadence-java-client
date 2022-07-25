@@ -98,6 +98,7 @@ import com.uber.cadence.internal.compatibility.proto.serviceclient.IGrpcServiceS
 import com.uber.cadence.internal.compatibility.thrift.ResponseMapper;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import io.grpc.Deadline;
+import io.grpc.StatusRuntimeException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
@@ -179,11 +180,23 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
     startRequest.setRequestId(UUID.randomUUID().toString());
-    com.uber.cadence.api.v1.StartWorkflowExecutionResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
-    return ResponseMapper.startWorkflowExecutionResponse(response);
+    try {
+      com.uber.cadence.api.v1.StartWorkflowExecutionResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
+      return ResponseMapper.startWorkflowExecutionResponse(response);
+    } catch (StatusRuntimeException e) {
+      // TODO handle all errors depending on status
+      switch (e.getStatus().getCode()) {
+        case ALREADY_EXISTS:
+          WorkflowExecutionAlreadyStartedError ex = new WorkflowExecutionAlreadyStartedError();
+          ex.setMessage(e.getMessage());
+          throw ex;
+        default:
+          throw e;
+      }
+    }
   }
 
   @Override
