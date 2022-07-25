@@ -40,6 +40,7 @@ import com.uber.cadence.api.v1.ContinueAsNewWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.api.v1.Decision;
 import com.uber.cadence.api.v1.Decision.Builder;
 import com.uber.cadence.api.v1.FailWorkflowExecutionDecisionAttributes;
+import com.uber.cadence.api.v1.RecordMarkerDecisionAttributes;
 import com.uber.cadence.api.v1.RequestCancelActivityTaskDecisionAttributes;
 import com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.api.v1.ScheduleActivityTaskDecisionAttributes;
@@ -238,6 +239,16 @@ class DecisionMapper {
           decision.setUpsertWorkflowSearchAttributesDecisionAttributes(
               UpsertWorkflowSearchAttributesDecisionAttributes.newBuilder()
                   .setSearchAttributes(searchAttributes(attr.getSearchAttributes())));
+        }
+        break;
+      case RecordMarker:
+        {
+          com.uber.cadence.RecordMarkerDecisionAttributes attr =
+              d.getRecordMarkerDecisionAttributes();
+          decision.setRecordMarkerDecisionAttributes(
+              RecordMarkerDecisionAttributes.newBuilder()
+                  .setDetails(payload(attr.getDetails()))
+                  .setHeader(header(attr.getHeader())));
         }
         break;
       default:
