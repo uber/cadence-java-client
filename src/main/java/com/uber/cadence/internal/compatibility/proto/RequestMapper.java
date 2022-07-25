@@ -346,14 +346,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
+    WorkflowQueryResult.Builder wqBuilder =
+        WorkflowQueryResult.newBuilder()
+            .setResultType(queryTaskCompletedType(t.getCompletedType()))
+            .setAnswer(payload(t.getQueryResult()));
+    if (t.getErrorMessage() != null) {
+      wqBuilder.setErrorMessage(t.getErrorMessage());
+    }
     RespondQueryTaskCompletedRequest.Builder builder =
         RespondQueryTaskCompletedRequest.newBuilder()
-            .setResult(
-                WorkflowQueryResult.newBuilder()
-                    .setResultType(queryTaskCompletedType(t.getCompletedType()))
-                    .setAnswer(payload(t.getQueryResult()))
-                    .setErrorMessage(t.getErrorMessage())
-                    .build())
+            .setResult(wqBuilder.build())
             .setWorkerVersionInfo(workerVersionInfo(t.getWorkerVersionInfo()));
     if (t.getTaskToken() != null) {
       builder.setTaskToken(arrayToByteString(t.getTaskToken()));
@@ -440,12 +442,15 @@ public class RequestMapper {
     if (t.getIdentity() != null) {
       builder.setIdentity(t.getIdentity());
     }
-    return SignalWithStartWorkflowExecutionRequest.newBuilder()
-        .setStartRequest(builder.build())
-        .setSignalName(t.getSignalName())
-        .setSignalInput(payload(t.getSignalInput()))
-        .setControl(arrayToByteString(t.getControl()))
-        .build();
+    SignalWithStartWorkflowExecutionRequest.Builder sb =
+        SignalWithStartWorkflowExecutionRequest.newBuilder()
+            .setStartRequest(builder.build())
+            .setSignalName(t.getSignalName())
+            .setSignalInput(payload(t.getSignalInput()));
+    if (t.getControl() != null) {
+      sb.setControl(arrayToByteString(t.getControl()));
+    }
+    return sb.build();
   }
 
   public static SignalWorkflowExecutionRequest signalWorkflowExecutionRequest(
@@ -459,8 +464,10 @@ public class RequestMapper {
             .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
             .setSignalName(t.getSignalName())
             .setSignalInput(payload(t.getInput()))
-            .setRequestId(t.getRequestId())
-            .setControl(arrayToByteString(t.getControl()));
+            .setRequestId(t.getRequestId());
+    if (t.getControl() != null) {
+      builder.setControl(arrayToByteString(t.getControl()));
+    }
     if (t.getIdentity() != null) {
       builder.setIdentity(t.getIdentity());
     }

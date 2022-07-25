@@ -79,7 +79,6 @@ class DecisionMapper {
               ScheduleActivityTaskDecisionAttributes.newBuilder()
                   .setActivityId(attr.getActivityId())
                   .setActivityType(activityType(attr.getActivityType()))
-                  .setDomain(attr.getDomain())
                   .setTaskList(taskList(attr.getTaskList()))
                   .setInput(payload(attr.getInput()))
                   .setScheduleToCloseTimeout(
@@ -92,6 +91,9 @@ class DecisionMapper {
                   .setRequestLocalDispatch(attr.isRequestLocalDispatch());
           if (attr.getRetryPolicy() != null) {
             builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
+          }
+          if (attr.getDomain() != null) {
+            builder.setDomain(attr.getDomain());
           }
           decision.setScheduleActivityTaskDecisionAttributes(builder);
         }
@@ -154,12 +156,15 @@ class DecisionMapper {
         {
           com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes attr =
               d.getRequestCancelExternalWorkflowExecutionDecisionAttributes();
-          decision.setRequestCancelExternalWorkflowExecutionDecisionAttributes(
+          RequestCancelExternalWorkflowExecutionDecisionAttributes.Builder builder =
               RequestCancelExternalWorkflowExecutionDecisionAttributes.newBuilder()
                   .setDomain(attr.getDomain())
                   .setWorkflowExecution(workflowRunPair(attr.getWorkflowId(), attr.getRunId()))
-                  .setControl(arrayToByteString(attr.getControl()))
-                  .setChildWorkflowOnly(attr.isChildWorkflowOnly()));
+                  .setChildWorkflowOnly(attr.isChildWorkflowOnly());
+          if (attr.getControl() != null) {
+            builder.setControl(arrayToByteString(attr.getControl()));
+          }
+          decision.setRequestCancelExternalWorkflowExecutionDecisionAttributes(builder);
         }
         break;
       case ContinueAsNewWorkflowExecution:
@@ -180,12 +185,14 @@ class DecisionMapper {
                   .setInitiator(continueAsNewInitiator(attr.getInitiator()))
                   .setFailure(failure(attr.getFailureReason(), attr.getFailureDetails()))
                   .setLastCompletionResult(payload(attr.getLastCompletionResult()))
-                  .setCronSchedule(attr.getCronSchedule())
                   .setHeader(header(attr.getHeader()))
                   .setMemo(memo(attr.getMemo()))
                   .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
           if (attr.getRetryPolicy() != null) {
             builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
+          }
+          if (attr.getCronSchedule() != null) {
+            builder.setCronSchedule(attr.getCronSchedule());
           }
           decision.setContinueAsNewWorkflowExecutionDecisionAttributes(builder);
         }
@@ -206,14 +213,18 @@ class DecisionMapper {
                   .setTaskStartToCloseTimeout(
                       secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
                   .setParentClosePolicy(parentClosePolicy(attr.getParentClosePolicy()))
-                  .setControl(arrayToByteString(attr.getControl()))
                   .setWorkflowIdReusePolicy(workflowIdReusePolicy(attr.getWorkflowIdReusePolicy()))
-                  .setCronSchedule(attr.getCronSchedule())
                   .setHeader(header(attr.getHeader()))
                   .setMemo(memo(attr.getMemo()))
                   .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
           if (attr.getRetryPolicy() != null) {
             builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
+          }
+          if (attr.getControl() != null) {
+            builder.setControl(arrayToByteString(attr.getControl()));
+          }
+          if (attr.getCronSchedule() != null) {
+            builder.setCronSchedule(attr.getCronSchedule());
           }
           decision.setStartChildWorkflowExecutionDecisionAttributes(builder);
         }
@@ -222,14 +233,17 @@ class DecisionMapper {
         {
           com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes attr =
               d.getSignalExternalWorkflowExecutionDecisionAttributes();
-          decision.setSignalExternalWorkflowExecutionDecisionAttributes(
+          SignalExternalWorkflowExecutionDecisionAttributes.Builder builder =
               SignalExternalWorkflowExecutionDecisionAttributes.newBuilder()
                   .setDomain(attr.getDomain())
                   .setWorkflowExecution(workflowExecution(attr.getExecution()))
                   .setSignalName(attr.getSignalName())
                   .setInput(payload(attr.getInput()))
-                  .setControl(arrayToByteString(attr.getControl()))
-                  .setChildWorkflowOnly(attr.isChildWorkflowOnly()));
+                  .setChildWorkflowOnly(attr.isChildWorkflowOnly());
+          if (attr.getControl() != null) {
+            builder.setControl(arrayToByteString(attr.getControl()));
+          }
+          decision.setSignalExternalWorkflowExecutionDecisionAttributes(builder);
         }
         break;
       case UpsertWorkflowSearchAttributes:
@@ -247,6 +261,7 @@ class DecisionMapper {
               d.getRecordMarkerDecisionAttributes();
           decision.setRecordMarkerDecisionAttributes(
               RecordMarkerDecisionAttributes.newBuilder()
+                  .setMarkerName(attr.getMarkerName())
                   .setDetails(payload(attr.getDetails()))
                   .setHeader(header(attr.getHeader())));
         }
