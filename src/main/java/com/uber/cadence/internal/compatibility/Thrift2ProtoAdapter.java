@@ -98,9 +98,8 @@ import com.uber.cadence.internal.compatibility.proto.serviceclient.IGrpcServiceS
 import com.uber.cadence.internal.compatibility.thrift.ResponseMapper;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import io.grpc.Deadline;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
@@ -171,6 +170,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
+    return startWorkflowExecution(startRequest);
+  }
+
+  private StartWorkflowExecutionResponse startWorkflowExecution(
+      StartWorkflowExecutionRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    startRequest.setRequestId(UUID.randomUUID().toString());
     com.uber.cadence.api.v1.StartWorkflowExecutionResponse response =
         grpcServiceStubs
             .workflowBlockingStub()
@@ -834,6 +842,76 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
+  public void close() {
+    grpcServiceStubs.shutdownNow();
+  }
+
+  @Override
+  public CompletableFuture<Boolean> isHealthy() {
+    ListenableFuture<HealthResponse> listenableFuture =
+        grpcServiceStubs.metaFutureStub().health(HealthRequest.newBuilder().build());
+    CompletableFuture<Boolean> completable =
+        new CompletableFuture<Boolean>() {
+          @Override
+          public boolean cancel(boolean mayInterruptIfRunning) {
+            boolean result = listenableFuture.cancel(mayInterruptIfRunning);
+            super.cancel(mayInterruptIfRunning);
+            return result;
+          }
+        };
+    Futures.addCallback(
+        listenableFuture,
+        new FutureCallback<HealthResponse>() {
+          @Override
+          public void onSuccess(HealthResponse result) {
+            completable.complete(true);
+          }
+
+          @Override
+          public void onFailure(Throwable t) {
+            completable.completeExceptionally(t);
+          }
+        },
+        ForkJoinPool.commonPool());
+    return completable;
+  }
+
+  @Override
+  public void StartWorkflowExecutionWithTimeout(
+      StartWorkflowExecutionRequest startRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionResponse> resultFuture =
+        grpcServiceStubs
+            .workflowFutureStub()
+            .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+            .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
+    resultFuture.addListener(
+        () -> {
+          try {
+            com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
+            resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
+          } catch (Exception e) {
+            resultHandler.onError(e);
+          }
+        },
+        ForkJoinPool.commonPool());
+  }
+
+  @Override
+  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
+      GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
+    com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
+        grpcServiceStubs
+            .workflowBlockingStub()
+            .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+            .getWorkflowExecutionHistory(
+                RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
+    return ResponseMapper.getWorkflowExecutionHistoryResponse(response);
+  }
+
+  @Override
   public void GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest getRequest,
       AsyncMethodCallback resultHandler,
@@ -857,57 +935,6 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           }
         },
         ForkJoinPool.commonPool());
-  }
-
-  @Override
-  public void close() {
-    grpcServiceStubs.shutdownNow();
-  }
-
-  @Override
-  public CompletableFuture<Boolean> isHealthy() {
-    ListenableFuture<HealthResponse> listenableFuture =
-        grpcServiceStubs.metaFutureStub().health(HealthRequest.newBuilder().build());
-    CompletableFuture<Boolean> completable =
-        new CompletableFuture<Boolean>() {
-          @Override
-          public boolean cancel(boolean mayInterruptIfRunning) {
-            boolean result = listenableFuture.cancel(mayInterruptIfRunning);
-            super.cancel(mayInterruptIfRunning);
-            return result;
-          }
-        };
-    Executor listeningExecutor = Executors.newSingleThreadExecutor();
-    Futures.addCallback(
-        listenableFuture,
-        new FutureCallback<HealthResponse>() {
-          @Override
-          public void onSuccess(HealthResponse result) {
-            completable.complete(true);
-          }
-
-          @Override
-          public void onFailure(Throwable t) {
-            completable.completeExceptionally(t);
-          }
-        },
-        listeningExecutor);
-    return completable;
-  }
-
-  @Override
-  public void StartWorkflowExecutionWithTimeout(
-      StartWorkflowExecutionRequest startRequest,
-      AsyncMethodCallback resultHandler,
-      Long timeoutInMillis)
-      throws TException {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
-  public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
-      GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
-    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override

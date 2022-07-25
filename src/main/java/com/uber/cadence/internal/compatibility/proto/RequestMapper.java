@@ -156,12 +156,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RequestCancelWorkflowExecutionRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
-        .setIdentity(t.getIdentity())
-        .setRequestId(t.getRequestId())
-        .build();
+    RequestCancelWorkflowExecutionRequest.Builder builder =
+        RequestCancelWorkflowExecutionRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
+            .setRequestId(t.getRequestId());
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static ResetStickyTaskListRequest resetStickyTaskListRequest(
@@ -195,13 +198,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskCanceledByIDRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
-        .setActivityId(t.getActivityID())
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskCanceledByIDRequest.Builder builder =
+        RespondActivityTaskCanceledByIDRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
+            .setActivityId(t.getActivityID())
+            .setDetails(payload(t.getDetails()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondActivityTaskCanceledRequest respondActivityTaskCanceledRequest(
@@ -209,11 +215,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskCanceledRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskCanceledRequest.Builder builder =
+        RespondActivityTaskCanceledRequest.newBuilder().setDetails(payload(t.getDetails()));
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondActivityTaskCompletedByIDRequest respondActivityTaskCompletedByIdRequest(
@@ -221,13 +231,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskCompletedByIDRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
-        .setActivityId(t.getActivityID())
-        .setResult(payload(t.getResult()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskCompletedByIDRequest.Builder builder =
+        RespondActivityTaskCompletedByIDRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
+            .setActivityId(t.getActivityID())
+            .setResult(payload(t.getResult()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondActivityTaskCompletedRequest respondActivityTaskCompletedRequest(
@@ -235,11 +248,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskCompletedRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setResult(payload(t.getResult()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskCompletedRequest.Builder builder =
+        RespondActivityTaskCompletedRequest.newBuilder().setResult(payload(t.getResult()));
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondActivityTaskFailedByIDRequest respondActivityTaskFailedByIdRequest(
@@ -247,13 +264,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskFailedByIDRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
-        .setActivityId(t.getActivityID())
-        .setFailure(failure(t.getReason(), t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskFailedByIDRequest.Builder builder =
+        RespondActivityTaskFailedByIDRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
+            .setActivityId(t.getActivityID())
+            .setFailure(failure(t.getReason(), t.getDetails()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondActivityTaskFailedRequest respondActivityTaskFailedRequest(
@@ -261,11 +281,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondActivityTaskFailedRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setFailure(failure(t.getReason(), t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RespondActivityTaskFailedRequest.Builder builder =
+        RespondActivityTaskFailedRequest.newBuilder()
+            .setFailure(failure(t.getReason(), t.getDetails()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    return builder.build();
   }
 
   public static RespondDecisionTaskCompletedRequest respondDecisionTaskCompletedRequest(
@@ -273,17 +298,26 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondDecisionTaskCompletedRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .addAllDecisions(decisionArray(t.getDecisions()))
-        .setExecutionContext(arrayToByteString(t.getExecutionContext()))
-        .setIdentity(t.getIdentity())
-        .setStickyAttributes(stickyExecutionAttributes(t.getStickyAttributes()))
-        .setReturnNewDecisionTask(t.isReturnNewDecisionTask())
-        .setForceCreateNewDecisionTask(t.isForceCreateNewDecisionTask())
-        .setBinaryChecksum(t.getBinaryChecksum())
-        .putAllQueryResults(workflowQueryResultMap(t.getQueryResults()))
-        .build();
+    RespondDecisionTaskCompletedRequest.Builder builder =
+        RespondDecisionTaskCompletedRequest.newBuilder()
+            .addAllDecisions(decisionArray(t.getDecisions()))
+            .setStickyAttributes(stickyExecutionAttributes(t.getStickyAttributes()))
+            .setReturnNewDecisionTask(t.isReturnNewDecisionTask())
+            .setForceCreateNewDecisionTask(t.isForceCreateNewDecisionTask())
+            .putAllQueryResults(workflowQueryResultMap(t.getQueryResults()));
+    if (t.getExecutionContext() != null) {
+      builder.setExecutionContext(arrayToByteString(t.getExecutionContext()));
+    }
+    if (t.getBinaryChecksum() != null) {
+      builder.setBinaryChecksum(t.getBinaryChecksum());
+    }
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondDecisionTaskFailedRequest respondDecisionTaskFailedRequest(
@@ -291,13 +325,20 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondDecisionTaskFailedRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setCause(decisionTaskFailedCause(t.getCause()))
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .setBinaryChecksum(t.getBinaryChecksum())
-        .build();
+    RespondDecisionTaskFailedRequest.Builder builder =
+        RespondDecisionTaskFailedRequest.newBuilder()
+            .setCause(decisionTaskFailedCause(t.getCause()))
+            .setDetails(payload(t.getDetails()));
+    if (t.getBinaryChecksum() != null) {
+      builder.setBinaryChecksum(t.getBinaryChecksum());
+    }
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RespondQueryTaskCompletedRequest respondQueryTaskCompletedRequest(
@@ -305,16 +346,19 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RespondQueryTaskCompletedRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setResult(
-            WorkflowQueryResult.newBuilder()
-                .setResultType(queryTaskCompletedType(t.getCompletedType()))
-                .setAnswer(payload(t.getQueryResult()))
-                .setErrorMessage(t.getErrorMessage())
-                .build())
-        .setWorkerVersionInfo(workerVersionInfo(t.getWorkerVersionInfo()))
-        .build();
+    RespondQueryTaskCompletedRequest.Builder builder =
+        RespondQueryTaskCompletedRequest.newBuilder()
+            .setResult(
+                WorkflowQueryResult.newBuilder()
+                    .setResultType(queryTaskCompletedType(t.getCompletedType()))
+                    .setAnswer(payload(t.getQueryResult()))
+                    .setErrorMessage(t.getErrorMessage())
+                    .build())
+            .setWorkerVersionInfo(workerVersionInfo(t.getWorkerVersionInfo()));
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    return builder.build();
   }
 
   public static ScanWorkflowExecutionsRequest scanWorkflowExecutionsRequest(
@@ -346,15 +390,18 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return GetWorkflowExecutionHistoryRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(workflowExecution(t.getExecution()))
-        .setPageSize(t.getMaximumPageSize())
-        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
-        .setWaitForNewEvent(t.isWaitForNewEvent())
-        .setHistoryEventFilterType(eventFilterType(t.HistoryEventFilterType))
-        .setSkipArchival(t.isSkipArchival())
-        .build();
+    GetWorkflowExecutionHistoryRequest.Builder builder =
+        GetWorkflowExecutionHistoryRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(workflowExecution(t.getExecution()))
+            .setPageSize(t.getMaximumPageSize())
+            .setWaitForNewEvent(t.isWaitForNewEvent())
+            .setHistoryEventFilterType(eventFilterType(t.HistoryEventFilterType))
+            .setSkipArchival(t.isSkipArchival());
+    if (t.getNextPageToken() != null) {
+      builder.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    return builder.build();
   }
 
   public static SignalWithStartWorkflowExecutionRequest signalWithStartWorkflowExecutionRequest(
@@ -372,16 +419,26 @@ public class RequestMapper {
             .setExecutionStartToCloseTimeout(
                 secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
             .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-            .setIdentity(t.getIdentity())
             .setRequestId(t.getRequestId())
-            .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
-            .setCronSchedule(t.getCronSchedule())
             .setMemo(memo(t.getMemo()))
             .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
-            .setHeader(header(t.getHeader()))
-            .setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
+            .setHeader(header(t.getHeader()));
     if (t.getRetryPolicy() != null) {
       builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    builder.setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()));
+    if (t.getWorkflowIdReusePolicy() != null) {
+      builder.setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()));
+    }
+    if (t.getCronSchedule() != null) {
+      builder.setCronSchedule(t.getCronSchedule());
+    }
+    if (t.getDelayStartSeconds() > 0) {
+      builder.setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
+    }
+    ;
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
     }
     return SignalWithStartWorkflowExecutionRequest.newBuilder()
         .setStartRequest(builder.build())
@@ -396,15 +453,18 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return SignalWorkflowExecutionRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
-        .setSignalName(t.getSignalName())
-        .setSignalInput(payload(t.getInput()))
-        .setIdentity(t.getIdentity())
-        .setRequestId(t.getRequestId())
-        .setControl(arrayToByteString(t.getControl()))
-        .build();
+    SignalWorkflowExecutionRequest.Builder builder =
+        SignalWorkflowExecutionRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
+            .setSignalName(t.getSignalName())
+            .setSignalInput(payload(t.getInput()))
+            .setRequestId(t.getRequestId())
+            .setControl(arrayToByteString(t.getControl()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static StartWorkflowExecutionRequest startWorkflowExecutionRequest(
@@ -419,12 +479,11 @@ public class RequestMapper {
             .setWorkflowType(workflowType(t.getWorkflowType()))
             .setTaskList(taskList(t.getTaskList()))
             .setInput(payload(t.getInput()))
+            .setRequestId(t.getRequestId())
             .setExecutionStartToCloseTimeout(
                 secondsToDuration(t.getExecutionStartToCloseTimeoutSeconds()))
             .setTaskStartToCloseTimeout(secondsToDuration(t.getTaskStartToCloseTimeoutSeconds()))
-            .setIdentity(toNonNull((t.getIdentity())))
             .setWorkflowIdReusePolicy(workflowIdReusePolicy(t.getWorkflowIdReusePolicy()))
-            .setCronSchedule(toNonNull(t.getCronSchedule()))
             .setMemo(memo(t.getMemo()))
             .setSearchAttributes(searchAttributes(t.getSearchAttributes()))
             .setHeader(header(t.getHeader()))
@@ -432,8 +491,11 @@ public class RequestMapper {
     if (t.getRetryPolicy() != null) {
       request.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
     }
-    if (t.getRequestId() != null) {
-      request.setRequestId(t.getRequestId());
+    if (t.getCronSchedule() != null) {
+      request.setCronSchedule(t.getCronSchedule());
+    }
+    if (t.getIdentity() != null) {
+      request.setIdentity(t.getIdentity());
     }
     return request.build();
   }
@@ -443,13 +505,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return TerminateWorkflowExecutionRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
-        .setReason(t.getReason())
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    TerminateWorkflowExecutionRequest.Builder builder =
+        TerminateWorkflowExecutionRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(workflowExecution(t.getWorkflowExecution()))
+            .setReason(t.getReason())
+            .setDetails(payload(t.getDetails()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static DeprecateDomainRequest deprecateDomainRequest(
@@ -516,12 +581,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return PollForActivityTaskRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setTaskList(taskList(t.getTaskList()))
-        .setIdentity(t.getIdentity())
-        .setTaskListMetadata(taskListMetadata(t.getTaskListMetadata()))
-        .build();
+    PollForActivityTaskRequest.Builder builder =
+        PollForActivityTaskRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setTaskList(taskList(t.getTaskList()))
+            .setTaskListMetadata(taskListMetadata(t.getTaskListMetadata()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static PollForDecisionTaskRequest pollForDecisionTaskRequest(
@@ -529,12 +597,17 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return PollForDecisionTaskRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setTaskList(taskList(t.getTaskList()))
-        .setIdentity(t.getIdentity())
-        .setBinaryChecksum(toNonNull(t.getBinaryChecksum()))
-        .build();
+    PollForDecisionTaskRequest.Builder builder =
+        PollForDecisionTaskRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setTaskList(taskList(t.getTaskList()));
+    if (t.getBinaryChecksum() != null) {
+      builder.setBinaryChecksum(t.getBinaryChecksum());
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static QueryWorkflowRequest queryWorkflowRequest(com.uber.cadence.QueryWorkflowRequest t) {
@@ -555,13 +628,16 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RecordActivityTaskHeartbeatByIDRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
-        .setActivityId(t.getActivityID())
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RecordActivityTaskHeartbeatByIDRequest.Builder builder =
+        RecordActivityTaskHeartbeatByIDRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setWorkflowExecution(TypeMapper.workflowRunPair(t.getWorkflowID(), t.getRunID()))
+            .setActivityId(t.getActivityID())
+            .setDetails(payload(t.getDetails()));
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RecordActivityTaskHeartbeatRequest recordActivityTaskHeartbeatRequest(
@@ -569,11 +645,17 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return RecordActivityTaskHeartbeatRequest.newBuilder()
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
-        .setDetails(payload(t.getDetails()))
-        .setIdentity(t.getIdentity())
-        .build();
+    RecordActivityTaskHeartbeatRequest.Builder builder =
+        RecordActivityTaskHeartbeatRequest.newBuilder()
+            .setTaskToken(arrayToByteString(t.getTaskToken()))
+            .setDetails(payload(t.getDetails()));
+    if (t.getTaskToken() != null) {
+      builder.setTaskToken(arrayToByteString(t.getTaskToken()));
+    }
+    if (t.getIdentity() != null) {
+      builder.setIdentity(t.getIdentity());
+    }
+    return builder.build();
   }
 
   public static RegisterDomainRequest registerDomainRequest(

@@ -66,6 +66,7 @@ import com.uber.cadence.api.v1.History;
 import com.uber.cadence.api.v1.HistoryEvent;
 import com.uber.cadence.api.v1.HistoryEvent.Builder;
 import com.uber.cadence.api.v1.MarkerRecordedEventAttributes;
+import com.uber.cadence.api.v1.ParentExecutionInfo;
 import com.uber.cadence.api.v1.RequestCancelActivityTaskFailedEventAttributes;
 import com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionFailedEventAttributes;
 import com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionInitiatedEventAttributes;
@@ -908,12 +909,6 @@ class HistoryMapper {
     WorkflowExecutionStartedEventAttributes.Builder builder =
         WorkflowExecutionStartedEventAttributes.newBuilder()
             .setWorkflowType(workflowType(t.getWorkflowType()))
-            .setParentExecutionInfo(
-                TypeMapper.parentExecutionInfo(
-                    null,
-                    t.getParentWorkflowDomain(),
-                    t.getParentWorkflowExecution(),
-                    t.getParentInitiatedEventId()))
             .setTaskList(taskList(t.getTaskList()))
             .setInput(payload(t.getInput()))
             .setExecutionStartToCloseTimeout(
@@ -937,6 +932,15 @@ class HistoryMapper {
             .setHeader(header(t.getHeader()));
     if (t.getRetryPolicy() != null) {
       builder.setRetryPolicy(retryPolicy(t.getRetryPolicy()));
+    }
+    ParentExecutionInfo parentExecutionInfo =
+        TypeMapper.parentExecutionInfo(
+            null,
+            t.getParentWorkflowDomain(),
+            t.getParentWorkflowExecution(),
+            t.getParentInitiatedEventId());
+    if (parentExecutionInfo != null) {
+      builder.setParentExecutionInfo(parentExecutionInfo);
     }
     return builder.build();
   }

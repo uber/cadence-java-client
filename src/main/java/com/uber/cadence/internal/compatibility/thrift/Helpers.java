@@ -46,7 +46,7 @@ class Helpers {
   }
 
   static byte[] byteStringToArray(ByteString t) {
-    if (t == null) {
+    if (t == null || t.size() == 0) {
       return null;
     }
     return t.toByteArray();

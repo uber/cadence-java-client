@@ -55,7 +55,7 @@ import java.util.List;
 class DecisionMapper {
 
   static List<Decision> decisionArray(List<com.uber.cadence.api.v1.Decision> t) {
-    if (t == null) {
+    if (t == null || t.size() == 0) {
       return null;
     }
     List<Decision> v = new ArrayList<>();
@@ -66,12 +66,13 @@ class DecisionMapper {
   }
 
   static Decision decision(com.uber.cadence.api.v1.Decision d) {
-    if (d == null) {
+    if (d == null || d == com.uber.cadence.api.v1.Decision.getDefaultInstance()) {
       return null;
     }
     Decision decision = new Decision();
 
-    if (d.getScheduleActivityTaskDecisionAttributes() != null) {
+    if (d.getScheduleActivityTaskDecisionAttributes()
+        != com.uber.cadence.api.v1.ScheduleActivityTaskDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.ScheduleActivityTask);
       com.uber.cadence.api.v1.ScheduleActivityTaskDecisionAttributes a =
           d.getScheduleActivityTaskDecisionAttributes();
@@ -89,14 +90,17 @@ class DecisionMapper {
       attrs.setRetryPolicy(retryPolicy(a.getRetryPolicy()));
       attrs.setHeader(header(a.getHeader()));
       attrs.setRequestLocalDispatch(a.getRequestLocalDispatch());
-    } else if (d.getStartTimerDecisionAttributes() != null) {
+    } else if (d.getStartTimerDecisionAttributes()
+        != com.uber.cadence.api.v1.StartTimerDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.StartTimer);
       com.uber.cadence.api.v1.StartTimerDecisionAttributes a = d.getStartTimerDecisionAttributes();
       StartTimerDecisionAttributes attrs = new StartTimerDecisionAttributes();
       decision.setStartTimerDecisionAttributes(attrs);
       attrs.setTimerId(a.getTimerId());
       attrs.setStartToFireTimeoutSeconds(durationToSeconds(a.getStartToFireTimeout()));
-    } else if (d.getCompleteWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getCompleteWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.CompleteWorkflowExecutionDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.CompleteWorkflowExecution);
       com.uber.cadence.api.v1.CompleteWorkflowExecutionDecisionAttributes a =
           d.getCompleteWorkflowExecutionDecisionAttributes();
@@ -104,7 +108,8 @@ class DecisionMapper {
           new CompleteWorkflowExecutionDecisionAttributes();
       decision.setCompleteWorkflowExecutionDecisionAttributes(attrs);
       attrs.setResult(payload(a.getResult()));
-    } else if (d.getFailWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getFailWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.FailWorkflowExecutionDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.FailWorkflowExecution);
       com.uber.cadence.api.v1.FailWorkflowExecutionDecisionAttributes a =
           d.getFailWorkflowExecutionDecisionAttributes();
@@ -112,7 +117,9 @@ class DecisionMapper {
       decision.setFailWorkflowExecutionDecisionAttributes(attrs);
       attrs.setReason(failureReason(a.getFailure()));
       attrs.setDetails(failureDetails(a.getFailure()));
-    } else if (d.getRequestCancelActivityTaskDecisionAttributes() != null) {
+    } else if (d.getRequestCancelActivityTaskDecisionAttributes()
+        != com.uber.cadence.api.v1.RequestCancelActivityTaskDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.RequestCancelActivityTask);
       com.uber.cadence.api.v1.RequestCancelActivityTaskDecisionAttributes a =
           d.getRequestCancelActivityTaskDecisionAttributes();
@@ -120,14 +127,16 @@ class DecisionMapper {
           new RequestCancelActivityTaskDecisionAttributes();
       decision.setRequestCancelActivityTaskDecisionAttributes(attrs);
       attrs.setActivityId(a.getActivityId());
-    } else if (d.getCancelTimerDecisionAttributes() != null) {
+    } else if (d.getCancelTimerDecisionAttributes()
+        != com.uber.cadence.api.v1.CancelTimerDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.CancelTimer);
       com.uber.cadence.api.v1.CancelTimerDecisionAttributes a =
           d.getCancelTimerDecisionAttributes();
       CancelTimerDecisionAttributes attrs = new CancelTimerDecisionAttributes();
       decision.setCancelTimerDecisionAttributes(attrs);
       attrs.setTimerId(a.getTimerId());
-    } else if (d.getCancelWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getCancelWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.CancelWorkflowExecutionDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.CancelWorkflowExecution);
       com.uber.cadence.api.v1.CancelWorkflowExecutionDecisionAttributes a =
           d.getCancelWorkflowExecutionDecisionAttributes();
@@ -135,7 +144,9 @@ class DecisionMapper {
           new CancelWorkflowExecutionDecisionAttributes();
       decision.setCancelWorkflowExecutionDecisionAttributes(attrs);
       attrs.setDetails(payload(a.getDetails()));
-    } else if (d.getRequestCancelExternalWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getRequestCancelExternalWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.RequestCancelExternalWorkflowExecution);
       com.uber.cadence.api.v1.RequestCancelExternalWorkflowExecutionDecisionAttributes a =
           d.getRequestCancelExternalWorkflowExecutionDecisionAttributes();
@@ -147,7 +158,8 @@ class DecisionMapper {
       attrs.setRunId(runId(a.getWorkflowExecution()));
       attrs.setControl(byteStringToArray(a.getControl()));
       attrs.setChildWorkflowOnly(a.getChildWorkflowOnly());
-    } else if (d.getRecordMarkerDecisionAttributes() != null) {
+    } else if (d.getRecordMarkerDecisionAttributes()
+        != com.uber.cadence.api.v1.RecordMarkerDecisionAttributes.getDefaultInstance()) {
       decision.setDecisionType(DecisionType.RecordMarker);
       com.uber.cadence.api.v1.RecordMarkerDecisionAttributes a =
           d.getRecordMarkerDecisionAttributes();
@@ -156,14 +168,15 @@ class DecisionMapper {
       attrs.setMarkerName(a.getMarkerName());
       attrs.setDetails(payload(a.getDetails()));
       attrs.setHeader(header(a.getHeader()));
-    } else if (d.getContinueAsNewWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getContinueAsNewWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.ContinueAsNewWorkflowExecutionDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.ContinueAsNewWorkflowExecution);
       com.uber.cadence.api.v1.ContinueAsNewWorkflowExecutionDecisionAttributes a =
           d.getContinueAsNewWorkflowExecutionDecisionAttributes();
       ContinueAsNewWorkflowExecutionDecisionAttributes attrs =
           new ContinueAsNewWorkflowExecutionDecisionAttributes();
       decision.setContinueAsNewWorkflowExecutionDecisionAttributes(attrs);
-
       attrs.setWorkflowType(workflowType(a.getWorkflowType()));
       attrs.setTaskList(taskList(a.getTaskList()));
       attrs.setInput(payload(a.getInput()));
@@ -180,7 +193,9 @@ class DecisionMapper {
       attrs.setHeader(header(a.getHeader()));
       attrs.setMemo(memo(a.getMemo()));
       attrs.setSearchAttributes(searchAttributes(a.getSearchAttributes()));
-    } else if (d.getStartChildWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getStartChildWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.StartChildWorkflowExecutionDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.StartChildWorkflowExecution);
       com.uber.cadence.api.v1.StartChildWorkflowExecutionDecisionAttributes a =
           d.getStartChildWorkflowExecutionDecisionAttributes();
@@ -204,7 +219,9 @@ class DecisionMapper {
       attrs.setHeader(header(a.getHeader()));
       attrs.setMemo(memo(a.getMemo()));
       attrs.setSearchAttributes(searchAttributes(a.getSearchAttributes()));
-    } else if (d.getSignalExternalWorkflowExecutionDecisionAttributes() != null) {
+    } else if (d.getSignalExternalWorkflowExecutionDecisionAttributes()
+        != com.uber.cadence.api.v1.SignalExternalWorkflowExecutionDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.SignalExternalWorkflowExecution);
       com.uber.cadence.api.v1.SignalExternalWorkflowExecutionDecisionAttributes a =
           d.getSignalExternalWorkflowExecutionDecisionAttributes();
@@ -218,7 +235,9 @@ class DecisionMapper {
       attrs.setInput(payload(a.getInput()));
       attrs.setControl(byteStringToArray(a.getControl()));
       attrs.setChildWorkflowOnly(a.getChildWorkflowOnly());
-    } else if (d.getUpsertWorkflowSearchAttributesDecisionAttributes() != null) {
+    } else if (d.getUpsertWorkflowSearchAttributesDecisionAttributes()
+        != com.uber.cadence.api.v1.UpsertWorkflowSearchAttributesDecisionAttributes
+            .getDefaultInstance()) {
       decision.setDecisionType(DecisionType.UpsertWorkflowSearchAttributes);
       com.uber.cadence.api.v1.UpsertWorkflowSearchAttributesDecisionAttributes a =
           d.getUpsertWorkflowSearchAttributesDecisionAttributes();
