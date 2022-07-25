@@ -115,10 +115,12 @@ class TypeMapper {
     if (t.getWorkflowId() == null && t.getRunId() == null) {
       return WorkflowExecution.newBuilder().build();
     }
-    return WorkflowExecution.newBuilder()
-        .setWorkflowId(t.getWorkflowId())
-        .setRunId(t.getRunId())
-        .build();
+    WorkflowExecution.Builder builder =
+        WorkflowExecution.newBuilder().setWorkflowId(t.getWorkflowId());
+    if (t.getRunId() != null) {
+      builder.setRunId(t.getRunId());
+    }
+    return builder.build();
   }
 
   static WorkflowExecution workflowRunPair(String workflowId, String runId) {
@@ -162,14 +164,17 @@ class TypeMapper {
     if (t == null) {
       return null;
     }
-    return RetryPolicy.newBuilder()
-        .setInitialInterval(secondsToDuration(t.getInitialIntervalInSeconds()))
-        .setBackoffCoefficient(t.getBackoffCoefficient())
-        .setMaximumInterval(secondsToDuration(t.getMaximumIntervalInSeconds()))
-        .setMaximumAttempts(t.getMaximumAttempts())
-        .addAllNonRetryableErrorReasons(t.getNonRetriableErrorReasons())
-        .setExpirationInterval(secondsToDuration(t.getExpirationIntervalInSeconds()))
-        .build();
+    RetryPolicy.Builder builder =
+        RetryPolicy.newBuilder()
+            .setInitialInterval(secondsToDuration(t.getInitialIntervalInSeconds()))
+            .setBackoffCoefficient(t.getBackoffCoefficient())
+            .setMaximumInterval(secondsToDuration(t.getMaximumIntervalInSeconds()))
+            .setMaximumAttempts(t.getMaximumAttempts())
+            .setExpirationInterval(secondsToDuration(t.getExpirationIntervalInSeconds()));
+    if (t.getNonRetriableErrorReasons() != null) {
+      builder.addAllNonRetryableErrorReasons(t.getNonRetriableErrorReasons());
+    }
+    return builder.build();
   }
 
   static Header header(com.uber.cadence.Header t) {

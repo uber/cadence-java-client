@@ -232,7 +232,7 @@ class TypeMapper {
 
   static Map<String, BadBinaryInfo> badBinaryInfoMap(
       Map<String, com.uber.cadence.api.v1.BadBinaryInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, BadBinaryInfo> v = new HashMap<>();
@@ -322,7 +322,7 @@ class TypeMapper {
   }
 
   static Map<String, ByteBuffer> payloadMap(Map<String, com.uber.cadence.api.v1.Payload> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, ByteBuffer> v = new HashMap<>();
@@ -334,7 +334,7 @@ class TypeMapper {
 
   static List<ClusterReplicationConfiguration> clusterReplicationConfigurationArray(
       List<com.uber.cadence.api.v1.ClusterReplicationConfiguration> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<ClusterReplicationConfiguration> v = new ArrayList<>();
@@ -357,7 +357,7 @@ class TypeMapper {
 
   static Map<String, WorkflowQueryResult> workflowQueryResultMap(
       Map<String, com.uber.cadence.api.v1.WorkflowQueryResult> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, WorkflowQueryResult> v = new HashMap<>();
@@ -642,7 +642,7 @@ class TypeMapper {
   }
 
   static List<PollerInfo> pollerInfoArray(List<com.uber.cadence.api.v1.PollerInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<PollerInfo> v = new ArrayList<>();
@@ -653,7 +653,7 @@ class TypeMapper {
   }
 
   static List<ResetPointInfo> resetPointInfoArray(List<com.uber.cadence.api.v1.ResetPointInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<ResetPointInfo> v = new ArrayList<>();
@@ -665,7 +665,7 @@ class TypeMapper {
 
   static List<PendingActivityInfo> pendingActivityInfoArray(
       List<com.uber.cadence.api.v1.PendingActivityInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<PendingActivityInfo> v = new ArrayList<>();
@@ -677,7 +677,7 @@ class TypeMapper {
 
   static List<PendingChildExecutionInfo> pendingChildExecutionInfoArray(
       List<com.uber.cadence.api.v1.PendingChildExecutionInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<PendingChildExecutionInfo> v = new ArrayList<>();
@@ -689,7 +689,7 @@ class TypeMapper {
 
   static Map<String, IndexedValueType> indexedValueTypeMap(
       Map<String, com.uber.cadence.api.v1.IndexedValueType> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, IndexedValueType> v = new HashMap<>();
@@ -712,7 +712,7 @@ class TypeMapper {
 
   static List<WorkflowExecutionInfo> workflowExecutionInfoArray(
       List<com.uber.cadence.api.v1.WorkflowExecutionInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<WorkflowExecutionInfo> v = new ArrayList<>();
@@ -724,7 +724,7 @@ class TypeMapper {
 
   static List<DescribeDomainResponse> describeDomainResponseArray(
       List<com.uber.cadence.api.v1.Domain> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<DescribeDomainResponse> v = new ArrayList<>();
@@ -736,7 +736,7 @@ class TypeMapper {
 
   static List<TaskListPartitionMetadata> taskListPartitionMetadataArray(
       List<com.uber.cadence.api.v1.TaskListPartitionMetadata> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     List<TaskListPartitionMetadata> v = new ArrayList<>();
@@ -748,7 +748,7 @@ class TypeMapper {
 
   static Map<String, WorkflowQuery> workflowQueryMap(
       Map<String, com.uber.cadence.api.v1.WorkflowQuery> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, WorkflowQuery> v = new HashMap<>();
@@ -760,7 +760,7 @@ class TypeMapper {
 
   static Map<String, ActivityLocalDispatchInfo> activityLocalDispatchInfoMap(
       Map<String, com.uber.cadence.api.v1.ActivityLocalDispatchInfo> t) {
-    if (t == null || t.size() == 0) {
+    if (t == null) {
       return null;
     }
     Map<String, ActivityLocalDispatchInfo> v = new HashMap<>();

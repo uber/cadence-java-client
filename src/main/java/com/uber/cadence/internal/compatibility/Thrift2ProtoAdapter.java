@@ -345,6 +345,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, CancellationAlreadyRequestedError,
           ServiceBusyError, DomainNotActiveError, LimitExceededError,
           ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
+    cancelRequest.setRequestId(UUID.randomUUID().toString());
     grpcServiceStubs
         .workflowBlockingStub()
         .requestCancelWorkflowExecution(
@@ -356,6 +357,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, ClientVersionNotSupportedError,
           WorkflowExecutionAlreadyCompletedError, TException {
+    signalRequest.setRequestId(UUID.randomUUID().toString());
     grpcServiceStubs
         .workflowBlockingStub()
         .signalWorkflowExecution(RequestMapper.signalWorkflowExecutionRequest(signalRequest));
@@ -367,6 +369,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, WorkflowExecutionAlreadyStartedError, ClientVersionNotSupportedError,
           TException {
+    signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
     com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionResponse response =
         grpcServiceStubs
             .workflowBlockingStub()
@@ -380,6 +383,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       ResetWorkflowExecutionRequest resetRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, ClientVersionNotSupportedError, TException {
+    resetRequest.setRequestId(UUID.randomUUID().toString());
     com.uber.cadence.api.v1.ResetWorkflowExecutionResponse response =
         grpcServiceStubs
             .workflowBlockingStub()
@@ -882,6 +886,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException {
+    startRequest.setRequestId(UUID.randomUUID().toString());
     ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionResponse> resultFuture =
         grpcServiceStubs
             .workflowFutureStub()
