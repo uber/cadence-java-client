@@ -717,7 +717,21 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void SignalWorkflowExecution(
       SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new UnsupportedOperationException("not implemented");
+    signalRequest.setRequestId(UUID.randomUUID().toString());
+    ListenableFuture<com.uber.cadence.api.v1.SignalWorkflowExecutionResponse> resultFuture =
+        grpcServiceStubs
+            .workflowFutureStub()
+            .signalWorkflowExecution(RequestMapper.signalWorkflowExecutionRequest(signalRequest));
+    resultFuture.addListener(
+        () -> {
+          try {
+            com.uber.cadence.api.v1.SignalWorkflowExecutionResponse response = resultFuture.get();
+            resultHandler.onComplete(null);
+          } catch (Exception e) {
+            resultHandler.onError(e);
+          }
+        },
+        ForkJoinPool.commonPool());
   }
 
   @Override
