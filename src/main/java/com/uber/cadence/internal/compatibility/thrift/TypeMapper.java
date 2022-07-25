@@ -202,7 +202,9 @@ class TypeMapper {
   }
 
   static SearchAttributes searchAttributes(com.uber.cadence.api.v1.SearchAttributes t) {
-    if (t == null || t == com.uber.cadence.api.v1.SearchAttributes.getDefaultInstance()) {
+    if (t == null
+        || t.getAllFields().size() == 0
+        || t == com.uber.cadence.api.v1.SearchAttributes.getDefaultInstance()) {
       return null;
     }
     SearchAttributes res = new SearchAttributes();
