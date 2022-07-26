@@ -321,12 +321,17 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    com.uber.cadence.api.v1.RecordActivityTaskHeartbeatResponse response =
-        grpcServiceStubs
-            .workerBlockingStub()
-            .recordActivityTaskHeartbeat(
-                RequestMapper.recordActivityTaskHeartbeatRequest(heartbeatRequest));
-    return ResponseMapper.recordActivityTaskHeartbeatResponse(response);
+    try {
+      com.uber.cadence.api.v1.RecordActivityTaskHeartbeatResponse response =
+          grpcServiceStubs
+              .workerBlockingStub()
+              .recordActivityTaskHeartbeat(
+                  RequestMapper.recordActivityTaskHeartbeatRequest(heartbeatRequest));
+      return ResponseMapper.recordActivityTaskHeartbeatResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -335,12 +340,17 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    com.uber.cadence.api.v1.RecordActivityTaskHeartbeatByIDResponse response =
-        grpcServiceStubs
-            .workerBlockingStub()
-            .recordActivityTaskHeartbeatByID(
-                RequestMapper.recordActivityTaskHeartbeatByIdRequest(heartbeatRequest));
-    return ResponseMapper.recordActivityTaskHeartbeatByIdResponse(response);
+    try {
+      com.uber.cadence.api.v1.RecordActivityTaskHeartbeatByIDResponse response =
+          grpcServiceStubs
+              .workerBlockingStub()
+              .recordActivityTaskHeartbeatByID(
+                  RequestMapper.recordActivityTaskHeartbeatByIdRequest(heartbeatRequest));
+      return ResponseMapper.recordActivityTaskHeartbeatByIdResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -348,10 +358,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskCompleted(
-            RequestMapper.respondActivityTaskCompletedRequest(completeRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskCompleted(
+              RequestMapper.respondActivityTaskCompletedRequest(completeRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -360,10 +375,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskCompletedByID(
-            RequestMapper.respondActivityTaskCompletedByIdRequest(completeRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskCompletedByID(
+              RequestMapper.respondActivityTaskCompletedByIdRequest(completeRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -371,9 +391,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskFailed(RequestMapper.respondActivityTaskFailedRequest(failRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskFailed(RequestMapper.respondActivityTaskFailedRequest(failRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -381,10 +406,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskFailedByID(
-            RequestMapper.respondActivityTaskFailedByIdRequest(failRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskFailedByID(
+              RequestMapper.respondActivityTaskFailedByIdRequest(failRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -392,10 +422,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskCanceled(
-            RequestMapper.respondActivityTaskCanceledRequest(canceledRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskCanceled(
+              RequestMapper.respondActivityTaskCanceledRequest(canceledRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -404,14 +439,20 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
       ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
       TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondActivityTaskCanceledByID(
-            RequestMapper.respondActivityTaskCanceledByIdRequest(canceledRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondActivityTaskCanceledByID(
+              RequestMapper.respondActivityTaskCanceledByIdRequest(canceledRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
-  public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
+  public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest
+      cancelRequest)
       throws BadRequestError, EntityNotExistsError, CancellationAlreadyRequestedError,
       ServiceBusyError, DomainNotActiveError, LimitExceededError,
       ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
@@ -553,7 +594,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     com.uber.cadence.api.v1.CountWorkflowExecutionsResponse response =
         grpcServiceStubs
             .visibilityBlockingStub()
-            .countWorkflowExecutions(RequestMapper.countWorkflowExecutionsRequest(countRequest));
+            .countWorkflowExecutions(
+                RequestMapper.countWorkflowExecutionsRequest(countRequest));
     return ResponseMapper.countWorkflowExecutionsResponse(response);
   }
 
@@ -573,11 +615,13 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       DomainNotActiveError, ClientVersionNotSupportedError, TException {
     grpcServiceStubs
         .workerBlockingStub()
-        .respondQueryTaskCompleted(RequestMapper.respondQueryTaskCompletedRequest(completeRequest));
+        .respondQueryTaskCompleted(
+            RequestMapper.respondQueryTaskCompletedRequest(completeRequest));
   }
 
   @Override
-  public ResetStickyTaskListResponse ResetStickyTaskList(ResetStickyTaskListRequest resetRequest)
+  public ResetStickyTaskListResponse ResetStickyTaskList(ResetStickyTaskListRequest
+      resetRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       DomainNotActiveError, ClientVersionNotSupportedError,
       WorkflowExecutionAlreadyCompletedError, TException {
@@ -661,13 +705,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   @Override
   public void RegisterDomain(
-      RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler) throws TException {
+      RegisterDomainRequest registerRequest, AsyncMethodCallback resultHandler) throws
+      TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
   public void DescribeDomain(
-      DescribeDomainRequest describeRequest, AsyncMethodCallback resultHandler) throws TException {
+      DescribeDomainRequest describeRequest, AsyncMethodCallback resultHandler) throws
+      TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -706,7 +752,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   @Override
   public void PollForDecisionTask(
-      PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws TException {
+      PollForDecisionTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws
+      TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -726,7 +773,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   @Override
   public void PollForActivityTask(
-      PollForActivityTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws TException {
+      PollForActivityTaskRequest pollRequest, AsyncMethodCallback resultHandler) throws
+      TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -801,11 +849,13 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     ListenableFuture<com.uber.cadence.api.v1.SignalWorkflowExecutionResponse> resultFuture =
         grpcServiceStubs
             .workflowFutureStub()
-            .signalWorkflowExecution(RequestMapper.signalWorkflowExecutionRequest(signalRequest));
+            .signalWorkflowExecution(
+                RequestMapper.signalWorkflowExecutionRequest(signalRequest));
     resultFuture.addListener(
         () -> {
           try {
-            com.uber.cadence.api.v1.SignalWorkflowExecutionResponse response = resultFuture.get();
+            com.uber.cadence.api.v1.SignalWorkflowExecutionResponse response = resultFuture
+                .get();
             resultHandler.onComplete(null);
           } catch (Exception e) {
             resultHandler.onError(e);
@@ -898,7 +948,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
-  public void QueryWorkflow(QueryWorkflowRequest queryRequest, AsyncMethodCallback resultHandler)
+  public void QueryWorkflow(QueryWorkflowRequest queryRequest, AsyncMethodCallback
+      resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
   }
@@ -911,7 +962,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
-  public void DescribeTaskList(DescribeTaskListRequest request, AsyncMethodCallback resultHandler)
+  public void DescribeTaskList(DescribeTaskListRequest request, AsyncMethodCallback
+      resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
   }
@@ -929,7 +981,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   @Override
   public void ListTaskListPartitions(
-      ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {
+      ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws
+      TException {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -989,7 +1042,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     resultFuture.addListener(
         () -> {
           try {
-            com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
+            com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture
+                .get();
             resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
           } catch (Exception e) {
             resultHandler.onError(e);
@@ -1028,7 +1082,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           try {
             com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
                 resultFuture.get();
-            resultHandler.onComplete(ResponseMapper.getWorkflowExecutionHistoryResponse(response));
+            resultHandler
+                .onComplete(ResponseMapper.getWorkflowExecutionHistoryResponse(response));
           } catch (Exception e) {
             resultHandler.onError(e);
           }
