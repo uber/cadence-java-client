@@ -187,15 +187,29 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
       return ResponseMapper.startWorkflowExecutionResponse(response);
     } catch (StatusRuntimeException e) {
-      // TODO handle all errors depending on status
-      switch (e.getStatus().getCode()) {
-        case ALREADY_EXISTS:
+      convertAndThrowStatusException(e);
+      throw e;
+    }
+  }
+
+  private void convertAndThrowStatusException(StatusRuntimeException e)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError {
+    // TODO handle all errors depending on status
+    switch (e.getStatus().getCode()) {
+      case ALREADY_EXISTS:
+        {
           WorkflowExecutionAlreadyStartedError ex = new WorkflowExecutionAlreadyStartedError();
           ex.setMessage(e.getMessage());
           throw ex;
-        default:
-          throw e;
-      }
+        }
+      case NOT_FOUND:
+        {
+          throw new EntityNotExistsError(e.getMessage());
+        }
+      default:
+        throw e;
     }
   }
 
@@ -216,11 +230,16 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
       throws BadRequestError, ServiceBusyError, LimitExceededError, EntityNotExistsError,
           DomainNotActiveError, ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.PollForDecisionTaskResponse response =
-        grpcServiceStubs
-            .workerBlockingStub()
-            .pollForDecisionTask(RequestMapper.pollForDecisionTaskRequest(pollRequest));
-    return ResponseMapper.pollForDecisionTaskResponse(response);
+    try {
+      com.uber.cadence.api.v1.PollForDecisionTaskResponse response =
+          grpcServiceStubs
+              .workerBlockingStub()
+              .pollForDecisionTask(RequestMapper.pollForDecisionTaskRequest(pollRequest));
+      return ResponseMapper.pollForDecisionTaskResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -229,12 +248,17 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
           ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
           TException {
-    com.uber.cadence.api.v1.RespondDecisionTaskCompletedResponse response =
-        grpcServiceStubs
-            .workerBlockingStub()
-            .respondDecisionTaskCompleted(
-                RequestMapper.respondDecisionTaskCompletedRequest(completeRequest));
-    return ResponseMapper.respondDecisionTaskCompletedResponse(response);
+    try {
+      com.uber.cadence.api.v1.RespondDecisionTaskCompletedResponse response =
+          grpcServiceStubs
+              .workerBlockingStub()
+              .respondDecisionTaskCompleted(
+                  RequestMapper.respondDecisionTaskCompletedRequest(completeRequest));
+      return ResponseMapper.respondDecisionTaskCompletedResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -359,10 +383,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           ServiceBusyError, DomainNotActiveError, LimitExceededError,
           ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
     cancelRequest.setRequestId(UUID.randomUUID().toString());
-    grpcServiceStubs
-        .workflowBlockingStub()
-        .requestCancelWorkflowExecution(
-            RequestMapper.requestCancelWorkflowExecutionRequest(cancelRequest));
+    try {
+      grpcServiceStubs
+          .workflowBlockingStub()
+          .requestCancelWorkflowExecution(
+              RequestMapper.requestCancelWorkflowExecutionRequest(cancelRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -371,9 +400,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           LimitExceededError, ClientVersionNotSupportedError,
           WorkflowExecutionAlreadyCompletedError, TException {
     signalRequest.setRequestId(UUID.randomUUID().toString());
-    grpcServiceStubs
-        .workflowBlockingStub()
-        .signalWorkflowExecution(RequestMapper.signalWorkflowExecutionRequest(signalRequest));
+    try {
+      grpcServiceStubs
+          .workflowBlockingStub()
+          .signalWorkflowExecution(RequestMapper.signalWorkflowExecutionRequest(signalRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
