@@ -118,51 +118,76 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RegisterDomain(RegisterDomainRequest registerRequest)
       throws BadRequestError, DomainAlreadyExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    grpcServiceStubs
-        .domainBlockingStub()
-        .registerDomain(RequestMapper.registerDomainRequest(registerRequest));
+    try {
+      grpcServiceStubs
+          .domainBlockingStub()
+          .registerDomain(RequestMapper.registerDomainRequest(registerRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
   public DescribeDomainResponse DescribeDomain(DescribeDomainRequest describeRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.DescribeDomainResponse response =
-        grpcServiceStubs
-            .domainBlockingStub()
-            .describeDomain(RequestMapper.describeDomainRequest(describeRequest));
-    return ResponseMapper.describeDomainResponse(response);
+    try {
+      com.uber.cadence.api.v1.DescribeDomainResponse response =
+          grpcServiceStubs
+              .domainBlockingStub()
+              .describeDomain(RequestMapper.describeDomainRequest(describeRequest));
+      return ResponseMapper.describeDomainResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
   public ListDomainsResponse ListDomains(ListDomainsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.ListDomainsResponse response =
-        grpcServiceStubs
-            .domainBlockingStub()
-            .listDomains(RequestMapper.listDomainsRequest(listRequest));
-    return ResponseMapper.listDomainsResponse(response);
+    try {
+      com.uber.cadence.api.v1.ListDomainsResponse response =
+          grpcServiceStubs
+              .domainBlockingStub()
+              .listDomains(RequestMapper.listDomainsRequest(listRequest));
+      return ResponseMapper.listDomainsResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
   public UpdateDomainResponse UpdateDomain(UpdateDomainRequest updateRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.UpdateDomainResponse response =
-        grpcServiceStubs
-            .domainBlockingStub()
-            .updateDomain(RequestMapper.updateDomainRequest(updateRequest));
-    return ResponseMapper.updateDomainResponse(response);
+    try {
+      com.uber.cadence.api.v1.UpdateDomainResponse response =
+          grpcServiceStubs
+              .domainBlockingStub()
+              .updateDomain(RequestMapper.updateDomainRequest(updateRequest));
+      return ResponseMapper.updateDomainResponse(response);
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
   public void DeprecateDomain(DeprecateDomainRequest deprecateRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
       ClientVersionNotSupportedError, TException {
-    grpcServiceStubs
-        .domainBlockingStub()
-        .deprecateDomain(RequestMapper.deprecateDomainRequest(deprecateRequest));
+    try {
+      grpcServiceStubs
+          .domainBlockingStub()
+          .deprecateDomain(RequestMapper.deprecateDomainRequest(deprecateRequest));
+    } catch (StatusRuntimeException e) {
+      convertAndThrowStatusException(e);
+      throw e;
+    }
   }
 
   @Override
