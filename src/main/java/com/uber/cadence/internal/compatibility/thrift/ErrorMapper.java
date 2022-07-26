@@ -15,10 +15,10 @@
  */
 package com.uber.cadence.internal.compatibility.thrift;
 
+import com.uber.cadence.*;
 import com.uber.cadence.AccessDeniedError;
 import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.InternalServiceError;
-import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
 import org.apache.thrift.TException;
@@ -32,15 +32,32 @@ public class ErrorMapper {
         return new AccessDeniedError(ex.getMessage());
       case INTERNAL:
         return new InternalServiceError(ex.getMessage());
-      case NOT_FOUND: {
-        switch (details) {
-          case "EntityNotExistsError":
-            // TODO add cluster info
-            return new EntityNotExistsError(ex.getMessage());
-          case "WorkflowExecutionAlreadyCompletedError":
-            return new WorkflowExecutionAlreadyCompletedError(ex.getMessage());
+      case NOT_FOUND:
+        {
+          switch (details) {
+            case "EntityNotExistsError":
+              // TODO add cluster info
+              return new EntityNotExistsError(ex.getMessage());
+            case "WorkflowExecutionAlreadyCompletedError":
+              return new WorkflowExecutionAlreadyCompletedError(ex.getMessage());
+          }
         }
-      }
+      case ALREADY_EXISTS:
+        {
+          switch (details) {
+            case "CancellationAlreadyRequestedError":
+              return new CancellationAlreadyRequestedError(ex.getMessage());
+            case "DomainAlreadyExistsError":
+              return new DomainAlreadyExistsError(ex.getMessage());
+            case "WorkflowExecutionAlreadyStartedError":
+              {
+                // TODO add started wf info
+                WorkflowExecutionAlreadyStartedError e = new WorkflowExecutionAlreadyStartedError();
+                e.setMessage(ex.getMessage());
+                return e;
+              }
+          }
+        }
       default:
         // If error does not match anything, return raw grpc status error
         // There are some code that casts error to grpc status to check for deadline exceeded status
