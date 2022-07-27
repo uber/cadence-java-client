@@ -1026,34 +1026,42 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException {
-    startRequest.setRequestId(UUID.randomUUID().toString());
-    ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionResponse> resultFuture =
-        grpcServiceStubs
-            .workflowFutureStub()
-            .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
-            .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
-    resultFuture.addListener(
-        () -> {
-          try {
-            com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
-            resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
-          } catch (Exception e) {
-            resultHandler.onError(e);
-          }
-        },
-        ForkJoinPool.commonPool());
+    try {
+      startRequest.setRequestId(UUID.randomUUID().toString());
+      ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionResponse> resultFuture =
+          grpcServiceStubs
+              .workflowFutureStub()
+              .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+              .startWorkflowExecution(RequestMapper.startWorkflowExecutionRequest(startRequest));
+      resultFuture.addListener(
+          () -> {
+            try {
+              com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
+              resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
+            } catch (Exception e) {
+              resultHandler.onError(e);
+            }
+          },
+          ForkJoinPool.commonPool());
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
-    com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
-            .getWorkflowExecutionHistory(
-                RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
-    return ResponseMapper.getWorkflowExecutionHistoryResponse(response);
+    try {
+      com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+              .getWorkflowExecutionHistory(
+                  RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
+      return ResponseMapper.getWorkflowExecutionHistoryResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
