@@ -695,10 +695,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest request)
       throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
       TException {
-    grpcServiceStubs
-        .workflowBlockingStub()
-        .refreshWorkflowTasks(
-            com.uber.cadence.api.v1.RefreshWorkflowTasksRequest.newBuilder().build());
+    try {
+      grpcServiceStubs
+          .workflowBlockingStub()
+          .refreshWorkflowTasks(
+              com.uber.cadence.api.v1.RefreshWorkflowTasksRequest.newBuilder().build());
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
