@@ -568,11 +568,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       ListWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.ScanWorkflowExecutionsResponse response =
-        grpcServiceStubs
-            .visibilityBlockingStub()
-            .scanWorkflowExecutions(RequestMapper.scanWorkflowExecutionsRequest(listRequest));
-    return ResponseMapper.scanWorkflowExecutionsResponse(response);
+    try {
+      com.uber.cadence.api.v1.ScanWorkflowExecutionsResponse response =
+          grpcServiceStubs
+              .visibilityBlockingStub()
+              .scanWorkflowExecutions(RequestMapper.scanWorkflowExecutionsRequest(listRequest));
+      return ResponseMapper.scanWorkflowExecutionsResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
@@ -580,21 +584,29 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       CountWorkflowExecutionsRequest countRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.CountWorkflowExecutionsResponse response =
-        grpcServiceStubs
-            .visibilityBlockingStub()
-            .countWorkflowExecutions(RequestMapper.countWorkflowExecutionsRequest(countRequest));
-    return ResponseMapper.countWorkflowExecutionsResponse(response);
+    try {
+      com.uber.cadence.api.v1.CountWorkflowExecutionsResponse response =
+          grpcServiceStubs
+              .visibilityBlockingStub()
+              .countWorkflowExecutions(RequestMapper.countWorkflowExecutionsRequest(countRequest));
+      return ResponseMapper.countWorkflowExecutionsResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
   public GetSearchAttributesResponse GetSearchAttributes()
       throws ServiceBusyError, ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.GetSearchAttributesResponse response =
-        grpcServiceStubs
-            .visibilityBlockingStub()
-            .getSearchAttributes(GetSearchAttributesRequest.newBuilder().build());
-    return ResponseMapper.getSearchAttributesResponse(response);
+    try {
+      com.uber.cadence.api.v1.GetSearchAttributesResponse response =
+          grpcServiceStubs
+              .visibilityBlockingStub()
+              .getSearchAttributes(GetSearchAttributesRequest.newBuilder().build());
+      return ResponseMapper.getSearchAttributesResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
