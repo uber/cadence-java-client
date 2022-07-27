@@ -86,7 +86,8 @@ public class ErrorMapper {
           case "ServiceBusyError":
             return new ServiceBusyError(ex.getMessage());
         }
-
+      case UNKNOWN:
+        return new TException(ex);
       default:
         // If error does not match anything, return raw grpc status error
         // There are some code that casts error to grpc status to check for deadline exceeded status
