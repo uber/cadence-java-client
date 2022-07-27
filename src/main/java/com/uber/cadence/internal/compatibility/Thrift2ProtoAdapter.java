@@ -1074,24 +1074,28 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis)
       throws TException {
-    // TODO test
-    ListenableFuture<com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse> resultFuture =
-        grpcServiceStubs
-            .workflowFutureStub()
-            .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
-            .getWorkflowExecutionHistory(
-                RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
-    resultFuture.addListener(
-        () -> {
-          try {
-            com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
-                resultFuture.get();
-            resultHandler.onComplete(ResponseMapper.getWorkflowExecutionHistoryResponse(response));
-          } catch (Exception e) {
-            resultHandler.onError(e);
-          }
-        },
-        ForkJoinPool.commonPool());
+    try {
+      ListenableFuture<com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse> resultFuture =
+          grpcServiceStubs
+              .workflowFutureStub()
+              .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+              .getWorkflowExecutionHistory(
+                  RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
+      resultFuture.addListener(
+          () -> {
+            try {
+              com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
+                  resultFuture.get();
+              resultHandler
+                  .onComplete(ResponseMapper.getWorkflowExecutionHistoryResponse(response));
+            } catch (Exception e) {
+              resultHandler.onError(e);
+            }
+          },
+          ForkJoinPool.commonPool());
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
