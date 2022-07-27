@@ -24,6 +24,8 @@ import com.uber.cadence.EntityNotExistsError;
 import com.uber.cadence.FeatureNotEnabledError;
 import com.uber.cadence.InternalDataInconsistencyError;
 import com.uber.cadence.InternalServiceError;
+import com.uber.cadence.LimitExceededError;
+import com.uber.cadence.ServiceBusyError;
 import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import io.grpc.Metadata;
@@ -77,6 +79,14 @@ public class ErrorMapper {
             return e;
           }
         }
+      case RESOURCE_EXHAUSTED:
+        switch (details) {
+          case "LimitExceededError":
+            return new LimitExceededError(ex.getMessage());
+          case "ServiceBusyError":
+            return new ServiceBusyError(ex.getMessage());
+        }
+
       default:
         // If error does not match anything, return raw grpc status error
         // There are some code that casts error to grpc status to check for deadline exceeded status
