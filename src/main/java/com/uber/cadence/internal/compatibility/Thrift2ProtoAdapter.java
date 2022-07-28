@@ -671,11 +671,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   @Override
   public ClusterInfo GetClusterInfo() throws InternalServiceError, ServiceBusyError, TException {
-    com.uber.cadence.api.v1.GetClusterInfoResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .getClusterInfo(com.uber.cadence.api.v1.GetClusterInfoRequest.newBuilder().build());
-    return ResponseMapper.getClusterInfoResponse(response);
+    try {
+      com.uber.cadence.api.v1.GetClusterInfoResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .getClusterInfo(com.uber.cadence.api.v1.GetClusterInfoRequest.newBuilder().build());
+      return ResponseMapper.getClusterInfoResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
