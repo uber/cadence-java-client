@@ -646,12 +646,16 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       DescribeWorkflowExecutionRequest describeRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.DescribeWorkflowExecutionResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .describeWorkflowExecution(
-                RequestMapper.describeWorkflowExecutionRequest(describeRequest));
-    return ResponseMapper.describeWorkflowExecutionResponse(response);
+    try {
+      com.uber.cadence.api.v1.DescribeWorkflowExecutionResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .describeWorkflowExecution(
+                  RequestMapper.describeWorkflowExecutionRequest(describeRequest));
+      return ResponseMapper.describeWorkflowExecutionResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
