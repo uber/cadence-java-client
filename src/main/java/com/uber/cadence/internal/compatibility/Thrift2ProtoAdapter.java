@@ -658,11 +658,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public DescribeTaskListResponse DescribeTaskList(DescribeTaskListRequest request)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.DescribeTaskListResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .describeTaskList(RequestMapper.describeTaskListRequest(request));
-    return ResponseMapper.describeTaskListResponse(response);
+    try {
+      com.uber.cadence.api.v1.DescribeTaskListResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .describeTaskList(RequestMapper.describeTaskListRequest(request));
+      return ResponseMapper.describeTaskListResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
@@ -684,11 +688,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       ListTaskListPartitionsRequest request)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       TException {
-    com.uber.cadence.api.v1.ListTaskListPartitionsResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .listTaskListPartitions(RequestMapper.listTaskListPartitionsRequest(request));
-    return ResponseMapper.listTaskListPartitionsResponse(response);
+    try {
+      com.uber.cadence.api.v1.ListTaskListPartitionsResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .listTaskListPartitions(RequestMapper.listTaskListPartitionsRequest(request));
+      return ResponseMapper.listTaskListPartitionsResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
