@@ -623,11 +623,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       DomainNotActiveError, ClientVersionNotSupportedError,
       WorkflowExecutionAlreadyCompletedError, TException {
-    com.uber.cadence.api.v1.ResetStickyTaskListResponse response =
-        grpcServiceStubs
-            .workerBlockingStub()
-            .resetStickyTaskList(RequestMapper.resetStickyTaskListRequest(resetRequest));
-    return new ResetStickyTaskListResponse();
+    try {
+      com.uber.cadence.api.v1.ResetStickyTaskListResponse response =
+          grpcServiceStubs
+              .workerBlockingStub()
+              .resetStickyTaskList(RequestMapper.resetStickyTaskListRequest(resetRequest));
+      return new ResetStickyTaskListResponse();
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
