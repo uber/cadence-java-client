@@ -49,7 +49,6 @@ import com.uber.cadence.api.v1.ParentExecutionInfo;
 import com.uber.cadence.api.v1.Payload;
 import com.uber.cadence.api.v1.PendingActivityInfo;
 import com.uber.cadence.api.v1.PendingChildExecutionInfo;
-import com.uber.cadence.api.v1.PendingDecisionInfo;
 import com.uber.cadence.api.v1.PollerInfo;
 import com.uber.cadence.api.v1.QueryRejected;
 import com.uber.cadence.api.v1.ResetPointInfo;
@@ -536,19 +535,6 @@ class TypeMapper {
         .setWorkflowTypeName(t.getWorkflowTypName())
         .setInitiatedId(t.getInitiatedID())
         .setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()))
-        .build();
-  }
-
-  static PendingDecisionInfo pendingDecisionInfo(com.uber.cadence.PendingDecisionInfo t) {
-    if (t == null) {
-      return PendingDecisionInfo.newBuilder().build();
-    }
-    return PendingDecisionInfo.newBuilder()
-        .setState(EnumMapper.pendingDecisionState(t.getState()))
-        .setScheduledTime(unixNanoToTime(t.getScheduledTimestamp()))
-        .setStartedTime(unixNanoToTime(t.getStartedTimestamp()))
-        .setAttempt((int) t.getAttempt())
-        .setOriginalScheduledTime(unixNanoToTime(t.getOriginalScheduledTimestamp()))
         .build();
   }
 
