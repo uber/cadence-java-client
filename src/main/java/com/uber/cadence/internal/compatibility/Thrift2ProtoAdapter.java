@@ -217,12 +217,16 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       GetWorkflowExecutionHistoryRequest getRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
       ClientVersionNotSupportedError, TException {
-    com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
-        grpcServiceStubs
-            .workflowBlockingStub()
-            .getWorkflowExecutionHistory(
-                RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
-    return ResponseMapper.getWorkflowExecutionHistoryResponse(response);
+    try {
+      com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .getWorkflowExecutionHistory(
+                  RequestMapper.getWorkflowExecutionHistoryRequest(getRequest));
+      return ResponseMapper.getWorkflowExecutionHistoryResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
