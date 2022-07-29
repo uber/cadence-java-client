@@ -50,7 +50,6 @@ import com.uber.cadence.api.v1.Payload;
 import com.uber.cadence.api.v1.PendingActivityInfo;
 import com.uber.cadence.api.v1.PendingChildExecutionInfo;
 import com.uber.cadence.api.v1.PollerInfo;
-import com.uber.cadence.api.v1.QueryRejected;
 import com.uber.cadence.api.v1.ResetPointInfo;
 import com.uber.cadence.api.v1.ResetPoints;
 import com.uber.cadence.api.v1.RetryPolicy;
@@ -656,17 +655,6 @@ class TypeMapper {
     return v;
   }
 
-  static List<DataBlob> dataBlobArray(List<com.uber.cadence.DataBlob> t) {
-    if (t == null) {
-      return Collections.emptyList();
-    }
-    List<DataBlob> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(dataBlob(t.get(i)));
-    }
-    return v;
-  }
-
   static List<WorkflowExecutionInfo> workflowExecutionInfoArray(
       List<com.uber.cadence.WorkflowExecutionInfo> t) {
     if (t == null) {
@@ -689,18 +677,4 @@ class TypeMapper {
     }
     return v;
   }
-
-  static List<TaskListPartitionMetadata> taskListPartitionMetadataArray(
-      List<com.uber.cadence.TaskListPartitionMetadata> t) {
-    if (t == null) {
-      return Collections.emptyList();
-    }
-    List<TaskListPartitionMetadata> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(taskListPartitionMetadata(t.get(i)));
-    }
-    return v;
-  }
-
-
 }
