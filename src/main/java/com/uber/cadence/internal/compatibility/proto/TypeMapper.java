@@ -610,15 +610,6 @@ class TypeMapper {
         .build();
   }
 
-  static QueryRejected queryRejected(com.uber.cadence.QueryRejected t) {
-    if (t == null) {
-      return null;
-    }
-    return QueryRejected.newBuilder()
-        .setCloseStatus(workflowExecutionCloseStatus(t.getCloseStatus()))
-        .build();
-  }
-
   static List<PollerInfo> pollerInfoArray(List<com.uber.cadence.PollerInfo> t) {
     if (t == null) {
       return Collections.emptyList();
@@ -711,16 +702,5 @@ class TypeMapper {
     return v;
   }
 
-  static Map<String, WorkflowQuery> WorkflowQueryMap(
-      Map<String, com.uber.cadence.WorkflowQuery> t) {
-    if (t == null) {
-      return Collections.emptyMap();
-    }
-    Map<String, WorkflowQuery> v = new HashMap<>();
-    for (String key : t.keySet()) {
-      v.put(key, workflowQuery(t.get(key)));
-    }
-    return v;
-  }
 
 }
