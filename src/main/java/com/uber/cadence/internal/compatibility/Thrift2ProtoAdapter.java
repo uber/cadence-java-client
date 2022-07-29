@@ -613,9 +613,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RespondQueryTaskCompleted(RespondQueryTaskCompletedRequest completeRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
       DomainNotActiveError, ClientVersionNotSupportedError, TException {
-    grpcServiceStubs
-        .workerBlockingStub()
-        .respondQueryTaskCompleted(RequestMapper.respondQueryTaskCompletedRequest(completeRequest));
+    try {
+      grpcServiceStubs
+          .workerBlockingStub()
+          .respondQueryTaskCompleted(
+              RequestMapper.respondQueryTaskCompletedRequest(completeRequest));
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
