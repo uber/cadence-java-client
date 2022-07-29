@@ -641,18 +641,6 @@ class TypeMapper {
     return v;
   }
 
-  static List<PendingActivityInfo> pendingActivityInfoArray(
-      List<com.uber.cadence.PendingActivityInfo> t) {
-    if (t == null) {
-      return Collections.emptyList();
-    }
-    List<PendingActivityInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(pendingActivityInfo(t.get(i)));
-    }
-    return v;
-  }
-
   static List<PendingChildExecutionInfo> pendingChildExecutionInfoArray(
       List<com.uber.cadence.PendingChildExecutionInfo> t) {
     if (t == null) {
