@@ -723,15 +723,4 @@ class TypeMapper {
     return v;
   }
 
-  static Map<String, ActivityLocalDispatchInfo> activityLocalDispatchInfoMap(
-      Map<String, com.uber.cadence.ActivityLocalDispatchInfo> t) {
-    if (t == null) {
-      return Collections.emptyMap();
-    }
-    Map<String, ActivityLocalDispatchInfo> v = new HashMap<>();
-    for (String key : t.keySet()) {
-      v.put(key, activityLocalDispatchInfo(t.get(key)));
-    }
-    return v;
-  }
 }
