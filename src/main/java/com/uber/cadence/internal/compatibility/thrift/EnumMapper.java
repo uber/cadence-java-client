@@ -60,19 +60,6 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  public static TaskListType taskListType(com.uber.cadence.api.v1.TaskListType t) {
-    if (t == TASK_LIST_TYPE_INVALID) {
-      return null;
-    }
-    switch (t) {
-      case TASK_LIST_TYPE_DECISION:
-        return TaskListType.Decision;
-      case TASK_LIST_TYPE_ACTIVITY:
-        return TaskListType.Activity;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
   public static HistoryEventFilterType eventFilterType(com.uber.cadence.api.v1.EventFilterType t) {
     if (t == EventFilterType.EVENT_FILTER_TYPE_INVALID) {
       return null;
@@ -257,20 +244,6 @@ class EnumMapper {
         return WorkflowExecutionCloseStatus.CONTINUED_AS_NEW;
       case WORKFLOW_EXECUTION_CLOSE_STATUS_TIMED_OUT:
         return WorkflowExecutionCloseStatus.TIMED_OUT;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  public static QueryTaskCompletedType queryTaskCompletedType(
-      com.uber.cadence.api.v1.QueryResultType t) {
-    if (t == QUERY_RESULT_TYPE_INVALID) {
-      return null;
-    }
-    switch (t) {
-      case QUERY_RESULT_TYPE_ANSWERED:
-        return QueryTaskCompletedType.COMPLETED;
-      case QUERY_RESULT_TYPE_FAILED:
-        return QueryTaskCompletedType.FAILED;
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
