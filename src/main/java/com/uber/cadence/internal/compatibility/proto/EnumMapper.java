@@ -374,19 +374,6 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static PendingDecisionState pendingDecisionState(com.uber.cadence.PendingDecisionState t) {
-    if (t == null) {
-      return PENDING_DECISION_STATE_INVALID;
-    }
-    switch (t) {
-      case SCHEDULED:
-        return PENDING_DECISION_STATE_SCHEDULED;
-      case STARTED:
-        return PENDING_DECISION_STATE_STARTED;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
   static IndexedValueType indexedValueType(com.uber.cadence.IndexedValueType t) {
     switch (t) {
       case STRING:
