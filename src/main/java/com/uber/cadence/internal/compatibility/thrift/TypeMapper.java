@@ -275,27 +275,6 @@ class TypeMapper {
     return res;
   }
 
-  static StartTimeFilter startTimeFilter(com.uber.cadence.api.v1.StartTimeFilter t) {
-    if (t == null || t == com.uber.cadence.api.v1.StartTimeFilter.getDefaultInstance()) {
-      return null;
-    }
-    StartTimeFilter res = new StartTimeFilter();
-    res.setEarliestTime(timeToUnixNano(t.getEarliestTime()));
-    res.setLatestTime(timeToUnixNano(t.getLatestTime()));
-    return res;
-  }
-
-  static WorkflowExecutionFilter workflowExecutionFilter(
-      com.uber.cadence.api.v1.WorkflowExecutionFilter t) {
-    if (t == null || t == com.uber.cadence.api.v1.WorkflowExecutionFilter.getDefaultInstance()) {
-      return null;
-    }
-    WorkflowExecutionFilter res = new WorkflowExecutionFilter();
-    res.setWorkflowId(t.getWorkflowId());
-    res.setRunId(t.getRunId());
-    return res;
-  }
-
   static Map<String, ByteBuffer> payloadMap(Map<String, com.uber.cadence.api.v1.Payload> t) {
     if (t == null) {
       return null;
