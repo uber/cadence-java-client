@@ -643,27 +643,4 @@ class TypeMapper {
     }
     return v;
   }
-
-  static List<WorkflowExecutionInfo> workflowExecutionInfoArray(
-      List<com.uber.cadence.WorkflowExecutionInfo> t) {
-    if (t == null) {
-      return Collections.emptyList();
-    }
-    List<WorkflowExecutionInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(workflowExecutionInfo(t.get(i)));
-    }
-    return v;
-  }
-
-  static List<Domain> describeDomainResponseArray(List<com.uber.cadence.DescribeDomainResponse> t) {
-    if (t == null) {
-      return Collections.emptyList();
-    }
-    List<Domain> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(describeDomainResponseDomain(t.get(i)));
-    }
-    return v;
-  }
 }
