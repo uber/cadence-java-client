@@ -348,16 +348,6 @@ class TypeMapper {
     return v;
   }
 
-  static DataBlob dataBlob(com.uber.cadence.DataBlob t) {
-    if (t == null) {
-      return DataBlob.newBuilder().build();
-    }
-    return DataBlob.newBuilder()
-        .setEncodingType(encodingType(t.getEncodingType()))
-        .setData(arrayToByteString(t.getData()))
-        .build();
-  }
-
   static ExternalExecutionInfo externalExecutionInfo(
       com.uber.cadence.WorkflowExecution we, long initiatedID) {
     if (we == null && initiatedID == 0) {
