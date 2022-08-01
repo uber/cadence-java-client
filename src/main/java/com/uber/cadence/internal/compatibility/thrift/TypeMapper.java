@@ -265,17 +265,6 @@ class TypeMapper {
     return res;
   }
 
-  static StickyExecutionAttributes stickyExecutionAttributes(
-      com.uber.cadence.api.v1.StickyExecutionAttributes t) {
-    if (t == null || t == com.uber.cadence.api.v1.StickyExecutionAttributes.getDefaultInstance()) {
-      return null;
-    }
-    StickyExecutionAttributes res = new StickyExecutionAttributes();
-    res.setWorkerTaskList(taskList(t.getWorkerTaskList()));
-    res.setScheduleToStartTimeoutSeconds(durationToSeconds(t.getScheduleToStartTimeout()));
-    return res;
-  }
-
   static WorkerVersionInfo workerVersionInfo(com.uber.cadence.api.v1.WorkerVersionInfo t) {
     if (t == null || t == com.uber.cadence.api.v1.WorkerVersionInfo.getDefaultInstance()) {
       return null;

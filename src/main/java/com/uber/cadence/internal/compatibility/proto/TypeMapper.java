@@ -551,17 +551,6 @@ class TypeMapper {
         .build();
   }
 
-  static SupportedClientVersions supportedClientVersions(
-      com.uber.cadence.SupportedClientVersions t) {
-    if (t == null) {
-      return SupportedClientVersions.newBuilder().build();
-    }
-    return SupportedClientVersions.newBuilder()
-        .setGoSdk(t.getGoSdk())
-        .setJavaSdk(t.getJavaSdk())
-        .build();
-  }
-
   static Domain describeDomainResponseDomain(com.uber.cadence.DescribeDomainResponse t) {
     if (t == null) {
       return null;
