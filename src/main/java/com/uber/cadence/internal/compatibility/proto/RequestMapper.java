@@ -70,7 +70,6 @@ import com.uber.cadence.api.v1.PollForDecisionTaskRequest;
 import com.uber.cadence.api.v1.QueryWorkflowRequest;
 import com.uber.cadence.api.v1.RecordActivityTaskHeartbeatByIDRequest;
 import com.uber.cadence.api.v1.RecordActivityTaskHeartbeatRequest;
-import com.uber.cadence.api.v1.RefreshWorkflowTasksRequest;
 import com.uber.cadence.api.v1.RegisterDomainRequest;
 import com.uber.cadence.api.v1.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.ResetStickyTaskListRequest;
@@ -816,16 +815,5 @@ public class RequestMapper {
     }
 
     return request.build();
-  }
-
-  public static RefreshWorkflowTasksRequest refreshWorkflowTasksRequest(
-      com.uber.cadence.RefreshWorkflowTasksRequest r) {
-    if (r == null) {
-      return null;
-    }
-    return RefreshWorkflowTasksRequest.newBuilder()
-        .setDomain(r.getDomain())
-        .setWorkflowExecution(workflowExecution(r.getExecution()))
-        .build();
   }
 }
