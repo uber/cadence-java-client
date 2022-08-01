@@ -307,22 +307,6 @@ class TypeMapper {
     return res;
   }
 
-  static WorkflowTypeFilter workflowTypeFilter(com.uber.cadence.api.v1.WorkflowTypeFilter t) {
-    if (t == null || t == com.uber.cadence.api.v1.WorkflowTypeFilter.getDefaultInstance()) {
-      return null;
-    }
-    WorkflowTypeFilter res = new WorkflowTypeFilter();
-    res.setName(t.getName());
-    return res;
-  }
-
-  static WorkflowExecutionCloseStatus statusFilter(com.uber.cadence.api.v1.StatusFilter t) {
-    if (t == null || t == com.uber.cadence.api.v1.StatusFilter.getDefaultInstance()) {
-      return null;
-    }
-    return workflowExecutionCloseStatus(t.getStatus());
-  }
-
   static Map<String, ByteBuffer> payloadMap(Map<String, com.uber.cadence.api.v1.Payload> t) {
     if (t == null) {
       return null;
