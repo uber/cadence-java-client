@@ -15,10 +15,6 @@
  */
 package com.uber.cadence.internal.compatibility.proto;
 
-import static com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause.CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-import static com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause.CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
-import static com.uber.cadence.api.v1.ChildWorkflowExecutionFailedCause.CHILD_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-import static com.uber.cadence.api.v1.ChildWorkflowExecutionFailedCause.CHILD_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_RUNNING;
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_BAD_BINARY;
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_BAD_CANCEL_TIMER_ATTRIBUTES;
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_BAD_CANCEL_WORKFLOW_EXECUTION_ATTRIBUTES;
@@ -43,77 +39,24 @@ import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAIL
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_START_TIMER_DUPLICATE_ID;
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_UNHANDLED_DECISION;
 import static com.uber.cadence.api.v1.DecisionTaskFailedCause.DECISION_TASK_FAILED_CAUSE_WORKFLOW_WORKER_UNHANDLED_FAILURE;
-import static com.uber.cadence.api.v1.DecisionTaskTimedOutCause.DECISION_TASK_TIMED_OUT_CAUSE_INVALID;
-import static com.uber.cadence.api.v1.DecisionTaskTimedOutCause.DECISION_TASK_TIMED_OUT_CAUSE_RESET;
-import static com.uber.cadence.api.v1.DecisionTaskTimedOutCause.DECISION_TASK_TIMED_OUT_CAUSE_TIMEOUT;
-import static com.uber.cadence.api.v1.DomainStatus.DOMAIN_STATUS_DELETED;
-import static com.uber.cadence.api.v1.DomainStatus.DOMAIN_STATUS_DEPRECATED;
-import static com.uber.cadence.api.v1.DomainStatus.DOMAIN_STATUS_INVALID;
-import static com.uber.cadence.api.v1.DomainStatus.DOMAIN_STATUS_REGISTERED;
-import static com.uber.cadence.api.v1.EncodingType.ENCODING_TYPE_INVALID;
-import static com.uber.cadence.api.v1.EncodingType.ENCODING_TYPE_JSON;
-import static com.uber.cadence.api.v1.EncodingType.ENCODING_TYPE_THRIFTRW;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_BOOL;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_DATETIME;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_INT;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD;
-import static com.uber.cadence.api.v1.IndexedValueType.INDEXED_VALUE_TYPE_STRING;
-import static com.uber.cadence.api.v1.PendingActivityState.PENDING_ACTIVITY_STATE_CANCEL_REQUESTED;
-import static com.uber.cadence.api.v1.PendingActivityState.PENDING_ACTIVITY_STATE_INVALID;
-import static com.uber.cadence.api.v1.PendingActivityState.PENDING_ACTIVITY_STATE_SCHEDULED;
-import static com.uber.cadence.api.v1.PendingActivityState.PENDING_ACTIVITY_STATE_STARTED;
-import static com.uber.cadence.api.v1.PendingDecisionState.PENDING_DECISION_STATE_INVALID;
-import static com.uber.cadence.api.v1.PendingDecisionState.PENDING_DECISION_STATE_SCHEDULED;
-import static com.uber.cadence.api.v1.PendingDecisionState.PENDING_DECISION_STATE_STARTED;
 import static com.uber.cadence.api.v1.QueryResultType.QUERY_RESULT_TYPE_ANSWERED;
 import static com.uber.cadence.api.v1.QueryResultType.QUERY_RESULT_TYPE_FAILED;
 import static com.uber.cadence.api.v1.QueryResultType.QUERY_RESULT_TYPE_INVALID;
-import static com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause.SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-import static com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause.SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
-import static com.uber.cadence.api.v1.TimeoutType.TIMEOUT_TYPE_HEARTBEAT;
-import static com.uber.cadence.api.v1.TimeoutType.TIMEOUT_TYPE_SCHEDULE_TO_CLOSE;
-import static com.uber.cadence.api.v1.TimeoutType.TIMEOUT_TYPE_SCHEDULE_TO_START;
-import static com.uber.cadence.api.v1.TimeoutType.TIMEOUT_TYPE_START_TO_CLOSE;
 
 import com.uber.cadence.api.v1.ArchivalStatus;
-import com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause;
-import com.uber.cadence.api.v1.ChildWorkflowExecutionFailedCause;
 import com.uber.cadence.api.v1.ContinueAsNewInitiator;
 import com.uber.cadence.api.v1.DecisionTaskFailedCause;
-import com.uber.cadence.api.v1.DecisionTaskTimedOutCause;
-import com.uber.cadence.api.v1.DomainStatus;
-import com.uber.cadence.api.v1.EncodingType;
 import com.uber.cadence.api.v1.EventFilterType;
-import com.uber.cadence.api.v1.IndexedValueType;
 import com.uber.cadence.api.v1.ParentClosePolicy;
-import com.uber.cadence.api.v1.PendingActivityState;
-import com.uber.cadence.api.v1.PendingDecisionState;
 import com.uber.cadence.api.v1.QueryConsistencyLevel;
 import com.uber.cadence.api.v1.QueryRejectCondition;
 import com.uber.cadence.api.v1.QueryResultType;
-import com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.api.v1.TaskListKind;
 import com.uber.cadence.api.v1.TaskListType;
-import com.uber.cadence.api.v1.TimeoutType;
 import com.uber.cadence.api.v1.WorkflowExecutionCloseStatus;
 import com.uber.cadence.api.v1.WorkflowIdReusePolicy;
 
 class EnumMapper {
-
-  static DecisionTaskTimedOutCause decisionTaskTimedOutCause(
-      com.uber.cadence.DecisionTaskTimedOutCause t) {
-    if (t == null) {
-      return DECISION_TASK_TIMED_OUT_CAUSE_INVALID;
-    }
-    switch (t) {
-      case TIMEOUT:
-        return DECISION_TASK_TIMED_OUT_CAUSE_TIMEOUT;
-      case RESET:
-        return DECISION_TASK_TIMED_OUT_CAUSE_RESET;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
 
   static TaskListKind taskListKind(com.uber.cadence.TaskListKind t) {
     if (t == null) {
@@ -344,117 +287,4 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static DomainStatus domainStatus(com.uber.cadence.DomainStatus t) {
-    if (t == null) {
-      return DOMAIN_STATUS_INVALID;
-    }
-    switch (t) {
-      case REGISTERED:
-        return DOMAIN_STATUS_REGISTERED;
-      case DEPRECATED:
-        return DOMAIN_STATUS_DEPRECATED;
-      case DELETED:
-        return DOMAIN_STATUS_DELETED;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static PendingActivityState pendingActivityState(com.uber.cadence.PendingActivityState t) {
-    if (t == null) {
-      return PENDING_ACTIVITY_STATE_INVALID;
-    }
-    switch (t) {
-      case SCHEDULED:
-        return PENDING_ACTIVITY_STATE_SCHEDULED;
-      case STARTED:
-        return PENDING_ACTIVITY_STATE_STARTED;
-      case CANCEL_REQUESTED:
-        return PENDING_ACTIVITY_STATE_CANCEL_REQUESTED;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static IndexedValueType indexedValueType(com.uber.cadence.IndexedValueType t) {
-    switch (t) {
-      case STRING:
-        return INDEXED_VALUE_TYPE_STRING;
-      case KEYWORD:
-        return INDEXED_VALUE_TYPE_KEYWORD;
-      case INT:
-        return INDEXED_VALUE_TYPE_INT;
-      case DOUBLE:
-        return INDEXED_VALUE_TYPE_DOUBLE;
-      case BOOL:
-        return INDEXED_VALUE_TYPE_BOOL;
-      case DATETIME:
-        return INDEXED_VALUE_TYPE_DATETIME;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static EncodingType encodingType(com.uber.cadence.EncodingType t) {
-    if (t == null) {
-      return ENCODING_TYPE_INVALID;
-    }
-    switch (t) {
-      case ThriftRW:
-        return ENCODING_TYPE_THRIFTRW;
-      case JSON:
-        return ENCODING_TYPE_JSON;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static TimeoutType timeoutType(com.uber.cadence.TimeoutType t) {
-    if (t == null) {
-      return TimeoutType.TIMEOUT_TYPE_INVALID;
-    }
-    switch (t) {
-      case START_TO_CLOSE:
-        return TIMEOUT_TYPE_START_TO_CLOSE;
-      case SCHEDULE_TO_START:
-        return TIMEOUT_TYPE_SCHEDULE_TO_START;
-      case SCHEDULE_TO_CLOSE:
-        return TIMEOUT_TYPE_SCHEDULE_TO_CLOSE;
-      case HEARTBEAT:
-        return TIMEOUT_TYPE_HEARTBEAT;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static CancelExternalWorkflowExecutionFailedCause cancelExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.CancelExternalWorkflowExecutionFailedCause t) {
-    if (t == null) {
-      return CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-    }
-    switch (t) {
-      case UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION:
-        return CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static SignalExternalWorkflowExecutionFailedCause signalExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.SignalExternalWorkflowExecutionFailedCause t) {
-    if (t == null) {
-      return SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-    }
-    switch (t) {
-      case UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION:
-        return SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  static ChildWorkflowExecutionFailedCause childWorkflowExecutionFailedCause(
-      com.uber.cadence.ChildWorkflowExecutionFailedCause t) {
-    if (t == null) {
-      return CHILD_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID;
-    }
-    switch (t) {
-      case WORKFLOW_ALREADY_RUNNING:
-        return CHILD_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_RUNNING;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
 }

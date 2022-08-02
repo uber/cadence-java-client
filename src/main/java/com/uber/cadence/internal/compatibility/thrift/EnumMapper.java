@@ -15,10 +15,7 @@
  */
 package com.uber.cadence.internal.compatibility.thrift;
 
-import static com.uber.cadence.api.v1.QueryConsistencyLevel.QUERY_CONSISTENCY_LEVEL_INVALID;
 import static com.uber.cadence.api.v1.QueryRejectCondition.QUERY_REJECT_CONDITION_INVALID;
-import static com.uber.cadence.api.v1.QueryResultType.QUERY_RESULT_TYPE_INVALID;
-import static com.uber.cadence.api.v1.TaskListType.TASK_LIST_TYPE_INVALID;
 
 import com.uber.cadence.ArchivalStatus;
 import com.uber.cadence.CancelExternalWorkflowExecutionFailedCause;
@@ -28,22 +25,16 @@ import com.uber.cadence.DecisionTaskFailedCause;
 import com.uber.cadence.DecisionTaskTimedOutCause;
 import com.uber.cadence.DomainStatus;
 import com.uber.cadence.EncodingType;
-import com.uber.cadence.HistoryEventFilterType;
 import com.uber.cadence.IndexedValueType;
 import com.uber.cadence.ParentClosePolicy;
 import com.uber.cadence.PendingActivityState;
 import com.uber.cadence.PendingDecisionState;
-import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
-import com.uber.cadence.QueryResultType;
-import com.uber.cadence.QueryTaskCompletedType;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
 import com.uber.cadence.TaskListKind;
-import com.uber.cadence.TaskListType;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import com.uber.cadence.api.v1.EventFilterType;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class EnumMapper {
@@ -60,19 +51,6 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  public static HistoryEventFilterType eventFilterType(com.uber.cadence.api.v1.EventFilterType t) {
-    if (t == EventFilterType.EVENT_FILTER_TYPE_INVALID) {
-      return null;
-    }
-    switch (t) {
-      case EVENT_FILTER_TYPE_ALL_EVENT:
-        return HistoryEventFilterType.ALL_EVENT;
-      case EVENT_FILTER_TYPE_CLOSE_EVENT:
-        return HistoryEventFilterType.CLOSE_EVENT;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
   public static QueryRejectCondition queryRejectCondition(
       com.uber.cadence.api.v1.QueryRejectCondition t) {
     if (t == QUERY_REJECT_CONDITION_INVALID) {
@@ -83,20 +61,6 @@ class EnumMapper {
         return QueryRejectCondition.NOT_OPEN;
       case QUERY_REJECT_CONDITION_NOT_COMPLETED_CLEANLY:
         return QueryRejectCondition.NOT_COMPLETED_CLEANLY;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  public static QueryConsistencyLevel queryConsistencyLevel(
-      com.uber.cadence.api.v1.QueryConsistencyLevel t) {
-    if (t == QUERY_CONSISTENCY_LEVEL_INVALID) {
-      return null;
-    }
-    switch (t) {
-      case QUERY_CONSISTENCY_LEVEL_EVENTUAL:
-        return QueryConsistencyLevel.EVENTUAL;
-      case QUERY_CONSISTENCY_LEVEL_STRONG:
-        return QueryConsistencyLevel.STRONG;
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
@@ -129,19 +93,6 @@ class EnumMapper {
         return WorkflowIdReusePolicy.RejectDuplicate;
       case WORKFLOW_ID_REUSE_POLICY_TERMINATE_IF_RUNNING:
         return WorkflowIdReusePolicy.TerminateIfRunning;
-    }
-    throw new IllegalArgumentException("unexpected enum value");
-  }
-
-  public static QueryResultType queryResultType(com.uber.cadence.api.v1.QueryResultType t) {
-    if (t == QUERY_RESULT_TYPE_INVALID) {
-      return null;
-    }
-    switch (t) {
-      case QUERY_RESULT_TYPE_ANSWERED:
-        return QueryResultType.ANSWERED;
-      case QUERY_RESULT_TYPE_FAILED:
-        return QueryResultType.FAILED;
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
@@ -354,8 +305,8 @@ class EnumMapper {
   }
 
   public static CancelExternalWorkflowExecutionFailedCause
-      cancelExternalWorkflowExecutionFailedCause(
-          com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
+  cancelExternalWorkflowExecutionFailedCause(
+      com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;
@@ -366,8 +317,8 @@ class EnumMapper {
   }
 
   public static SignalExternalWorkflowExecutionFailedCause
-      signalExternalWorkflowExecutionFailedCause(
-          com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
+  signalExternalWorkflowExecutionFailedCause(
+      com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;

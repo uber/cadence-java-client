@@ -22,14 +22,12 @@ import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.indexedV
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.parentClosePolicy;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.pendingActivityState;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.pendingDecisionState;
-import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.queryResultType;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.taskListKind;
 import static com.uber.cadence.internal.compatibility.thrift.EnumMapper.workflowExecutionCloseStatus;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.byteStringToArray;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToDays;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.durationToSeconds;
 import static com.uber.cadence.internal.compatibility.thrift.Helpers.timeToUnixNano;
-import static com.uber.cadence.internal.compatibility.thrift.Helpers.toDoubleValue;
 
 import com.uber.cadence.ActivityLocalDispatchInfo;
 import com.uber.cadence.ActivityType;
@@ -53,24 +51,16 @@ import com.uber.cadence.ResetPointInfo;
 import com.uber.cadence.ResetPoints;
 import com.uber.cadence.RetryPolicy;
 import com.uber.cadence.SearchAttributes;
-import com.uber.cadence.StartTimeFilter;
-import com.uber.cadence.StickyExecutionAttributes;
 import com.uber.cadence.SupportedClientVersions;
 import com.uber.cadence.TaskIDBlock;
 import com.uber.cadence.TaskList;
-import com.uber.cadence.TaskListMetadata;
 import com.uber.cadence.TaskListPartitionMetadata;
 import com.uber.cadence.TaskListStatus;
-import com.uber.cadence.WorkerVersionInfo;
 import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowExecutionConfiguration;
-import com.uber.cadence.WorkflowExecutionFilter;
 import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.WorkflowQuery;
-import com.uber.cadence.WorkflowQueryResult;
 import com.uber.cadence.WorkflowType;
-import com.uber.cadence.WorkflowTypeFilter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -160,15 +150,6 @@ class TypeMapper {
     return taskList;
   }
 
-  static TaskListMetadata TaskListMetadata(com.uber.cadence.api.v1.TaskListMetadata t) {
-    if (t == null || t == com.uber.cadence.api.v1.TaskListMetadata.getDefaultInstance()) {
-      return null;
-    }
-    TaskListMetadata res = new TaskListMetadata();
-    res.setMaxTasksPerSecond(toDoubleValue(t.getMaxTasksPerSecond()));
-    return res;
-  }
-
   static RetryPolicy retryPolicy(com.uber.cadence.api.v1.RetryPolicy t) {
     if (t == null || t == com.uber.cadence.api.v1.RetryPolicy.getDefaultInstance()) {
       return null;
@@ -254,27 +235,6 @@ class TypeMapper {
     return res;
   }
 
-  static WorkflowQueryResult workflowQueryResult(com.uber.cadence.api.v1.WorkflowQueryResult t) {
-    if (t == null || t == com.uber.cadence.api.v1.WorkflowQueryResult.getDefaultInstance()) {
-      return null;
-    }
-    WorkflowQueryResult res = new WorkflowQueryResult();
-    res.setResultType(queryResultType(t.getResultType()));
-    res.setAnswer(payload(t.getAnswer()));
-    res.setErrorMessage(t.getErrorMessage());
-    return res;
-  }
-
-  static WorkerVersionInfo workerVersionInfo(com.uber.cadence.api.v1.WorkerVersionInfo t) {
-    if (t == null || t == com.uber.cadence.api.v1.WorkerVersionInfo.getDefaultInstance()) {
-      return null;
-    }
-    WorkerVersionInfo res = new WorkerVersionInfo();
-    res.setImpl(t.getImpl());
-    res.setFeatureVersion(t.getFeatureVersion());
-    return res;
-  }
-
   static Map<String, ByteBuffer> payloadMap(Map<String, com.uber.cadence.api.v1.Payload> t) {
     if (t == null) {
       return null;
@@ -307,18 +267,6 @@ class TypeMapper {
     ClusterReplicationConfiguration res = new ClusterReplicationConfiguration();
     res.setClusterName(t.getClusterName());
     return res;
-  }
-
-  static Map<String, WorkflowQueryResult> workflowQueryResultMap(
-      Map<String, com.uber.cadence.api.v1.WorkflowQueryResult> t) {
-    if (t == null) {
-      return null;
-    }
-    Map<String, WorkflowQueryResult> v = new HashMap<>();
-    for (String key : t.keySet()) {
-      v.put(key, workflowQueryResult(t.get(key)));
-    }
-    return v;
   }
 
   static DataBlob dataBlob(com.uber.cadence.api.v1.DataBlob t) {

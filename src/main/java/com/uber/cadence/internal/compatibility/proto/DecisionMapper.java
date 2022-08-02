@@ -71,201 +71,188 @@ class DecisionMapper {
     }
     Builder decision = Decision.newBuilder();
     switch (d.getDecisionType()) {
-      case ScheduleActivityTask:
-        {
-          com.uber.cadence.ScheduleActivityTaskDecisionAttributes attr =
-              d.getScheduleActivityTaskDecisionAttributes();
-          ScheduleActivityTaskDecisionAttributes.Builder builder =
-              ScheduleActivityTaskDecisionAttributes.newBuilder()
-                  .setActivityId(attr.getActivityId())
-                  .setActivityType(activityType(attr.getActivityType()))
-                  .setTaskList(taskList(attr.getTaskList()))
-                  .setInput(payload(attr.getInput()))
-                  .setScheduleToCloseTimeout(
-                      secondsToDuration(attr.getScheduleToCloseTimeoutSeconds()))
-                  .setScheduleToStartTimeout(
-                      secondsToDuration(attr.getScheduleToStartTimeoutSeconds()))
-                  .setStartToCloseTimeout(secondsToDuration(attr.getStartToCloseTimeoutSeconds()))
-                  .setHeartbeatTimeout(secondsToDuration(attr.getHeartbeatTimeoutSeconds()))
-                  .setHeader(header(attr.getHeader()))
-                  .setRequestLocalDispatch(attr.isRequestLocalDispatch());
-          if (attr.getRetryPolicy() != null) {
-            builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
-          }
-          if (attr.getDomain() != null) {
-            builder.setDomain(attr.getDomain());
-          }
-          decision.setScheduleActivityTaskDecisionAttributes(builder);
+      case ScheduleActivityTask: {
+        com.uber.cadence.ScheduleActivityTaskDecisionAttributes attr =
+            d.getScheduleActivityTaskDecisionAttributes();
+        ScheduleActivityTaskDecisionAttributes.Builder builder =
+            ScheduleActivityTaskDecisionAttributes.newBuilder()
+                .setActivityId(attr.getActivityId())
+                .setActivityType(activityType(attr.getActivityType()))
+                .setTaskList(taskList(attr.getTaskList()))
+                .setInput(payload(attr.getInput()))
+                .setScheduleToCloseTimeout(
+                    secondsToDuration(attr.getScheduleToCloseTimeoutSeconds()))
+                .setScheduleToStartTimeout(
+                    secondsToDuration(attr.getScheduleToStartTimeoutSeconds()))
+                .setStartToCloseTimeout(secondsToDuration(attr.getStartToCloseTimeoutSeconds()))
+                .setHeartbeatTimeout(secondsToDuration(attr.getHeartbeatTimeoutSeconds()))
+                .setHeader(header(attr.getHeader()))
+                .setRequestLocalDispatch(attr.isRequestLocalDispatch());
+        if (attr.getRetryPolicy() != null) {
+          builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
         }
-        break;
-      case RequestCancelActivityTask:
-        {
-          com.uber.cadence.RequestCancelActivityTaskDecisionAttributes attr =
-              d.getRequestCancelActivityTaskDecisionAttributes();
-          decision.setRequestCancelActivityTaskDecisionAttributes(
-              RequestCancelActivityTaskDecisionAttributes.newBuilder()
-                  .setActivityId(attr.getActivityId()));
+        if (attr.getDomain() != null) {
+          builder.setDomain(attr.getDomain());
         }
-        break;
-      case StartTimer:
-        {
-          com.uber.cadence.StartTimerDecisionAttributes attr = d.getStartTimerDecisionAttributes();
-          decision.setStartTimerDecisionAttributes(
-              StartTimerDecisionAttributes.newBuilder()
-                  .setTimerId(attr.getTimerId())
-                  .setStartToFireTimeout(
-                      secondsToDuration(longToInt(attr.getStartToFireTimeoutSeconds()))));
+        decision.setScheduleActivityTaskDecisionAttributes(builder);
+      }
+      break;
+      case RequestCancelActivityTask: {
+        com.uber.cadence.RequestCancelActivityTaskDecisionAttributes attr =
+            d.getRequestCancelActivityTaskDecisionAttributes();
+        decision.setRequestCancelActivityTaskDecisionAttributes(
+            RequestCancelActivityTaskDecisionAttributes.newBuilder()
+                .setActivityId(attr.getActivityId()));
+      }
+      break;
+      case StartTimer: {
+        com.uber.cadence.StartTimerDecisionAttributes attr = d.getStartTimerDecisionAttributes();
+        decision.setStartTimerDecisionAttributes(
+            StartTimerDecisionAttributes.newBuilder()
+                .setTimerId(attr.getTimerId())
+                .setStartToFireTimeout(
+                    secondsToDuration(longToInt(attr.getStartToFireTimeoutSeconds()))));
+      }
+      break;
+      case CompleteWorkflowExecution: {
+        com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes attr =
+            d.getCompleteWorkflowExecutionDecisionAttributes();
+        decision.setCompleteWorkflowExecutionDecisionAttributes(
+            CompleteWorkflowExecutionDecisionAttributes.newBuilder()
+                .setResult(payload(attr.getResult())));
+      }
+      break;
+      case FailWorkflowExecution: {
+        com.uber.cadence.FailWorkflowExecutionDecisionAttributes attr =
+            d.getFailWorkflowExecutionDecisionAttributes();
+        decision.setFailWorkflowExecutionDecisionAttributes(
+            FailWorkflowExecutionDecisionAttributes.newBuilder()
+                .setFailure(failure(attr.getReason(), attr.getDetails())));
+      }
+      break;
+      case CancelTimer: {
+        com.uber.cadence.CancelTimerDecisionAttributes attr =
+            d.getCancelTimerDecisionAttributes();
+        decision.setCancelTimerDecisionAttributes(
+            CancelTimerDecisionAttributes.newBuilder().setTimerId(attr.getTimerId()));
+      }
+      break;
+      case CancelWorkflowExecution: {
+        com.uber.cadence.CancelWorkflowExecutionDecisionAttributes attr =
+            d.getCancelWorkflowExecutionDecisionAttributes();
+        decision.setCancelWorkflowExecutionDecisionAttributes(
+            CancelWorkflowExecutionDecisionAttributes.newBuilder()
+                .setDetails(payload(attr.getDetails())));
+      }
+      break;
+      case RequestCancelExternalWorkflowExecution: {
+        com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes attr =
+            d.getRequestCancelExternalWorkflowExecutionDecisionAttributes();
+        RequestCancelExternalWorkflowExecutionDecisionAttributes.Builder builder =
+            RequestCancelExternalWorkflowExecutionDecisionAttributes.newBuilder()
+                .setDomain(attr.getDomain())
+                .setWorkflowExecution(workflowRunPair(attr.getWorkflowId(), attr.getRunId()))
+                .setChildWorkflowOnly(attr.isChildWorkflowOnly());
+        if (attr.getControl() != null) {
+          builder.setControl(arrayToByteString(attr.getControl()));
         }
-        break;
-      case CompleteWorkflowExecution:
-        {
-          com.uber.cadence.CompleteWorkflowExecutionDecisionAttributes attr =
-              d.getCompleteWorkflowExecutionDecisionAttributes();
-          decision.setCompleteWorkflowExecutionDecisionAttributes(
-              CompleteWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setResult(payload(attr.getResult())));
+        decision.setRequestCancelExternalWorkflowExecutionDecisionAttributes(builder);
+      }
+      break;
+      case ContinueAsNewWorkflowExecution: {
+        com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes attr =
+            d.getContinueAsNewWorkflowExecutionDecisionAttributes();
+        ContinueAsNewWorkflowExecutionDecisionAttributes.Builder builder =
+            ContinueAsNewWorkflowExecutionDecisionAttributes.newBuilder()
+                .setWorkflowType(workflowType(attr.getWorkflowType()))
+                .setTaskList(taskList(attr.getTaskList()))
+                .setInput(payload(attr.getInput()))
+                .setExecutionStartToCloseTimeout(
+                    secondsToDuration(attr.getExecutionStartToCloseTimeoutSeconds()))
+                .setTaskStartToCloseTimeout(
+                    secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
+                .setBackoffStartInterval(
+                    secondsToDuration(attr.getBackoffStartIntervalInSeconds()))
+                .setInitiator(continueAsNewInitiator(attr.getInitiator()))
+                .setFailure(failure(attr.getFailureReason(), attr.getFailureDetails()))
+                .setLastCompletionResult(payload(attr.getLastCompletionResult()))
+                .setHeader(header(attr.getHeader()))
+                .setMemo(memo(attr.getMemo()))
+                .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
+        if (attr.getRetryPolicy() != null) {
+          builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
         }
-        break;
-      case FailWorkflowExecution:
-        {
-          com.uber.cadence.FailWorkflowExecutionDecisionAttributes attr =
-              d.getFailWorkflowExecutionDecisionAttributes();
-          decision.setFailWorkflowExecutionDecisionAttributes(
-              FailWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setFailure(failure(attr.getReason(), attr.getDetails())));
+        if (attr.getCronSchedule() != null) {
+          builder.setCronSchedule(attr.getCronSchedule());
         }
-        break;
-      case CancelTimer:
-        {
-          com.uber.cadence.CancelTimerDecisionAttributes attr =
-              d.getCancelTimerDecisionAttributes();
-          decision.setCancelTimerDecisionAttributes(
-              CancelTimerDecisionAttributes.newBuilder().setTimerId(attr.getTimerId()));
+        decision.setContinueAsNewWorkflowExecutionDecisionAttributes(builder);
+      }
+      break;
+      case StartChildWorkflowExecution: {
+        com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes attr =
+            d.getStartChildWorkflowExecutionDecisionAttributes();
+        StartChildWorkflowExecutionDecisionAttributes.Builder builder =
+            StartChildWorkflowExecutionDecisionAttributes.newBuilder()
+                .setDomain(attr.getDomain())
+                .setWorkflowId(attr.getWorkflowId())
+                .setWorkflowType(workflowType(attr.getWorkflowType()))
+                .setTaskList(taskList(attr.getTaskList()))
+                .setInput(payload(attr.getInput()))
+                .setExecutionStartToCloseTimeout(
+                    secondsToDuration(attr.getExecutionStartToCloseTimeoutSeconds()))
+                .setTaskStartToCloseTimeout(
+                    secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
+                .setParentClosePolicy(parentClosePolicy(attr.getParentClosePolicy()))
+                .setWorkflowIdReusePolicy(workflowIdReusePolicy(attr.getWorkflowIdReusePolicy()))
+                .setHeader(header(attr.getHeader()))
+                .setMemo(memo(attr.getMemo()))
+                .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
+        if (attr.getRetryPolicy() != null) {
+          builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
         }
-        break;
-      case CancelWorkflowExecution:
-        {
-          com.uber.cadence.CancelWorkflowExecutionDecisionAttributes attr =
-              d.getCancelWorkflowExecutionDecisionAttributes();
-          decision.setCancelWorkflowExecutionDecisionAttributes(
-              CancelWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setDetails(payload(attr.getDetails())));
+        if (attr.getControl() != null) {
+          builder.setControl(arrayToByteString(attr.getControl()));
         }
-        break;
-      case RequestCancelExternalWorkflowExecution:
-        {
-          com.uber.cadence.RequestCancelExternalWorkflowExecutionDecisionAttributes attr =
-              d.getRequestCancelExternalWorkflowExecutionDecisionAttributes();
-          RequestCancelExternalWorkflowExecutionDecisionAttributes.Builder builder =
-              RequestCancelExternalWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setDomain(attr.getDomain())
-                  .setWorkflowExecution(workflowRunPair(attr.getWorkflowId(), attr.getRunId()))
-                  .setChildWorkflowOnly(attr.isChildWorkflowOnly());
-          if (attr.getControl() != null) {
-            builder.setControl(arrayToByteString(attr.getControl()));
-          }
-          decision.setRequestCancelExternalWorkflowExecutionDecisionAttributes(builder);
+        if (attr.getCronSchedule() != null) {
+          builder.setCronSchedule(attr.getCronSchedule());
         }
-        break;
-      case ContinueAsNewWorkflowExecution:
-        {
-          com.uber.cadence.ContinueAsNewWorkflowExecutionDecisionAttributes attr =
-              d.getContinueAsNewWorkflowExecutionDecisionAttributes();
-          ContinueAsNewWorkflowExecutionDecisionAttributes.Builder builder =
-              ContinueAsNewWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setWorkflowType(workflowType(attr.getWorkflowType()))
-                  .setTaskList(taskList(attr.getTaskList()))
-                  .setInput(payload(attr.getInput()))
-                  .setExecutionStartToCloseTimeout(
-                      secondsToDuration(attr.getExecutionStartToCloseTimeoutSeconds()))
-                  .setTaskStartToCloseTimeout(
-                      secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
-                  .setBackoffStartInterval(
-                      secondsToDuration(attr.getBackoffStartIntervalInSeconds()))
-                  .setInitiator(continueAsNewInitiator(attr.getInitiator()))
-                  .setFailure(failure(attr.getFailureReason(), attr.getFailureDetails()))
-                  .setLastCompletionResult(payload(attr.getLastCompletionResult()))
-                  .setHeader(header(attr.getHeader()))
-                  .setMemo(memo(attr.getMemo()))
-                  .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
-          if (attr.getRetryPolicy() != null) {
-            builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
-          }
-          if (attr.getCronSchedule() != null) {
-            builder.setCronSchedule(attr.getCronSchedule());
-          }
-          decision.setContinueAsNewWorkflowExecutionDecisionAttributes(builder);
+        decision.setStartChildWorkflowExecutionDecisionAttributes(builder);
+      }
+      break;
+      case SignalExternalWorkflowExecution: {
+        com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes attr =
+            d.getSignalExternalWorkflowExecutionDecisionAttributes();
+        SignalExternalWorkflowExecutionDecisionAttributes.Builder builder =
+            SignalExternalWorkflowExecutionDecisionAttributes.newBuilder()
+                .setDomain(attr.getDomain())
+                .setWorkflowExecution(workflowExecution(attr.getExecution()))
+                .setSignalName(attr.getSignalName())
+                .setInput(payload(attr.getInput()))
+                .setChildWorkflowOnly(attr.isChildWorkflowOnly());
+        if (attr.getControl() != null) {
+          builder.setControl(arrayToByteString(attr.getControl()));
         }
-        break;
-      case StartChildWorkflowExecution:
-        {
-          com.uber.cadence.StartChildWorkflowExecutionDecisionAttributes attr =
-              d.getStartChildWorkflowExecutionDecisionAttributes();
-          StartChildWorkflowExecutionDecisionAttributes.Builder builder =
-              StartChildWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setDomain(attr.getDomain())
-                  .setWorkflowId(attr.getWorkflowId())
-                  .setWorkflowType(workflowType(attr.getWorkflowType()))
-                  .setTaskList(taskList(attr.getTaskList()))
-                  .setInput(payload(attr.getInput()))
-                  .setExecutionStartToCloseTimeout(
-                      secondsToDuration(attr.getExecutionStartToCloseTimeoutSeconds()))
-                  .setTaskStartToCloseTimeout(
-                      secondsToDuration(attr.getTaskStartToCloseTimeoutSeconds()))
-                  .setParentClosePolicy(parentClosePolicy(attr.getParentClosePolicy()))
-                  .setWorkflowIdReusePolicy(workflowIdReusePolicy(attr.getWorkflowIdReusePolicy()))
-                  .setHeader(header(attr.getHeader()))
-                  .setMemo(memo(attr.getMemo()))
-                  .setSearchAttributes(searchAttributes(attr.getSearchAttributes()));
-          if (attr.getRetryPolicy() != null) {
-            builder.setRetryPolicy(retryPolicy(attr.getRetryPolicy()));
-          }
-          if (attr.getControl() != null) {
-            builder.setControl(arrayToByteString(attr.getControl()));
-          }
-          if (attr.getCronSchedule() != null) {
-            builder.setCronSchedule(attr.getCronSchedule());
-          }
-          decision.setStartChildWorkflowExecutionDecisionAttributes(builder);
-        }
-        break;
-      case SignalExternalWorkflowExecution:
-        {
-          com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes attr =
-              d.getSignalExternalWorkflowExecutionDecisionAttributes();
-          SignalExternalWorkflowExecutionDecisionAttributes.Builder builder =
-              SignalExternalWorkflowExecutionDecisionAttributes.newBuilder()
-                  .setDomain(attr.getDomain())
-                  .setWorkflowExecution(workflowExecution(attr.getExecution()))
-                  .setSignalName(attr.getSignalName())
-                  .setInput(payload(attr.getInput()))
-                  .setChildWorkflowOnly(attr.isChildWorkflowOnly());
-          if (attr.getControl() != null) {
-            builder.setControl(arrayToByteString(attr.getControl()));
-          }
-          decision.setSignalExternalWorkflowExecutionDecisionAttributes(builder);
-        }
-        break;
-      case UpsertWorkflowSearchAttributes:
-        {
-          com.uber.cadence.UpsertWorkflowSearchAttributesDecisionAttributes attr =
-              d.getUpsertWorkflowSearchAttributesDecisionAttributes();
-          decision.setUpsertWorkflowSearchAttributesDecisionAttributes(
-              UpsertWorkflowSearchAttributesDecisionAttributes.newBuilder()
-                  .setSearchAttributes(searchAttributes(attr.getSearchAttributes())));
-        }
-        break;
-      case RecordMarker:
-        {
-          com.uber.cadence.RecordMarkerDecisionAttributes attr =
-              d.getRecordMarkerDecisionAttributes();
-          decision.setRecordMarkerDecisionAttributes(
-              RecordMarkerDecisionAttributes.newBuilder()
-                  .setMarkerName(attr.getMarkerName())
-                  .setDetails(payload(attr.getDetails()))
-                  .setHeader(header(attr.getHeader())));
-        }
-        break;
+        decision.setSignalExternalWorkflowExecutionDecisionAttributes(builder);
+      }
+      break;
+      case UpsertWorkflowSearchAttributes: {
+        com.uber.cadence.UpsertWorkflowSearchAttributesDecisionAttributes attr =
+            d.getUpsertWorkflowSearchAttributesDecisionAttributes();
+        decision.setUpsertWorkflowSearchAttributesDecisionAttributes(
+            UpsertWorkflowSearchAttributesDecisionAttributes.newBuilder()
+                .setSearchAttributes(searchAttributes(attr.getSearchAttributes())));
+      }
+      break;
+      case RecordMarker: {
+        com.uber.cadence.RecordMarkerDecisionAttributes attr =
+            d.getRecordMarkerDecisionAttributes();
+        decision.setRecordMarkerDecisionAttributes(
+            RecordMarkerDecisionAttributes.newBuilder()
+                .setMarkerName(attr.getMarkerName())
+                .setDetails(payload(attr.getDetails()))
+                .setHeader(header(attr.getHeader())));
+      }
+      break;
       default:
         throw new IllegalArgumentException("unknown decision type");
     }
