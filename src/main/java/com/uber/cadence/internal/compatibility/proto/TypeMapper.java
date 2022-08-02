@@ -541,42 +541,6 @@ class TypeMapper {
         .build();
   }
 
-  static Domain describeDomainResponseDomain(com.uber.cadence.DescribeDomainResponse t) {
-    if (t == null) {
-      return null;
-    }
-    Builder domain =
-        Domain.newBuilder()
-            .setFailoverVersion(t.getFailoverVersion())
-            .setIsGlobalDomain(t.isIsGlobalDomain());
-
-    DomainInfo info = t.getDomainInfo();
-    if (info != null) {
-      domain.setId(info.getUuid());
-      domain.setName(info.getName());
-      domain.setStatus(domainStatus(info.getStatus()));
-      domain.setDescription(info.getDescription());
-      domain.setOwnerEmail(info.getOwnerEmail());
-      domain.putAllData(info.getData());
-    }
-    DomainConfiguration config = t.getConfiguration();
-    if (config != null) {
-      domain.setWorkflowExecutionRetentionPeriod(
-          daysToDuration(config.getWorkflowExecutionRetentionPeriodInDays()));
-      domain.setBadBinaries(badBinaries(config.getBadBinaries()));
-      domain.setHistoryArchivalStatus(archivalStatus(config.getHistoryArchivalStatus()));
-      domain.setHistoryArchivalUri(config.getHistoryArchivalURI());
-      domain.setVisibilityArchivalStatus(archivalStatus(config.getVisibilityArchivalStatus()));
-      domain.setVisibilityArchivalUri(config.getVisibilityArchivalURI());
-    }
-    DomainReplicationConfiguration repl = t.getReplicationConfiguration();
-    if (repl != null) {
-      domain.setActiveClusterName(repl.getActiveClusterName());
-      domain.addAllClusters(clusterReplicationConfigurationArray(repl.getClusters()));
-    }
-    return domain.build();
-  }
-
   static TaskListPartitionMetadata taskListPartitionMetadata(
       com.uber.cadence.TaskListPartitionMetadata t) {
     if (t == null) {
