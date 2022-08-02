@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.7
+### Added
+- Add gRPC compatibility layer.
+
 ## 3.6.2
 ### Added
 - Add refresh tasks API to provide ability to refresh tasks on stuck workflows.
