@@ -494,26 +494,6 @@ class TypeMapper {
         .build();
   }
 
-  static PendingActivityInfo pendingActivityInfo(com.uber.cadence.PendingActivityInfo t) {
-    if (t == null) {
-      return null;
-    }
-    return PendingActivityInfo.newBuilder()
-        .setActivityId(t.getActivityID())
-        .setActivityType(activityType(t.getActivityType()))
-        .setState(EnumMapper.pendingActivityState(t.getState()))
-        .setHeartbeatDetails(payload(t.getHeartbeatDetails()))
-        .setLastHeartbeatTime(unixNanoToTime(t.getLastHeartbeatTimestamp()))
-        .setLastStartedTime(unixNanoToTime(t.getLastStartedTimestamp()))
-        .setAttempt(t.getAttempt())
-        .setMaximumAttempts(t.getMaximumAttempts())
-        .setScheduledTime(unixNanoToTime(t.getScheduledTimestamp()))
-        .setExpirationTime(unixNanoToTime(t.getExpirationTimestamp()))
-        .setLastFailure(failure(t.getLastFailureReason(), t.getLastFailureDetails()))
-        .setLastWorkerIdentity(t.getLastWorkerIdentity())
-        .build();
-  }
-
   static PendingChildExecutionInfo pendingChildExecutionInfo(
       com.uber.cadence.PendingChildExecutionInfo t) {
     if (t == null) {
@@ -524,20 +504,6 @@ class TypeMapper {
         .setWorkflowTypeName(t.getWorkflowTypName())
         .setInitiatedId(t.getInitiatedID())
         .setParentClosePolicy(parentClosePolicy(t.getParentClosePolicy()))
-        .build();
-  }
-
-  static ActivityLocalDispatchInfo activityLocalDispatchInfo(
-      com.uber.cadence.ActivityLocalDispatchInfo t) {
-    if (t == null) {
-      return null;
-    }
-    return ActivityLocalDispatchInfo.newBuilder()
-        .setActivityId(t.getActivityId())
-        .setScheduledTime(unixNanoToTime(t.getScheduledTimestamp()))
-        .setStartedTime(unixNanoToTime(t.getStartedTimestamp()))
-        .setScheduledTimeOfThisAttempt(unixNanoToTime(t.getScheduledTimestampOfThisAttempt()))
-        .setTaskToken(arrayToByteString(t.getTaskToken()))
         .build();
   }
 
