@@ -16,7 +16,6 @@
 package com.uber.cadence.internal.compatibility.thrift;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Duration;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.Timestamp;
@@ -24,10 +23,6 @@ import com.google.protobuf.util.Durations;
 import com.google.protobuf.util.Timestamps;
 
 class Helpers {
-
-  static double toDoubleValue(DoubleValue v) {
-    return v.getValue();
-  }
 
   static long toInt64Value(Int64Value v) {
     return v.getValue();
