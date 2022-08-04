@@ -67,6 +67,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
   private final ManagedChannel channel;
+  private final boolean shutdownChannel;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean();
   private final DomainAPIGrpc.DomainAPIBlockingStub domainBlockingStub;
   private final DomainAPIGrpc.DomainAPIFutureStub domainFutureStub;
@@ -80,12 +81,17 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final MetaAPIGrpc.MetaAPIFutureStub metaFutureStub;
 
   GrpcServiceStubs(ClientOptions options) {
-    this.channel =
-        ManagedChannelBuilder.forAddress(options.getHost(), options.getPort())
-            .defaultLoadBalancingPolicy("round_robin")
-            .usePlaintext()
-            .build();
-
+    if (options.getGRPCChannel() != null) {
+      this.channel = options.getGRPCChannel();
+      shutdownChannel = false;
+    } else {
+      this.channel =
+          ManagedChannelBuilder.forAddress(options.getHost(), options.getPort())
+              .defaultLoadBalancingPolicy("round_robin")
+              .usePlaintext()
+              .build();
+      shutdownChannel = true;
+    }
     ClientInterceptor deadlineInterceptor = new GrpcDeadlineInterceptor(options);
     ClientInterceptor tracingInterceptor = newTracingInterceptor();
     Metadata headers = new Metadata();
@@ -201,28 +207,41 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   @Override
   public void shutdown() {
     shutdownRequested.set(true);
-    channel.shutdown();
+    if (shutdownChannel) {
+      channel.shutdown();
+    }
   }
 
   @Override
   public void shutdownNow() {
     shutdownRequested.set(true);
-    channel.shutdownNow();
+    if (shutdownChannel) {
+      channel.shutdownNow();
+    }
   }
 
   @Override
   public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-    return channel.awaitTermination(timeout, unit);
+    if (shutdownChannel) {
+      return channel.awaitTermination(timeout, unit);
+    }
+    return true;
   }
 
   @Override
   public boolean isShutdown() {
-    return channel.isShutdown();
+    if (shutdownChannel) {
+      return channel.isShutdown();
+    }
+    return shutdownRequested.get();
   }
 
   @Override
   public boolean isTerminated() {
-    return channel.isTerminated();
+    if (shutdownChannel) {
+      return channel.isTerminated();
+    }
+    return shutdownRequested.get();
   }
 
   private static class GrpcDeadlineInterceptor implements ClientInterceptor {
