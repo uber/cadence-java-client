@@ -1,6 +1,10 @@
 # Changelog
 
-## 3.7
+## 3.7.1
+### Added
+- Add gRPC channel to client options.
+
+## 3.7.0
 ### Added
 - Add gRPC compatibility layer.
 
