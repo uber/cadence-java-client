@@ -23,78 +23,93 @@ import com.uber.cadence.FeatureFlags;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import com.uber.m3.tally.Scope;
+import io.grpc.ManagedChannel;
 import java.util.Map;
 
 public class ClientOptions {
+
   private static final int DEFAULT_LOCAL_CADENCE_SERVER_PORT = 7933;
 
   private static final String LOCALHOST = "127.0.0.1";
 
-  /** Default RPC timeout used for all non long poll calls. */
+  /**
+   * Default RPC timeout used for all non long poll calls.
+   */
   private static final long DEFAULT_RPC_TIMEOUT_MILLIS = 3 * 1000;
-  /** Default RPC timeout used for all long poll calls. */
+  /**
+   * Default RPC timeout used for all long poll calls.
+   */
   private static final long DEFAULT_POLL_RPC_TIMEOUT_MILLIS = 30 * 1000;
 
-  /** Default RPC timeout for QueryWorkflow */
+  /**
+   * Default RPC timeout for QueryWorkflow
+   */
   private static final long DEFAULT_QUERY_RPC_TIMEOUT_MILLIS = 10 * 1000;
 
-  /** Default RPC timeout for ListArchivedWorkflow */
+  /**
+   * Default RPC timeout for ListArchivedWorkflow
+   */
   private static final long DEFAULT_LIST_ARCHIVED_WORKFLOW_TIMEOUT_MILLIS = 180 * 1000;
 
   private static final String DEFAULT_CLIENT_APP_NAME = "cadence-client";
 
-  /** Name of the Cadence service front end as required by TChannel. */
+  /**
+   * Name of the Cadence service front end as required by TChannel.
+   */
   private static final String DEFAULT_SERVICE_NAME = "cadence-frontend";
-
-  private final String host;
-  private final int port;
-
-  /** The tChannel timeout in milliseconds */
-  private final long rpcTimeoutMillis;
-
-  /** The tChannel timeout for long poll calls in milliseconds */
-  private final long rpcLongPollTimeoutMillis;
-
-  /** The tChannel timeout for query workflow call in milliseconds */
-  private final long rpcQueryTimeoutMillis;
-
-  /** The tChannel timeout for list archived workflow call in milliseconds */
-  private final long rpcListArchivedWorkflowTimeoutMillis;
-
-  /** TChannel service name that the Cadence service was started with. */
-  private final String serviceName;
-
-  /** Name of the service using the cadence-client. */
-  private final String clientAppName;
-
-  /** Client for metrics reporting. */
-  private final Scope metricsScope;
-
-  /** Optional TChannel transport headers */
-  private final Map<String, String> transportHeaders;
-
-  /** Optional TChannel headers */
-  private final Map<String, String> headers;
-
-  /** Optional authorization provider */
-  private final IAuthorizationProvider authProvider;
-
   private static final ClientOptions DEFAULT_INSTANCE;
-
-  /** Optional Feature flags to turn on/off some Cadence features */
-  private final FeatureFlags featureFlags;
 
   static {
     DEFAULT_INSTANCE = new Builder().build();
   }
 
-  public static ClientOptions defaultInstance() {
-    return DEFAULT_INSTANCE;
-  }
-
-  public static Builder newBuilder() {
-    return new Builder();
-  }
+  private final String host;
+  private final int port;
+  private final ManagedChannel gRPCChannel;
+  /**
+   * The tChannel timeout in milliseconds
+   */
+  private final long rpcTimeoutMillis;
+  /**
+   * The tChannel timeout for long poll calls in milliseconds
+   */
+  private final long rpcLongPollTimeoutMillis;
+  /**
+   * The tChannel timeout for query workflow call in milliseconds
+   */
+  private final long rpcQueryTimeoutMillis;
+  /**
+   * The tChannel timeout for list archived workflow call in milliseconds
+   */
+  private final long rpcListArchivedWorkflowTimeoutMillis;
+  /**
+   * TChannel service name that the Cadence service was started with.
+   */
+  private final String serviceName;
+  /**
+   * Name of the service using the cadence-client.
+   */
+  private final String clientAppName;
+  /**
+   * Client for metrics reporting.
+   */
+  private final Scope metricsScope;
+  /**
+   * Optional TChannel transport headers
+   */
+  private final Map<String, String> transportHeaders;
+  /**
+   * Optional TChannel headers
+   */
+  private final Map<String, String> headers;
+  /**
+   * Optional authorization provider
+   */
+  private final IAuthorizationProvider authProvider;
+  /**
+   * Optional Feature flags to turn on/off some Cadence features
+   */
+  private final FeatureFlags featureFlags;
 
   private ClientOptions(Builder builder) {
     if (Strings.isNullOrEmpty(builder.host)) {
@@ -105,8 +120,8 @@ public class ClientOptions {
     } else {
       host = builder.host;
     }
-
     this.port = builder.port;
+    this.gRPCChannel = builder.gRPCChannel;
     this.rpcTimeoutMillis = builder.rpcTimeoutMillis;
     if (builder.clientAppName == null) {
       this.clientAppName = DEFAULT_CLIENT_APP_NAME;
@@ -141,6 +156,14 @@ public class ClientOptions {
     this.authProvider = builder.authProvider;
   }
 
+  public static ClientOptions defaultInstance() {
+    return DEFAULT_INSTANCE;
+  }
+
+  public static Builder newBuilder() {
+    return new Builder();
+  }
+
   public String getHost() {
     return host;
   }
@@ -149,27 +172,41 @@ public class ClientOptions {
     return port;
   }
 
-  /** @return Returns the rpc timeout value in millis. */
+  public ManagedChannel getGRPCChannel() {
+    return gRPCChannel;
+  }
+
+  /**
+   * @return Returns the rpc timeout value in millis.
+   */
   public long getRpcTimeoutMillis() {
     return rpcTimeoutMillis;
   }
 
-  /** @return Returns the rpc timout for long poll requests in millis. */
+  /**
+   * @return Returns the rpc timout for long poll requests in millis.
+   */
   public long getRpcLongPollTimeoutMillis() {
     return rpcLongPollTimeoutMillis;
   }
 
-  /** @return Returns the rpc timout for query workflow requests in millis. */
+  /**
+   * @return Returns the rpc timout for query workflow requests in millis.
+   */
   public long getRpcQueryTimeoutMillis() {
     return rpcQueryTimeoutMillis;
   }
 
-  /** @return Returns the rpc timout for list archived workflow requests in millis. */
+  /**
+   * @return Returns the rpc timout for list archived workflow requests in millis.
+   */
   public long getRpcListArchivedWorkflowTimeoutMillis() {
     return rpcListArchivedWorkflowTimeoutMillis;
   }
 
-  /** Returns the client application name. */
+  /**
+   * Returns the client application name.
+   */
   public String getClientAppName() {
     return this.clientAppName;
   }
@@ -204,8 +241,10 @@ public class ClientOptions {
    * @author venkat
    */
   public static class Builder {
+
     private String host;
     private int port = DEFAULT_LOCAL_CADENCE_SERVER_PORT;
+    private ManagedChannel gRPCChannel;
     private String clientAppName = DEFAULT_CLIENT_APP_NAME;
     private long rpcTimeoutMillis = DEFAULT_RPC_TIMEOUT_MILLIS;
     private long rpcLongPollTimeoutMillis = DEFAULT_POLL_RPC_TIMEOUT_MILLIS;
@@ -219,7 +258,8 @@ public class ClientOptions {
     private IAuthorizationProvider authProvider;
     private FeatureFlags featureFlags;
 
-    private Builder() {}
+    private Builder() {
+    }
 
     public Builder setHost(String host) {
       this.host = host;
@@ -233,6 +273,14 @@ public class ClientOptions {
 
     public Builder setPort(int port) {
       this.port = port;
+      return this;
+    }
+
+    /**
+     * Sets gRPC channel to use. Exclusive with host and port.
+     */
+    public Builder setGRPCChannel(ManagedChannel gRPCChannel) {
+      this.gRPCChannel = gRPCChannel;
       return this;
     }
 
@@ -279,6 +327,13 @@ public class ClientOptions {
     }
 
     /**
+     * Returns the feature flags defined in ClientOptions
+     */
+    public FeatureFlags getFeatureFlags() {
+      return this.featureFlags;
+    }
+
+    /**
      * Sets the feature flags to turn on/off some Cadence features By default, all features under
      * FeatureFlags are turned off.
      *
@@ -287,11 +342,6 @@ public class ClientOptions {
     public Builder setFeatureFlags(FeatureFlags featureFlags) {
       this.featureFlags = featureFlags;
       return this;
-    }
-
-    /** Returns the feature flags defined in ClientOptions */
-    public FeatureFlags getFeatureFlags() {
-      return this.featureFlags;
     }
 
     /**
