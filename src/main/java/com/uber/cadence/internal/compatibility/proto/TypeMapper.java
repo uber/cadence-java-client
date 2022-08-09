@@ -231,7 +231,7 @@ class TypeMapper {
 
   static StartTimeFilter startTimeFilter(com.uber.cadence.StartTimeFilter t) {
     if (t == null) {
-      return StartTimeFilter.newBuilder().build();
+      return null;
     }
     return StartTimeFilter.newBuilder()
         .setEarliestTime(unixNanoToTime(t.getEarliestTime()))
@@ -259,7 +259,7 @@ class TypeMapper {
 
   static StatusFilter statusFilter(com.uber.cadence.WorkflowExecutionCloseStatus t) {
     if (t == null) {
-      return StatusFilter.newBuilder().build();
+      return null;
     }
     return StatusFilter.newBuilder().setStatus(workflowExecutionCloseStatus(t)).build();
   }
