@@ -142,12 +142,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return ListArchivedWorkflowExecutionsRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setPageSize(t.getPageSize())
-        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
-        .setQuery(t.getQuery())
-        .build();
+    ListArchivedWorkflowExecutionsRequest.Builder request =
+        ListArchivedWorkflowExecutionsRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setPageSize(t.getPageSize())
+            .setQuery(t.getQuery());
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    return request.build();
   }
 
   public static RequestCancelWorkflowExecutionRequest requestCancelWorkflowExecutionRequest(
@@ -367,12 +370,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return ScanWorkflowExecutionsRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setPageSize(t.getPageSize())
-        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
-        .setQuery(t.getQuery())
-        .build();
+    ScanWorkflowExecutionsRequest.Builder request =
+        ScanWorkflowExecutionsRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setPageSize(t.getPageSize())
+            .setQuery(t.getQuery());
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    return request.build();
   }
 
   public static DescribeWorkflowExecutionRequest describeWorkflowExecutionRequest(
@@ -552,10 +558,11 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return ListDomainsRequest.newBuilder()
-        .setPageSize(t.pageSize)
-        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
-        .build();
+    ListDomainsRequest.Builder request = ListDomainsRequest.newBuilder().setPageSize(t.pageSize);
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    return request.build();
   }
 
   public static ListTaskListPartitionsRequest listTaskListPartitionsRequest(
@@ -574,12 +581,15 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return ListWorkflowExecutionsRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setPageSize(t.getPageSize())
-        .setNextPageToken(arrayToByteString(t.getNextPageToken()))
-        .setQuery(t.getQuery())
-        .build();
+    ListWorkflowExecutionsRequest.Builder request =
+        ListWorkflowExecutionsRequest.newBuilder()
+            .setDomain(t.getDomain())
+            .setPageSize(t.getPageSize())
+            .setQuery(t.getQuery());
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    return request.build();
   }
 
   public static PollForActivityTaskRequest pollForActivityTaskRequest(
@@ -652,9 +662,7 @@ public class RequestMapper {
       return null;
     }
     RecordActivityTaskHeartbeatRequest.Builder builder =
-        RecordActivityTaskHeartbeatRequest.newBuilder()
-            .setTaskToken(arrayToByteString(t.getTaskToken()))
-            .setDetails(payload(t.getDetails()));
+        RecordActivityTaskHeartbeatRequest.newBuilder().setDetails(payload(t.getDetails()));
     if (t.getTaskToken() != null) {
       builder.setTaskToken(arrayToByteString(t.getTaskToken()));
     }
@@ -771,47 +779,50 @@ public class RequestMapper {
   }
 
   public static ListClosedWorkflowExecutionsRequest listClosedWorkflowExecutionsRequest(
-      com.uber.cadence.ListClosedWorkflowExecutionsRequest r) {
-    if (r == null) {
+      com.uber.cadence.ListClosedWorkflowExecutionsRequest t) {
+    if (t == null) {
       return null;
     }
     ListClosedWorkflowExecutionsRequest.Builder request =
         ListClosedWorkflowExecutionsRequest.newBuilder()
-            .setDomain(r.getDomain())
-            .setPageSize(r.getMaximumPageSize())
-            .setNextPageToken(arrayToByteString(r.getNextPageToken()))
-            .setStartTimeFilter(startTimeFilter(r.StartTimeFilter));
+            .setDomain(t.getDomain())
+            .setPageSize(t.getMaximumPageSize())
+            .setStartTimeFilter(startTimeFilter(t.StartTimeFilter));
 
-    if (r.getExecutionFilter() != null) {
-      request.setExecutionFilter(workflowExecutionFilter(r.getExecutionFilter()));
+    if (t.getExecutionFilter() != null) {
+      request.setExecutionFilter(workflowExecutionFilter(t.getExecutionFilter()));
     }
-    if (r.getTypeFilter() != null) {
-      request.setTypeFilter(workflowTypeFilter(r.getTypeFilter()));
+    if (t.getTypeFilter() != null) {
+      request.setTypeFilter(workflowTypeFilter(t.getTypeFilter()));
     }
-    if (r.getStatusFilter() != null) {
-      request.setStatusFilter(statusFilter(r.getStatusFilter()));
+    if (t.getStatusFilter() != null) {
+      request.setStatusFilter(statusFilter(t.getStatusFilter()));
     }
-
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
     return request.build();
   }
 
   public static ListOpenWorkflowExecutionsRequest listOpenWorkflowExecutionsRequest(
-      com.uber.cadence.ListOpenWorkflowExecutionsRequest r) {
-    if (r == null) {
+      com.uber.cadence.ListOpenWorkflowExecutionsRequest t) {
+    if (t == null) {
       return null;
     }
     ListOpenWorkflowExecutionsRequest.Builder request =
         ListOpenWorkflowExecutionsRequest.newBuilder()
-            .setDomain(r.getDomain())
-            .setPageSize(r.getMaximumPageSize())
-            .setNextPageToken(arrayToByteString(r.getNextPageToken()))
-            .setStartTimeFilter(startTimeFilter(r.StartTimeFilter));
+            .setDomain(t.getDomain())
+            .setPageSize(t.getMaximumPageSize())
+            .setStartTimeFilter(startTimeFilter(t.StartTimeFilter));
 
-    if (r.getExecutionFilter() != null) {
-      request.setExecutionFilter(workflowExecutionFilter(r.getExecutionFilter()));
+    if (t.getExecutionFilter() != null) {
+      request.setExecutionFilter(workflowExecutionFilter(t.getExecutionFilter()));
     }
-    if (r.getTypeFilter() != null) {
-      request.setTypeFilter(workflowTypeFilter(r.getTypeFilter()));
+    if (t.getTypeFilter() != null) {
+      request.setTypeFilter(workflowTypeFilter(t.getTypeFilter()));
+    }
+    if (t.getNextPageToken() != null) {
+      request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
     }
 
     return request.build();
