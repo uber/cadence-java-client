@@ -118,10 +118,12 @@ public class RequestMapper {
     if (t == null) {
       return null;
     }
-    return CountWorkflowExecutionsRequest.newBuilder()
-        .setDomain(t.getDomain())
-        .setQuery(t.getQuery())
-        .build();
+    CountWorkflowExecutionsRequest.Builder request =
+        CountWorkflowExecutionsRequest.newBuilder().setDomain(t.getDomain());
+    if (t.getQuery() != null) {
+      request.setQuery(t.getQuery());
+    }
+    return request.build();
   }
 
   public static DescribeTaskListRequest describeTaskListRequest(
@@ -145,10 +147,12 @@ public class RequestMapper {
     ListArchivedWorkflowExecutionsRequest.Builder request =
         ListArchivedWorkflowExecutionsRequest.newBuilder()
             .setDomain(t.getDomain())
-            .setPageSize(t.getPageSize())
-            .setQuery(t.getQuery());
+            .setPageSize(t.getPageSize());
     if (t.getNextPageToken() != null) {
       request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    if (t.getQuery() != null) {
+      request.setQuery(t.getQuery());
     }
     return request.build();
   }
@@ -373,10 +377,12 @@ public class RequestMapper {
     ScanWorkflowExecutionsRequest.Builder request =
         ScanWorkflowExecutionsRequest.newBuilder()
             .setDomain(t.getDomain())
-            .setPageSize(t.getPageSize())
-            .setQuery(t.getQuery());
+            .setPageSize(t.getPageSize());
     if (t.getNextPageToken() != null) {
       request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    if (t.getQuery() != null) {
+      request.setQuery(t.getQuery());
     }
     return request.build();
   }
@@ -584,10 +590,12 @@ public class RequestMapper {
     ListWorkflowExecutionsRequest.Builder request =
         ListWorkflowExecutionsRequest.newBuilder()
             .setDomain(t.getDomain())
-            .setPageSize(t.getPageSize())
-            .setQuery(t.getQuery());
+            .setPageSize(t.getPageSize());
     if (t.getNextPageToken() != null) {
       request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
+    }
+    if (t.getQuery() != null) {
+      request.setQuery(t.getQuery());
     }
     return request.build();
   }

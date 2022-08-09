@@ -189,7 +189,7 @@ class TypeMapper {
 
   static WorkflowQuery workflowQuery(com.uber.cadence.WorkflowQuery t) {
     if (t == null) {
-      return WorkflowQuery.newBuilder().build();
+      return null;
     }
     return WorkflowQuery.newBuilder()
         .setQueryType(t.getQueryType())
