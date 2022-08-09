@@ -786,9 +786,7 @@ public class RequestMapper {
     ListClosedWorkflowExecutionsRequest.Builder request =
         ListClosedWorkflowExecutionsRequest.newBuilder()
             .setDomain(t.getDomain())
-            .setPageSize(t.getMaximumPageSize())
-            .setStartTimeFilter(startTimeFilter(t.StartTimeFilter));
-
+            .setPageSize(t.getMaximumPageSize());
     if (t.getExecutionFilter() != null) {
       request.setExecutionFilter(workflowExecutionFilter(t.getExecutionFilter()));
     }
@@ -801,6 +799,9 @@ public class RequestMapper {
     if (t.getNextPageToken() != null) {
       request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
     }
+    if (t.getStartTimeFilter() != null) {
+      request.setStartTimeFilter(startTimeFilter(t.getStartTimeFilter()));
+    }
     return request.build();
   }
 
@@ -812,9 +813,7 @@ public class RequestMapper {
     ListOpenWorkflowExecutionsRequest.Builder request =
         ListOpenWorkflowExecutionsRequest.newBuilder()
             .setDomain(t.getDomain())
-            .setPageSize(t.getMaximumPageSize())
-            .setStartTimeFilter(startTimeFilter(t.StartTimeFilter));
-
+            .setPageSize(t.getMaximumPageSize());
     if (t.getExecutionFilter() != null) {
       request.setExecutionFilter(workflowExecutionFilter(t.getExecutionFilter()));
     }
@@ -824,7 +823,9 @@ public class RequestMapper {
     if (t.getNextPageToken() != null) {
       request.setNextPageToken(arrayToByteString(t.getNextPageToken()));
     }
-
+    if (t.getStartTimeFilter() != null) {
+      request.setStartTimeFilter(startTimeFilter(t.getStartTimeFilter()));
+    }
     return request.build();
   }
 }
