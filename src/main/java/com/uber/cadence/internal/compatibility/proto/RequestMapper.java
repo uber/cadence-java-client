@@ -28,7 +28,7 @@ import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteS
 import static com.uber.cadence.internal.compatibility.proto.Helpers.daysToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.newFieldMask;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
-import static com.uber.cadence.internal.compatibility.proto.Helpers.toNonNull;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.nullToEmpty;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.badBinaries;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.clusterReplicationConfigurationArray;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.failure;
@@ -688,19 +688,19 @@ public class RequestMapper {
     RegisterDomainRequest request =
         RegisterDomainRequest.newBuilder()
             .setName(t.getName())
-            .setDescription(toNonNull(t.getDescription()))
-            .setOwnerEmail(toNonNull(t.getOwnerEmail()))
+            .setDescription(Helpers.nullToEmpty(t.getDescription()))
+            .setOwnerEmail(Helpers.nullToEmpty(t.getOwnerEmail()))
             .setWorkflowExecutionRetentionPeriod(
                 daysToDuration(t.getWorkflowExecutionRetentionPeriodInDays()))
             .addAllClusters(clusterReplicationConfigurationArray(t.getClusters()))
-            .setActiveClusterName(toNonNull(t.getActiveClusterName()))
-            .putAllData(toNonNull(t.getData()))
-            .setSecurityToken(toNonNull(t.getSecurityToken()))
-            .setIsGlobalDomain(toNonNull(t.isIsGlobalDomain()))
+            .setActiveClusterName(Helpers.nullToEmpty(t.getActiveClusterName()))
+            .putAllData(Helpers.nullToEmpty(t.getData()))
+            .setSecurityToken(Helpers.nullToEmpty(t.getSecurityToken()))
+            .setIsGlobalDomain(nullToEmpty(t.isIsGlobalDomain()))
             .setHistoryArchivalStatus(archivalStatus(t.getHistoryArchivalStatus()))
-            .setHistoryArchivalUri(toNonNull(t.getHistoryArchivalURI()))
+            .setHistoryArchivalUri(Helpers.nullToEmpty(t.getHistoryArchivalURI()))
             .setVisibilityArchivalStatus(archivalStatus(t.getVisibilityArchivalStatus()))
-            .setVisibilityArchivalUri(toNonNull(t.getVisibilityArchivalURI()))
+            .setVisibilityArchivalUri(Helpers.nullToEmpty(t.getVisibilityArchivalURI()))
             .build();
     return request;
   }
