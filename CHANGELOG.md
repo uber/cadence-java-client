@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.7.2
+- Fix gRPC adapter for List APIs.
+
 ## 3.7.1
 ### Added
 - Add gRPC channel to client options.
