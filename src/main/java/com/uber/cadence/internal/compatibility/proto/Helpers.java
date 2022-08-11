@@ -54,15 +54,15 @@ class Helpers {
     return Durations.fromDays(days);
   }
 
-  static Map toNonNull(Map t) {
+  static Map nullToEmpty(Map t) {
     return MoreObjects.firstNonNull(t, Collections.emptyMap());
   }
 
-  static String toNonNull(String t) {
+  static String nullToEmpty(String t) {
     return Strings.nullToEmpty(t);
   }
 
-  static boolean toNonNull(boolean t) {
+  static boolean nullToEmpty(boolean t) {
     return MoreObjects.firstNonNull(t, false);
   }
 
