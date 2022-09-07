@@ -343,13 +343,17 @@ public class ResponseMapper {
     DescribeDomainResponse response = new DescribeDomainResponse();
     DomainInfo domainInfo = new DomainInfo();
     response.setDomainInfo(domainInfo);
+
     domainInfo.setName(t.getDomain().getName());
     domainInfo.setStatus(domainStatus(t.getDomain().getStatus()));
     domainInfo.setDescription(t.getDomain().getDescription());
     domainInfo.setOwnerEmail(t.getDomain().getOwnerEmail());
     domainInfo.setData(t.getDomain().getDataMap());
     domainInfo.setUuid(t.getDomain().getId());
+
     DomainConfiguration domainConfiguration = new DomainConfiguration();
+    response.setConfiguration(domainConfiguration);
+
     domainConfiguration.setWorkflowExecutionRetentionPeriodInDays(
         durationToDays(t.getDomain().getWorkflowExecutionRetentionPeriod()));
     domainConfiguration.setEmitMetric(true);
@@ -360,10 +364,14 @@ public class ResponseMapper {
     domainConfiguration.setVisibilityArchivalStatus(
         archivalStatus(t.getDomain().getVisibilityArchivalStatus()));
     domainConfiguration.setVisibilityArchivalURI(t.getDomain().getVisibilityArchivalUri());
+
     DomainReplicationConfiguration replicationConfiguration = new DomainReplicationConfiguration();
+    response.setReplicationConfiguration(replicationConfiguration);
+
     replicationConfiguration.setActiveClusterName(t.getDomain().getActiveClusterName());
     replicationConfiguration.setClusters(
         clusterReplicationConfigurationArray(t.getDomain().getClustersList()));
+
     response.setFailoverVersion(t.getDomain().getFailoverVersion());
     response.setIsGlobalDomain(t.getDomain().getIsGlobalDomain());
     return response;
@@ -406,7 +414,9 @@ public class ResponseMapper {
     domainInfo.setOwnerEmail(t.getDomain().getOwnerEmail());
     domainInfo.setData(t.getDomain().getDataMap());
     domainInfo.setUuid(t.getDomain().getId());
+
     DomainConfiguration domainConfiguration = new DomainConfiguration();
+    updateDomainResponse.setConfiguration(domainConfiguration);
 
     domainConfiguration.setWorkflowExecutionRetentionPeriodInDays(
         durationToDays(t.getDomain().getWorkflowExecutionRetentionPeriod()));
@@ -418,8 +428,10 @@ public class ResponseMapper {
     domainConfiguration.setVisibilityArchivalStatus(
         archivalStatus(t.getDomain().getVisibilityArchivalStatus()));
     domainConfiguration.setVisibilityArchivalURI(t.getDomain().getVisibilityArchivalUri());
+
     DomainReplicationConfiguration domainReplicationConfiguration =
         new DomainReplicationConfiguration();
+    updateDomainResponse.setReplicationConfiguration(domainReplicationConfiguration);
 
     domainReplicationConfiguration.setActiveClusterName(t.getDomain().getActiveClusterName());
     domainReplicationConfiguration.setClusters(
