@@ -1,5 +1,6 @@
 # Changelog
-
+## 3.7.3
+- Fix describe domain and update domain grpc calls to include domainConfiguration and replication configuration in response.
 ## 3.7.2
 - Fix gRPC adapter for List APIs.
 
