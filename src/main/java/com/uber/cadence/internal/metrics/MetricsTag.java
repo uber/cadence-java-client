@@ -33,4 +33,5 @@ public class MetricsTag {
   public static final String SIDE_EFFECT_ID = "SideEffectID";
   public static final String CHILD_WORKFLOW_ID = "ChildWorkflowID";
   public static final String REQUEST_TYPE = "RequestType";
+  public static final String VERSION = "Version";
 }

@@ -31,6 +31,7 @@ import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
+import com.uber.cadence.internal.metrics.ClientVersionEmitter;
 import com.uber.cadence.internal.sync.WorkflowInvocationHandler.InvocationType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
@@ -43,6 +44,9 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -64,6 +68,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
       IWorkflowService service, WorkflowClientOptions options) {
     Objects.requireNonNull(service);
     Objects.requireNonNull(options);
+
+    registerClientVersionEmitting(options);
     return new WorkflowClientInternal(service, options);
   }
 
@@ -399,5 +405,15 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A5 arg5,
       A6 arg6) {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
+  private static void registerClientVersionEmitting(
+          WorkflowClientOptions options) {
+    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
+    executorService.scheduleAtFixedRate(
+            new ClientVersionEmitter(options.getMetricsScope(), options.getDomain()),
+            15,
+            15,
+            TimeUnit.SECONDS);
   }
 }
