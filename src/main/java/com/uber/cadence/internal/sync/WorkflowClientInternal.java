@@ -43,10 +43,8 @@ import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+
 import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -69,7 +67,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     Objects.requireNonNull(service);
     Objects.requireNonNull(options);
 
-    registerClientVersionEmitting(options);
+    emitClientVersion(options);
     return new WorkflowClientInternal(service, options);
   }
 
@@ -407,13 +405,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  private static void registerClientVersionEmitting(
+  private static void emitClientVersion(
           WorkflowClientOptions options) {
-    ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-    executorService.scheduleAtFixedRate(
-            new ClientVersionEmitter(options.getMetricsScope(), options.getDomain()),
-            15,
-            15,
-            TimeUnit.SECONDS);
+      new ClientVersionEmitter(options.getMetricsScope(), options.getDomain());
   }
 }
