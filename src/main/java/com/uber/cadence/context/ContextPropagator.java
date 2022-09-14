@@ -136,4 +136,31 @@ public interface ContextPropagator {
 
   /** Sets the current context */
   void setCurrentContext(Object context);
+
+  /**
+   * This is a lifecycle method, called after the context has been propagated to the
+   * workflow/activity thread but the workflow/activity has not yet started.
+   */
+  default void setUp() {
+    // No-op
+  }
+
+  /**
+   * This is a lifecycle method, called after the workflow/activity has completed. If the method
+   * finished without exception, {@code successful} will be true. Otherwise, it will be false and
+   * {@link #onError(Throwable)} will have already been called.
+   */
+  default void finish(boolean successful) {
+    // No-op
+  }
+
+  /**
+   * This is a lifecycle method, called when the workflow/activity finishes by throwing an unhandled
+   * exception. {@link #finish(boolean)} is called after this method.
+   *
+   * @param t The unhandled exception that caused the workflow/activity to terminate
+   */
+  default void onError(Throwable t) {
+    // No-op
+  }
 }

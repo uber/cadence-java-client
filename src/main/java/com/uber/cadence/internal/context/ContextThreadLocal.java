@@ -24,9 +24,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** This class holds the current set of context propagators */
 public class ContextThreadLocal {
+
+  private static final Logger log = LoggerFactory.getLogger(ContextThreadLocal.class);
 
   private static WorkflowThreadLocal<List<ContextPropagator>> contextPropagators =
       WorkflowThreadLocal.withInitial(
@@ -64,6 +68,51 @@ public class ContextThreadLocal {
     for (ContextPropagator propagator : contextPropagators.get()) {
       if (contextData.containsKey(propagator.getName())) {
         propagator.setCurrentContext(contextData.get(propagator.getName()));
+      }
+    }
+  }
+
+  /** Calls {@link ContextPropagator#setUp()} for each propagator */
+  public static void setUpContextPropagators() {
+    for (ContextPropagator propagator : contextPropagators.get()) {
+      try {
+        propagator.setUp();
+      } catch (Throwable t) {
+        // Don't let an error in one propagator block the others
+        log.error("Error calling setUp() on a contextpropagator", t);
+      }
+    }
+  }
+
+  /**
+   * Calls {@link ContextPropagator#onError(Throwable)} for each propagator
+   *
+   * @param t The Throwable that caused the workflow/activity to finish
+   */
+  public static void onErrorContextPropagators(Throwable t) {
+    for (ContextPropagator propagator : contextPropagators.get()) {
+      try {
+        propagator.onError(t);
+      } catch (Throwable t1) {
+        // Don't let an error in one propagator block the others
+        log.error("Error calling onError() on a contextpropagator", t1);
+      }
+    }
+  }
+
+  /**
+   * Calls {@link ContextPropagator#finish(boolean)} for each propagator
+   *
+   * @param successful True if the workflow/activity completed without unhandled exception, false
+   *     otherwise
+   */
+  public static void finishContextPropagators(boolean successful) {
+    for (ContextPropagator propagator : contextPropagators.get()) {
+      try {
+        propagator.finish(successful);
+      } catch (Throwable t) {
+        // Don't let an error in one propagator block the others
+        log.error("Error calling finish() on a contextpropagator", t);
       }
     }
   }

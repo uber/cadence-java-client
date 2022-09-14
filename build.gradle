@@ -71,6 +71,8 @@ dependencies {
     compile group: 'com.google.api.grpc', name: 'proto-google-common-protos', version: '1.17.0'
     compile group: 'io.grpc', name: 'grpc-testing', version: '1.28.0'
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: '3.21.1'
+    compile group: 'io.opentracing', name: 'opentracing-api', version: '0.33.0'
+    compile group: 'io.opentracing', name: 'opentracing-util', version: '0.33.0'
 
     implementation 'io.grpc:grpc-netty-shaded:1.28.0'
     implementation 'io.grpc:grpc-protobuf:1.28.0'
@@ -79,6 +81,7 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'com.googlecode.junit-toolbox', name: 'junit-toolbox', version: '2.4'
     testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    testCompile group: 'io.opentracing', name: 'opentracing-mock', version: '0.33.0'
 }
 
 license {
