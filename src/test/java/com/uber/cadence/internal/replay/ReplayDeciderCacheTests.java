@@ -103,45 +103,43 @@ public class ReplayDeciderCacheTests {
     service.close();
   }
 
-  //  @Test(timeout = 2000)
-  //  public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
-  //    // Arrange
-  //    Map<String, String> tags =
-  //        new ImmutableMap.Builder<String, String>(2)
-  //            .put(MetricsTag.DOMAIN, "domain")
-  //            .put(MetricsTag.TASK_LIST, "stickyTaskList")
-  //            .build();
-  //    StatsReporter reporter = mock(StatsReporter.class);
-  //    Scope scope =
-  //        new
-  // RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(500)).tagged(tags);
-  //
-  //    DeciderCache replayDeciderCache = new DeciderCache(10, scope);
-  //    TestWorkflowService service = new TestWorkflowService();
-  //    service.lockTimeSkipping("test");
-  //    PollForDecisionTaskResponse decisionTask =
-  //        HistoryUtils.generateDecisionTaskWithInitialHistory(
-  //            "domain", "taskList", "workflowType", service);
-  //
-  //    Decider decider =
-  //        replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
-  //    replayDeciderCache.addToCache(decisionTask, decider);
-  //
-  //    // Act
-  //    PollForDecisionTaskResponse decisionTask2 =
-  //        HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(
-  //            decisionTask, "domain", "stickyTaskList", service);
-  //    Decider decider2 =
-  //        replayDeciderCache.getOrCreate(decisionTask2, () ->
-  // doNotCreateFakeDecider(decisionTask2));
-  //
-  //    // Assert
-  //    // Wait for reporter
-  //    Thread.sleep(500);
-  //    verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 1);
-  //    assertEquals(decider, decider2);
-  //    service.close();
-  //  }
+  @Test(timeout = 2000)
+  public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
+    // Arrange
+    Map<String, String> tags =
+        new ImmutableMap.Builder<String, String>(2)
+            .put(MetricsTag.DOMAIN, "domain")
+            .put(MetricsTag.TASK_LIST, "stickyTaskList")
+            .build();
+    StatsReporter reporter = mock(StatsReporter.class);
+    Scope scope =
+        new RootScopeBuilder().reporter(reporter).reportEvery(Duration.ofMillis(500)).tagged(tags);
+
+    DeciderCache replayDeciderCache = new DeciderCache(10, scope);
+    TestWorkflowService service = new TestWorkflowService();
+    service.lockTimeSkipping("test");
+    PollForDecisionTaskResponse decisionTask =
+        HistoryUtils.generateDecisionTaskWithInitialHistory(
+            "domain", "taskList", "workflowType", service);
+
+    Decider decider =
+        replayDeciderCache.getOrCreate(decisionTask, () -> createFakeDecider(decisionTask));
+    replayDeciderCache.addToCache(decisionTask, decider);
+
+    // Act
+    PollForDecisionTaskResponse decisionTask2 =
+        HistoryUtils.generateDecisionTaskWithPartialHistoryFromExistingTask(
+            decisionTask, "domain", "stickyTaskList", service);
+    Decider decider2 =
+        replayDeciderCache.getOrCreate(decisionTask2, () -> doNotCreateFakeDecider(decisionTask2));
+
+    // Assert
+    // Wait for reporter
+    Thread.sleep(500);
+    verify(reporter, times(1)).reportCounter(MetricsType.STICKY_CACHE_HIT, tags, 1);
+    assertEquals(decider, decider2);
+    service.close();
+  }
 
   @Test
   public void whenHistoryIsPartialAndCacheIsEmptyThenExceptionIsThrown() throws Exception {
