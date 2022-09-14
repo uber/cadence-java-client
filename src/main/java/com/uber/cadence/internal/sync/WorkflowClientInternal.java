@@ -44,7 +44,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.*;
-
 import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -54,6 +53,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
   private final WorkflowClientInterceptor[] interceptors;
   private final IWorkflowService workflowService;
   private final WorkflowClientOptions clientOptions;
+  private static boolean emittingClientVersion = false;
 
   /**
    * Creates client that connects to an instance of the Cadence Service.
@@ -405,8 +405,17 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  private static void emitClientVersion(
-          WorkflowClientOptions options) {
-      new ClientVersionEmitter(options.getMetricsScope(), options.getDomain());
+  private synchronized static void emitClientVersion(WorkflowClientOptions options) {
+    if (emittingClientVersion) {
+      return;
+    }
+
+    emittingClientVersion = true;
+    Executors.newSingleThreadScheduledExecutor()
+        .scheduleAtFixedRate(
+            new ClientVersionEmitter(options.getMetricsScope(), options.getDomain()),
+            30,
+            60,
+            TimeUnit.SECONDS);
   }
 }

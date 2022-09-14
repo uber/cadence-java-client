@@ -27,18 +27,11 @@ import java.util.Properties;
 
 public class ClientVersionEmitter implements Runnable {
 
-  private final Scope metricScope;
-  private final Map<String, String> tags;
+  private Scope metricScope;
 
   public ClientVersionEmitter(Scope metricScope, String domain) {
-    if (metricScope == null) {
-      this.metricScope = NoopScope.getInstance();
-    } else {
-      this.metricScope = metricScope;
-    }
-
     if (domain == null) {
-      domain = "";
+      domain = "UNKNOWN";
     }
 
     Properties prop = new Properties();
@@ -51,15 +44,21 @@ public class ClientVersionEmitter implements Runnable {
       version = "UNKNOWN";
     }
 
-    this.tags =
+    Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
             .put(MetricsTag.VERSION, version)
             .put(MetricsTag.DOMAIN, domain)
             .build();
+
+    if (metricScope == null) {
+      this.metricScope = NoopScope.getInstance();
+    } else {
+      this.metricScope = metricScope.tagged(tags);
+    }
   }
 
   @Override
   public void run() {
-    metricScope.tagged(tags).counter(MetricsType.JAVA_CLIENT_VERSION).inc(1);
+    metricScope.counter(MetricsType.JAVA_CLIENT_VERSION).inc(1);
   }
 }
