@@ -170,4 +170,6 @@ public class MetricsType {
   public static final String REPLAY_SKIPPED_COUNTER = CADENCE_METRICS_PREFIX + "replay-skipped";
   public static final String REPLAY_SUCCESS_COUNTER = CADENCE_METRICS_PREFIX + "replay-succeed";
   public static final String REPLAY_LATENCY = CADENCE_METRICS_PREFIX + "replay-latency";
+
+  public static final String JAVA_CLIENT_VERSION = CADENCE_METRICS_PREFIX + "java-client-version";
 }

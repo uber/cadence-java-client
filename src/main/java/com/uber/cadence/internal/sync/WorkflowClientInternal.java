@@ -31,6 +31,7 @@ import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.internal.external.GenericWorkflowClientExternalImpl;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
+import com.uber.cadence.internal.metrics.ClientVersionEmitter;
 import com.uber.cadence.internal.sync.WorkflowInvocationHandler.InvocationType;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
@@ -43,6 +44,9 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -52,6 +56,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
   private final WorkflowClientInterceptor[] interceptors;
   private final IWorkflowService workflowService;
   private final WorkflowClientOptions clientOptions;
+  private static boolean emittingClientVersion = false;
 
   /**
    * Creates client that connects to an instance of the Cadence Service.
@@ -64,6 +69,8 @@ public final class WorkflowClientInternal implements WorkflowClient {
       IWorkflowService service, WorkflowClientOptions options) {
     Objects.requireNonNull(service);
     Objects.requireNonNull(options);
+
+    emitClientVersion(options);
     return new WorkflowClientInternal(service, options);
   }
 
@@ -399,5 +406,19 @@ public final class WorkflowClientInternal implements WorkflowClient {
       A5 arg5,
       A6 arg6) {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
+  private synchronized static void emitClientVersion(WorkflowClientOptions options) {
+    if (emittingClientVersion) {
+      return;
+    }
+
+    emittingClientVersion = true;
+    Executors.newSingleThreadScheduledExecutor()
+        .scheduleAtFixedRate(
+            new ClientVersionEmitter(options.getMetricsScope(), options.getDomain()),
+            30,
+            60,
+            TimeUnit.SECONDS);
   }
 }
