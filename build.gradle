@@ -74,7 +74,7 @@ dependencies {
     compile group: 'io.opentracing', name: 'opentracing-api', version: '0.33.0'
     compile group: 'io.opentracing', name: 'opentracing-util', version: '0.33.0'
 
-    implementation 'io.grpc:grpc-netty-shaded:1.28.0'
+    compile 'io.grpc:grpc-netty-shaded:1.28.0'
     implementation 'io.grpc:grpc-protobuf:1.28.0'
     implementation 'io.grpc:grpc-stub:1.28.0'
 
