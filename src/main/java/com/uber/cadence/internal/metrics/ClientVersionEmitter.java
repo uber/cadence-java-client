@@ -27,38 +27,46 @@ import java.util.Properties;
 
 public class ClientVersionEmitter implements Runnable {
 
-  private Scope metricScope;
+  private final Scope metricScope;
+  private final String domain;
+  private Scope taggedScope;
 
   public ClientVersionEmitter(Scope metricScope, String domain) {
     if (domain == null) {
-      domain = "UNKNOWN";
+      this.domain = "UNKNOWN";
+    } else {
+      this.domain = domain;
     }
-
-    Properties prop = new Properties();
-    InputStream in = Version.class.getResourceAsStream("/com/uber/cadence/version.properties");
-    String version = "";
-    try {
-      prop.load(in);
-      version = prop.getProperty("cadence-client-version");
-    } catch (IOException exception) {
-      version = "UNKNOWN";
-    }
-
-    Map<String, String> tags =
-        new ImmutableMap.Builder<String, String>(2)
-            .put(MetricsTag.VERSION, version)
-            .put(MetricsTag.DOMAIN, domain)
-            .build();
 
     if (metricScope == null) {
       this.metricScope = NoopScope.getInstance();
     } else {
-      this.metricScope = metricScope.tagged(tags);
+      this.metricScope = metricScope;
     }
   }
 
   @Override
   public void run() {
-    metricScope.counter(MetricsType.JAVA_CLIENT_VERSION).inc(1);
+    if (taggedScope == null) {
+      Properties prop = new Properties();
+      InputStream in = Version.class.getResourceAsStream("/com/uber/cadence/version.properties");
+      String version = "";
+      try {
+        prop.load(in);
+        version = prop.getProperty("cadence-client-version");
+      } catch (IOException exception) {
+        version = "UNKNOWN";
+      }
+
+      Map<String, String> tags =
+              new ImmutableMap.Builder<String, String>(2)
+                      .put(MetricsTag.VERSION, version)
+                      .put(MetricsTag.DOMAIN, domain)
+                      .build();
+
+      taggedScope = metricScope.tagged(tags);
+    }
+
+    taggedScope.counter(MetricsType.JAVA_CLIENT_VERSION).inc(1);
   }
 }
