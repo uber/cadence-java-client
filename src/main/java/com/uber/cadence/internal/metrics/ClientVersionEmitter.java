@@ -24,9 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientVersionEmitter implements Runnable {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClientVersionEmitter.class);
   private Scope metricScope;
 
   public ClientVersionEmitter(Scope metricScope, String domain) {
@@ -36,12 +39,15 @@ public class ClientVersionEmitter implements Runnable {
 
     Properties prop = new Properties();
     InputStream in = Version.class.getResourceAsStream("/com/uber/cadence/version.properties");
-    String version = "";
-    try {
-      prop.load(in);
-      version = prop.getProperty("cadence-client-version");
-    } catch (IOException exception) {
-      version = "UNKNOWN";
+    String version = "UNKNOWN";
+
+    if (in != null) {
+      try {
+        prop.load(in);
+        version = prop.getProperty("cadence-client-version");
+      } catch (IOException exception) {
+        LOGGER.warn("couldn't read java cadence-client-version");
+      }
     }
 
     Map<String, String> tags =
