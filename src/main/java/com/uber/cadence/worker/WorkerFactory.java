@@ -30,6 +30,7 @@ import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
 import com.uber.cadence.internal.worker.Poller;
 import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.internal.worker.WorkerShutDownHandler;
 import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
@@ -136,6 +137,8 @@ public final class WorkerFactory {
                 .setPollThreadCount(this.factoryOptions.getStickyPollerCount())
                 .build(),
             stickyScope);
+
+    WorkerShutDownHandler.registerWorkerFactory(this);
   }
 
   /**
