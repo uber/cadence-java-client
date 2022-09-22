@@ -35,7 +35,6 @@ import com.uber.cadence.internal.metrics.ClientVersionEmitter;
 import com.uber.cadence.internal.sync.WorkflowInvocationHandler.InvocationType;
 import com.uber.cadence.internal.worker.WorkerShutDownHandler;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.worker.WorkerFactory;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;
 import com.uber.cadence.workflow.WorkflowMethod;
@@ -48,7 +47,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.thrift.TException;
 
 public final class WorkflowClientInternal implements WorkflowClient {
@@ -412,7 +410,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  private synchronized static void emitClientVersion(WorkflowClientOptions options) {
+  private static synchronized void emitClientVersion(WorkflowClientOptions options) {
     if (emittingClientVersion) {
       return;
     }
