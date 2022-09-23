@@ -71,7 +71,6 @@ public final class WorkflowClientInternal implements WorkflowClient {
     Objects.requireNonNull(options);
 
     emitClientVersion(options);
-    WorkerShutDownHandler.registerHandler();
 
     return new WorkflowClientInternal(service, options);
   }

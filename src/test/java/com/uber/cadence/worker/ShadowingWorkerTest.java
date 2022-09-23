@@ -51,7 +51,7 @@ public class ShadowingWorkerTest {
   @Before
   public void init() {
     WorkflowClientOptions clientOptions =
-        WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
+            WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
     when(mockClient.getOptions()).thenReturn(clientOptions);
     when(mockClient.getService()).thenReturn(mockService);
   }

@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
+import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.worker.WorkerFactory;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,37 +26,45 @@ import java.util.concurrent.TimeUnit;
 public class WorkerShutDownHandler {
 
   private static final List<WorkerFactory> workerFactories = new ArrayList<>();
-  private static boolean registered = false;
+  private static Thread registeredHandler;
 
   public static void registerHandler() {
-    if (registered) {
+    if (registeredHandler != null) {
       return;
     }
 
-    registered = true;
+    registeredHandler = new Thread("SHUTDOWN_WORKERS") {
+      @Override
+      public void run() {
+        for (WorkerFactory workerFactory : workerFactories) {
+          workerFactory.suspendPolling();
+        }
+
+        for (WorkerFactory workerFactory : workerFactories) {
+          workerFactory.shutdownNow();
+        }
+
+        long remainingTimeout = 10000;
+        for (WorkerFactory workerFactory : workerFactories) {
+          final long timeoutMillis = remainingTimeout;
+          remainingTimeout = InternalUtils.awaitTermination(timeoutMillis,
+                  () -> workerFactory.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS));
+        }
+      }
+    };
+
     Runtime.getRuntime()
-        .addShutdownHook(
-            new Thread("SHUTDOWN_WORKERS") {
-              @Override
-              public void run() {
-                for (WorkerFactory workerFactory : workerFactories) {
-                  workerFactory.suspendPolling();
-                }
-
-                for (WorkerFactory workerFactory : workerFactories) {
-                  workerFactory.shutdownNow();
-                }
-
-                for (WorkerFactory workerFactory : workerFactories) {
-                  workerFactory.awaitTermination(1, TimeUnit.SECONDS);
-                }
-              }
-            });
+        .addShutdownHook(registeredHandler);
   }
 
   public static synchronized void registerWorkerFactory(WorkerFactory workerFactory) {
     if (workerFactory != null) {
       workerFactories.add(workerFactory);
     }
+  }
+
+  // Only for tests
+  protected static void execute() {
+    registeredHandler.run();
   }
 }

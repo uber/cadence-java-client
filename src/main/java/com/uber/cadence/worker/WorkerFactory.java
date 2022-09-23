@@ -58,7 +58,10 @@ public final class WorkerFactory {
 
   public static WorkerFactory newInstance(
       WorkflowClient workflowClient, WorkerFactoryOptions options) {
-    return new WorkerFactory(workflowClient, options);
+    WorkerShutDownHandler.registerHandler();
+    WorkerFactory workerFactory = new WorkerFactory(workflowClient, options);
+    WorkerShutDownHandler.registerWorkerFactory(workerFactory);
+    return workerFactory;
   }
 
   private final List<Worker> workers = new ArrayList<>();
@@ -137,8 +140,6 @@ public final class WorkerFactory {
                 .setPollThreadCount(this.factoryOptions.getStickyPollerCount())
                 .build(),
             stickyScope);
-
-    WorkerShutDownHandler.registerWorkerFactory(this);
   }
 
   /**
