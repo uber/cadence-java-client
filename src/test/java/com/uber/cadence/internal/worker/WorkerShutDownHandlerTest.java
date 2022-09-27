@@ -17,6 +17,9 @@
 
 package com.uber.cadence.internal.worker;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -28,41 +31,34 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
 @RunWith(MockitoJUnitRunner.class)
 public class WorkerShutDownHandlerTest {
 
-    @Mock
-    private WorkflowClient mockClient;
+  @Mock private WorkflowClient mockClient;
 
-    @Mock
-    private IWorkflowService mockService;
+  @Mock private IWorkflowService mockService;
 
-    @Before
-    public void setup() {
-        WorkflowClientOptions clientOptions =
-                WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
-        when(mockClient.getOptions()).thenReturn(clientOptions);
-        when(mockClient.getService()).thenReturn(mockService);
-    }
+  @Before
+  public void setup() {
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
+    when(mockClient.getOptions()).thenReturn(clientOptions);
+    when(mockClient.getService()).thenReturn(mockService);
+  }
 
-    @Test
-    public void shutDownHookShutsDownFactories() {
-        WorkerShutDownHandler.registerHandler();
+  @Test
+  public void shutDownHookShutsDownFactories() {
 
-        WorkerFactory workerFactory = WorkerFactory.newInstance(mockClient);
-        workerFactory.newWorker("TL1");
-        workerFactory.newWorker("TL2");
+    WorkerFactory workerFactory = WorkerFactory.newInstance(mockClient);
+    workerFactory.newWorker("TL1");
+    workerFactory.newWorker("TL2");
 
-        WorkerFactory workerFactory2 = WorkerFactory.newInstance(mockClient);
-        workerFactory2.newWorker("TL3");
+    WorkerFactory workerFactory2 = WorkerFactory.newInstance(mockClient);
+    workerFactory2.newWorker("TL3");
 
-        WorkerShutDownHandler.execute();
+    WorkerShutDownHandler.execute();
 
-        assertTrue(workerFactory.isShutdown());
-        assertTrue(workerFactory2.isShutdown());
-    }
-
+    assertTrue(workerFactory.isShutdown());
+    assertTrue(workerFactory2.isShutdown());
+  }
 }
