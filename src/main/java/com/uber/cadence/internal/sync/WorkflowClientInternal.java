@@ -33,7 +33,6 @@ import com.uber.cadence.internal.external.ManualActivityCompletionClientFactory;
 import com.uber.cadence.internal.external.ManualActivityCompletionClientFactoryImpl;
 import com.uber.cadence.internal.metrics.ClientVersionEmitter;
 import com.uber.cadence.internal.sync.WorkflowInvocationHandler.InvocationType;
-import com.uber.cadence.internal.worker.WorkerShutDownHandler;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.workflow.Functions;
 import com.uber.cadence.workflow.QueryMethod;

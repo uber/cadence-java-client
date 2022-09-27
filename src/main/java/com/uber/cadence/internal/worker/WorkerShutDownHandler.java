@@ -1,6 +1,5 @@
 /*
- *  Modifications Copyright (c) 2017-2020 Uber Technologies Inc.
- *  Portions of the Software are attributed to Copyright (c) 2020 Temporal Technologies Inc.
+ *  Modifications Copyright (c) 2020-2022 Uber Technologies Inc.
  *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
