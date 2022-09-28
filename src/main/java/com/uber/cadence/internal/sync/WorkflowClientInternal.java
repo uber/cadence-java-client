@@ -408,7 +408,7 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return execute(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
-  private synchronized static void emitClientVersion(WorkflowClientOptions options) {
+  private static synchronized void emitClientVersion(WorkflowClientOptions options) {
     if (emittingClientVersion) {
       return;
     }

@@ -30,6 +30,7 @@ import com.uber.cadence.internal.replay.DeciderCache;
 import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
 import com.uber.cadence.internal.worker.Poller;
 import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.internal.worker.WorkerShutDownHandler;
 import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
@@ -57,7 +58,10 @@ public final class WorkerFactory {
 
   public static WorkerFactory newInstance(
       WorkflowClient workflowClient, WorkerFactoryOptions options) {
-    return new WorkerFactory(workflowClient, options);
+    WorkerShutDownHandler.registerHandler();
+    WorkerFactory workerFactory = new WorkerFactory(workflowClient, options);
+    WorkerShutDownHandler.registerWorkerFactory(workerFactory);
+    return workerFactory;
   }
 
   private final List<Worker> workers = new ArrayList<>();
