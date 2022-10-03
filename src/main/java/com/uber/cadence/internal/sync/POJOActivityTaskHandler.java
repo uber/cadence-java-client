@@ -38,9 +38,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 class POJOActivityTaskHandler implements ActivityTaskHandler {
@@ -197,7 +202,21 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
         metricsScope.gauge(MetricsType.ACTIVITY_ACTIVE_THREAD_COUNT).update(Thread.activeCount());
       }
     }
-    return activity.execute(activityTask, metricsScope);
+
+    ActivityTaskHandler.Result activityResult;
+    try {
+      List<Future<ActivityTaskHandler.Result>> futures =
+          Executors.newSingleThreadExecutor()
+              .invokeAll(
+                  Collections.singletonList(() -> activity.execute(activityTask, metricsScope)),
+                  pollResponse.getStartToCloseTimeoutSeconds(),
+                  TimeUnit.SECONDS);
+      activityResult = futures.get(0).get();
+    } catch (InterruptedException | ExecutionException | CancellationException e) {
+      return mapToActivityFailure(e, metricsScope, isLocalActivity);
+    }
+
+    return activityResult;
   }
 
   interface ActivityTaskExecutor {
