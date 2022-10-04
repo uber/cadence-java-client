@@ -35,7 +35,6 @@ import com.uber.cadence.TaskListKind;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class EnumMapper {
 
@@ -270,7 +269,7 @@ class EnumMapper {
       case ENCODING_TYPE_JSON:
         return EncodingType.JSON;
       case ENCODING_TYPE_PROTO3:
-        throw new NotImplementedException();
+        throw new IllegalArgumentException();
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
@@ -305,8 +304,8 @@ class EnumMapper {
   }
 
   public static CancelExternalWorkflowExecutionFailedCause
-  cancelExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
+      cancelExternalWorkflowExecutionFailedCause(
+          com.uber.cadence.api.v1.CancelExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;
@@ -317,8 +316,8 @@ class EnumMapper {
   }
 
   public static SignalExternalWorkflowExecutionFailedCause
-  signalExternalWorkflowExecutionFailedCause(
-      com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
+      signalExternalWorkflowExecutionFailedCause(
+          com.uber.cadence.api.v1.SignalExternalWorkflowExecutionFailedCause t) {
     switch (t) {
       case SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_INVALID:
         return null;

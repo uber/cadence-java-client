@@ -26,11 +26,10 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.common.MethodRetry;
-import com.uber.cadence.context.ContextPropagator;
+import com.uber.cadence.context.ContextPropagationHandler;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
-import com.uber.cadence.internal.context.ContextThreadLocal;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -181,7 +180,10 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
 
   @Override
   public Result handle(
-      PollForActivityTaskResponse pollResponse, Scope metricsScope, boolean isLocalActivity) {
+      PollForActivityTaskResponse pollResponse,
+      Scope metricsScope,
+      boolean isLocalActivity,
+      ContextPropagationHandler contextPropagationHandler) {
     String activityType = pollResponse.getActivityType().getName();
     ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
     ActivityTaskExecutor activity = activities.get(activityType);
@@ -208,14 +210,13 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
 
     ActivityTaskHandler.Result activityResult;
     try {
-      Map<String, Object> context = ContextThreadLocal.getCurrentContextForPropagation();
       Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
       List<Future<ActivityTaskHandler.Result>> futures =
           Executors.newSingleThreadExecutor()
               .invokeAll(
                   Collections.singletonList(
                       () -> {
-                        ContextThreadLocal.propagateContextToCurrentThread(context);
+                        contextPropagationHandler.refreshContext();
                         MDC.setContextMap(mdcContextMap);
                         return activity.execute(activityTask, metricsScope);
                       }),
