@@ -26,9 +26,11 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.activity.ActivityMethod;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.common.MethodRetry;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
 import com.uber.cadence.internal.common.InternalUtils;
+import com.uber.cadence.internal.context.ContextThreadLocal;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -47,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import org.slf4j.MDC;
 
 class POJOActivityTaskHandler implements ActivityTaskHandler {
   private static final RateLimiter metricsRateLimiter = RateLimiter.create(1);
@@ -205,18 +208,43 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
 
     ActivityTaskHandler.Result activityResult;
     try {
+      Map<String, Object> context = ContextThreadLocal.getCurrentContextForPropagation();
+      Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
       List<Future<ActivityTaskHandler.Result>> futures =
           Executors.newSingleThreadExecutor()
               .invokeAll(
-                  Collections.singletonList(() -> activity.execute(activityTask, metricsScope)),
-                  pollResponse.getStartToCloseTimeoutSeconds(),
+                  Collections.singletonList(
+                      () -> {
+                        ContextThreadLocal.propagateContextToCurrentThread(context);
+                        MDC.setContextMap(mdcContextMap);
+                        return activity.execute(activityTask, metricsScope);
+                      }),
+                  getTimeout(pollResponse),
                   TimeUnit.SECONDS);
       activityResult = futures.get(0).get();
-    } catch (InterruptedException | ExecutionException | CancellationException e) {
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof CancellationException) {
+        throw (CancellationException) e.getCause();
+      }
+
+      return mapToActivityFailure(e, metricsScope, isLocalActivity);
+    } catch (InterruptedException e) {
       return mapToActivityFailure(e, metricsScope, isLocalActivity);
     }
 
     return activityResult;
+  }
+
+  private int getTimeout(PollForActivityTaskResponse pollResponse) {
+    if (pollResponse.getStartToCloseTimeoutSeconds() != 0) {
+      return pollResponse.getStartToCloseTimeoutSeconds();
+    }
+
+    if (pollResponse.getScheduleToCloseTimeoutSeconds() != 0) {
+      return pollResponse.getScheduleToCloseTimeoutSeconds();
+    }
+
+    return Integer.MAX_VALUE;
   }
 
   interface ActivityTaskExecutor {

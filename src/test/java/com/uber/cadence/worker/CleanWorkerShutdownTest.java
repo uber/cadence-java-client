@@ -228,13 +228,13 @@ public class CleanWorkerShutdownTest {
     List<HistoryEvent> events = result.getHistory().getEvents();
     boolean found = false;
     for (HistoryEvent e : events) {
-      if (e.getEventType() == EventType.ActivityTaskCompleted) {
+      if (e.getEventType() == EventType.ActivityTaskFailed) {
         found = true;
-        byte[] ar = e.getActivityTaskCompletedEventAttributes().getResult();
-        assertEquals("\"interrupted\"", new String(ar, StandardCharsets.UTF_8));
+        String reason = e.getActivityTaskFailedEventAttributes().getReason();
+        assertTrue(reason.contains("Interrupted"));
       }
     }
-    assertTrue("Contains ActivityTaskCompleted", found);
+    assertTrue("Contains ActivityTaskFailed", found);
   }
 
   public static class HeartbeatingActivitiesImpl implements Activities {
