@@ -1,7 +1,6 @@
 /*
- *  Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
- *  Modifications copyright (C) 2017 Uber Technologies, Inc.
+ *  Modifications copyright (C) 2022 Uber Technologies, Inc.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
  *  use this file except in compliance with the License. A copy of the License is
