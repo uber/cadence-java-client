@@ -21,6 +21,7 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
+import com.uber.cadence.context.ContextPropagationHandler;
 import com.uber.m3.tally.Scope;
 import java.time.Duration;
 
@@ -110,7 +111,10 @@ public interface ActivityTaskHandler {
    * @return One of the possible decision task replies.
    */
   Result handle(
-      PollForActivityTaskResponse activityTask, Scope metricsScope, boolean isLocalActivity);
+      PollForActivityTaskResponse activityTask,
+      Scope metricsScope,
+      boolean isLocalActivity,
+      ContextPropagationHandler contextPropagationHandler);
 
   /** True if this handler handles at least one activity type. */
   boolean isAnyTypeSupported();

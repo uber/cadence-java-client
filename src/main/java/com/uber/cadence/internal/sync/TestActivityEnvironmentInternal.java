@@ -23,6 +23,7 @@ import com.uber.cadence.GetTaskListsByDomainRequest;
 import com.uber.cadence.GetTaskListsByDomainResponse;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.context.ContextPropagationHandler;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
@@ -162,7 +163,12 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
               .setRunId(UUID.randomUUID().toString()));
       task.setWorkflowType(new WorkflowType().setName("test-workflow"));
       task.setActivityType(new ActivityType().setName(activityType));
-      Result taskResult = activityTaskHandler.handle(task, NoopScope.getInstance(), false);
+      Result taskResult =
+          activityTaskHandler.handle(
+              task,
+              NoopScope.getInstance(),
+              false,
+              ContextPropagationHandler.NOOP_PROPAGATION_HANDLER);
       return Workflow.newPromise(getReply(task, taskResult, resultClass, resultType));
     }
 

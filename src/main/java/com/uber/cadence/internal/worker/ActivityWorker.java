@@ -23,6 +23,7 @@ import com.uber.cadence.RespondActivityTaskCanceledRequest;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.context.ContextPropagationHandler;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.logging.LoggerTag;
@@ -141,7 +142,9 @@ public class ActivityWorker extends SuspendableWorkerBase {
 
       try {
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
-        ActivityTaskHandler.Result response = handler.handle(task, metricsScope, false);
+        ActivityTaskHandler.Result response =
+            handler.handle(
+                task, metricsScope, false, ContextPropagationHandler.NOOP_PROPAGATION_HANDLER);
         sw.stop();
 
         sw = metricsScope.timer(MetricsType.ACTIVITY_RESP_LATENCY).start();

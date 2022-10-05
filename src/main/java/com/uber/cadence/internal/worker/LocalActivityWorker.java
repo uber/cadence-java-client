@@ -22,6 +22,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagationHandler;
 import com.uber.cadence.internal.common.LocalActivityMarkerData;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -178,8 +179,12 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
       pollTask.setInput(task.params.getInput());
       pollTask.setAttempt(task.params.getAttempt());
 
+      ContextPropagationHandler contextPropagationHandler =
+          new ContextPropagationHandler(options.getContextPropagators(), task.params.getContext());
+
       Stopwatch sw = metricsScope.timer(MetricsType.LOCAL_ACTIVITY_EXECUTION_LATENCY).start();
-      ActivityTaskHandler.Result result = handler.handle(pollTask, metricsScope, true);
+      ActivityTaskHandler.Result result =
+          handler.handle(pollTask, metricsScope, true, contextPropagationHandler);
       sw.stop();
       result.setAttempt(task.params.getAttempt());
 
