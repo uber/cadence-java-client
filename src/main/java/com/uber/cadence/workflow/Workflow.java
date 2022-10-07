@@ -490,6 +490,21 @@ public final class Workflow {
 
   /**
    * Creates client stub that can be used to communicate to an existing workflow execution.
+   * Used for cross domain calls.
+   *
+   * @param workflowInterface interface type implemented by activities
+   * @param workflowId id of the workflow to communicate with.
+   * @param workflowId domain name of the workflow to communicate with.
+   */
+  public static <R> R newExternalWorkflowStub(
+      Class<? extends R> workflowInterface, String workflowId, String domain) {
+    WorkflowExecution execution =
+        new WorkflowExecution().setWorkflowId(workflowId).setDomain(domain);
+    return WorkflowInternal.newExternalWorkflowStub(workflowInterface, execution);
+  }
+
+  /**
+   * Creates client stub that can be used to communicate to an existing workflow execution.
    *
    * @param workflowInterface interface type implemented by activities
    * @param execution execution of the workflow to communicate with.

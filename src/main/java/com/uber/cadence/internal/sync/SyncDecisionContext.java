@@ -638,6 +638,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     parameters.setSignalName(signalName);
     parameters.setWorkflowId(execution.getWorkflowId());
     parameters.setRunId(execution.getRunId());
+    parameters.setDomain(execution.getDomain());
     byte[] input = getDataConverter().toData(args);
     parameters.setInput(input);
     CompletablePromise<Void> result = Workflow.newPromise();
