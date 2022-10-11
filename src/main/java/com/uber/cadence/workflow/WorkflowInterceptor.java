@@ -77,6 +77,9 @@ public interface WorkflowInterceptor {
   Promise<Void> signalExternalWorkflow(
       WorkflowExecution execution, String signalName, Object[] args);
 
+  Promise<Void> signalExternalWorkflow(
+      String domain, WorkflowExecution execution, String signalName, Object[] args);
+
   Promise<Void> cancelWorkflow(WorkflowExecution execution);
 
   void sleep(Duration duration);

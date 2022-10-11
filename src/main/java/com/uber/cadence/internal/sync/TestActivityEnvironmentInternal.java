@@ -193,6 +193,12 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public Promise<Void> signalExternalWorkflow(
+        String domain, WorkflowExecution execution, String signalName, Object[] args) {
+      throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Promise<Void> signalExternalWorkflow(
         WorkflowExecution execution, String signalName, Object[] args) {
       throw new UnsupportedOperationException("not implemented");
     }

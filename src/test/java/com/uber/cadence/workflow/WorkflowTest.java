@@ -6021,6 +6021,13 @@ public class WorkflowTest {
 
     @Override
     public Promise<Void> signalExternalWorkflow(
+        String domain, WorkflowExecution execution, String signalName, Object[] args) {
+      trace.add("signalExternalWorkflow " + execution.getWorkflowId() + " " + signalName);
+      return next.signalExternalWorkflow(domain, execution, signalName, args);
+    }
+
+    @Override
+    public Promise<Void> signalExternalWorkflow(
         WorkflowExecution execution, String signalName, Object[] args) {
       trace.add("signalExternalWorkflow " + execution.getWorkflowId() + " " + signalName);
       return next.signalExternalWorkflow(execution, signalName, args);

@@ -82,6 +82,12 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
+  public Promise<Void> signalExternalWorkflow(
+      String domain, WorkflowExecution execution, String signalName, Object[] args) {
+    return next.signalExternalWorkflow(domain, execution, signalName, args);
+  }
+
+  @Override
   public Promise<Void> cancelWorkflow(WorkflowExecution execution) {
     return next.cancelWorkflow(execution);
   }
