@@ -62,6 +62,7 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
+import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -148,6 +149,8 @@ public class WorkflowTest {
   private static final boolean useDockerService =
       Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
 
+  private TestWorkflowEnvironmentInternal.WorkflowServiceWrapper wfService;
+
   private static final boolean stickyOff = Boolean.parseBoolean(System.getenv("STICKY_OFF"));
 
   @Parameters(name = "{1}")
@@ -192,6 +195,7 @@ public class WorkflowTest {
   public boolean disableStickyExecution;
 
   public static final String DOMAIN = "UnitTest";
+  public static final String DOMAIN2 = "UnitTest2";
   private static final Logger log = LoggerFactory.getLogger(WorkflowTest.class);
 
   private static String UUID_REGEXP =
@@ -270,6 +274,7 @@ public class WorkflowTest {
 
   @Before
   public void setUp() {
+    this.wfService = new TestWorkflowEnvironmentInternal.WorkflowServiceWrapper();
     String testMethod = testName.getMethodName();
     if (testMethod.startsWith("testExecute") || testMethod.startsWith("testStart")) {
       taskList = ANNOTATION_TASK_LIST;
@@ -305,7 +310,7 @@ public class WorkflowTest {
                       .setDisableStickyExecution(disableStickyExecution)
                       .build())
               .build();
-      testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
+      testEnvironment = TestWorkflowEnvironment.newInstance(wfService, testOptions);
       worker = testEnvironment.newWorker(taskList);
       workflowClient = testEnvironment.newWorkflowClient();
     }
@@ -391,6 +396,12 @@ public class WorkflowTest {
     String execute(String taskList);
   }
 
+  public interface TestWorkflowCrossDomain {
+
+    @WorkflowMethod
+    String execute(String workflowId);
+  }
+
   public interface TestWorkflowSignaled {
 
     @WorkflowMethod
@@ -428,6 +439,26 @@ public class WorkflowTest {
 
     @QueryMethod()
     String query();
+  }
+
+  public static class TestWorkflowSignaledSimple implements TestWorkflowSignaled {
+
+    List<String> messageQueue = new ArrayList<>(10);
+
+    @Override
+    @WorkflowMethod
+    public String execute() {
+      Workflow.await(() -> !messageQueue.isEmpty());
+      messageQueue.remove(0);
+      System.out.print("Simple workflow signaled");
+      return "Simple workflow signaled";
+    }
+
+    @Override
+    @SignalMethod
+    public void signal1(String arg) {
+      messageQueue.add("arg");
+    }
   }
 
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
@@ -3300,6 +3331,18 @@ public class WorkflowTest {
     }
   }
 
+  public static class TestWorkflowCrossDomainImpl implements TestWorkflowCrossDomain {
+
+    @Override
+    @WorkflowMethod
+    public String execute(String wfId) {
+      ExternalWorkflowStub externalWorkflow = Workflow.newUntypedExternalWorkflowStub(wfId);
+      externalWorkflow.signalCrossDomain("testSignal", DOMAIN2, "World");
+      System.out.println("Signaled External Workflow");
+      return "Signaled External workflow";
+    }
+  }
+
   public static class UntypedSignalingChildImpl implements SignalingChild {
 
     @Override
@@ -3320,6 +3363,53 @@ public class WorkflowTest {
     TestWorkflowSignaled client =
         workflowClient.newWorkflowStub(TestWorkflowSignaled.class, options.build());
     assertEquals("Hello World!", client.execute());
+  }
+
+  @Test
+  public void testSignalCrossDomainExternalWorkflow() {
+    WorkflowClientOptions clientOptions =
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build();
+
+    TestEnvironmentOptions testOptions =
+        new TestEnvironmentOptions.Builder()
+            .setWorkflowClientOptions(clientOptions)
+            .setInterceptorFactory(tracer)
+            .setWorkerFactoryOptions(
+                WorkerFactoryOptions.newBuilder()
+                    .setDisableStickyExecution(disableStickyExecution)
+                    .build())
+            .build();
+    TestWorkflowEnvironment testEnvironment2 =
+        TestWorkflowEnvironment.newInstance(wfService, testOptions);
+    Worker worker2 = testEnvironment2.newWorker(taskList + "2");
+    WorkflowClient workflowClient2 = testEnvironment2.newWorkflowClient();
+
+    startWorkerFor(TestWorkflowCrossDomainImpl.class);
+    worker2.registerWorkflowImplementationTypes(TestWorkflowSignaledSimple.class);
+    testEnvironment2.start();
+
+    WorkflowOptions.Builder options = new WorkflowOptions.Builder();
+    options.setExecutionStartToCloseTimeout(Duration.ofSeconds(30));
+    options.setTaskStartToCloseTimeout(Duration.ofSeconds(30));
+    options.setTaskList(taskList);
+
+    WorkflowOptions.Builder options2 = new WorkflowOptions.Builder();
+    String wfId = UUID.randomUUID().toString();
+    options2.setWorkflowId(wfId);
+    options2.setExecutionStartToCloseTimeout(Duration.ofSeconds(30));
+    options2.setTaskStartToCloseTimeout(Duration.ofSeconds(30));
+    options2.setTaskList(taskList + "2");
+
+    TestWorkflowCrossDomain wf =
+        workflowClient.newWorkflowStub(TestWorkflowCrossDomain.class, options.build());
+
+    TestWorkflowSignaled simpleWorkflow =
+        workflowClient2.newWorkflowStub(TestWorkflowSignaled.class, options2.build());
+
+    WorkflowExecution execution = WorkflowClient.start(simpleWorkflow::execute);
+    testEnvironment.sleep(Duration.ofSeconds(1));
+    assertEquals("Signaled External workflow", wf.execute(wfId));
+    tracer.setExpected("await await", "signalExternalWorkflow " + wfId + " testSignal");
   }
 
   public static class TestSignalExternalWorkflowFailure implements TestWorkflow1 {
