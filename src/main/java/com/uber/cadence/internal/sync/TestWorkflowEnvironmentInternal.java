@@ -121,16 +121,23 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
   private final WorkflowServiceWrapper service;
   private final WorkerFactory workerFactory;
 
-  public TestWorkflowEnvironmentInternal(TestEnvironmentOptions options) {
+  public TestWorkflowEnvironmentInternal(
+      WorkflowServiceWrapper workflowServiceWrapper, TestEnvironmentOptions options) {
     if (options == null) {
       this.testEnvironmentOptions = new TestEnvironmentOptions.Builder().build();
     } else {
       this.testEnvironmentOptions = options;
     }
-    service = new WorkflowServiceWrapper();
-    service.lockTimeSkipping("TestWorkflowEnvironmentInternal constructor");
+
+    if (workflowServiceWrapper == null) {
+      this.service = new WorkflowServiceWrapper();
+    } else {
+      this.service = workflowServiceWrapper;
+    }
+
+    this.service.lockTimeSkipping("TestWorkflowEnvironmentInternal constructor");
     WorkflowClient client =
-        WorkflowClient.newInstance(service, testEnvironmentOptions.getWorkflowClientOptions());
+        WorkflowClient.newInstance(this.service, testEnvironmentOptions.getWorkflowClientOptions());
     workerFactory =
         WorkerFactory.newInstance(client, testEnvironmentOptions.getWorkerFactoryOptions());
   }
@@ -253,11 +260,11 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     return workerFactory;
   }
 
-  private static class WorkflowServiceWrapper implements IWorkflowService {
+  public static class WorkflowServiceWrapper implements IWorkflowService {
 
     private final TestWorkflowService impl;
 
-    private WorkflowServiceWrapper() {
+    public WorkflowServiceWrapper() {
       impl = new TestWorkflowService();
     }
 

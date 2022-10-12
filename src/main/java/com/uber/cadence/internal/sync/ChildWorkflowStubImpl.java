@@ -25,6 +25,7 @@ import com.uber.cadence.workflow.ChildWorkflowStub;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
+import com.uber.cadence.workflow.SignalOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowInterceptor.WorkflowResult;
@@ -100,6 +101,25 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
   public void signal(String signalName, Object... args) {
     Promise<Void> signaled =
         decisionContext.signalExternalWorkflow(execution.get(), signalName, args);
+    if (AsyncInternal.isAsync()) {
+      AsyncInternal.setAsyncResult(signaled);
+      return;
+    }
+    try {
+      signaled.get();
+    } catch (SignalExternalWorkflowException e) {
+      // Reset stack to the current one. Otherwise it is very confusing to see a stack of
+      // an event handling method.
+      e.setStackTrace(Thread.currentThread().getStackTrace());
+      throw e;
+    }
+  }
+
+  @Override
+  public void signal(SignalOptions signalOptions, Object... args) {
+    Promise<Void> signaled =
+        decisionContext.signalExternalWorkflow(
+            signalOptions.getDomain(), execution.get(), signalOptions.getSignalName(), args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(signaled);
       return;

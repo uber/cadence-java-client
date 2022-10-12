@@ -32,5 +32,7 @@ public interface ExternalWorkflowStub {
 
   void signal(String signalName, Object... args);
 
+  void signal(SignalOptions signalOptions, Object... args);
+
   void cancel();
 }

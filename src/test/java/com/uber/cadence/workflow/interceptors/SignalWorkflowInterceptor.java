@@ -84,6 +84,16 @@ public class SignalWorkflowInterceptor implements WorkflowInterceptor {
 
   @Override
   public Promise<Void> signalExternalWorkflow(
+      String domain, WorkflowExecution execution, String signalName, Object[] args) {
+    if (args != null && args.length > 0) {
+      args = new Object[] {"corrupted signal"};
+    }
+    return next.signalExternalWorkflow(
+        domain, execution, overrideSignalName.apply(signalName), overrideArgs.apply(args));
+  }
+
+  @Override
+  public Promise<Void> signalExternalWorkflow(
       WorkflowExecution execution, String signalName, Object[] args) {
     if (args != null && args.length > 0) {
       args = new Object[] {"corrupted signal"};

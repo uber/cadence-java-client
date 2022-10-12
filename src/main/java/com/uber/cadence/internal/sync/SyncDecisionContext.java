@@ -634,10 +634,17 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public Promise<Void> signalExternalWorkflow(
       WorkflowExecution execution, String signalName, Object[] args) {
+    return this.signalExternalWorkflow(null, execution, signalName, args);
+  }
+
+  @Override
+  public Promise<Void> signalExternalWorkflow(
+      String domain, WorkflowExecution execution, String signalName, Object[] args) {
     SignalExternalWorkflowParameters parameters = new SignalExternalWorkflowParameters();
     parameters.setSignalName(signalName);
     parameters.setWorkflowId(execution.getWorkflowId());
     parameters.setRunId(execution.getRunId());
+    parameters.setDomain(domain);
     byte[] input = getDataConverter().toData(args);
     parameters.setInput(input);
     CompletablePromise<Void> result = Workflow.newPromise();
