@@ -25,6 +25,7 @@ import com.uber.cadence.workflow.ChildWorkflowStub;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
+import com.uber.cadence.workflow.SignalOptions;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowInterceptor.WorkflowResult;
@@ -115,9 +116,10 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
   }
 
   @Override
-  public void signalCrossDomain(String signalName, String domain, Object... args) {
+  public void signal(SignalOptions signalOptions, Object... args) {
     Promise<Void> signaled =
-            decisionContext.signalExternalWorkflow(domain, execution.get(), signalName, args);
+        decisionContext.signalExternalWorkflow(
+            signalOptions.getDomain(), execution.get(), signalOptions.getSignalName(), args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(signaled);
       return;

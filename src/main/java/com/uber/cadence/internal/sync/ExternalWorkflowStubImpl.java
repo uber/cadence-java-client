@@ -22,6 +22,7 @@ import com.uber.cadence.workflow.CancelExternalWorkflowException;
 import com.uber.cadence.workflow.ExternalWorkflowStub;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.SignalExternalWorkflowException;
+import com.uber.cadence.workflow.SignalOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
 
@@ -60,9 +61,10 @@ class ExternalWorkflowStubImpl implements ExternalWorkflowStub {
   }
 
   @Override
-  public void signalCrossDomain(String signalName, String domain, Object... args) {
+  public void signal(SignalOptions signalOptions, Object... args) {
     Promise<Void> signaled =
-        decisionContext.signalExternalWorkflow(domain, execution, signalName, args);
+        decisionContext.signalExternalWorkflow(
+            signalOptions.getDomain(), execution, signalOptions.getSignalName(), args);
     if (AsyncInternal.isAsync()) {
       AsyncInternal.setAsyncResult(signaled);
       return;

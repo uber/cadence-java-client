@@ -32,7 +32,7 @@ public interface ExternalWorkflowStub {
 
   void signal(String signalName, Object... args);
 
-  void signalCrossDomain(String signalName, String domain, Object... args);
+  void signal(SignalOptions signalOptions, Object... args);
 
   void cancel();
 }

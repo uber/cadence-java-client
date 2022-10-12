@@ -3336,7 +3336,9 @@ public class WorkflowTest {
     @WorkflowMethod
     public String execute(String wfId) {
       ExternalWorkflowStub externalWorkflow = Workflow.newUntypedExternalWorkflowStub(wfId);
-      externalWorkflow.signalCrossDomain("testSignal", DOMAIN2, "World");
+      SignalOptions options =
+          SignalOptions.newBuilder().setDomain(DOMAIN2).setSignalName("testSignal").build();
+      externalWorkflow.signal(options, "World");
       return "Signaled External workflow";
     }
   }
@@ -3364,7 +3366,7 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignalCrossDomainExternalWorkflow() {
+  public void testSignalCrossDomainExternalWorkflow() throws ExecutionException, InterruptedException {
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build();
 
@@ -3378,23 +3380,22 @@ public class WorkflowTest {
                     .build())
             .build();
 
-
     startWorkerFor(TestWorkflowCrossDomainImpl.class);
 
     WorkflowClient workflowClient2;
     if (useExternalService) {
       workflowClient2 = WorkflowClient.newInstance(service, clientOptions);
       WorkerFactoryOptions factoryOptions =
-              WorkerFactoryOptions.newBuilder()
-                      .setDisableStickyExecution(disableStickyExecution)
-                      .build();
+          WorkerFactoryOptions.newBuilder()
+              .setDisableStickyExecution(disableStickyExecution)
+              .build();
       WorkerFactory workerFactory2 = new WorkerFactory(workflowClient2, factoryOptions);
       Worker worker2 = workerFactory2.newWorker(taskList + "2");
       worker2.registerWorkflowImplementationTypes(TestWorkflowSignaledSimple.class);
       workerFactory2.start();
     } else {
       TestWorkflowEnvironment testEnvironment2 =
-              TestWorkflowEnvironment.newInstance(wfService, testOptions);
+          TestWorkflowEnvironment.newInstance(wfService, testOptions);
       Worker worker2 = testEnvironment2.newWorker(taskList + "2");
       workflowClient2 = testEnvironment2.newWorkflowClient();
       worker2.registerWorkflowImplementationTypes(TestWorkflowSignaledSimple.class);
@@ -3421,12 +3422,9 @@ public class WorkflowTest {
     TestWorkflowSignaled simpleWorkflow =
         workflowClient2.newWorkflowStub(TestWorkflowSignaled.class, options2.build());
 
-    WorkflowExecution execution = WorkflowClient.start(simpleWorkflow::execute);
-    if (testEnvironment != null) {
-      testEnvironment.sleep(Duration.ofSeconds(1));
-    }
+    CompletableFuture<String> result = WorkflowClient.execute(simpleWorkflow::execute);
     assertEquals("Signaled External workflow", wf.execute(wfId));
-    tracer.setExpected("await await", "signalExternalWorkflow " + wfId + " testSignal");
+    assertEquals("Simple workflow signaled", result.get());
   }
 
   public static class TestSignalExternalWorkflowFailure implements TestWorkflow1 {

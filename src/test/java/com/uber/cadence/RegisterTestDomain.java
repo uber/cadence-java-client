@@ -1,6 +1,7 @@
 package com.uber.cadence;
 
 import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
+import static com.uber.cadence.workflow.WorkflowTest.DOMAIN2;
 
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -18,8 +19,14 @@ public class RegisterTestDomain {
     }
 
     IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.defaultInstance());
+    registerDomain(service, DOMAIN);
+    registerDomain(service, DOMAIN2);
+    System.exit(0);
+  }
+
+  private static void registerDomain(IWorkflowService service, String domain) throws InterruptedException {
     RegisterDomainRequest request =
-        new RegisterDomainRequest().setName(DOMAIN).setWorkflowExecutionRetentionPeriodInDays(1);
+        new RegisterDomainRequest().setName(domain).setWorkflowExecutionRetentionPeriodInDays(1);
     while (true) {
       try {
         service.RegisterDomain(request);
@@ -40,6 +47,5 @@ public class RegisterTestDomain {
         System.exit(1);
       }
     }
-    System.exit(0);
   }
 }
