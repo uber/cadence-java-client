@@ -44,4 +44,6 @@ public interface ChildWorkflowStub {
   <R> Promise<R> executeAsync(Class<R> resultClass, Type resultType, Object... args);
 
   void signal(String signalName, Object... args);
+
+  void signalCrossDomain(String signalName, String domain, Object... args);
 }

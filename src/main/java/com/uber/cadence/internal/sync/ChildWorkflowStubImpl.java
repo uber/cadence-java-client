@@ -113,4 +113,22 @@ class ChildWorkflowStubImpl implements ChildWorkflowStub {
       throw e;
     }
   }
+
+  @Override
+  public void signalCrossDomain(String signalName, String domain, Object... args) {
+    Promise<Void> signaled =
+            decisionContext.signalExternalWorkflow(domain, execution.get(), signalName, args);
+    if (AsyncInternal.isAsync()) {
+      AsyncInternal.setAsyncResult(signaled);
+      return;
+    }
+    try {
+      signaled.get();
+    } catch (SignalExternalWorkflowException e) {
+      // Reset stack to the current one. Otherwise it is very confusing to see a stack of
+      // an event handling method.
+      e.setStackTrace(Thread.currentThread().getStackTrace());
+      throw e;
+    }
+  }
 }
