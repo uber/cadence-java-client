@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
+import com.google.common.primitives.Ints;
 import com.uber.cadence.EventType;
 import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
@@ -178,6 +179,8 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
       pollTask.setActivityType(task.params.getActivityType());
       pollTask.setInput(task.params.getInput());
       pollTask.setAttempt(task.params.getAttempt());
+      pollTask.setScheduleToCloseTimeoutSeconds(
+          Ints.saturatedCast(task.params.getScheduleToCloseTimeoutSeconds()));
 
       ContextPropagationHandler contextPropagationHandler =
           new ContextPropagationHandler(options.getContextPropagators(), task.params.getContext());

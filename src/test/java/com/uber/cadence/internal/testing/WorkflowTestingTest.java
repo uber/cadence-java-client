@@ -170,7 +170,7 @@ public class WorkflowTestingTest {
 
   public interface TestActivityShortTimeout {
 
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600, startToCloseTimeoutSeconds = 5)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 7, startToCloseTimeoutSeconds = 5)
     String activity1(String input);
   }
 
@@ -1011,10 +1011,33 @@ public class WorkflowTestingTest {
     }
   }
 
+  public static class TimingOutLocalActivityWorkflowImpl implements TestWorkflow {
+
+    private final TestActivityShortTimeout activity =
+        Workflow.newLocalActivityStub(TestActivityShortTimeout.class);
+
+    @Override
+    public String workflow1(String input) {
+      return activity.activity1(input);
+    }
+  }
+
   @Test(expected = WorkflowFailureException.class)
   public void testTimingOutActivity() {
     Worker worker = testEnvironment.newWorker(TASK_LIST);
     worker.registerWorkflowImplementationTypes(TimingOutWorkflowImpl.class);
+    worker.registerActivitiesImplementations(new TestActivityShortTimeoutImpl());
+    testEnvironment.start();
+
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    workflow.workflow1("Test");
+  }
+
+  @Test(expected = WorkflowFailureException.class)
+  public void testTimingOutLocalActivity() {
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TimingOutLocalActivityWorkflowImpl.class);
     worker.registerActivitiesImplementations(new TestActivityShortTimeoutImpl());
     testEnvironment.start();
 
