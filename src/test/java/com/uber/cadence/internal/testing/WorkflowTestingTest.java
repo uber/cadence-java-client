@@ -168,6 +168,12 @@ public class WorkflowTestingTest {
     String activity1(String input);
   }
 
+  public interface TestActivityShortTimeout {
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3600, startToCloseTimeoutSeconds = 5)
+    String activity1(String input);
+  }
+
   private static class ActivityImpl implements TestActivity {
 
     @Override
@@ -533,6 +539,7 @@ public class WorkflowTestingTest {
       untyped.getResult(String.class);
       fail("unreacheable");
     } catch (CancellationException e) {
+      System.out.println(e);
     }
   }
 
@@ -978,5 +985,41 @@ public class WorkflowTestingTest {
     ParentWorkflow workflow = client.newWorkflowStub(ParentWorkflow.class, options);
     String result = workflow.workflow("input1");
     assertEquals("testing123testing123", result);
+  }
+
+  private static class TestActivityShortTimeoutImpl implements TestActivityShortTimeout {
+
+    @Override
+    public String activity1(String input) {
+      try {
+        Thread.sleep(11000);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+      return Activity.getTask().getActivityType() + "-" + input;
+    }
+  }
+
+  public static class TimingOutWorkflowImpl implements TestWorkflow {
+
+    private final TestActivityShortTimeout activity =
+        Workflow.newActivityStub(TestActivityShortTimeout.class);
+
+    @Override
+    public String workflow1(String input) {
+      return activity.activity1(input);
+    }
+  }
+
+  @Test(expected = WorkflowFailureException.class)
+  public void testTimingOutActivity() {
+    Worker worker = testEnvironment.newWorker(TASK_LIST);
+    worker.registerWorkflowImplementationTypes(TimingOutWorkflowImpl.class);
+    worker.registerActivitiesImplementations(new TestActivityShortTimeoutImpl());
+    testEnvironment.start();
+
+    WorkflowClient client = testEnvironment.newWorkflowClient();
+    TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class);
+    workflow.workflow1("Test");
   }
 }

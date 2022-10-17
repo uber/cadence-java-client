@@ -39,7 +39,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -47,6 +46,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import org.slf4j.MDC;
 
@@ -121,6 +121,13 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   private ActivityTaskHandler.Result mapToActivityFailure(
       Throwable failure, Scope metricsScope, boolean isLocalActivity) {
 
+    if (failure instanceof ExecutionException
+        && failure.getCause() != null
+        && failure.getCause() instanceof CancellationException) {
+      if (failure.getCause() instanceof CancellationException) {
+        throw new CancellationException(failure.getCause().getMessage());
+      }
+    }
     if (failure instanceof ActivityCancelledException) {
       if (isLocalActivity) {
         metricsScope.counter(MetricsType.LOCAL_ACTIVITY_CANCELED_COUNTER).inc(1);
@@ -185,7 +192,6 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       boolean isLocalActivity,
       ContextPropagationHandler contextPropagationHandler) {
     String activityType = pollResponse.getActivityType().getName();
-    ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
     ActivityTaskExecutor activity = activities.get(activityType);
     if (activity == null) {
       String knownTypes = Joiner.on(", ").join(activities.keySet());
@@ -208,28 +214,30 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
       }
     }
 
+    return executeActivity(
+        activity, contextPropagationHandler, isLocalActivity, metricsScope, pollResponse);
+  }
+
+  private Result executeActivity(
+      ActivityTaskExecutor activity,
+      ContextPropagationHandler contextPropagationHandler,
+      boolean isLocalActivity,
+      Scope metricsScope,
+      PollForActivityTaskResponse pollResponse) {
+    ActivityTaskImpl activityTask = new ActivityTaskImpl(pollResponse);
     ActivityTaskHandler.Result activityResult;
     try {
       Map<String, String> mdcContextMap = MDC.getCopyOfContextMap();
-      List<Future<ActivityTaskHandler.Result>> futures =
+      Future<ActivityTaskHandler.Result> future =
           Executors.newSingleThreadExecutor()
-              .invokeAll(
-                  Collections.singletonList(
-                      () -> {
-                        contextPropagationHandler.refreshContext();
-                        MDC.setContextMap(mdcContextMap);
-                        return activity.execute(activityTask, metricsScope);
-                      }),
-                  getTimeout(pollResponse),
-                  TimeUnit.SECONDS);
-      activityResult = futures.get(0).get();
-    } catch (ExecutionException e) {
-      if (e.getCause() instanceof CancellationException) {
-        throw (CancellationException) e.getCause();
-      }
-
-      return mapToActivityFailure(e, metricsScope, isLocalActivity);
-    } catch (InterruptedException e) {
+              .submit(
+                  () -> {
+                    contextPropagationHandler.refreshContext();
+                    MDC.setContextMap(mdcContextMap);
+                    return activity.execute(activityTask, metricsScope);
+                  });
+      activityResult = future.get(getTimeout(pollResponse), TimeUnit.SECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
       return mapToActivityFailure(e, metricsScope, isLocalActivity);
     }
 
