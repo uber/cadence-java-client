@@ -170,7 +170,7 @@ public class WorkflowTestingTest {
 
   public interface TestActivityShortTimeout {
 
-    @ActivityMethod(scheduleToCloseTimeoutSeconds = 7, startToCloseTimeoutSeconds = 5)
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 3, startToCloseTimeoutSeconds = 2)
     String activity1(String input);
   }
 
@@ -992,7 +992,7 @@ public class WorkflowTestingTest {
     @Override
     public String activity1(String input) {
       try {
-        Thread.sleep(11000);
+        Thread.sleep(4000);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
