@@ -118,7 +118,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RegisterDomain(RegisterDomainRequest registerRequest)
       throws BadRequestError, DomainAlreadyExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       grpcServiceStubs
           .domainBlockingStub()
@@ -131,7 +131,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public DescribeDomainResponse DescribeDomain(DescribeDomainRequest describeRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.DescribeDomainResponse response =
           grpcServiceStubs
@@ -146,7 +146,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public ListDomainsResponse ListDomains(ListDomainsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ListDomainsResponse response =
           grpcServiceStubs
@@ -161,7 +161,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public UpdateDomainResponse UpdateDomain(UpdateDomainRequest updateRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.UpdateDomainResponse response =
           grpcServiceStubs
@@ -176,7 +176,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void DeprecateDomain(DeprecateDomainRequest deprecateRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       grpcServiceStubs
           .domainBlockingStub()
@@ -190,16 +190,16 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
-      DomainNotActiveError, LimitExceededError, EntityNotExistsError,
-      ClientVersionNotSupportedError, TException {
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
     return startWorkflowExecution(startRequest);
   }
 
   private StartWorkflowExecutionResponse startWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
-      DomainNotActiveError, LimitExceededError, EntityNotExistsError,
-      ClientVersionNotSupportedError, TException {
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
     startRequest.setRequestId(UUID.randomUUID().toString());
     try {
       com.uber.cadence.api.v1.StartWorkflowExecutionResponse response =
@@ -216,7 +216,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
           grpcServiceStubs
@@ -232,7 +232,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public PollForDecisionTaskResponse PollForDecisionTask(PollForDecisionTaskRequest pollRequest)
       throws BadRequestError, ServiceBusyError, LimitExceededError, EntityNotExistsError,
-      DomainNotActiveError, ClientVersionNotSupportedError, TException {
+          DomainNotActiveError, ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.PollForDecisionTaskResponse response =
           grpcServiceStubs
@@ -248,8 +248,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public RespondDecisionTaskCompletedResponse RespondDecisionTaskCompleted(
       RespondDecisionTaskCompletedRequest completeRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       com.uber.cadence.api.v1.RespondDecisionTaskCompletedResponse response =
           grpcServiceStubs
@@ -265,8 +265,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondDecisionTaskFailed(RespondDecisionTaskFailedRequest failedRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -279,7 +279,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public PollForActivityTaskResponse PollForActivityTask(PollForActivityTaskRequest pollRequest)
       throws BadRequestError, ServiceBusyError, LimitExceededError, EntityNotExistsError,
-      DomainNotActiveError, ClientVersionNotSupportedError, TException {
+          DomainNotActiveError, ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.PollForActivityTaskResponse response =
           grpcServiceStubs
@@ -295,8 +295,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeat(
       RecordActivityTaskHeartbeatRequest heartbeatRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       com.uber.cadence.api.v1.RecordActivityTaskHeartbeatResponse response =
           grpcServiceStubs
@@ -313,8 +313,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public RecordActivityTaskHeartbeatResponse RecordActivityTaskHeartbeatByID(
       RecordActivityTaskHeartbeatByIDRequest heartbeatRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       com.uber.cadence.api.v1.RecordActivityTaskHeartbeatByIDResponse response =
           grpcServiceStubs
@@ -330,8 +330,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondActivityTaskCompleted(RespondActivityTaskCompletedRequest completeRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -346,8 +346,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RespondActivityTaskCompletedByID(
       RespondActivityTaskCompletedByIDRequest completeRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -361,8 +361,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondActivityTaskFailed(RespondActivityTaskFailedRequest failRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -375,8 +375,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondActivityTaskFailedByID(RespondActivityTaskFailedByIDRequest failRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -390,8 +390,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondActivityTaskCanceled(RespondActivityTaskCanceledRequest canceledRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -406,8 +406,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RespondActivityTaskCanceledByID(
       RespondActivityTaskCanceledByIDRequest canceledRequest)
       throws BadRequestError, EntityNotExistsError, DomainNotActiveError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
-      TException {
+          ServiceBusyError, ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError,
+          TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -421,8 +421,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RequestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
       throws BadRequestError, EntityNotExistsError, CancellationAlreadyRequestedError,
-      ServiceBusyError, DomainNotActiveError, LimitExceededError,
-      ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
+          ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
     cancelRequest.setRequestId(UUID.randomUUID().toString());
     try {
       grpcServiceStubs
@@ -437,8 +437,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      LimitExceededError, ClientVersionNotSupportedError,
-      WorkflowExecutionAlreadyCompletedError, TException {
+          LimitExceededError, ClientVersionNotSupportedError,
+          WorkflowExecutionAlreadyCompletedError, TException {
     signalRequest.setRequestId(UUID.randomUUID().toString());
     try {
       grpcServiceStubs
@@ -453,8 +453,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public StartWorkflowExecutionResponse SignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      LimitExceededError, WorkflowExecutionAlreadyStartedError, ClientVersionNotSupportedError,
-      TException {
+          LimitExceededError, WorkflowExecutionAlreadyStartedError, ClientVersionNotSupportedError,
+          TException {
     try {
       signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
       com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionResponse response =
@@ -472,7 +472,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ResetWorkflowExecutionResponse ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      LimitExceededError, ClientVersionNotSupportedError, TException {
+          LimitExceededError, ClientVersionNotSupportedError, TException {
     try {
       resetRequest.setRequestId(UUID.randomUUID().toString());
       com.uber.cadence.api.v1.ResetWorkflowExecutionResponse response =
@@ -488,8 +488,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
-      LimitExceededError, ClientVersionNotSupportedError,
-      WorkflowExecutionAlreadyCompletedError, TException {
+          LimitExceededError, ClientVersionNotSupportedError,
+          WorkflowExecutionAlreadyCompletedError, TException {
     try {
       grpcServiceStubs
           .workflowBlockingStub()
@@ -504,7 +504,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
       ListOpenWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, LimitExceededError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ListOpenWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -521,7 +521,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
       ListClosedWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ListClosedWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -538,7 +538,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListWorkflowExecutionsResponse ListWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ListWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -554,7 +554,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListArchivedWorkflowExecutionsResponse ListArchivedWorkflowExecutions(
       ListArchivedWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ListArchivedWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -571,7 +571,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.ScanWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -587,7 +587,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public CountWorkflowExecutionsResponse CountWorkflowExecutions(
       CountWorkflowExecutionsRequest countRequest)
       throws BadRequestError, EntityNotExistsError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.CountWorkflowExecutionsResponse response =
           grpcServiceStubs
@@ -616,7 +616,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RespondQueryTaskCompleted(RespondQueryTaskCompletedRequest completeRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
-      DomainNotActiveError, ClientVersionNotSupportedError, TException {
+          DomainNotActiveError, ClientVersionNotSupportedError, TException {
     try {
       grpcServiceStubs
           .workerBlockingStub()
@@ -630,8 +630,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public ResetStickyTaskListResponse ResetStickyTaskList(ResetStickyTaskListRequest resetRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
-      DomainNotActiveError, ClientVersionNotSupportedError,
-      WorkflowExecutionAlreadyCompletedError, TException {
+          DomainNotActiveError, ClientVersionNotSupportedError,
+          WorkflowExecutionAlreadyCompletedError, TException {
     try {
       com.uber.cadence.api.v1.ResetStickyTaskListResponse response =
           grpcServiceStubs
@@ -646,7 +646,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest)
       throws BadRequestError, EntityNotExistsError, QueryFailedError, LimitExceededError,
-      ServiceBusyError, ClientVersionNotSupportedError, TException {
+          ServiceBusyError, ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.QueryWorkflowResponse response =
           grpcServiceStubs
@@ -662,7 +662,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public DescribeWorkflowExecutionResponse DescribeWorkflowExecution(
       DescribeWorkflowExecutionRequest describeRequest)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.DescribeWorkflowExecutionResponse response =
           grpcServiceStubs
@@ -678,7 +678,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public DescribeTaskListResponse DescribeTaskList(DescribeTaskListRequest request)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
-      ClientVersionNotSupportedError, TException {
+          ClientVersionNotSupportedError, TException {
     try {
       com.uber.cadence.api.v1.DescribeTaskListResponse response =
           grpcServiceStubs
@@ -712,7 +712,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public ListTaskListPartitionsResponse ListTaskListPartitions(
       ListTaskListPartitionsRequest request)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
-      TException {
+          TException {
     try {
       com.uber.cadence.api.v1.ListTaskListPartitionsResponse response =
           grpcServiceStubs
@@ -727,7 +727,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   @Override
   public void RefreshWorkflowTasks(RefreshWorkflowTasksRequest request)
       throws BadRequestError, DomainNotActiveError, ServiceBusyError, EntityNotExistsError,
-      TException {
+          TException {
     try {
       grpcServiceStubs
           .workflowBlockingStub()
@@ -1119,8 +1119,8 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
             try {
               com.uber.cadence.api.v1.GetWorkflowExecutionHistoryResponse response =
                   resultFuture.get();
-              resultHandler
-                  .onComplete(ResponseMapper.getWorkflowExecutionHistoryResponse(response));
+              resultHandler.onComplete(
+                  ResponseMapper.getWorkflowExecutionHistoryResponse(response));
             } catch (Exception e) {
               resultHandler.onError(e);
             }

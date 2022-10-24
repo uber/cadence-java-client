@@ -3366,7 +3366,8 @@ public class WorkflowTest {
   }
 
   @Test
-  public void testSignalCrossDomainExternalWorkflow() throws ExecutionException, InterruptedException {
+  public void testSignalCrossDomainExternalWorkflow()
+      throws ExecutionException, InterruptedException {
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build();
 
@@ -3401,8 +3402,6 @@ public class WorkflowTest {
       worker2.registerWorkflowImplementationTypes(TestWorkflowSignaledSimple.class);
       testEnvironment2.start();
     }
-
-
 
     WorkflowOptions.Builder options = new WorkflowOptions.Builder();
     options.setExecutionStartToCloseTimeout(Duration.ofSeconds(30));
