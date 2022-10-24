@@ -32,28 +32,30 @@ public class WorkerShutDownHandler {
       return;
     }
 
-    registeredHandler = new Thread("SHUTDOWN_WORKERS") {
-      @Override
-      public void run() {
-        for (WorkerFactory workerFactory : workerFactories) {
-          workerFactory.suspendPolling();
-        }
+    registeredHandler =
+        new Thread("SHUTDOWN_WORKERS") {
+          @Override
+          public void run() {
+            for (WorkerFactory workerFactory : workerFactories) {
+              workerFactory.suspendPolling();
+            }
 
-        for (WorkerFactory workerFactory : workerFactories) {
-          workerFactory.shutdownNow();
-        }
+            for (WorkerFactory workerFactory : workerFactories) {
+              workerFactory.shutdownNow();
+            }
 
-        long remainingTimeout = 10000;
-        for (WorkerFactory workerFactory : workerFactories) {
-          final long timeoutMillis = remainingTimeout;
-          remainingTimeout = InternalUtils.awaitTermination(timeoutMillis,
-                  () -> workerFactory.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS));
-        }
-      }
-    };
+            long remainingTimeout = 10000;
+            for (WorkerFactory workerFactory : workerFactories) {
+              final long timeoutMillis = remainingTimeout;
+              remainingTimeout =
+                  InternalUtils.awaitTermination(
+                      timeoutMillis,
+                      () -> workerFactory.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS));
+            }
+          }
+        };
 
-    Runtime.getRuntime()
-        .addShutdownHook(registeredHandler);
+    Runtime.getRuntime().addShutdownHook(registeredHandler);
   }
 
   public static synchronized void registerWorkerFactory(WorkerFactory workerFactory) {

@@ -24,7 +24,8 @@ public class RegisterTestDomain {
     System.exit(0);
   }
 
-  private static void registerDomain(IWorkflowService service, String domain) throws InterruptedException {
+  private static void registerDomain(IWorkflowService service, String domain)
+      throws InterruptedException {
     RegisterDomainRequest request =
         new RegisterDomainRequest().setName(domain).setWorkflowExecutionRetentionPeriodInDays(1);
     while (true) {

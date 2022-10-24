@@ -286,5 +286,4 @@ class EnumMapper {
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
-
 }

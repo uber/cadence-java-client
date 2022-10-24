@@ -27,8 +27,8 @@ import static com.uber.cadence.internal.compatibility.proto.EnumMapper.workflowI
 import static com.uber.cadence.internal.compatibility.proto.Helpers.arrayToByteString;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.daysToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.newFieldMask;
-import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
 import static com.uber.cadence.internal.compatibility.proto.Helpers.nullToEmpty;
+import static com.uber.cadence.internal.compatibility.proto.Helpers.secondsToDuration;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.badBinaries;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.clusterReplicationConfigurationArray;
 import static com.uber.cadence.internal.compatibility.proto.TypeMapper.failure;
