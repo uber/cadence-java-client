@@ -24,12 +24,10 @@ import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.log.Fields;
 import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMap;
 import io.opentracing.tag.Tags;
 import io.opentracing.util.GlobalTracer;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,32 +175,5 @@ public class OpenTracingContextPropagator implements ContextPropagator {
   @Override
   public int hashCode() {
     return this.getClass().hashCode();
-  }
-
-  private class HashMapTextMap implements TextMap {
-
-    private final HashMap<String, String> backingMap = new HashMap<>();
-
-    public HashMapTextMap() {
-      // Noop
-    }
-
-    public HashMapTextMap(Map<String, String> spanData) {
-      backingMap.putAll(spanData);
-    }
-
-    @Override
-    public Iterator<Map.Entry<String, String>> iterator() {
-      return backingMap.entrySet().iterator();
-    }
-
-    @Override
-    public void put(String key, String value) {
-      backingMap.put(key, value);
-    }
-
-    public HashMap<String, String> getBackingMap() {
-      return backingMap;
-    }
   }
 }

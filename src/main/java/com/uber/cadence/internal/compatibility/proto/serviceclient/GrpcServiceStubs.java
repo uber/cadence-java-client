@@ -28,6 +28,7 @@ import com.uber.cadence.api.v1.WorkerAPIGrpc.WorkerAPIFutureStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
+import com.uber.cadence.context.HashMapTextMap;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.serviceclient.ClientOptions;
 import io.grpc.CallOptions;
@@ -43,6 +44,10 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.MetadataUtils;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.propagation.Format;
+import io.opentracing.util.GlobalTracer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -103,7 +108,10 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     headers.put(RPC_ENCODING_HEADER_KEY, "proto");
     Channel interceptedChannel =
         ClientInterceptors.intercept(
-            channel, deadlineInterceptor, MetadataUtils.newAttachHeadersInterceptor(headers));
+            channel,
+            deadlineInterceptor,
+            MetadataUtils.newAttachHeadersInterceptor(headers),
+            newOpenTracingInterceptor());
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
     }
@@ -117,6 +125,36 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.workflowFutureStub = WorkflowAPIGrpc.newFutureStub(interceptedChannel);
     this.metaBlockingStub = MetaAPIGrpc.newBlockingStub(interceptedChannel);
     this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
+  }
+
+  private ClientInterceptor newOpenTracingInterceptor() {
+    return new ClientInterceptor() {
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            Tracer tracer = GlobalTracer.get();
+            if (tracer != null) {
+              Span activeSpan = tracer.activeSpan();
+              if (activeSpan != null) {
+                HashMapTextMap contextTextMap = new HashMapTextMap();
+                GlobalTracer.get()
+                    .inject(activeSpan.context(), Format.Builtin.TEXT_MAP, contextTextMap);
+                headers.put(
+                    Metadata.Key.of("uber-trace-id", Metadata.ASCII_STRING_MARSHALLER),
+                    contextTextMap.getBackingMap().get("uber-trace-id"));
+              }
+            }
+
+            super.start(responseListener, headers);
+          }
+        };
+      }
+    };
   }
 
   private ClientInterceptor newTracingInterceptor() {
