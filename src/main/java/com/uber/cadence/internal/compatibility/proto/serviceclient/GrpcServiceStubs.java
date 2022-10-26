@@ -29,7 +29,6 @@ import com.uber.cadence.api.v1.WorkflowAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
 import com.uber.cadence.internal.Version;
-import com.uber.cadence.internal.common.HashMapTextMap;
 import com.uber.cadence.serviceclient.ClientOptions;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -44,10 +43,10 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.MetadataUtils;
-import io.opentracing.Span;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -111,7 +110,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             channel,
             deadlineInterceptor,
             MetadataUtils.newAttachHeadersInterceptor(headers),
-            newOpenTracingInterceptor());
+            newOpenTelemetryInterceptor());
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
     }
@@ -127,7 +126,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
   }
 
-  private ClientInterceptor newOpenTracingInterceptor() {
+  private ClientInterceptor newOpenTelemetryInterceptor() {
     return new ClientInterceptor() {
       @Override
       public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
@@ -137,21 +136,17 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
 
           @Override
           public void start(Listener<RespT> responseListener, Metadata headers) {
-            Tracer tracer = GlobalTracer.get();
-            if (tracer != null) {
-              Span activeSpan = tracer.activeSpan();
-              if (activeSpan != null) {
-                HashMapTextMap contextTextMap = new HashMapTextMap();
-                GlobalTracer.get()
-                    .inject(activeSpan.context(), Format.Builtin.TEXT_MAP, contextTextMap);
+            TextMapPropagator propagator =
+                GlobalOpenTelemetry.getPropagators().getTextMapPropagator();
 
-                contextTextMap.forEach(
-                    entry -> {
-                      headers.put(
-                          Metadata.Key.of(entry.getKey(), Metadata.ASCII_STRING_MARSHALLER),
-                          entry.getValue());
-                    });
-              }
+            final TextMapSetter<Metadata> setter =
+                (carrier, key, value) -> {
+                  if (carrier != null) {
+                    carrier.put(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value);
+                  }
+                };
+            if (propagator != null) {
+              propagator.inject(Context.current(), headers, setter);
             }
 
             super.start(responseListener, headers);

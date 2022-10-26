@@ -27,7 +27,6 @@ import com.uber.cadence.*;
 import com.uber.cadence.WorkflowService.GetWorkflowExecutionHistory_result;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.common.CheckedExceptionWrapper;
-import com.uber.cadence.internal.common.HashMapTextMap;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -43,9 +42,10 @@ import com.uber.tchannel.errors.ErrorType;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import com.uber.tchannel.messages.generated.Meta;
-import io.opentracing.Span;
-import io.opentracing.propagation.Format;
-import io.opentracing.util.GlobalTracer;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -207,25 +207,26 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     return result;
   }
 
-  protected <T> ThriftRequest<T> buildThriftRequest(String apiName, T body, Long rpcTimeoutOverride) {
+  protected <T> ThriftRequest<T> buildThriftRequest(
+      String apiName, T body, Long rpcTimeoutOverride) {
     String endpoint = getEndpoint(INTERFACE_NAME, apiName);
     ThriftRequest.Builder<T> builder =
         new ThriftRequest.Builder<>(options.getServiceName(), endpoint);
     // Create a mutable hashmap for headers, as tchannel.tracing.PrefixedHeadersCarrier assumes
     // that it can call put directly to add new stuffs (e.g. traces).
     final HashMap<String, String> headers = new HashMap<>(thriftHeaders);
-    Span activeSpan = GlobalTracer.get().activeSpan();
-    if (activeSpan != null) {
-      HashMapTextMap contextTextMap = new HashMapTextMap();
-      GlobalTracer.get().inject(activeSpan.context(), Format.Builtin.TEXT_MAP, contextTextMap);
+    TextMapPropagator textMapPropagator =
+        GlobalOpenTelemetry.getPropagators().getTextMapPropagator();
 
-      String tracingHeadersPrefix = "$tracing$";
-      contextTextMap.forEach(
-          entry -> {
-            // thrift-go library adds this $tracing$ prefix for tracing headers so need to to same.
-            headers.put(tracingHeadersPrefix + entry.getKey(), entry.getValue());
-          });
-    }
+    String tracingHeadersPrefix = "$tracing$";
+    TextMapSetter<Map<String, String>> setter =
+        (carrier, key, value) -> {
+          if (carrier != null) {
+            carrier.put(tracingHeadersPrefix + key, value);
+          }
+        };
+
+    textMapPropagator.inject(Context.current(), headers, setter);
 
     if (this.options.getAuthProvider() != null) {
       headers.put(
