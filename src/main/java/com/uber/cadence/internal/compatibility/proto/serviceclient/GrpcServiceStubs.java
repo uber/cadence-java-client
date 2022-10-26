@@ -43,6 +43,10 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.MetadataUtils;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapPropagator;
+import io.opentelemetry.context.propagation.TextMapSetter;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -103,7 +107,10 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     headers.put(RPC_ENCODING_HEADER_KEY, "proto");
     Channel interceptedChannel =
         ClientInterceptors.intercept(
-            channel, deadlineInterceptor, MetadataUtils.newAttachHeadersInterceptor(headers));
+            channel,
+            deadlineInterceptor,
+            MetadataUtils.newAttachHeadersInterceptor(headers),
+            newOpenTelemetryInterceptor());
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
     }
@@ -117,6 +124,36 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.workflowFutureStub = WorkflowAPIGrpc.newFutureStub(interceptedChannel);
     this.metaBlockingStub = MetaAPIGrpc.newBlockingStub(interceptedChannel);
     this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
+  }
+
+  private ClientInterceptor newOpenTelemetryInterceptor() {
+    return new ClientInterceptor() {
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            TextMapPropagator propagator =
+                GlobalOpenTelemetry.getPropagators().getTextMapPropagator();
+
+            final TextMapSetter<Metadata> setter =
+                (carrier, key, value) -> {
+                  if (carrier != null) {
+                    carrier.put(Metadata.Key.of(key, Metadata.ASCII_STRING_MARSHALLER), value);
+                  }
+                };
+            if (propagator != null) {
+              propagator.inject(Context.current(), headers, setter);
+            }
+
+            super.start(responseListener, headers);
+          }
+        };
+      }
+    };
   }
 
   private ClientInterceptor newTracingInterceptor() {
