@@ -26,6 +26,7 @@ import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,7 @@ public final class WorkflowClientOptions {
   private static final WorkflowClientInterceptor[] EMPTY_INTERCEPTOR_ARRAY =
       new WorkflowClientInterceptor[0];
   private static final List<ContextPropagator> EMPTY_CONTEXT_PROPAGATORS = Arrays.asList();
+  private static final Duration DEFAULT_WORKER_SHUTDOWN_TIME = Duration.ofSeconds(10);
 
   static {
     DEFAULT_INSTANCE = new Builder().build();
@@ -62,6 +64,7 @@ public final class WorkflowClientOptions {
     private String identity = ManagementFactory.getRuntimeMXBean().getName();;
     private List<ContextPropagator> contextPropagators = EMPTY_CONTEXT_PROPAGATORS;
     private QueryRejectCondition queryRejectCondition;
+    private Duration timeForWorkerShutdown = DEFAULT_WORKER_SHUTDOWN_TIME;
 
     private Builder() {}
 
@@ -72,6 +75,7 @@ public final class WorkflowClientOptions {
       metricsScope = options.getMetricsScope();
       identity = options.getIdentity();
       queryRejectCondition = options.getQueryRejectCondition();
+      timeForWorkerShutdown = options.getTimeForWorkerShutdown();
     }
 
     public Builder setDomain(String domain) {
@@ -148,7 +152,7 @@ public final class WorkflowClientOptions {
           metricsScope,
           identity,
           contextPropagators,
-          queryRejectCondition);
+          queryRejectCondition, timeForWorkerShutdown);
     }
   }
 
@@ -159,15 +163,16 @@ public final class WorkflowClientOptions {
   private final String identity;
   private final List<ContextPropagator> contextPropagators;
   private final QueryRejectCondition queryRejectCondition;
+  private final Duration timeForWorkerShutdown;
 
   private WorkflowClientOptions(
-      String domain,
-      DataConverter dataConverter,
-      WorkflowClientInterceptor[] interceptors,
-      Scope metricsScope,
-      String identity,
-      List<ContextPropagator> contextPropagators,
-      QueryRejectCondition queryRejectCondition) {
+          String domain,
+          DataConverter dataConverter,
+          WorkflowClientInterceptor[] interceptors,
+          Scope metricsScope,
+          String identity,
+          List<ContextPropagator> contextPropagators,
+          QueryRejectCondition queryRejectCondition, Duration timeForWorkerShutdown) {
     this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;
@@ -175,6 +180,7 @@ public final class WorkflowClientOptions {
     this.identity = identity;
     this.contextPropagators = contextPropagators;
     this.queryRejectCondition = queryRejectCondition;
+    this.timeForWorkerShutdown = timeForWorkerShutdown;
   }
 
   public String getDomain() {
@@ -205,6 +211,10 @@ public final class WorkflowClientOptions {
     return queryRejectCondition;
   }
 
+  public Duration getTimeForWorkerShutdown() {
+    return timeForWorkerShutdown;
+  }
+
   @Override
   public String toString() {
     return "WorkflowClientOptions{"
@@ -222,6 +232,8 @@ public final class WorkflowClientOptions {
         + contextPropagators
         + ", queryRejectCondition="
         + queryRejectCondition
+        + ", timeForWorkerShutdown="
+        + timeForWorkerShutdown
         + '}';
   }
 
@@ -235,7 +247,8 @@ public final class WorkflowClientOptions {
         && Arrays.equals(interceptors, that.interceptors)
         && com.google.common.base.Objects.equal(identity, that.identity)
         && com.google.common.base.Objects.equal(contextPropagators, that.contextPropagators)
-        && queryRejectCondition == that.queryRejectCondition;
+        && queryRejectCondition == that.queryRejectCondition
+        && com.google.common.base.Objects.equal(timeForWorkerShutdown, that.timeForWorkerShutdown);
   }
 
   @Override
@@ -246,6 +259,7 @@ public final class WorkflowClientOptions {
         Arrays.hashCode(interceptors),
         identity,
         contextPropagators,
-        queryRejectCondition);
+        queryRejectCondition,
+        timeForWorkerShutdown);
   }
 }
