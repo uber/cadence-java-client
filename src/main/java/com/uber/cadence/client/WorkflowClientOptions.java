@@ -143,6 +143,17 @@ public final class WorkflowClientOptions {
       return this;
     }
 
+    /**
+     * Time for worker shutdown is an optional field used as the amount of time alloted for handling
+     * worker shutdown after SIGTERM signal. Default is 10 seconds.
+     *
+     * @param timeForWorkerShutdown
+     */
+    public Builder setTimeForWorkerShutdown(Duration timeForWorkerShutdown) {
+      this.timeForWorkerShutdown = timeForWorkerShutdown;
+      return this;
+    }
+
     public WorkflowClientOptions build() {
       metricsScope = metricsScope.tagged(ImmutableMap.of(MetricsTag.DOMAIN, domain));
       return new WorkflowClientOptions(
@@ -152,7 +163,8 @@ public final class WorkflowClientOptions {
           metricsScope,
           identity,
           contextPropagators,
-          queryRejectCondition, timeForWorkerShutdown);
+          queryRejectCondition,
+          timeForWorkerShutdown);
     }
   }
 
@@ -166,13 +178,14 @@ public final class WorkflowClientOptions {
   private final Duration timeForWorkerShutdown;
 
   private WorkflowClientOptions(
-          String domain,
-          DataConverter dataConverter,
-          WorkflowClientInterceptor[] interceptors,
-          Scope metricsScope,
-          String identity,
-          List<ContextPropagator> contextPropagators,
-          QueryRejectCondition queryRejectCondition, Duration timeForWorkerShutdown) {
+      String domain,
+      DataConverter dataConverter,
+      WorkflowClientInterceptor[] interceptors,
+      Scope metricsScope,
+      String identity,
+      List<ContextPropagator> contextPropagators,
+      QueryRejectCondition queryRejectCondition,
+      Duration timeForWorkerShutdown) {
     this.domain = domain;
     this.dataConverter = dataConverter;
     this.interceptors = interceptors;

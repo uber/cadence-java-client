@@ -18,9 +18,7 @@ package com.uber.cadence.internal.worker;
 
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.worker.WorkerFactory;
-
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -47,10 +45,13 @@ public class WorkerShutDownHandler {
               workerFactory.shutdownNow();
             }
 
-            long remainingTimeout = workerShutdownTimeout.get(ChronoUnit.MILLIS);
+            long remainingTimeoutMillis =
+                TimeUnit.SECONDS.toMillis(workerShutdownTimeout.getSeconds())
+                    + TimeUnit.NANOSECONDS.toMillis(workerShutdownTimeout.getNano());
+
             for (WorkerFactory workerFactory : workerFactories) {
-              final long timeoutMillis = remainingTimeout;
-              remainingTimeout =
+              final long timeoutMillis = remainingTimeoutMillis;
+              remainingTimeoutMillis =
                   InternalUtils.awaitTermination(
                       timeoutMillis,
                       () -> workerFactory.awaitTermination(timeoutMillis, TimeUnit.MILLISECONDS));
