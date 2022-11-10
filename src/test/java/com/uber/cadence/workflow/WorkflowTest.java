@@ -2729,6 +2729,7 @@ public class WorkflowTest {
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder(workflowClient.getOptions())
             .setQueryRejectCondition(QueryRejectCondition.NOT_OPEN)
+            .setTimeForWorkerShutdown(Duration.ofSeconds(1))
             .build();
     WorkflowClient wc;
     if (useExternalService) {

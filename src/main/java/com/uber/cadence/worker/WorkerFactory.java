@@ -58,7 +58,7 @@ public final class WorkerFactory {
 
   public static WorkerFactory newInstance(
       WorkflowClient workflowClient, WorkerFactoryOptions options) {
-    WorkerShutDownHandler.registerHandler();
+    WorkerShutDownHandler.registerHandler(workflowClient.getOptions().getTimeForWorkerShutdown());
     WorkerFactory workerFactory = new WorkerFactory(workflowClient, options);
     WorkerShutDownHandler.registerWorkerFactory(workerFactory);
     return workerFactory;
