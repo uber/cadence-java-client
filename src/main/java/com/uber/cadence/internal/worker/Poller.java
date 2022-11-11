@@ -20,7 +20,17 @@ package com.uber.cadence.internal.worker;
 import com.uber.cadence.internal.common.BackoffThrottler;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.cadence.internal.worker.autoscaler.AutoScaler;
+import com.uber.cadence.internal.worker.autoscaler.NoopAutoScaler;
+import com.uber.cadence.internal.worker.autoscaler.PollerAutoScaler;
+import com.uber.cadence.internal.worker.autoscaler.PollerUsageEstimator;
+import com.uber.cadence.internal.worker.autoscaler.Recommender;
 import com.uber.m3.tally.Scope;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -28,10 +38,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class Poller<T> implements SuspendableWorker {
 
@@ -69,6 +75,8 @@ public final class Poller<T> implements SuspendableWorker {
         log.error("Failure in thread " + t.getName(), e);
       };
 
+  private final AutoScaler pollerAutoScaler;
+
   public Poller(
       String identity,
       PollTask<T> pollTask,
@@ -86,6 +94,17 @@ public final class Poller<T> implements SuspendableWorker {
     this.taskExecutor = taskExecutor;
     this.pollerOptions = pollerOptions;
     this.metricsScope = metricsScope;
+
+    if (pollerOptions.getPollerAutoScalerOptions() != null) {
+      PollerAutoScalerOptions autoScalerOptions = pollerOptions.getPollerAutoScalerOptions();
+      this.pollerAutoScaler =
+              new PollerAutoScaler(
+                      autoScalerOptions.getPollerScalingInterval(),
+                      new PollerUsageEstimator(),
+                      new Recommender(autoScalerOptions.getTargetPollerUtilisation(), pollerOptions.getPollThreadCount(), autoScalerOptions.getMinConcurrentPollers()));
+    } else {
+      this.pollerAutoScaler = new NoopAutoScaler();
+    }
   }
 
   @Override
@@ -124,6 +143,8 @@ public final class Poller<T> implements SuspendableWorker {
       pollExecutor.execute(new PollLoopTask(new PollExecutionTask()));
       metricsScope.counter(MetricsType.POLLER_START_COUNTER).inc(1);
     }
+
+    pollerAutoScaler.start();
   }
 
   @Override
@@ -155,6 +176,7 @@ public final class Poller<T> implements SuspendableWorker {
     } catch (InterruptedException e) {
     }
     taskExecutor.shutdown();
+    pollerAutoScaler.stop();
   }
 
   @Override
@@ -267,14 +289,22 @@ public final class Poller<T> implements SuspendableWorker {
     @Override
     public void run() throws Exception {
       try {
-        pollSemaphore.acquire();
-        T task = pollTask.poll();
-        if (task == null) {
-          return;
+        pollerAutoScaler.acquire();
+        try {
+          pollSemaphore.acquire();
+          T task = pollTask.poll();
+          if (task == null) {
+            pollerAutoScaler.increaseNoopPollCount();
+            return;
+          }
+
+          pollerAutoScaler.increaseActionablePollCount();
+          taskExecutor.process(task);
+        } finally {
+          releasePollSemaphore();
         }
-        taskExecutor.process(task);
       } finally {
-        releasePollSemaphore();
+        pollerAutoScaler.release();
       }
     }
 
