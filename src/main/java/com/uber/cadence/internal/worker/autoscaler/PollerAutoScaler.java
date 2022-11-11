@@ -24,12 +24,12 @@ public class PollerAutoScaler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PollerAutoScaler.class);
 
-  private Duration coolDownTime;
-  private PollerUsageEstimator pollerUsageEstimator;
-  private Recommender recommender;
-  private ResizableSemaphore semaphore;
+  private final Duration coolDownTime;
+  private final PollerUsageEstimator pollerUsageEstimator;
+  private final Recommender recommender;
+  private final ResizableSemaphore semaphore;
   private int semaphoreSize;
-  private boolean shutingDown;
+  private boolean shuttingDown;
 
   public PollerAutoScaler(
       Duration coolDownTime, PollerUsageEstimator pollerUsageEstimator, Recommender recommender) {
@@ -46,13 +46,14 @@ public class PollerAutoScaler {
             new Runnable() {
               @Override
               public void run() {
-                while (!shutingDown) {
+                while (!shuttingDown) {
                   try {
                     Thread.sleep(coolDownTime.toMillis());
-                    if (!shutingDown) {
+                    if (!shuttingDown) {
                       resizePollers();
                     }
                   } catch (InterruptedException e) {
+                    LOGGER.info("interrupted wait for next poller scaling");
                   }
                 }
               }
@@ -61,7 +62,7 @@ public class PollerAutoScaler {
 
   public void stop() {
     LOGGER.info("shutting down poller autoscaler");
-    shutingDown = true;
+    shuttingDown = true;
   }
 
   protected void resizePollers() {
@@ -86,14 +87,6 @@ public class PollerAutoScaler {
 
   public int getUpperPollerAmount() {
     return recommender.getUpperValue();
-  }
-
-  public PollerUsageEstimator getPollerUsageEstimator() {
-    return pollerUsageEstimator;
-  }
-
-  public Recommender getRecommender() {
-    return recommender;
   }
 
   public void acquire() throws InterruptedException {

@@ -15,31 +15,34 @@
 
 package com.uber.cadence.internal.worker.autoscaler;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class PollerUsageEstimator {
 
-  private int noopTaskCount;
-  private int actionableTaskCount;
+  private AtomicInteger noopTaskCount = new AtomicInteger();
+  private AtomicInteger actionableTaskCount = new AtomicInteger();
 
   public void increaseNoopTaskCount() {
-    noopTaskCount += 1;
+    noopTaskCount.addAndGet(1);
   }
 
   public void increaseActionableTaskCount() {
-    actionableTaskCount += 1;
+    actionableTaskCount.addAndGet(1);
   }
 
   public PollerUsage estimate() {
-    if (noopTaskCount + actionableTaskCount == 0) {
+    int actionableTasks = actionableTaskCount.get();
+    int noopTasks = noopTaskCount.get();
+    if (noopTasks + actionableTasks == 0) {
       return new PollerUsage(0);
     }
-    PollerUsage result =
-        new PollerUsage((actionableTaskCount * 1f) / (noopTaskCount + actionableTaskCount));
+    PollerUsage result = new PollerUsage((actionableTasks * 1f) / (noopTasks + actionableTasks));
     reset();
     return result;
   }
 
   public void reset() {
-    noopTaskCount = 0;
-    actionableTaskCount = 0;
+    noopTaskCount.set(0);
+    actionableTaskCount.set(0);
   }
 }

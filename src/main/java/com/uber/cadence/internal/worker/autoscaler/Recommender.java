@@ -28,16 +28,12 @@ public class Recommender {
   }
 
   public int recommend(int currentPollers, float pollerUtilizationRate) {
-    int recommended = 0;
-
     if (pollerUtilizationRate == 1) {
       return upperValue;
     }
 
     float r = currentPollers * pollerUtilizationRate / targetPollerUtilRate;
-    r = Math.min(upperValue, Math.max(lowerValue, r));
-    recommended += r;
-    return recommended;
+    return Math.round(Math.min(upperValue, Math.max(lowerValue, r)));
   }
 
   public int getUpperValue() {
