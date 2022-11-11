@@ -26,11 +26,6 @@ import com.uber.cadence.internal.worker.autoscaler.PollerAutoScaler;
 import com.uber.cadence.internal.worker.autoscaler.PollerUsageEstimator;
 import com.uber.cadence.internal.worker.autoscaler.Recommender;
 import com.uber.m3.tally.Scope;
-import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -38,6 +33,10 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class Poller<T> implements SuspendableWorker {
 
@@ -98,10 +97,13 @@ public final class Poller<T> implements SuspendableWorker {
     if (pollerOptions.getPollerAutoScalerOptions() != null) {
       PollerAutoScalerOptions autoScalerOptions = pollerOptions.getPollerAutoScalerOptions();
       this.pollerAutoScaler =
-              new PollerAutoScaler(
-                      autoScalerOptions.getPollerScalingInterval(),
-                      new PollerUsageEstimator(),
-                      new Recommender(autoScalerOptions.getTargetPollerUtilisation(), pollerOptions.getPollThreadCount(), autoScalerOptions.getMinConcurrentPollers()));
+          new PollerAutoScaler(
+              autoScalerOptions.getPollerScalingInterval(),
+              new PollerUsageEstimator(),
+              new Recommender(
+                  autoScalerOptions.getTargetPollerUtilisation(),
+                  pollerOptions.getPollThreadCount(),
+                  autoScalerOptions.getMinConcurrentPollers()));
     } else {
       this.pollerAutoScaler = new NoopAutoScaler();
     }

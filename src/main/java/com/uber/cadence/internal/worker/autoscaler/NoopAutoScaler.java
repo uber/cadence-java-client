@@ -16,33 +16,33 @@
 package com.uber.cadence.internal.worker.autoscaler;
 
 public class NoopAutoScaler implements AutoScaler {
-    @Override
-    public void start() {
-        // NOOP
-    }
+  @Override
+  public void start() {
+    // NOOP
+  }
 
-    @Override
-    public void stop() {
-        // NOOP
-    }
+  @Override
+  public void stop() {
+    // NOOP
+  }
 
-    @Override
-    public void acquire() throws InterruptedException {
-        // NOOP
-    }
+  @Override
+  public void acquire() throws InterruptedException {
+    // NOOP
+  }
 
-    @Override
-    public void release() {
-        // NOOP
-    }
+  @Override
+  public void release() {
+    // NOOP
+  }
 
-    @Override
-    public void increaseNoopPollCount() {
-        // NOOP
-    }
+  @Override
+  public void increaseNoopPollCount() {
+    // NOOP
+  }
 
-    @Override
-    public void increaseActionablePollCount() {
-        // NOOP
-    }
+  @Override
+  public void increaseActionablePollCount() {
+    // NOOP
+  }
 }

@@ -167,7 +167,7 @@ public final class PollerOptions {
           uncaughtExceptionHandler,
           pollThreadNamePrefix,
           pollOnlyIfExecutorHasCapacity,
-              pollerAutoScalerOptions);
+          pollerAutoScalerOptions);
     }
   }
 
@@ -192,16 +192,16 @@ public final class PollerOptions {
   private final PollerAutoScalerOptions pollerAutoScalerOptions;
 
   private PollerOptions(
-          int maximumPollRateIntervalMilliseconds,
-          double maximumPollRatePerSecond,
-          double pollBackoffCoefficient,
-          Duration pollBackoffInitialInterval,
-          Duration pollBackoffMaximumInterval,
-          int pollThreadCount,
-          Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
-          String pollThreadNamePrefix,
-          boolean pollOnlyIfExecutorHasCapacity,
-          PollerAutoScalerOptions pollerAutoScalerOptions) {
+      int maximumPollRateIntervalMilliseconds,
+      double maximumPollRatePerSecond,
+      double pollBackoffCoefficient,
+      Duration pollBackoffInitialInterval,
+      Duration pollBackoffMaximumInterval,
+      int pollThreadCount,
+      Thread.UncaughtExceptionHandler uncaughtExceptionHandler,
+      String pollThreadNamePrefix,
+      boolean pollOnlyIfExecutorHasCapacity,
+      PollerAutoScalerOptions pollerAutoScalerOptions) {
     this.maximumPollRateIntervalMilliseconds = maximumPollRateIntervalMilliseconds;
     this.maximumPollRatePerSecond = maximumPollRatePerSecond;
     this.pollBackoffCoefficient = pollBackoffCoefficient;

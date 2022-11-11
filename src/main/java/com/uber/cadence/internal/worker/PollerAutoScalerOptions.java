@@ -20,82 +20,84 @@ import java.util.Objects;
 
 public class PollerAutoScalerOptions {
 
-    private Duration pollerScalingInterval;
-    private int minConcurrentPollers;
-    private float targetPollerUtilisation;
+  private Duration pollerScalingInterval;
+  private int minConcurrentPollers;
+  private float targetPollerUtilisation;
 
-    private PollerAutoScalerOptions() {
+  private PollerAutoScalerOptions() {}
+
+  public static class Builder {
+
+    private Duration pollerScalingInterval = Duration.ofMinutes(1);
+    private int minConcurrentPollers = 1;
+    private float targetPollerUtilisation = 0.6f;
+
+    private Builder() {}
+
+    public static Builder newBuilder() {
+      return new Builder();
     }
 
-    public static class Builder {
-
-        private Duration pollerScalingInterval = Duration.ofMinutes(1);
-        private int minConcurrentPollers = 1;
-        private float targetPollerUtilisation = 0.6f;
-
-        private Builder() {
-        }
-
-        public static Builder newBuilder() {
-            return new Builder();
-        }
-
-        public Builder setPollerScalingInterval(Duration duration) {
-            this.pollerScalingInterval = duration;
-            return this;
-        }
-
-        public Builder setMinConcurrentPollers(int minConcurrentPollers) {
-            this.minConcurrentPollers = minConcurrentPollers;
-            return this;
-        }
-
-        public Builder setTargetPollerUtilisation(float targetPollerUtilisation) {
-            this.targetPollerUtilisation = targetPollerUtilisation;
-            return this;
-        }
-
-        public PollerAutoScalerOptions build() {
-            PollerAutoScalerOptions pollerAutoScalerOptions = new PollerAutoScalerOptions();
-            pollerAutoScalerOptions.pollerScalingInterval = this.pollerScalingInterval;
-            pollerAutoScalerOptions.minConcurrentPollers = this.minConcurrentPollers;
-            pollerAutoScalerOptions.targetPollerUtilisation = this.targetPollerUtilisation;
-            return pollerAutoScalerOptions;
-        }
+    public Builder setPollerScalingInterval(Duration duration) {
+      this.pollerScalingInterval = duration;
+      return this;
     }
 
-    public Duration getPollerScalingInterval() {
-        return pollerScalingInterval;
+    public Builder setMinConcurrentPollers(int minConcurrentPollers) {
+      this.minConcurrentPollers = minConcurrentPollers;
+      return this;
     }
 
-    public int getMinConcurrentPollers() {
-        return minConcurrentPollers;
+    public Builder setTargetPollerUtilisation(float targetPollerUtilisation) {
+      this.targetPollerUtilisation = targetPollerUtilisation;
+      return this;
     }
 
-    public float getTargetPollerUtilisation() {
-        return targetPollerUtilisation;
+    public PollerAutoScalerOptions build() {
+      PollerAutoScalerOptions pollerAutoScalerOptions = new PollerAutoScalerOptions();
+      pollerAutoScalerOptions.pollerScalingInterval = this.pollerScalingInterval;
+      pollerAutoScalerOptions.minConcurrentPollers = this.minConcurrentPollers;
+      pollerAutoScalerOptions.targetPollerUtilisation = this.targetPollerUtilisation;
+      return pollerAutoScalerOptions;
     }
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PollerAutoScalerOptions that = (PollerAutoScalerOptions) o;
-        return minConcurrentPollers == that.minConcurrentPollers && Float.compare(that.targetPollerUtilisation, targetPollerUtilisation) == 0 &&
-                Objects.equals(pollerScalingInterval, that.pollerScalingInterval);
-    }
+  public Duration getPollerScalingInterval() {
+    return pollerScalingInterval;
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(pollerScalingInterval, minConcurrentPollers, targetPollerUtilisation);
-    }
+  public int getMinConcurrentPollers() {
+    return minConcurrentPollers;
+  }
 
-    @Override
-    public String toString() {
-        return "PollerAutoScalerOptions{" +
-                "pollerScalingInterval=" + pollerScalingInterval +
-                ", minConcurrentPollers=" + minConcurrentPollers +
-                ", targetPollerUtilisation=" + targetPollerUtilisation +
-                '}';
-    }
+  public float getTargetPollerUtilisation() {
+    return targetPollerUtilisation;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PollerAutoScalerOptions that = (PollerAutoScalerOptions) o;
+    return minConcurrentPollers == that.minConcurrentPollers
+        && Float.compare(that.targetPollerUtilisation, targetPollerUtilisation) == 0
+        && Objects.equals(pollerScalingInterval, that.pollerScalingInterval);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(pollerScalingInterval, minConcurrentPollers, targetPollerUtilisation);
+  }
+
+  @Override
+  public String toString() {
+    return "PollerAutoScalerOptions{"
+        + "pollerScalingInterval="
+        + pollerScalingInterval
+        + ", minConcurrentPollers="
+        + minConcurrentPollers
+        + ", targetPollerUtilisation="
+        + targetPollerUtilisation
+        + '}';
+  }
 }

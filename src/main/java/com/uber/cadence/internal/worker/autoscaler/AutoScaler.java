@@ -16,24 +16,27 @@
 package com.uber.cadence.internal.worker.autoscaler;
 
 /**
- * Poller autoscaler interface for acquiring and releasing locks. In order to control number of concurrent operations.
+ * Poller autoscaler interface for acquiring and releasing locks. In order to control number of
+ * concurrent operations.
  */
 public interface AutoScaler {
 
-    void start();
-    void stop();
+  void start();
 
-    /**
-     * Reduce the number of available locks. Intended to be blocking operation until lock is acquired.
-     */
-    void acquire() throws InterruptedException;
+  void stop();
 
-    /**
-     * Releases lock into the autoscaler pool. Release should be always called in same process, failing to do so is considered a usage error.
-     */
-    void release();
+  /**
+   * Reduce the number of available locks. Intended to be blocking operation until lock is acquired.
+   */
+  void acquire() throws InterruptedException;
 
-    void increaseNoopPollCount();
+  /**
+   * Releases lock into the autoscaler pool. Release should be always called in same process,
+   * failing to do so is considered a usage error.
+   */
+  void release();
 
-    void increaseActionablePollCount();
+  void increaseNoopPollCount();
+
+  void increaseActionablePollCount();
 }
