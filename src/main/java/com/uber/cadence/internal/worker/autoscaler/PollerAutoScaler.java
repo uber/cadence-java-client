@@ -81,14 +81,6 @@ public class PollerAutoScaler {
     this.semaphoreSize = pollerCount;
   }
 
-  public int getLowerPollerAmount() {
-    return recommender.getLowerValue();
-  }
-
-  public int getUpperPollerAmount() {
-    return recommender.getUpperValue();
-  }
-
   public void acquire() throws InterruptedException {
     semaphore.acquire();
   }

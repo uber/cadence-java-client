@@ -41,7 +41,7 @@ public class PollerUsageEstimator {
     return result;
   }
 
-  public void reset() {
+  private void reset() {
     noopTaskCount.set(0);
     actionableTaskCount.set(0);
   }
