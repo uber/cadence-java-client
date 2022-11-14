@@ -21,15 +21,11 @@ import com.uber.cadence.internal.common.BackoffThrottler;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.worker.autoscaler.AutoScaler;
-import com.uber.cadence.internal.worker.autoscaler.NoopAutoScaler;
-import com.uber.cadence.internal.worker.autoscaler.PollerAutoScaler;
-import com.uber.cadence.internal.worker.autoscaler.PollerUsageEstimator;
-import com.uber.cadence.internal.worker.autoscaler.Recommender;
+import com.uber.cadence.internal.worker.autoscaler.AutoScalerFactory;
 import com.uber.m3.tally.Scope;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -93,20 +89,7 @@ public final class Poller<T> implements SuspendableWorker {
     this.taskExecutor = taskExecutor;
     this.pollerOptions = pollerOptions;
     this.metricsScope = metricsScope;
-
-    if (pollerOptions.getPollerAutoScalerOptions() != null) {
-      PollerAutoScalerOptions autoScalerOptions = pollerOptions.getPollerAutoScalerOptions();
-      this.pollerAutoScaler =
-          new PollerAutoScaler(
-              autoScalerOptions.getPollerScalingInterval(),
-              new PollerUsageEstimator(),
-              new Recommender(
-                  autoScalerOptions.getTargetPollerUtilisation(),
-                  pollerOptions.getPollThreadCount(),
-                  autoScalerOptions.getMinConcurrentPollers()));
-    } else {
-      this.pollerAutoScaler = new NoopAutoScaler();
-    }
+    this.pollerAutoScaler = AutoScalerFactory.getInstance().createAutoScaler(pollerOptions);
   }
 
   @Override
@@ -282,18 +265,14 @@ public final class Poller<T> implements SuspendableWorker {
   private class PollExecutionTask implements Poller.ThrowingRunnable {
     private static final int EXECUTOR_CAPACITY_CHECK_INTERVAL_MS = 100;
     private static final int EXECUTOR_CAPACITY_CHECK_OFFSET_MS = 10;
-    private Semaphore pollSemaphore;
 
-    PollExecutionTask() {
-      this.pollSemaphore = new Semaphore(pollerOptions.getPollThreadCount());
-    }
+    PollExecutionTask() {}
 
     @Override
     public void run() throws Exception {
       try {
         pollerAutoScaler.acquire();
         try {
-          pollSemaphore.acquire();
           T task = pollTask.poll();
           if (task == null) {
             pollerAutoScaler.increaseNoopPollCount();
@@ -303,17 +282,15 @@ public final class Poller<T> implements SuspendableWorker {
           pollerAutoScaler.increaseActionablePollCount();
           taskExecutor.process(task);
         } finally {
-          releasePollSemaphore();
+          checkIfTaskHasExecutorHasCapacity();
         }
       } finally {
         pollerAutoScaler.release();
       }
     }
 
-    private void releasePollSemaphore() {
-      if (!pollerOptions.getPollOnlyIfExecutorHasCapacity()) {
-        pollSemaphore.release();
-      } else {
+    private void checkIfTaskHasExecutorHasCapacity() {
+      if (pollerOptions.getPollOnlyIfExecutorHasCapacity()) {
         while (true) {
           // sleep to avoid racing condition
           try {
@@ -321,7 +298,6 @@ public final class Poller<T> implements SuspendableWorker {
           } catch (InterruptedException ignored) {
           }
           if (taskExecutor.hasCapacity()) {
-            pollSemaphore.release();
             break;
           } else {
             // sleep to avoid busy loop
