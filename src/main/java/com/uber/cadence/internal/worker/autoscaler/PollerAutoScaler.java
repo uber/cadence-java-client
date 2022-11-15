@@ -20,7 +20,7 @@ import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PollerAutoScaler {
+public class PollerAutoScaler implements AutoScaler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PollerAutoScaler.class);
 
@@ -87,6 +87,16 @@ public class PollerAutoScaler {
 
   public void release() {
     semaphore.release();
+  }
+
+  @Override
+  public void increaseNoopPollCount() {
+    pollerUsageEstimator.increaseNoopTaskCount();
+  }
+
+  @Override
+  public void increaseActionablePollCount() {
+    pollerUsageEstimator.increaseActionableTaskCount();
   }
 
   // For testing
