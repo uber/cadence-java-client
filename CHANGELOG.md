@@ -1,4 +1,9 @@
 # Changelog
+## 3.8.0
+- Graceful shutdown based on sigterm handler
+- Adding cross domain signal/child workflow creation support
+- Adding open telemetry support so that open telemetry context is propagated to cadence-server
+- Adding dynamic poller support for more efficient resource usage.
 ## 3.7.3
 - Fix describe domain and update domain grpc calls to include domainConfiguration and replication configuration in response.
 ## 3.7.2
