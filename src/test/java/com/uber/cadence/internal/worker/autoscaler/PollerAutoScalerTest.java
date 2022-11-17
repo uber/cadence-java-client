@@ -44,5 +44,22 @@ public class PollerAutoScalerTest {
     pollerAutoScaler.resizePollers();
 
     assertEquals(10, pollerAutoScaler.getSemaphoreSize());
+
+    pollerUsageEstimator.increaseActionableTaskCount();
+    pollerUsageEstimator.increaseActionableTaskCount();
+
+    pollerAutoScaler.resizePollers();
+
+    assertEquals(100, pollerAutoScaler.getSemaphoreSize());
+
+    pollerUsageEstimator.increaseActionableTaskCount();
+    pollerUsageEstimator.increaseActionableTaskCount();
+    pollerUsageEstimator.increaseNoopTaskCount();
+    pollerUsageEstimator.increaseNoopTaskCount();
+    pollerUsageEstimator.increaseNoopTaskCount();
+
+    pollerAutoScaler.resizePollers();
+
+    assertEquals(80, pollerAutoScaler.getSemaphoreSize());
   }
 }
