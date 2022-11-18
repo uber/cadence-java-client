@@ -15,14 +15,17 @@
 
 package com.uber.cadence.internal.largeblob;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
-import com.uber.cadence.internal.largeblob.impl.InMemoryStorage;
-import java.nio.charset.StandardCharsets;
+import com.uber.cadence.largeblob.Future;
+import com.uber.cadence.largeblob.Storage;
+import com.uber.cadence.largeblob.impl.InMemoryStorage;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FutureTest {
@@ -82,5 +85,23 @@ public class FutureTest {
 
     future.delete();
     assertNull(future.get());
+  }
+
+  @Test
+  public void getWorksWhenInitialisingWithEncodedData() throws Exception {
+    Future future = new Future(storage, 10, "testValue".getBytes(StandardCharsets.UTF_8));
+
+    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
+  }
+
+  @Test
+  public void getWorksWhenInitialisingWithUrl() throws Exception {
+    Future future = new Future(storage, 10, "test");
+
+    assertNull(future.get());
+
+    storage.put("test", "testValue".getBytes(StandardCharsets.UTF_8));
+
+    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
   }
 }

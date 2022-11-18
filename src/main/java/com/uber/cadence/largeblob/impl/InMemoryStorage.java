@@ -13,9 +13,9 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.largeblob.impl;
+package com.uber.cadence.largeblob.impl;
 
-import com.uber.cadence.internal.largeblob.Storage;
+import com.uber.cadence.largeblob.Storage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
