@@ -17,8 +17,10 @@ package com.uber.cadence.largeblob.impl;
 
 import com.uber.cadence.largeblob.Storage;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class InMemoryStorage implements Storage {
 
@@ -30,8 +32,21 @@ public class InMemoryStorage implements Storage {
   }
 
   @Override
-  public void put(String uri, byte[] bytes) throws IOException {
-    storage.put(uri, bytes);
+  public String put(byte[] bytes) throws IOException {
+    String uuid = UUID.randomUUID().toString();
+    storage.put(uuid, bytes);
+    return uuid;
+  }
+
+  @Override
+  public String put(byte[] bytes, Duration ttl) throws IOException {
+    return put(bytes);
+  }
+
+  @Override
+  public String put(String key, byte[] bytes) throws IOException {
+      storage.put(key, bytes);
+      return key;
   }
 
   @Override

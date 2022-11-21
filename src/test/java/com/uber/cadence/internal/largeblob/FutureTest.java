@@ -15,6 +15,7 @@
 
 package com.uber.cadence.internal.largeblob;
 
+import com.uber.cadence.largeblob.Configuration;
 import com.uber.cadence.largeblob.Future;
 import com.uber.cadence.largeblob.Storage;
 import com.uber.cadence.largeblob.impl.InMemoryStorage;
@@ -25,46 +26,42 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 @RunWith(MockitoJUnitRunner.class)
 public class FutureTest {
 
-  private Storage storage = new InMemoryStorage();
+  private final Storage storage = new InMemoryStorage();
 
   @Test
   public void testPutSmallElement() throws Exception {
-    Future future = new Future(storage, 10);
+    Configuration config = Configuration.newBuilder().setMaxBytes(20L).setStorage(storage).build();
+    Future<String> future = new Future<String>("testValue", config);
 
-    String testValue = "testValue";
-    future.put("test", testValue.getBytes(StandardCharsets.UTF_8));
-
-    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
-    assertNull(storage.get("test"));
+    assertEquals("testValue", future.get());
+    assertNull(future.getUrl());
   }
 
   @Test
   public void testLargerValuesGetPutInStorage() throws Exception {
-    Future future = new Future(storage, 10);
-
+    Configuration config = Configuration.newBuilder().setMaxBytes(20L).setStorage(storage).build();
     String testValue = "testValuetestValuetestValue";
-    future.put("test", testValue.getBytes(StandardCharsets.UTF_8));
+    Future future = new Future(testValue, config);
 
-    assertEquals("testValuetestValuetestValue", new String(future.get(), StandardCharsets.UTF_8));
-    assertEquals(
-        "testValuetestValuetestValue", new String(storage.get("test"), StandardCharsets.UTF_8));
+    assertEquals("testValuetestValuetestValue", future.get());
+    assertNotNull(storage.get(future.getUrl()));
   }
 
   @Test
   public void testDeleteValueFromStorage() throws Exception {
-    Future future = new Future(storage, 10);
-
+    Configuration config = Configuration.newBuilder().setMaxBytes(20L).setStorage(storage).build();
     String testValue = "testValuetestValuetestValue";
-    future.put("test", testValue.getBytes(StandardCharsets.UTF_8));
+    Future<String> future = new Future<>(testValue, config);
 
-    assertEquals("testValuetestValuetestValue", new String(future.get(), StandardCharsets.UTF_8));
+    assertEquals("testValuetestValuetestValue", future.get());
     assertEquals(
-        "testValuetestValuetestValue", new String(storage.get("test"), StandardCharsets.UTF_8));
+        "testValuetestValuetestValue", config.getDataConverter().fromData(storage.get(future.getUrl()), String.class, String.class));
 
     future.delete();
 
@@ -75,13 +72,11 @@ public class FutureTest {
 
   @Test
   public void testSmallValueIsDelete() throws Exception {
-    Future future = new Future(storage, 10);
+    Configuration config = Configuration.newBuilder().setMaxBytes(20L).setStorage(storage).build();
+    Future<String> future = new Future<>("testValue", config);
 
-    String testValue = "testValue";
-    future.put("test", testValue.getBytes(StandardCharsets.UTF_8));
-
-    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
-    assertNull(storage.get("test"));
+    assertEquals("testValue", future.get());
+    assertNull(storage.get(future.getUrl()));
 
     future.delete();
     assertNull(future.get());
@@ -89,19 +84,21 @@ public class FutureTest {
 
   @Test
   public void getWorksWhenInitialisingWithEncodedData() throws Exception {
-    Future future = new Future(storage, 10, "testValue".getBytes(StandardCharsets.UTF_8));
+    Configuration configuration = Configuration.newBuilder().setStorage(storage).build();
+    Future<String> future = new Future<>(configuration, String.class, "testValue".getBytes(StandardCharsets.UTF_8));
 
-    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
+    assertEquals("testValue", future.get());
   }
 
   @Test
   public void getWorksWhenInitialisingWithUrl() throws Exception {
-    Future future = new Future(storage, 10, "test");
+    Configuration configuration = Configuration.newBuilder().setStorage(storage).build();
+    Future<String> future = new Future<>(configuration, String.class, "test");
 
     assertNull(future.get());
 
     storage.put("test", "testValue".getBytes(StandardCharsets.UTF_8));
 
-    assertEquals("testValue", new String(future.get(), StandardCharsets.UTF_8));
+    assertEquals("testValue", future.get());
   }
 }

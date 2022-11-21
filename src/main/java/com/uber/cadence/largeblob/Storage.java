@@ -16,6 +16,7 @@
 package com.uber.cadence.largeblob;
 
 import java.io.IOException;
+import java.time.Duration;
 
 /**
  * Storage is an abstraction for storing large parameters to access inside of activities.0
@@ -32,11 +33,26 @@ public interface Storage {
 
   /**
    * Stores data based on uri provided.
-   * @param uri uri.
    * @param bytes bytes.
    * @throws IOException should be thrown in any implementation class in case of problems with the datastore
    */
-  void put(String uri, byte[] bytes) throws IOException;
+  String put(byte[] bytes) throws IOException;
+
+  /**
+   * Stores data based on uri provided.
+   * @param bytes bytes.
+   * @param ttl ttl is used for storages like s3 to define the total time to store the object.
+   * @throws IOException should be thrown in any implementation class in case of problems with the datastore
+   */
+  String put(byte[] bytes, Duration ttl) throws IOException;
+
+  /**
+   * Stores data based on uri provided.
+   * @param key of the data.
+   * @param bytes bytes.
+   * @throws IOException should be thrown in any implementation class in case of problems with the datastore
+   */
+  String put(String key, byte[] bytes) throws IOException;
 
   /**
    * Deletes data based on uri provided.
