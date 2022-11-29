@@ -27,8 +27,6 @@ final class ChildWorkflowDecisionStateMachine extends DecisionStateMachineBase {
 
   private StartChildWorkflowExecutionDecisionAttributes startAttributes;
 
-  private String runId;
-
   public ChildWorkflowDecisionStateMachine(
       DecisionId id, StartChildWorkflowExecutionDecisionAttributes startAttributes) {
     super(id);
@@ -139,7 +137,6 @@ final class ChildWorkflowDecisionStateMachine extends DecisionStateMachineBase {
     RequestCancelExternalWorkflowExecutionDecisionAttributes tryCancel =
         new RequestCancelExternalWorkflowExecutionDecisionAttributes();
     tryCancel.setWorkflowId(startAttributes.getWorkflowId());
-    tryCancel.setRunId(runId);
     Decision decision = new Decision();
     decision.setRequestCancelExternalWorkflowExecutionDecisionAttributes(tryCancel);
     decision.setDecisionType(DecisionType.RequestCancelExternalWorkflowExecution);

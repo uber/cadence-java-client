@@ -41,7 +41,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "workflow-get-history-latency";
   public static final String WORKFLOW_SIGNAL_WITH_START_COUNTER =
       CADENCE_METRICS_PREFIX + "workflow-signal-with-start";
-  public static final String DECISION_TIMEOUT_COUNTER = CADENCE_METRICS_PREFIX + "decision-timeout";
 
   public static final String DECISION_POLL_COUNTER = CADENCE_METRICS_PREFIX + "decision-poll-total";
   public static final String DECISION_POLL_FAILED_COUNTER =
@@ -60,8 +59,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "decision-execution-failed";
   public static final String DECISION_EXECUTION_LATENCY =
       CADENCE_METRICS_PREFIX + "decision-execution-latency";
-  public static final String DECISION_RESPONSE_FAILED_COUNTER =
-      CADENCE_METRICS_PREFIX + "decision-response-failed";
   public static final String DECISION_RESPONSE_LATENCY =
       CADENCE_METRICS_PREFIX + "decision-response-latency";
   public static final String DECISION_TASK_ERROR_COUNTER =
@@ -90,8 +87,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "activity-execution-latency";
   public static final String ACTIVITY_RESP_LATENCY =
       CADENCE_METRICS_PREFIX + "activity-response-latency";
-  public static final String ACTIVITY_RESPONSE_FAILED_COUNTER =
-      CADENCE_METRICS_PREFIX + "activity-response-failed";
   public static final String ACTIVITY_E2E_LATENCY =
       CADENCE_METRICS_PREFIX + "activity-endtoend-latency";
   public static final String ACTIVITY_TASK_ERROR_COUNTER =
@@ -110,8 +105,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "activity-task-canceled-by-id";
   public static final String LOCAL_ACTIVITY_TOTAL_COUNTER =
       CADENCE_METRICS_PREFIX + "local-activity-total";
-  public static final String LOCAL_ACTIVITY_TIMEOUT_COUNTER =
-      CADENCE_METRICS_PREFIX + "local-activity-timeout";
   public static final String LOCAL_ACTIVITY_CANCELED_COUNTER =
       CADENCE_METRICS_PREFIX + "local-activity-canceled";
   public static final String LOCAL_ACTIVITY_FAILED_COUNTER =
@@ -120,8 +113,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "local-activity-panic";
   public static final String LOCAL_ACTIVITY_EXECUTION_LATENCY =
       CADENCE_METRICS_PREFIX + "local-activity-execution-latency";
-  public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_TOTAL_COUNTER =
-      CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-total";
   public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_NO_TASK_COUNTER =
       CADENCE_METRICS_PREFIX + "locally-dispatched-activity-poll-no-task";
   public static final String LOCALLY_DISPATCHED_ACTIVITY_POLL_SUCCEED_COUNTER =
@@ -130,17 +121,11 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "activity-local-dispatch-failed";
   public static final String ACTIVITY_LOCAL_DISPATCH_SUCCEED_COUNTER =
       CADENCE_METRICS_PREFIX + "activity-local-dispatch-succeed";
-  public static final String WORKER_PANIC_COUNTER = CADENCE_METRICS_PREFIX + "worker-panic";
   public static final String LOCAL_ACTIVITY_ACTIVE_THREAD_COUNT =
       CADENCE_METRICS_PREFIX + "local_activity_active_thread_count";
   public static final String ACTIVITY_ACTIVE_THREAD_COUNT =
       CADENCE_METRICS_PREFIX + "activity_active_thread_count";
 
-  public static final String TASK_LIST_QUEUE_LATENCY =
-      CADENCE_METRICS_PREFIX + "tasklist-queue-latency";
-
-  public static final String UNHANDLED_SIGNALS_COUNTER =
-      CADENCE_METRICS_PREFIX + "unhandled-signals";
   public static final String CORRUPTED_SIGNALS_COUNTER =
       CADENCE_METRICS_PREFIX + "corrupted-signals";
 
@@ -158,7 +143,6 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "sticky-cache-total-forced-eviction";
   public static final String STICKY_CACHE_THREAD_FORCED_EVICTION =
       CADENCE_METRICS_PREFIX + "sticky-cache-thread-forced-eviction";
-  public static final String STICKY_CACHE_STALL = CADENCE_METRICS_PREFIX + "sticky-cache-stall";
   public static final String STICKY_CACHE_SIZE = CADENCE_METRICS_PREFIX + "sticky-cache-size";
   public static final String WORKFLOW_ACTIVE_THREAD_COUNT =
       CADENCE_METRICS_PREFIX + "workflow_active_thread_count";
