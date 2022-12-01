@@ -35,7 +35,6 @@ import com.uber.cadence.TaskListKind;
 import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 class EnumMapper {
 
@@ -270,7 +269,7 @@ class EnumMapper {
       case ENCODING_TYPE_JSON:
         return EncodingType.JSON;
       case ENCODING_TYPE_PROTO3:
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
