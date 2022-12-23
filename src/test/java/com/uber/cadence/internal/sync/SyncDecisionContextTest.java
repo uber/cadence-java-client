@@ -38,7 +38,7 @@ public class SyncDecisionContextTest {
   public void setUp() {
     this.context =
         new SyncDecisionContext(
-            mockDecisionContext, JsonDataConverter.getInstance(), null, (next) -> next, null);
+            mockDecisionContext, JsonDataConverter.getInstance(), null, (next) -> next, null, null);
   }
 
   @Test

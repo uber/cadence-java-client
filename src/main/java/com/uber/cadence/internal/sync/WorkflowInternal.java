@@ -390,4 +390,8 @@ public final class WorkflowInternal {
   public static void upsertSearchAttributes(Map<String, Object> searchAttributes) {
     getWorkflowInterceptor().upsertSearchAttributes(searchAttributes);
   }
+
+  public static WorkflowThread getRootWorkflowContext() {
+    return DeterministicRunnerImpl.currentThreadInternal();
+  }
 }

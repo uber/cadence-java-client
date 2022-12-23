@@ -96,7 +96,8 @@ class SyncWorkflow implements ReplayWorkflow {
             dataConverter,
             contextPropagators,
             interceptorFactory,
-            event.getWorkflowExecutionStartedEventAttributes().getLastCompletionResult());
+            event.getWorkflowExecutionStartedEventAttributes().getLastCompletionResult(),
+            workflowImplementationOptions);
 
     workflowProc =
         new WorkflowRunnable(

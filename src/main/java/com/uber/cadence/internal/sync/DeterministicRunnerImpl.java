@@ -187,7 +187,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
   private static SyncDecisionContext newDummySyncDecisionContext() {
     return new SyncDecisionContext(
-        new DummyDecisionContext(), JsonDataConverter.getInstance(), null, (next) -> next, null);
+        new DummyDecisionContext(),
+        JsonDataConverter.getInstance(),
+        null,
+        (next) -> next,
+        null,
+        null);
   }
 
   SyncDecisionContext getDecisionContext() {

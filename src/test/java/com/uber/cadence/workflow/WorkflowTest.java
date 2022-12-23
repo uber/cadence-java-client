@@ -358,6 +358,15 @@ public class WorkflowTest {
     }
   }
 
+  private void startWorkerFor(WorkflowImplementationOptions options, Class<?>... workflowTypes) {
+    worker.registerWorkflowImplementationTypes(options, workflowTypes);
+    if (useExternalService) {
+      workerFactory.start();
+    } else {
+      testEnvironment.start();
+    }
+  }
+
   // TODO: Refactor testEnvironment to support testing through real service to avoid this
   // conditional switches
   void registerDelayedCallback(Duration delay, Runnable r) {
@@ -457,6 +466,16 @@ public class WorkflowTest {
     @SignalMethod
     public void signal1(String arg) {
       messageQueue.add("arg");
+    }
+  }
+
+  public static class TestWorkflowActivityOptionOverride implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class);
+
+      return activities.timeOutActivity();
     }
   }
 
@@ -3971,6 +3990,9 @@ public class WorkflowTest {
 
     void neverComplete();
 
+    @ActivityMethod(startToCloseTimeoutSeconds = 1, scheduleToCloseTimeoutSeconds = 1)
+    String timeOutActivity();
+
     @ActivityMethod(
       scheduleToStartTimeoutSeconds = 5,
       scheduleToCloseTimeoutSeconds = 5,
@@ -4051,6 +4073,7 @@ public class WorkflowTest {
 
     @Override
     public String activity() {
+
       invocations.add("activity");
       return "activity";
     }
@@ -4182,6 +4205,17 @@ public class WorkflowTest {
     public void neverComplete() {
       invocations.add("neverComplete");
       Activity.doNotCompleteOnReturn(); // Simulate activity timeout
+    }
+
+    @Override
+    public String timeOutActivity() {
+      try {
+        Thread.sleep(2000);
+      } catch (InterruptedException e) {
+        return "activityWasInterrupted";
+      }
+
+      return "activityCompletedSuccessfully";
     }
 
     @Override
@@ -6279,5 +6313,41 @@ public class WorkflowTest {
 
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testGetVersionWithRetryHistory.json", TestGetVersionWorkflowRetryImpl.class);
+  }
+
+  @Test(expected = ExecutionException.class)
+  public void testWorkflowTimesOutWhenNoOverridesProvided() throws Exception {
+    startWorkerFor(TestWorkflowActivityOptionOverride.class);
+
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    // Activity doesn't timeout because we overrode the timeouts to be longer.
+    assertEquals("activityCompletedSuccessfully", result.get());
+  }
+
+  @Test
+  public void testActivityDoesntTimeoutWhenTimeoutsAreLonger() throws Exception {
+    Map<String, ActivityOptions> activityOptionsMap = new HashMap<>();
+    activityOptionsMap.put(
+        "TestActivities::timeOutActivity",
+        new ActivityOptions.Builder()
+            .setScheduleToCloseTimeout(Duration.ofSeconds(3))
+            .setStartToCloseTimeout(Duration.ofSeconds(3))
+            .build());
+
+    startWorkerFor(
+        new WorkflowImplementationOptions.Builder().setActivityOptions(activityOptionsMap).build(),
+        TestWorkflowActivityOptionOverride.class);
+
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    // Activity doesn't timeout because we overrode the timeouts to be longer.
+    assertEquals("activityCompletedSuccessfully", result.get());
   }
 }
