@@ -76,8 +76,7 @@ dependencies {
     implementation 'io.grpc:grpc-protobuf:1.28.0'
     implementation 'io.grpc:grpc-stub:1.28.0'
 
-    compile(platform("io.opentelemetry:opentelemetry-bom:1.19.0"))
-    compile("io.opentelemetry:opentelemetry-api")
+    compile("io.opentelemetry:opentelemetry-api:1.19.0")
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'com.googlecode.junit-toolbox', name: 'junit-toolbox', version: '2.4'
