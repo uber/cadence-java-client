@@ -29,7 +29,7 @@ public final class WorkflowImplementationOptions {
   public static final class Builder {
 
     private NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy = BlockWorkflow;
-    private Map<String, ActivityOptions> activityOptions = new HashMap<>();
+    private Map<String, ActivityOptions> activityOptionOverrides = new HashMap<>();
 
     /**
      * Optional: Sets how decision worker deals with non-deterministic history events (presumably
@@ -46,16 +46,16 @@ public final class WorkflowImplementationOptions {
     /**
      * Set overrides for a specific workflow implementation for activity options.
      *
-     * @param activityOptions a map where the key is the activity name and the value is the activity
-     *     options that should override.
+     * @param activityOptionOverrides a map where the key is the activity name and the value is the activity
+     *     options that should override existing activity configuration that comes from @ActivityMethod annotation.
      */
-    public Builder setActivityOptions(Map<String, ActivityOptions> activityOptions) {
-      this.activityOptions = activityOptions;
+    public Builder setActivityOptionOverrides(Map<String, ActivityOptions> activityOptionOverrides) {
+      this.activityOptionOverrides = activityOptionOverrides;
       return this;
     }
 
     public WorkflowImplementationOptions build() {
-      return new WorkflowImplementationOptions(nonDeterministicWorkflowPolicy, activityOptions);
+      return new WorkflowImplementationOptions(nonDeterministicWorkflowPolicy, activityOptionOverrides);
     }
   }
 
