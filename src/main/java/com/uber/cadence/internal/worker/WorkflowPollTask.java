@@ -30,6 +30,9 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
+
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -77,8 +80,15 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     PollForDecisionTaskResponse result;
     try {
       result = service.PollForDecisionTask(pollRequest);
-    } catch (InternalServiceError | ServiceBusyError e) {
-      metricScope.counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+    } catch (InternalServiceError e) {
+      Map<String, String> tags = new HashMap<>();
+      tags.put(MetricsTag.CAUSE, "internalServiceError");
+      metricScope.tagged(tags).counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+      throw e;
+    } catch (ServiceBusyError e) {
+      Map<String, String> tags = new HashMap<>();
+      tags.put(MetricsTag.CAUSE, "serviceBusy");
+      metricScope.tagged(tags).counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
       throw e;
     } catch (TException e) {
       metricScope.counter(MetricsType.DECISION_POLL_FAILED_COUNTER).inc(1);
