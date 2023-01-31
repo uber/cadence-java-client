@@ -24,4 +24,5 @@ public class MetricsTag {
   public static final String WORKFLOW_TYPE = "WorkflowType";
   public static final String REQUEST_TYPE = "RequestType";
   public static final String VERSION = "Version";
+  public static final String CAUSE = "Cause";
 }

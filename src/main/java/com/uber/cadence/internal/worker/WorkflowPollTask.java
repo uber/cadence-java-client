@@ -30,10 +30,14 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
+
 import java.util.Objects;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.SERVICE_BUSY;
 
 final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskResponse> {
 
@@ -77,8 +81,15 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     PollForDecisionTaskResponse result;
     try {
       result = service.PollForDecisionTask(pollRequest);
-    } catch (InternalServiceError | ServiceBusyError e) {
-      metricScope.counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+    } catch (InternalServiceError e) {
+      metricScope
+              .tagged(ImmutableMap.of(MetricsTag.CAUSE, INTERNAL_SERVICE_ERROR))
+              .counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+      throw e;
+    } catch (ServiceBusyError e) {
+      metricScope
+              .tagged(ImmutableMap.of(MetricsTag.CAUSE, SERVICE_BUSY))
+              .counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
       throw e;
     } catch (TException e) {
       metricScope.counter(MetricsType.DECISION_POLL_FAILED_COUNTER).inc(1);

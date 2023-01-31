@@ -20,4 +20,6 @@ package com.uber.cadence.internal.metrics;
 public class MetricsTagValue {
   public static final String REQUEST_TYPE_NORMAL = "normal";
   public static final String REQUEST_TYPE_LONG_POLL = "long-poll";
+  public static final String SERVICE_BUSY = "serviceBusy";
+  public static final String INTERNAL_SERVICE_ERROR = "internalServiceError";
 }
