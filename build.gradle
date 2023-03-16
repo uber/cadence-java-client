@@ -119,11 +119,19 @@ sourceSets {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.11.0'
+        if (osdetector.os == "osx") {
+            artifact = 'com.google.protobuf:protoc:3.11.0:osx-x86_64' // no arm version available
+        } else {
+            artifact = 'com.google.protobuf:protoc:3.11.0'
+        }
     }
     plugins {
         grpc {
-            artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0'
+            if (osdetector.os == "osx") {
+                artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0:osx-x86_64' // no arm version available
+            } else {
+                artifact = 'io.grpc:protoc-gen-grpc-java:1.28.0'
+            }
         }
     }
     generateProtoTasks {
