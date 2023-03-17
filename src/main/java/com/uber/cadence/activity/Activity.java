@@ -218,7 +218,7 @@ public final class Activity {
    * when its method returns. It is expected to be completed asynchronously using {@link
    * com.uber.cadence.client.ActivityCompletionClient}.
    *
-   * <p>Caution: since using this frequently implies "long" timeouts, activity-worker losses prior to recording the
+   * <p>Caution: since using this sometimes implies "long" timeouts, activity-worker losses prior to recording the
    * {@link Activity#getTaskToken()} in an external system (or prior to another thread calling it) may not be noticed
    * until the "long" timeout occurs.
    * This can be resolved by having another system call
