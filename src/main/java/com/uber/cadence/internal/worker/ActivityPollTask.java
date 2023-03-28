@@ -17,6 +17,9 @@
 
 package com.uber.cadence.internal.worker;
 
+11import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.SERVICE_BUSY;
+
 import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForActivityTaskRequest;
@@ -31,9 +34,6 @@ import com.uber.m3.tally.Stopwatch;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
-import static com.uber.cadence.internal.metrics.MetricsTagValue.SERVICE_BUSY;
 
 final class ActivityPollTask extends ActivityPollTaskBase {
 
@@ -72,17 +72,20 @@ final class ActivityPollTask extends ActivityPollTaskBase {
     try {
       result = service.PollForActivityTask(pollRequest);
     } catch (InternalServiceError e) {
-      options.getMetricsScope()
-              .tagged(ImmutableMap.of(MetricsTag.CAUSE, INTERNAL_SERVICE_ERROR))
-              .counter(MetricsType.ACTIVITY_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+      options
+          .getMetricsScope()
+          .tagged(ImmutableMap.of(MetricsTag.CAUSE, INTERNAL_SERVICE_ERROR))
+          .counter(MetricsType.ACTIVITY_POLL_TRANSIENT_FAILED_COUNTER)
+          .inc(1);
       throw e;
     } catch (ServiceBusyError e) {
-      options.getMetricsScope()
-              .tagged(ImmutableMap.of(MetricsTag.CAUSE, SERVICE_BUSY))
-              .counter(MetricsType.ACTIVITY_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+      options
+          .getMetricsScope()
+          .tagged(ImmutableMap.of(MetricsTag.CAUSE, SERVICE_BUSY))
+          .counter(MetricsType.ACTIVITY_POLL_TRANSIENT_FAILED_COUNTER)
+          .inc(1);
       throw e;
-    }
-    catch (TException e) {
+    } catch (TException e) {
       options.getMetricsScope().counter(MetricsType.ACTIVITY_POLL_FAILED_COUNTER).inc(1);
       throw e;
     }
