@@ -4,33 +4,32 @@ import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Maps;
 import com.uber.cadence.*;
-
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-
 import com.uber.m3.tally.Scope;
+import java.util.concurrent.CompletableFuture;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
 public class MigrationService implements IWorkflowService {
 
-  private final static String MIGRATION_API_CALL_TAG_KEY = "api-call";
+  private static final String MIGRATION_API_CALL_TAG_KEY = "api-call";
 
-  private final static String START_WORKFLOW = "startWorkflow";
-  private final static String SHIM_METRIC_SUCCESS = "success";
-  private final static String SHIM_METRIC_ERROR = "error";
-  private final static String SHIM_METRIC_START_WORKFLOW = "start-wf";
-  private final static String SHIM_METRIC_CACHE_HIT = "cache-hit";
-  private final static String SHIM_METRIC_START_WORKFLOW_WITHOUT_ID = "workflow-without-id-param";
-  private final static String SHIM_METRIC_PREV_WF_FOUND = "prev_wf_found";
-  private final static String SHIM_METRIC_FALLING_BACK = "falling-back";
-  private final static String SHIM_METRIC_FALLING_BACK_CONTINUE_AS_NEW = "falling-back-wf-continue-as-new";
-  private final static String SHIM_METRIC_MIGRATION_AFTER_WF_COMPLETION = "migration-after-wf-completion";
-  private final static String SHIM_METRIC_UNSUPPORTED_API_CALL = "unsupported-api-call";
-  private final static String SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION = "migration-after-wf-completion";
-  private final static String SHIM_METRIC_PREFER_FROM = "workflow-starting-with-prefer-from";
+  private static final String START_WORKFLOW = "startWorkflow";
+  private static final String SHIM_METRIC_SUCCESS = "success";
+  private static final String SHIM_METRIC_ERROR = "error";
+  private static final String SHIM_METRIC_START_WORKFLOW = "start-wf";
+  private static final String SHIM_METRIC_CACHE_HIT = "cache-hit";
+  private static final String SHIM_METRIC_START_WORKFLOW_WITHOUT_ID = "workflow-without-id-param";
+  private static final String SHIM_METRIC_PREV_WF_FOUND = "prev_wf_found";
+  private static final String SHIM_METRIC_FALLING_BACK = "falling-back";
+  private static final String SHIM_METRIC_FALLING_BACK_CONTINUE_AS_NEW =
+      "falling-back-wf-continue-as-new";
+  private static final String SHIM_METRIC_MIGRATION_AFTER_WF_COMPLETION =
+      "migration-after-wf-completion";
+  private static final String SHIM_METRIC_UNSUPPORTED_API_CALL = "unsupported-api-call";
+  private static final String SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION =
+      "migration-after-wf-completion";
+  private static final String SHIM_METRIC_PREFER_FROM = "workflow-starting-with-prefer-from";
 
   public static enum MigrationState {
     DISABLED,
@@ -41,9 +40,8 @@ public class MigrationService implements IWorkflowService {
   private final IWorkflowService from;
   private final IWorkflowService to;
   private final Scope scope;
-  private final Cache<String, String> wfMigratedCache = CacheBuilder.newBuilder()
-          .maximumSize(1000)
-          .build();
+  private final Cache<String, String> wfMigratedCache =
+      CacheBuilder.newBuilder().maximumSize(1000).build();
   private MigrationState currentMigrationState;
 
   public MigrationService(IWorkflowService from, IWorkflowService to, Scope scope) {
@@ -95,7 +93,9 @@ public class MigrationService implements IWorkflowService {
 
     if (MigrationState.ENABLED.equals(migrationState)) {
       if (Strings.isNullOrEmpty(startRequest.getWorkflowId())) {
-        startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_START_WORKFLOW_WITHOUT_ID));
+        startScope =
+            startScope.tagged(
+                ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_START_WORKFLOW_WITHOUT_ID));
 
         StartWorkflowExecutionResponse startWorkflowExecutionResponse;
         try {
@@ -110,17 +110,17 @@ public class MigrationService implements IWorkflowService {
       }
 
       if (wfMigratedCache.getIfPresent(startRequest.getWorkflowId()) != null) {
-        startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_CACHE_HIT));
+        startScope =
+            startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_CACHE_HIT));
         StartWorkflowExecutionResponse response;
         try {
-          response =to.StartWorkflowExecution(startRequest);
+          response = to.StartWorkflowExecution(startRequest);
         } catch (Throwable t) {
           startScope.counter(SHIM_METRIC_ERROR).inc(1);
           throw t;
         }
         startScope.counter(SHIM_METRIC_SUCCESS).inc(1);
         return response;
-
       }
 
       DescribeWorkflowExecutionRequest describeRequest = new DescribeWorkflowExecutionRequest();
@@ -130,9 +130,10 @@ public class MigrationService implements IWorkflowService {
 
       DescribeWorkflowExecutionResponse describeResponse;
       try {
-         describeResponse = this.from.DescribeWorkflowExecution(describeRequest);
+        describeResponse = this.from.DescribeWorkflowExecution(describeRequest);
       } catch (EntityNotExistsError notExistsError) {
-        startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.FALSE.toString()));
+        startScope =
+            startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.FALSE.toString()));
         StartWorkflowExecutionResponse response;
         try {
           response = to.StartWorkflowExecution(startRequest);
@@ -142,12 +143,15 @@ public class MigrationService implements IWorkflowService {
         }
         return response;
       } catch (Throwable t) {
-        // Error determining workflow state in old cluster, default to starting workflow in old cluster
+        // Error determining workflow state in old cluster, default to starting workflow in old
+        // cluster
         return from.StartWorkflowExecution(startRequest);
       }
 
-      startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.TRUE.toString()));
-      WorkflowExecutionCloseStatus closeStatus = describeResponse.getWorkflowExecutionInfo().getCloseStatus();
+      startScope =
+          startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.TRUE.toString()));
+      WorkflowExecutionCloseStatus closeStatus =
+          describeResponse.getWorkflowExecutionInfo().getCloseStatus();
 
       if (closeStatus == null) {
         startScope.counter(SHIM_METRIC_FALLING_BACK).inc(1);
@@ -156,7 +160,10 @@ public class MigrationService implements IWorkflowService {
         startScope.counter(SHIM_METRIC_FALLING_BACK_CONTINUE_AS_NEW).inc(1);
         return from.StartWorkflowExecution(startRequest);
       } else {
-        startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION));
+        startScope =
+            startScope.tagged(
+                ImmutableMap.of(
+                    SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION));
         try {
           StartWorkflowExecutionResponse response = to.StartWorkflowExecution(startRequest);
         } catch (Throwable t) {
@@ -166,7 +173,8 @@ public class MigrationService implements IWorkflowService {
         startScope.counter(SHIM_METRIC_SUCCESS).inc(1);
       }
     } else if (MigrationState.PREFER_FROM.equals(migrationState)) {
-      startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_PREFER_FROM));
+      startScope =
+          startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_PREFER_FROM));
 
       if (Strings.isNullOrEmpty(startRequest.getWorkflowId())) {
         from.StartWorkflowExecution(startRequest);
@@ -183,12 +191,15 @@ public class MigrationService implements IWorkflowService {
       try {
         describeResponse = this.from.DescribeWorkflowExecution(describeRequest);
       } catch (Throwable t) {
-        // Error determining workflow state in old cluster, default to starting workflow in old cluster
+        // Error determining workflow state in old cluster, default to starting workflow in old
+        // cluster
         return from.StartWorkflowExecution(startRequest);
       }
 
-      startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.TRUE.toString()));
-      WorkflowExecutionCloseStatus closeStatus = describeResponse.getWorkflowExecutionInfo().getCloseStatus();
+      startScope =
+          startScope.tagged(ImmutableMap.of(SHIM_METRIC_PREV_WF_FOUND, Boolean.TRUE.toString()));
+      WorkflowExecutionCloseStatus closeStatus =
+          describeResponse.getWorkflowExecutionInfo().getCloseStatus();
 
       if (closeStatus == null) {
         startScope.counter(SHIM_METRIC_FALLING_BACK).inc(1);
@@ -197,7 +208,10 @@ public class MigrationService implements IWorkflowService {
         startScope.counter(SHIM_METRIC_FALLING_BACK_CONTINUE_AS_NEW).inc(1);
         return to.StartWorkflowExecution(startRequest);
       } else {
-        startScope = startScope.tagged(ImmutableMap.of(SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION));
+        startScope =
+            startScope.tagged(
+                ImmutableMap.of(
+                    SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION));
         try {
           StartWorkflowExecutionResponse response = from.StartWorkflowExecution(startRequest);
         } catch (Throwable t) {
