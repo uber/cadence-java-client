@@ -111,6 +111,8 @@ public class MigrationServiceTest {
         mockResponse,
         MigrationService.MigrationState.DISABLED,
         null);
+
+    //TODO: test cases for migration-preferred
   }
 
   private void testStartWorkflowParametrised(
