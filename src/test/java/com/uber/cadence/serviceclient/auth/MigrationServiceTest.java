@@ -3,14 +3,15 @@ package com.uber.cadence.serviceclient.auth;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
-import com.uber.cadence.ServiceBusyError;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionResponse;
+import com.uber.cadence.*;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.MigrationService;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -19,6 +20,15 @@ public class MigrationServiceTest {
   @Mock private IWorkflowService from = Mockito.mock(IWorkflowService.class);
 
   @Mock private IWorkflowService to = Mockito.mock(IWorkflowService.class);
+
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
+
+  @Before
+  public void setup() {
+    from = Mockito.mock(IWorkflowService.class);
+    to = Mockito.mock(IWorkflowService.class);
+    exceptionRule = ExpectedException.none();
+  }
 
   @Test
   public void testStartWorkflow() throws Exception {
@@ -31,15 +41,76 @@ public class MigrationServiceTest {
         client -> doReturn(mockResponse).when(client).StartWorkflowExecution(any()),
         new StartWorkflowExecutionRequest(),
         mockResponse,
-        MigrationService.MigrationState.ENABLED);
+        MigrationService.MigrationState.ENABLED,
+        null);
 
     // Migration enabled, but 'to' cluster throws exception
     testStartWorkflowParametrised(
         client -> {},
-        client -> doThrow(new ServiceBusyError()).when(client).StartWorkflowExecution(any()),
+        client -> doThrow(new ServiceBusyError("test")).when(client).StartWorkflowExecution(any()),
+        new StartWorkflowExecutionRequest(),
+        null,
+        MigrationService.MigrationState.ENABLED,
+        new ServiceBusyError("test"));
+
+    // Migration enabled, start request with workflow id, wf not found in 'from' cluster
+    StartWorkflowExecutionRequest requestWithWfId = new StartWorkflowExecutionRequest();
+    requestWithWfId.setDomain("test");
+    requestWithWfId.setWorkflowId("testId");
+
+    testStartWorkflowParametrised(
+        client -> doThrow(new EntityNotExistsError()).when(client).DescribeWorkflowExecution(any()),
+        client -> doReturn(mockResponse).when(client).StartWorkflowExecution(any()),
+        requestWithWfId,
+        mockResponse,
+        MigrationService.MigrationState.ENABLED,
+        null);
+
+    // Migration enabled, start request with workflow id, wf found in 'from' cluster
+    testStartWorkflowParametrised(
+        client -> {
+          WorkflowExecutionInfo info = new WorkflowExecutionInfo();
+
+          DescribeWorkflowExecutionResponse describeResp = new DescribeWorkflowExecutionResponse();
+          describeResp.setWorkflowExecutionInfo(info);
+          doReturn(describeResp).when(client).DescribeWorkflowExecution(any());
+
+          doReturn(mockResponse).when(client).StartWorkflowExecution(any());
+        },
+        client -> {},
+        requestWithWfId,
+        mockResponse,
+        MigrationService.MigrationState.ENABLED,
+        null);
+
+    // Migration Enabled, start request with workflow id, wf found in 'from' cluster with close
+    // status, terminated
+    // expect to start workflow in 'to' cluster
+    testStartWorkflowParametrised(
+        client -> {
+          WorkflowExecutionInfo info = new WorkflowExecutionInfo();
+          info.setCloseStatus(WorkflowExecutionCloseStatus.TERMINATED);
+
+          DescribeWorkflowExecutionResponse describeResp = new DescribeWorkflowExecutionResponse();
+          describeResp.setWorkflowExecutionInfo(info);
+          doReturn(describeResp).when(client).DescribeWorkflowExecution(any());
+        },
+        client -> {
+          doReturn(mockResponse).when(client).StartWorkflowExecution(any());
+        },
+        requestWithWfId,
+        mockResponse,
+        MigrationService.MigrationState.ENABLED,
+        null);
+
+    // Migration disabled, call 'from' cluster
+    testStartWorkflowParametrised(
+        client -> doReturn(mockResponse).when(client).StartWorkflowExecution(any()),
+        client -> {},
         new StartWorkflowExecutionRequest(),
         mockResponse,
-        MigrationService.MigrationState.ENABLED);
+        MigrationService.MigrationState.DISABLED,
+        null);
   }
 
   private void testStartWorkflowParametrised(
@@ -47,17 +118,22 @@ public class MigrationServiceTest {
       ThrowingConsumer<IWorkflowService> toClientMock,
       StartWorkflowExecutionRequest request,
       StartWorkflowExecutionResponse expectedResponse,
-      MigrationService.MigrationState migrationState)
+      MigrationService.MigrationState migrationState,
+      Throwable expectedException)
       throws Exception {
 
-    fromClientMock.accept(from);
-    toClientMock.accept(to);
+    fromClientMock.acceptThrows(from);
+    toClientMock.acceptThrows(to);
 
     MigrationService migrationService = new MigrationService(from, to, NoopScope.getInstance());
     migrationService.setMigrationState(migrationState);
 
-    StartWorkflowExecutionResponse actualResponse =
-        migrationService.StartWorkflowExecution(request);
-    Assert.assertEquals(expectedResponse, actualResponse);
+    if (expectedException == null) {
+      StartWorkflowExecutionResponse actualResponse =
+          migrationService.StartWorkflowExecution(request);
+      Assert.assertEquals(expectedResponse, actualResponse);
+    } else {
+      exceptionRule.expectMessage(expectedException.getMessage());
+    }
   }
 }

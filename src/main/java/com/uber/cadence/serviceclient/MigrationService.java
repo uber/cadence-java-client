@@ -1,3 +1,19 @@
+/*
+ *
+ *  Modifications copyright (C) 2023 Uber Technologies, Inc.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not
+ *  use this file except in compliance with the License. A copy of the License is
+ *  located at
+ *
+ *  http://aws.amazon.com/apache2.0
+ *
+ *  or in the "license" file accompanying this file. This file is distributed on
+ *  an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ *  express or implied. See the License for the specific language governing
+ *  permissions and limitations under the License.
+ */
+
 package com.uber.cadence.serviceclient;
 
 import com.google.common.base.Strings;
@@ -164,13 +180,15 @@ public class MigrationService implements IWorkflowService {
             startScope.tagged(
                 ImmutableMap.of(
                     SHIM_METRIC_START_WORKFLOW, SHIM_METRIC_MIGRATING_AFTER_WF_COMPLETION));
+
         try {
           StartWorkflowExecutionResponse response = to.StartWorkflowExecution(startRequest);
+          startScope.counter(SHIM_METRIC_SUCCESS).inc(1);
+          return response;
         } catch (Throwable t) {
           startScope.counter(SHIM_METRIC_ERROR).inc(1);
           throw t;
         }
-        startScope.counter(SHIM_METRIC_SUCCESS).inc(1);
       }
     } else if (MigrationState.PREFER_FROM.equals(migrationState)) {
       startScope =
@@ -693,6 +711,7 @@ public class MigrationService implements IWorkflowService {
     return null;
   }
 
+  //TODO: this is just for testing, needs to be replaced with some real configuration injection
   public void setMigrationState(MigrationState migrationState) {
     this.currentMigrationState = migrationState;
   }
