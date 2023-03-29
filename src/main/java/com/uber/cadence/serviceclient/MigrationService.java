@@ -44,6 +44,7 @@ public class MigrationService implements IWorkflowService {
   private final Cache<String, String> wfMigratedCache = CacheBuilder.newBuilder()
           .maximumSize(1000)
           .build();
+  private MigrationState currentMigrationState;
 
   public MigrationService(IWorkflowService from, IWorkflowService to, Scope scope) {
     this.from = from;
@@ -678,7 +679,11 @@ public class MigrationService implements IWorkflowService {
     return null;
   }
 
+  public void setMigrationState(MigrationState migrationState) {
+    this.currentMigrationState = migrationState;
+  }
+
   public MigrationState getMigrationState() {
-    return MigrationState.ENABLED;
+    return currentMigrationState;
   }
 }
