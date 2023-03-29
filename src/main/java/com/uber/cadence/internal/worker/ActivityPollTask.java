@@ -17,7 +17,7 @@
 
 package com.uber.cadence.internal.worker;
 
-11import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
 import static com.uber.cadence.internal.metrics.MetricsTagValue.SERVICE_BUSY;
 
 import com.google.common.collect.ImmutableMap;
