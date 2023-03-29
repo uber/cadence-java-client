@@ -26,7 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
-public class MigrationService implements IWorkflowService {
+public class MigrationClient implements IWorkflowService {
 
   private static final String MIGRATION_API_CALL_TAG_KEY = "api-call";
 
@@ -60,7 +60,7 @@ public class MigrationService implements IWorkflowService {
       CacheBuilder.newBuilder().maximumSize(1000).build();
   private MigrationState currentMigrationState;
 
-  public MigrationService(IWorkflowService from, IWorkflowService to, Scope scope) {
+  public MigrationClient(IWorkflowService from, IWorkflowService to, Scope scope) {
     this.from = from;
     this.to = to;
     this.scope = scope;

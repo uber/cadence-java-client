@@ -6,7 +6,7 @@ import static org.mockito.Mockito.*;
 import com.uber.cadence.*;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.serviceclient.MigrationService;
+import com.uber.cadence.serviceclient.MigrationClient;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -15,7 +15,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-public class MigrationServiceTest {
+public class MigrationClientTest {
 
   @Mock private IWorkflowService from = Mockito.mock(IWorkflowService.class);
 
@@ -41,7 +41,7 @@ public class MigrationServiceTest {
         client -> doReturn(mockResponse).when(client).StartWorkflowExecution(any()),
         new StartWorkflowExecutionRequest(),
         mockResponse,
-        MigrationService.MigrationState.ENABLED,
+        MigrationClient.MigrationState.ENABLED,
         null);
 
     // Migration enabled, but 'to' cluster throws exception
@@ -50,7 +50,7 @@ public class MigrationServiceTest {
         client -> doThrow(new ServiceBusyError("test")).when(client).StartWorkflowExecution(any()),
         new StartWorkflowExecutionRequest(),
         null,
-        MigrationService.MigrationState.ENABLED,
+        MigrationClient.MigrationState.ENABLED,
         new ServiceBusyError("test"));
 
     // Migration enabled, start request with workflow id, wf not found in 'from' cluster
@@ -63,7 +63,7 @@ public class MigrationServiceTest {
         client -> doReturn(mockResponse).when(client).StartWorkflowExecution(any()),
         requestWithWfId,
         mockResponse,
-        MigrationService.MigrationState.ENABLED,
+        MigrationClient.MigrationState.ENABLED,
         null);
 
     // Migration enabled, start request with workflow id, wf found in 'from' cluster
@@ -80,7 +80,7 @@ public class MigrationServiceTest {
         client -> {},
         requestWithWfId,
         mockResponse,
-        MigrationService.MigrationState.ENABLED,
+        MigrationClient.MigrationState.ENABLED,
         null);
 
     // Migration Enabled, start request with workflow id, wf found in 'from' cluster with close
@@ -100,7 +100,7 @@ public class MigrationServiceTest {
         },
         requestWithWfId,
         mockResponse,
-        MigrationService.MigrationState.ENABLED,
+        MigrationClient.MigrationState.ENABLED,
         null);
 
     // Migration disabled, call 'from' cluster
@@ -109,7 +109,7 @@ public class MigrationServiceTest {
         client -> {},
         new StartWorkflowExecutionRequest(),
         mockResponse,
-        MigrationService.MigrationState.DISABLED,
+        MigrationClient.MigrationState.DISABLED,
         null);
 
     //TODO: test cases for migration-preferred
@@ -120,19 +120,19 @@ public class MigrationServiceTest {
       ThrowingConsumer<IWorkflowService> toClientMock,
       StartWorkflowExecutionRequest request,
       StartWorkflowExecutionResponse expectedResponse,
-      MigrationService.MigrationState migrationState,
+      MigrationClient.MigrationState migrationState,
       Throwable expectedException)
       throws Exception {
 
     fromClientMock.acceptThrows(from);
     toClientMock.acceptThrows(to);
 
-    MigrationService migrationService = new MigrationService(from, to, NoopScope.getInstance());
-    migrationService.setMigrationState(migrationState);
+    MigrationClient migrationClient = new MigrationClient(from, to, NoopScope.getInstance());
+    migrationClient.setMigrationState(migrationState);
 
     if (expectedException == null) {
       StartWorkflowExecutionResponse actualResponse =
-          migrationService.StartWorkflowExecution(request);
+          migrationClient.StartWorkflowExecution(request);
       Assert.assertEquals(expectedResponse, actualResponse);
     } else {
       exceptionRule.expectMessage(expectedException.getMessage());
