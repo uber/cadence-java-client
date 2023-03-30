@@ -711,7 +711,7 @@ public class MigrationClient implements IWorkflowService {
     return null;
   }
 
-  //TODO: this is just for testing, needs to be replaced with some real configuration injection
+  // TODO: this is just for testing, needs to be replaced with some real configuration injection
   public void setMigrationState(MigrationState migrationState) {
     this.currentMigrationState = migrationState;
   }
