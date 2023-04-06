@@ -66,7 +66,8 @@ class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
     if (activityOptionsOverride == null) {
       stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
     } else {
-      ActivityOptions mergedOverrideOptions = ActivityOptions.merge(activityMethod, methodRetry, activityOptionsOverride);
+      ActivityOptions mergedOverrideOptions =
+          ActivityOptions.merge(activityMethod, methodRetry, activityOptionsOverride);
       stub = ActivityStubImpl.newInstance(mergedOverrideOptions, activityExecutor);
     }
 

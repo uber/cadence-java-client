@@ -17,7 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
-interface SyncWorkflowDefinition {
+public interface SyncWorkflowDefinition {
 
   byte[] execute(byte[] input);
 

@@ -29,14 +29,10 @@ import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.testing.TestEnvironmentOptions;
-import com.uber.cadence.workflow.ActivityFailureException;
-import com.uber.cadence.workflow.ChildWorkflowOptions;
-import com.uber.cadence.workflow.ContinueAsNewOptions;
+import com.uber.cadence.workflow.*;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
-import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowInterceptor;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -131,7 +127,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     this.activityTaskHandler.setWorkflowService(service);
   }
 
-  private class TestActivityExecutor implements WorkflowInterceptor {
+  private class TestActivityExecutor extends WorkflowInterceptorBase {
 
     @SuppressWarnings("UnusedVariable")
     private final IWorkflowService workflowService;
