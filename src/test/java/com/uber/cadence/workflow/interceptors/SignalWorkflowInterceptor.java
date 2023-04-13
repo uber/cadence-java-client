@@ -20,6 +20,8 @@ package com.uber.cadence.workflow.interceptors;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.*;
 import java.lang.reflect.Type;
 import java.time.Duration;
@@ -28,6 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -45,6 +48,19 @@ public class SignalWorkflowInterceptor implements WorkflowInterceptor {
     this.overrideArgs = overrideArgs;
     this.overrideSignalName = overrideSignalName;
     this.next = Objects.requireNonNull(next);
+  }
+
+  /**
+   * @param workflowDefinition
+   * @param input
+   * @return
+   * @throws CancellationException
+   * @throws WorkflowExecutionException
+   */
+  @Override
+  public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+      throws CancellationException, WorkflowExecutionException {
+    return next.executeWorkflow(workflowDefinition, input);
   }
 
   @Override

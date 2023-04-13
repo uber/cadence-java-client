@@ -20,13 +20,13 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.workflow.Functions.Func;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.CancellationException;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
@@ -50,6 +50,11 @@ public interface WorkflowInterceptor {
       return workflowExecution;
     }
   }
+
+  // interceptor executeWorkflow method: no-op interceptors delegate calls to next interceptors used
+  // for users to create new interceptors easily
+  byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+      throws CancellationException, WorkflowExecutionException;
 
   <R> Promise<R> executeActivity(
       String activityName,

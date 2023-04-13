@@ -62,8 +62,10 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.WorkflowExecutionUtils;
 import com.uber.cadence.internal.sync.DeterministicRunnerTest;
+import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
 import com.uber.cadence.internal.sync.TestWorkflowEnvironmentInternal;
 import com.uber.cadence.internal.worker.PollerOptions;
+import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
@@ -6116,6 +6118,19 @@ public class WorkflowTest {
     private TracingWorkflowInterceptor(FilteredTrace trace, WorkflowInterceptor next) {
       this.trace = trace;
       this.next = Objects.requireNonNull(next);
+    }
+
+    /**
+     * @param workflowDefinition
+     * @param input
+     * @return
+     * @throws CancellationException
+     * @throws WorkflowExecutionException
+     */
+    @Override
+    public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+        throws CancellationException, WorkflowExecutionException {
+      return next.executeWorkflow(workflowDefinition, input);
     }
 
     @Override

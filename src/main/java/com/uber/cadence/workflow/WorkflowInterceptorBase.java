@@ -20,14 +20,12 @@ package com.uber.cadence.workflow;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
+import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
@@ -38,6 +36,11 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
 
   public WorkflowInterceptorBase(WorkflowInterceptor next) {
     this.next = next;
+  }
+
+  @Override
+  public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input) {
+    return next.executeWorkflow(workflowDefinition, input);
   }
 
   @Override
