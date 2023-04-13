@@ -6339,7 +6339,9 @@ public class WorkflowTest {
             .build());
 
     startWorkerFor(
-        new WorkflowImplementationOptions.Builder().setActivityOptionOverrides(activityOptionsMap).build(),
+        new WorkflowImplementationOptions.Builder()
+            .setActivityOptionOverrides(activityOptionsMap)
+            .build(),
         TestWorkflowActivityOptionOverride.class);
 
     TestWorkflow1 workflowStub =

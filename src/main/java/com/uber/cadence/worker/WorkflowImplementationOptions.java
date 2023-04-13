@@ -46,16 +46,19 @@ public final class WorkflowImplementationOptions {
     /**
      * Set overrides for a specific workflow implementation for activity options.
      *
-     * @param activityOptionOverrides a map where the key is the activity name and the value is the activity
-     *     options that should override existing activity configuration that comes from @ActivityMethod annotation.
+     * @param activityOptionOverrides a map where the key is the activity name and the value is the
+     *     activity options that should override existing activity configuration that comes
+     *     from @ActivityMethod annotation.
      */
-    public Builder setActivityOptionOverrides(Map<String, ActivityOptions> activityOptionOverrides) {
+    public Builder setActivityOptionOverrides(
+        Map<String, ActivityOptions> activityOptionOverrides) {
       this.activityOptionOverrides = activityOptionOverrides;
       return this;
     }
 
     public WorkflowImplementationOptions build() {
-      return new WorkflowImplementationOptions(nonDeterministicWorkflowPolicy, activityOptionOverrides);
+      return new WorkflowImplementationOptions(
+          nonDeterministicWorkflowPolicy, activityOptionOverrides);
     }
   }
 
