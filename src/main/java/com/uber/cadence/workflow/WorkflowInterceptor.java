@@ -51,8 +51,7 @@ public interface WorkflowInterceptor {
     }
   }
 
-  // interceptor executeWorkflow method: no-op interceptors delegate calls to next interceptors used
-  // for users to create new interceptors easily
+  //to match behavior in go client: interceptor executeWorkflow method
   byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
       throws CancellationException, WorkflowExecutionException;
 
