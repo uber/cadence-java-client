@@ -138,12 +138,6 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
-    public byte[] executeWorkflow(
-        SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input) {
-      return super.executeWorkflow(workflowDefinition, input);
-    }
-
-    @Override
     public <T> Promise<T> executeActivity(
         String activityType,
         Class<T> resultClass,
