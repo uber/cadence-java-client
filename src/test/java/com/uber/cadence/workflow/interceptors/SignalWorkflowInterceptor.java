@@ -58,7 +58,8 @@ public class SignalWorkflowInterceptor implements WorkflowInterceptor {
    * @throws WorkflowExecutionException
    */
   @Override
-  public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+  public byte[] executeWorkflow(
+      SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
       throws CancellationException, WorkflowExecutionException {
     return next.executeWorkflow(workflowDefinition, input);
   }

@@ -18,6 +18,8 @@
 package com.uber.cadence.workflow;
 
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.WorkflowType;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
@@ -31,6 +33,26 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 
 public interface WorkflowInterceptor {
+
+  public final class WorkflowAttributeInput {
+    private final WorkflowExecutionStartedEventAttributes workflowEventStart;
+    private final WorkflowType workflowType;
+    private final byte[] input;
+
+    public WorkflowAttributeInput(WorkflowExecutionStartedEventAttributes workflowEventStart) {
+      this.workflowEventStart = workflowEventStart;
+      this.workflowType = workflowEventStart.workflowType;
+      this.input = workflowEventStart.getInput();
+    }
+
+    public WorkflowType getWorkflowType() {
+      return workflowType;
+    }
+
+    public byte[] getInput() {
+      return input;
+    }
+  }
 
   final class WorkflowResult<R> {
 
@@ -51,8 +73,8 @@ public interface WorkflowInterceptor {
     }
   }
 
-  //to match behavior in go client: interceptor executeWorkflow method
-  byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+  // to match behavior in go client: interceptor executeWorkflow method
+  byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
       throws CancellationException, WorkflowExecutionException;
 
   <R> Promise<R> executeActivity(

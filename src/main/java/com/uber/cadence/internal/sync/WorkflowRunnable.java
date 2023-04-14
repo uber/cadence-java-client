@@ -45,7 +45,9 @@ class WorkflowRunnable implements Runnable {
   public void run() {
     try {
       WorkflowInterceptor interceptor = context.getWorkflowInterceptor();
-      output = interceptor.executeWorkflow(workflow, attributes.getInput());
+      output =
+          interceptor.executeWorkflow(
+              workflow, new WorkflowInterceptor.WorkflowAttributeInput(attributes));
     } finally {
       done = true;
     }

@@ -6120,16 +6120,11 @@ public class WorkflowTest {
       this.next = Objects.requireNonNull(next);
     }
 
-    /**
-     * @param workflowDefinition
-     * @param input
-     * @return
-     * @throws CancellationException
-     * @throws WorkflowExecutionException
-     */
     @Override
-    public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input)
+    public byte[] executeWorkflow(
+        SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
         throws CancellationException, WorkflowExecutionException {
+      trace.add("executeWorkflow: " + input.getWorkflowType());
       return next.executeWorkflow(workflowDefinition, input);
     }
 
