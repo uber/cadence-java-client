@@ -39,11 +39,10 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   // base interceptor executeWorkflow method: no-op interceptors delegate calls to next interceptors
-  // used
-  // for users to create new interceptors easily
+  // used for users to create new interceptors easily
   @Override
   public byte[] executeWorkflow(
-      SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input) {
+      SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
     return next.executeWorkflow(workflowDefinition, input);
   }
 

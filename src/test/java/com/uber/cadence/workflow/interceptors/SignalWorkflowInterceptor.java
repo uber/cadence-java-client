@@ -50,16 +50,9 @@ public class SignalWorkflowInterceptor implements WorkflowInterceptor {
     this.next = Objects.requireNonNull(next);
   }
 
-  /**
-   * @param workflowDefinition
-   * @param input
-   * @return
-   * @throws CancellationException
-   * @throws WorkflowExecutionException
-   */
   @Override
   public byte[] executeWorkflow(
-      SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
+      SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input)
       throws CancellationException, WorkflowExecutionException {
     return next.executeWorkflow(workflowDefinition, input);
   }

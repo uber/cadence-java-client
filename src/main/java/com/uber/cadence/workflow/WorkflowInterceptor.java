@@ -34,12 +34,12 @@ import java.util.function.Supplier;
 
 public interface WorkflowInterceptor {
 
-  public final class WorkflowAttributeInput {
+  public final class WorkflowExecuteInput {
     private final WorkflowExecutionStartedEventAttributes workflowEventStart;
     private final WorkflowType workflowType;
     private final byte[] input;
 
-    public WorkflowAttributeInput(WorkflowExecutionStartedEventAttributes workflowEventStart) {
+    public WorkflowExecuteInput(WorkflowExecutionStartedEventAttributes workflowEventStart) {
       this.workflowEventStart = workflowEventStart;
       this.workflowType = workflowEventStart.workflowType;
       this.input = workflowEventStart.getInput();
@@ -74,7 +74,7 @@ public interface WorkflowInterceptor {
   }
 
   // to match behavior in go client: interceptor executeWorkflow method
-  byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
+  byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input)
       throws CancellationException, WorkflowExecutionException;
 
   <R> Promise<R> executeActivity(

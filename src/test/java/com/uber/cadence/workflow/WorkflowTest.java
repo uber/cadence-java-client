@@ -6160,7 +6160,7 @@ public class WorkflowTest {
 
     @Override
     public byte[] executeWorkflow(
-        SyncWorkflowDefinition workflowDefinition, WorkflowAttributeInput input)
+        SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input)
         throws CancellationException, WorkflowExecutionException {
       trace.add("executeWorkflow: " + input.getWorkflowType().getName());
       return next.executeWorkflow(workflowDefinition, input);
