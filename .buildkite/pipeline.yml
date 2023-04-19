@@ -4,6 +4,11 @@ steps:
       queue: "init"
       docker: "*"
     command: ".buildkite/scripts/fossa.sh"
+  - label: "Lint Check"
+    agents:
+      queue: "init"
+      docker: "*"
+    command: ".buildkite/scripts/lint.sh"
   - label: ":java: Unit test with test services"
     agents:
       queue: "workers"
