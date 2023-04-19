@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# This hook automatically enforces the Google Java Format style on Java files using the goJF Gradle task.
+
+# Change directory to the root of the repository
+cd "$(git rev-parse --show-toplevel)"
+
+# Run the goJF Gradle task on all Java files that have been modified
+./gradlew goJF --quiet $(git diff --cached --name-only --diff-filter=ACM -- '*.java')
+
