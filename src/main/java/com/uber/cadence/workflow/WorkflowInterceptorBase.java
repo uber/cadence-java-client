@@ -42,6 +42,8 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   // used for users to create new interceptors easily
   @Override
   public byte[] executeWorkflow(
+
+
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
     return next.executeWorkflow(workflowDefinition, input);
   }
