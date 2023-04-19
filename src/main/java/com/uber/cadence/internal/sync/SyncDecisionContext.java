@@ -128,6 +128,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   }
 
   @Override
+  public byte[] executeWorkflow(
+      SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
+    return workflowDefinition.execute(input.getInput());
+  }
+
+  @Override
   public <T> Promise<T> executeActivity(
       String activityName,
       Class<T> resultClass,

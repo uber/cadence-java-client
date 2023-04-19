@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.util.Objects;
 
 class WorkflowRunnable implements Runnable {
@@ -43,8 +44,10 @@ class WorkflowRunnable implements Runnable {
   @Override
   public void run() {
     try {
-
-      output = workflow.execute(attributes.getInput());
+      WorkflowInterceptor interceptor = context.getWorkflowInterceptor();
+      output =
+          interceptor.executeWorkflow(
+              workflow, new WorkflowInterceptor.WorkflowExecuteInput(attributes));
     } finally {
       done = true;
     }
