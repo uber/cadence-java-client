@@ -2,7 +2,6 @@
 
 set -ex
 
-#make go-generate && make fmt && make lint && make copyright
 ./gradlew goJF
 
 if [ -n "$(git status --porcelain)" ]; then
