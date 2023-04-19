@@ -4,6 +4,15 @@ steps:
       queue: "init"
       docker: "*"
     command: ".buildkite/scripts/fossa.sh"
+  - label: "Lint Check"
+    agents:
+      queue: "init"
+      docker: "*"
+    command: ".buildkite/scripts/lint.sh"
+    plugins:
+      - docker-compose#v3.0.0:
+          run: unit-test-test-service
+          config: docker/buildkite/docker-compose.yaml
   - label: ":java: Unit test with test services"
     agents:
       queue: "workers"
