@@ -52,6 +52,10 @@ public interface WorkflowInterceptor {
     public byte[] getInput() {
       return input;
     }
+
+    public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+      return workflowEventStart;
+    }
   }
 
   final class WorkflowResult<R> {

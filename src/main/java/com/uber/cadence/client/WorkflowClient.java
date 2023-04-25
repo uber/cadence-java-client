@@ -131,7 +131,7 @@ public interface WorkflowClient {
 
   WorkflowClientOptions getOptions();
 
-  IWorkflowService getService();
+  static IWorkflowService getService();
 
   /**
    * Creates workflow client stub that can be used to start a single workflow execution. The first
