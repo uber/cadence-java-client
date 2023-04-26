@@ -76,8 +76,7 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                     .getParentWorkflowExecution()
                     .getWorkflowId()
                 != "") {
-          next.executeWorkflow(workflowDefinition, input);
-          break;
+          return next.executeWorkflow(workflowDefinition, input);
         }
 
         MigrationDecision decision =
