@@ -130,6 +130,8 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
             // fallback if start workflow in new domain failed
             next.executeWorkflow(workflowDefinition, input);
           }
+            default:
+                return next.executeWorkflow(workflowDefinition, input);
         }
     }
     return next.executeWorkflow(workflowDefinition, input);
