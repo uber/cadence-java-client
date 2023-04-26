@@ -68,7 +68,9 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
     switch (version) {
       case versionV1:
         // Skip migration on non-cron and child workflows
-        if (input.getWorkflowExecutionStartedEventAttributes().cronSchedule == ""
+        WorkflowExecutionStartedEventAttributes startEventAttr
+              = input.getWorkflowExecutionStartedEventAttributes();
+        if (startEventAttr.cronSchedule == "" || startEventAttr.getParentWorkflowExecution().getWorkflow() != "")
             || input
                     .getWorkflowExecutionStartedEventAttributes()
                     .getParentWorkflowExecution()
