@@ -68,10 +68,11 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
     switch (version) {
       case versionV1:
         // Skip migration on non-cron and child workflows
-        WorkflowExecutionStartedEventAttributes startedEventAttributes = input.getWorkflowExecutionStartedEventAttributes();
+        WorkflowExecutionStartedEventAttributes startedEventAttributes =
+            input.getWorkflowExecutionStartedEventAttributes();
         if (startedEventAttributes.cronSchedule == ""
             || startedEventAttributes.getParentWorkflowExecution().getWorkflowId() != "") {
-             return next.executeWorkflow(workflowDefinition, input);
+          return next.executeWorkflow(workflowDefinition, input);
         }
 
         MigrationDecision decision =
@@ -82,16 +83,11 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
               new StartWorkflowExecutionRequest()
                   .setDomain(workflowInfo.getDomain())
                   .setWorkflowId(workflowInfo.getWorkflowId())
-                  .setTaskList(
-                      new TaskList()
-                          .setName(
-                                  startedEventAttributes.taskList
-                                  .getName()))
+                  .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
                   .setInput(input.getInput())
                   .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
                   .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
-                  .setRetryPolicy(
-                          startedEventAttributes.getRetryPolicy())
+                  .setRetryPolicy(startedEventAttributes.getRetryPolicy())
                   .setRequestId(UUID.randomUUID().toString())
                   .setIdentity(startedEventAttributes.getIdentity())
                   .setMemo(startedEventAttributes.getMemo())
@@ -99,10 +95,10 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setDelayStartSeconds(startedEventAttributes.getFirstDecisionTaskBackoffSeconds())
                   .setHeader(startedEventAttributes.getHeader())
                   .setSearchAttributes(startedEventAttributes.getSearchAttributes())
-                  .setExecutionStartToCloseTimeoutSeconds(startedEventAttributes
-                          .getExecutionStartToCloseTimeoutSeconds())
-                  .setTaskStartToCloseTimeoutSeconds(startedEventAttributes
-                          .getTaskStartToCloseTimeoutSeconds());
+                  .setExecutionStartToCloseTimeoutSeconds(
+                      startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
+                  .setTaskStartToCloseTimeoutSeconds(
+                      startedEventAttributes.getTaskStartToCloseTimeoutSeconds());
 
           try {
             MigrationActivities.StartNewWorkflowExecutionResponse response =
@@ -115,9 +111,9 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
             // fallback if start workflow in new domain failed
             return next.executeWorkflow(workflowDefinition, input);
           }
-         }
+        }
       default:
-        return next.executeWorkflow(workflowDefinition,input);
+        return next.executeWorkflow(workflowDefinition, input);
     }
   }
 
