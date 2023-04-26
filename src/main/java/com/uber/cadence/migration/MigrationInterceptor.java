@@ -135,7 +135,6 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                 return next.executeWorkflow(workflowDefinition, input);
         }
     }
-    return next.executeWorkflow(workflowDefinition, input);
   }
 
   private MigrationDecision shouldMigrate(
