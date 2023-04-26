@@ -128,7 +128,7 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                 "cancel due to migration:" + response.response.toString());
           } catch (ActivityException e) {
             // fallback if start workflow in new domain failed
-            next.executeWorkflow(workflowDefinition, input);
+            return next.executeWorkflow(workflowDefinition, input);
           }
             default:
                 return next.executeWorkflow(workflowDefinition, input);
