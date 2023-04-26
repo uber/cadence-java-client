@@ -68,15 +68,10 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
     switch (version) {
       case versionV1:
         // Skip migration on non-cron and child workflows
-        WorkflowExecutionStartedEventAttributes startEventAttr
-              = input.getWorkflowExecutionStartedEventAttributes();
-        if (startEventAttr.cronSchedule == "" || startEventAttr.getParentWorkflowExecution().getWorkflow() != "")
-            || input
-                    .getWorkflowExecutionStartedEventAttributes()
-                    .getParentWorkflowExecution()
-                    .getWorkflowId()
-                != "") {
-          return next.executeWorkflow(workflowDefinition, input);
+        WorkflowExecutionStartedEventAttributes startedEventAttributes = input.getWorkflowExecutionStartedEventAttributes();
+        if (startedEventAttributes.cronSchedule == ""
+            || startedEventAttributes.getParentWorkflowExecution().getWorkflowId() != "") {
+             return next.executeWorkflow(workflowDefinition, input);
         }
 
         MigrationDecision decision =
@@ -90,34 +85,23 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setTaskList(
                       new TaskList()
                           .setName(
-                              input
-                                  .getWorkflowExecutionStartedEventAttributes()
-                                  .taskList
+                                  startedEventAttributes.taskList
                                   .getName()))
                   .setInput(input.getInput())
                   .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
                   .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
                   .setRetryPolicy(
-                      input.getWorkflowExecutionStartedEventAttributes().getRetryPolicy())
+                          startedEventAttributes.getRetryPolicy())
                   .setRequestId(UUID.randomUUID().toString())
-                  .setIdentity(input.getWorkflowExecutionStartedEventAttributes().getIdentity())
-                  .setMemo(input.getWorkflowExecutionStartedEventAttributes().getMemo())
-                  .setCronSchedule(
-                      input.getWorkflowExecutionStartedEventAttributes().getCronSchedule())
-                  .setDelayStartSeconds(
-                      input
-                          .getWorkflowExecutionStartedEventAttributes()
-                          .getFirstDecisionTaskBackoffSeconds())
-                  .setHeader(input.getWorkflowExecutionStartedEventAttributes().getHeader())
-                  .setSearchAttributes(
-                      input.getWorkflowExecutionStartedEventAttributes().getSearchAttributes())
-                  .setExecutionStartToCloseTimeoutSeconds(
-                      input
-                          .getWorkflowExecutionStartedEventAttributes()
+                  .setIdentity(startedEventAttributes.getIdentity())
+                  .setMemo(startedEventAttributes.getMemo())
+                  .setCronSchedule(startedEventAttributes.getCronSchedule())
+                  .setDelayStartSeconds(startedEventAttributes.getFirstDecisionTaskBackoffSeconds())
+                  .setHeader(startedEventAttributes.getHeader())
+                  .setSearchAttributes(startedEventAttributes.getSearchAttributes())
+                  .setExecutionStartToCloseTimeoutSeconds(startedEventAttributes
                           .getExecutionStartToCloseTimeoutSeconds())
-                  .setTaskStartToCloseTimeoutSeconds(
-                      input
-                          .getWorkflowExecutionStartedEventAttributes()
+                  .setTaskStartToCloseTimeoutSeconds(startedEventAttributes
                           .getTaskStartToCloseTimeoutSeconds());
 
           try {
@@ -134,6 +118,8 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
             default:
                 return next.executeWorkflow(workflowDefinition, input);
         }
+      default:
+        return next.executeWorkflow(workflowDefinition,input);
     }
   }
 
