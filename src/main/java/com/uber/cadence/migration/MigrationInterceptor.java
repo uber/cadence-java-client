@@ -18,106 +18,125 @@
 package com.uber.cadence.migration;
 
 import com.uber.cadence.*;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.internal.common.RpcRetryer;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
-import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowInterceptor;
-import com.uber.cadence.workflow.WorkflowInterceptorBase;
-import org.apache.thrift.protocol.TField;
-
+import com.uber.cadence.workflow.*;
+import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 
 public class MigrationInterceptor extends WorkflowInterceptorBase {
 
+  // TODO: add new domain override
   private final WorkflowInterceptor next;
-  private static final String versionChangeID = "cadenceMigrationInterceptor";
-  public static final int versionV1 = 1;
 
-  public MigrationInterceptor(WorkflowInterceptor next) {
+  private final MigrationActivities migrationActivities;
+  private static final String versionChangeID = "cadenceMigrationInterceptor";
+  private static final int versionV1 = 1;
+  private final ActivityOptions options =
+      new ActivityOptions.Builder()
+          .setScheduleToCloseTimeout(Duration.ofSeconds(10))
+          .setRetryOptions(new RetryOptions.Builder().build())
+          .build();
+  private final MigrationActivities activities =
+      Workflow.newActivityStub(MigrationActivities.class, options);
+
+  private class MigrationDecision {
+    boolean shouldMigrate;
+    String reason;
+
+    public MigrationDecision(boolean shouldMigrate, String reason) {
+      this.shouldMigrate = shouldMigrate;
+      this.reason = reason;
+    }
+  }
+
+  public MigrationInterceptor(WorkflowInterceptor next, WorkflowClient clientInNewDomain) {
     super(next);
     this.next = next;
+    this.migrationActivities = new MigrationActivitiesImpl(clientInNewDomain);
   }
 
   @Override
   public byte[] executeWorkflow(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
 
-    final IWorkflowService service = WorkflowClient.getService();
-
+    WorkflowInfo workflowInfo = Workflow.getWorkflowInfo();
     int version = getVersion(versionChangeID, Workflow.DEFAULT_VERSION, versionV1);
     switch (version) {
       case versionV1:
-        if(input.getWorkflowExecutionStartedEventAttributes().cronSchedule == "" || input.getWorkflowExecutionStartedEventAttributes().getParentWorkflowExecution().getWorkflowId() != ""){
-          //TO DO: it is not a cron schedule, and we will directly send it to CustomerInterceptor's executeWorkflow
-          //Customer will have option to choose to implement their own method or inform which workflows need to be migrated
-          next.executeWorkflow()
-                  break;
+        // Skip migration on non-cron and child workflows
+        if (input.getWorkflowExecutionStartedEventAttributes().cronSchedule == ""
+            || input
+                    .getWorkflowExecutionStartedEventAttributes()
+                    .getParentWorkflowExecution()
+                    .getWorkflowId()
+                != "") {
+          next.executeWorkflow(workflowDefinition, input);
+          break;
         }
 
-        //it means it is cron schedule:
-        // then call sideEffect and check for shouldMigrate
-        // if yes, start an activity: startNewWorkflow in new domain
-        //    // if it has been already started or completed, return cancelledError (standard cancellationException) \
-        //    // if it is failed, fallback to next.executeWorkflow
-        //Not required: SyncWorkflowDefinition sync = sideEffect(workflowDefinition, workflowDefinition.getClass(),input);
-        if(shouldMigrate())
-        {
-//          startActivity();
-
+        MigrationDecision decision =
+            Workflow.sideEffect(
+                MigrationDecision.class, () -> shouldMigrate(workflowDefinition, input));
+        if (decision.shouldMigrate) {
           StartWorkflowExecutionRequest request =
-                  new StartWorkflowExecutionRequest()
-                          .setDomain(input.getWorkflowExecutionStartedEventAttributes().parentWorkflowDomain) //from where to get new domain name
-                          .setWorkflowId(input.getWorkflowExecutionStartedEventAttributes().getIdentity())
-                          .setTaskList(new TaskList().setName(input.getWorkflowExecutionStartedEventAttributes().taskList.getName()))
-                          .setInput(input.getInput())
-                          .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
-                          .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
-                          .setWorkflowIdReusePolicy(input.getWorkflowExecutionStartedEventAttributes().getRetryPolicy())
-                          .setRequestId(UUID.randomUUID().toString())
-                          .setExecutionStartToCloseTimeoutSeconds(864000)
-                          .setTaskStartToCloseTimeoutSeconds(60);
+              new StartWorkflowExecutionRequest()
+                  .setDomain(workflowInfo.getDomain())
+                  .setWorkflowId(workflowInfo.getWorkflowId())
+                  .setTaskList(
+                      new TaskList()
+                          .setName(
+                              input
+                                  .getWorkflowExecutionStartedEventAttributes()
+                                  .taskList
+                                  .getName()))
+                  .setInput(input.getInput())
+                  .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
+                  .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
+                  .setRetryPolicy(
+                      input.getWorkflowExecutionStartedEventAttributes().getRetryPolicy())
+                  .setRequestId(UUID.randomUUID().toString())
+                  .setIdentity(input.getWorkflowExecutionStartedEventAttributes().getIdentity())
+                  .setMemo(input.getWorkflowExecutionStartedEventAttributes().getMemo())
+                  .setCronSchedule(
+                      input.getWorkflowExecutionStartedEventAttributes().getCronSchedule())
+                  .setDelayStartSeconds(
+                      input
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .getFirstDecisionTaskBackoffSeconds())
+                  .setHeader(input.getWorkflowExecutionStartedEventAttributes().getHeader())
+                  .setSearchAttributes(
+                      input.getWorkflowExecutionStartedEventAttributes().getSearchAttributes())
+                  .setExecutionStartToCloseTimeoutSeconds(
+                      input
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .getExecutionStartToCloseTimeoutSeconds())
+                  .setTaskStartToCloseTimeoutSeconds(
+                      input
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .getTaskStartToCloseTimeoutSeconds());
 
           try {
-            RpcRetryer.retryWithResult(
-                    RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS, () -> service.StartWorkflowExecution(request));
-          } catch (WorkflowExecutionAlreadyStartedError e) {
-            // cancelled error
-            e.getMessage();
-            e.getCause();
+            MigrationActivities.StartNewWorkflowExecutionResponse response =
+                activities.startWorkflowInNewDomain(
+                    new MigrationActivities.StartNewWorkflowRequest());
+            // TODO: add metrics and logging
+            throw new CancellationException(
+                "cancel due to migration:" + response.response.toString());
+          } catch (ActivityException e) {
+            // fallback if start workflow in new domain failed
+            next.executeWorkflow(workflowDefinition, input);
           }
-          catch (Exception e)
-          {
-            e.getCause();
-            next.executeWorkflow(workflowDefinition,input);
-          }
-
         }
-
-
-        //call workflowFunction
-        next.continueAsNew(input.getWorkflowType(),input.getWorkflowExecutionStartedEventAttributes().continuedExecutionRunId, input.getWorkflowExecutionStartedEventAttributes().getFieldValue());
-        //check whether the workflow is continueAsNew
-          // If yes, start Activity: startNewWorkflow in new domain
-                  //if already started/completed, return cancelledError
-                  // if fails return error
-
-        //return result (result mean the
-
-
-      default:
-        return next.executeWorkflow(workflowDefinition, input);
-
-        //TO create a new workflow: a new instance of workflow implementation object is created.
-      // call one of the methods annotated with @workflowMethod
-      // no additional calls to workflow methods
-      //
     }
+    return next.executeWorkflow(workflowDefinition, input);
   }
 
-  private boolean shouldMigrate() {
-    //To DO: Later if we add Flipr
-    return true;
+  private MigrationDecision shouldMigrate(
+      SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
+    return new MigrationDecision(true, "");
   }
 }
