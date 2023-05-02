@@ -35,13 +35,6 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
   private final MigrationActivities migrationActivities;
   private static final String versionChangeID = "cadenceMigrationInterceptor";
   private static final int versionV1 = 1;
-  private final ActivityOptions options =
-      new ActivityOptions.Builder()
-          .setScheduleToCloseTimeout(Duration.ofSeconds(10))
-          .setRetryOptions(new RetryOptions.Builder().build())
-          .build();
-  private final MigrationActivities activities =
-      Workflow.newActivityStub(MigrationActivities.class, options);
 
   private class MigrationDecision {
     boolean shouldMigrate;
@@ -70,8 +63,11 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
         // Skip migration on non-cron and child workflows
         WorkflowExecutionStartedEventAttributes startedEventAttributes =
             input.getWorkflowExecutionStartedEventAttributes();
-        if (startedEventAttributes.cronSchedule == ""
-            || startedEventAttributes.getParentWorkflowExecution().getWorkflowId() != "") {
+        if (startedEventAttributes.cronSchedule == null
+            || !startedEventAttributes.cronSchedule.equals(""))
+          return next.executeWorkflow(workflowDefinition, input);
+        if (startedEventAttributes.getParentWorkflowExecution() == null
+            || !startedEventAttributes.getParentWorkflowExecution().getWorkflowId().equals("")) {
           return next.executeWorkflow(workflowDefinition, input);
         }
 
@@ -100,6 +96,13 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setTaskStartToCloseTimeoutSeconds(
                       startedEventAttributes.getTaskStartToCloseTimeoutSeconds());
 
+          ActivityOptions options =
+              new ActivityOptions.Builder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(10))
+                  .setRetryOptions(new RetryOptions.Builder().build())
+                  .build();
+          MigrationActivities activities =
+              Workflow.newActivityStub(MigrationActivities.class, options);
           try {
             MigrationActivities.StartNewWorkflowExecutionResponse response =
                 activities.startWorkflowInNewDomain(
