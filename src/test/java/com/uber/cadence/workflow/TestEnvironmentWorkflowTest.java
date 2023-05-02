@@ -26,6 +26,8 @@ import com.uber.cadence.common.CronSchedule;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import java.time.Duration;
+
+import com.uber.cadence.workflow.WorkflowMethod;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
