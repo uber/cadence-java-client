@@ -549,6 +549,7 @@ class StateMachines {
     if (data.continuedExecutionRunId.isPresent()) {
       a.setContinuedExecutionRunId(data.continuedExecutionRunId.get());
     }
+    a.setCronSchedule(data.cronSchedule);
     a.setLastCompletionResult(data.lastCompletionResult);
     a.setMemo(request.getMemo());
     a.setSearchAttributes((request.getSearchAttributes()));

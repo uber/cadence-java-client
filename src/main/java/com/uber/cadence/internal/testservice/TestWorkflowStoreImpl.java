@@ -424,6 +424,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
                 .setExecution(executionId.getExecution())
                 .setHistoryLength(history.size())
                 .setStartTime(history.get(0).getTimestamp())
+                .setIsCron(
+                    history.get(0).getWorkflowExecutionStartedEventAttributes().isSetCronSchedule())
                 .setType(
                     history.get(0).getWorkflowExecutionStartedEventAttributes().getWorkflowType());
         result.add(info);
@@ -442,6 +444,8 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
                 .setExecution(executionId.getExecution())
                 .setHistoryLength(history.size())
                 .setStartTime(history.get(0).getTimestamp())
+                .setIsCron(
+                    history.get(0).getWorkflowExecutionStartedEventAttributes().isSetCronSchedule())
                 .setType(
                     history.get(0).getWorkflowExecutionStartedEventAttributes().getWorkflowType())
                 .setCloseStatus(
