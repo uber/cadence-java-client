@@ -1,23 +1,24 @@
 package com.uber.cadence.migration;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
+import com.uber.cadence.*;
 import com.uber.cadence.client.*;
 import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
+import com.uber.cadence.workflow.TestEnvironmentWorkflowTest;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.time.Duration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.apache.thrift.TException;
+import org.junit.*;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class MigrationInterceptorTest {
 
-  public static final String TASK_LIST = "HelloMigration";
+  static final String TASK_LIST = "HelloMigration";
+  static final String CRON_WORKFLOW_ID = "cron_workflow";
   private final SyncWorkflowDefinition syncWorkflowDefinition = null;
   private final WorkflowInterceptor.WorkflowExecuteInput input = null;
 
@@ -51,7 +52,6 @@ public class MigrationInterceptorTest {
             TASK_LIST,
             builder ->
                 builder.setInterceptorFactory(
-                    // ? how
                     next -> new MigrationInterceptor(next, workflowClientInNew)));
     worker.registerWorkflowImplementationTypes(
         SampleWorkflow.GreetingWorkflowImpl.class, SampleWorkflow.GreetingChildImpl.class);
@@ -81,18 +81,29 @@ public class MigrationInterceptorTest {
     assertEquals("Hello Migration!", res);
   }
 
-//  @Test
-//  public void testWorkflowWithCron() {
-//    // Get a workflow stub using the same task list the worker uses.
-//    WorkflowOptions workflowOptions =
-//        new WorkflowOptions.Builder()
-//            .setCronSchedule("* * * * *")
-//            .setTaskStartToCloseTimeout(Duration.ofSeconds(10))
-//            .build();
-//    SampleWorkflow.GreetingWorkflow workflow =
-//        workflowClient.newWorkflowStub(SampleWorkflow.GreetingWorkflow.class, workflowOptions);
-//
-//    String greeting = workflow.getGreeting("World");
-//    //assertEquals("Hello World!", greeting);
-//  }
+  @Test
+  public void testWorkflowWithCron() throws TException {
+    // Get a workflow stub using the same task list the worker uses.
+    TestEnvironmentWorkflowTest.CronW workflow =
+        workflowClient.newWorkflowStub(TestEnvironmentWorkflowTest.CronW.class);
+    WorkflowExecution execution = WorkflowClient.start(workflow::cron);
+    assertEquals(CRON_WORKFLOW_ID, execution.getWorkflowId());
+
+    testEnv.sleep(Duration.ofMinutes(2));
+    ListClosedWorkflowExecutionsRequest request =
+        new ListClosedWorkflowExecutionsRequest()
+            .setDomain(testEnv.getDomain())
+            .setExecutionFilter(new WorkflowExecutionFilter().setWorkflowId(CRON_WORKFLOW_ID));
+    try {
+      ListClosedWorkflowExecutionsResponse listResponse =
+          testEnv.getWorkflowService().ListClosedWorkflowExecutions(request);
+      Assert.assertEquals(1, listResponse.getExecutions().size());
+      for (WorkflowExecutionInfo e : listResponse.getExecutions()) {
+        assertTrue(e.isIsCron());
+        assertEquals(WorkflowExecutionCloseStatus.TIMED_OUT, e.getCloseStatus());
+      }
+    } catch (Exception e) {
+      fail("no exception expected: " + e.getMessage());
+    }
+  }
 }
