@@ -183,6 +183,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   }
 
   @Override
+  public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+    return Workflow.getWorkflowInfo().getWorkflowExecutionStartedEventAttributes();
+  }
+
+  @Override
   public Map<String, Object> getPropagatedContexts() {
     return workflowContext.getPropagatedContexts();
   }
