@@ -60,6 +60,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   private final WorkflowContext workflowContext;
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
+  WorkflowExecutionStartedEventAttributes startedEventAttributes;
 
   DecisionContextImpl(
       DecisionsHelper decisionsHelper,
@@ -77,6 +78,7 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
     this.workflowClock =
         new ClockDecisionContext(
             decisionsHelper, laTaskPoller, replayDecider, options.getDataConverter());
+    this.startedEventAttributes = startedAttributes;
     this.enableLoggingInReplay = options.getEnableLoggingInReplay();
     this.metricsScope =
         new ReplayAwareScope(options.getMetricsScope(), this, workflowClock::currentTimeMillis);
@@ -180,6 +182,11 @@ final class DecisionContextImpl implements DecisionContext, HistoryEventHandler 
   @Override
   public List<ContextPropagator> getContextPropagators() {
     return workflowContext.getContextPropagators();
+  }
+
+  @Override
+  public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+    return startedEventAttributes;
   }
 
   @Override

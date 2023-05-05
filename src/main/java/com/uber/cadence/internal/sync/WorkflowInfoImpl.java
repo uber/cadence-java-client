@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.workflow.WorkflowInfo;
 import java.time.Duration;
@@ -76,5 +77,10 @@ final class WorkflowInfoImpl implements WorkflowInfo {
   public String getParentRunId() {
     WorkflowExecution parentWorkflowExecution = context.getParentWorkflowExecution();
     return parentWorkflowExecution == null ? null : parentWorkflowExecution.getRunId();
+  }
+
+  @Override
+  public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+    return context.getWorkflowExecutionStartedEventAttributes();
   }
 }
