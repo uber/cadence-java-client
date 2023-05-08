@@ -199,7 +199,7 @@ public final class WorkerFactory {
             statusErrorMessage,
             "start WorkerFactory",
             state.name(),
-            String.format("%s, %s", State.Initial.name(), State.Initial.name())));
+            String.format("%s, %s", State.Initial.name(), State.Started.name())));
     if (state == State.Started) {
       return;
     }
