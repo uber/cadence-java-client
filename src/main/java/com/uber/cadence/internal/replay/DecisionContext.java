@@ -80,6 +80,9 @@ public interface DecisionContext extends ReplayAware {
    */
   SearchAttributes getSearchAttributes();
 
+  /**
+   * Returns serialized data in a byte array
+   * */
   DataConverter getDataConverter();
 
   /**
