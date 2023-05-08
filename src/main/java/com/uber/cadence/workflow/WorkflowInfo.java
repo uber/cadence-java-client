@@ -19,6 +19,7 @@ package com.uber.cadence.workflow;
 
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.converter.DataConverter;
 import java.time.Duration;
 
 public interface WorkflowInfo {
@@ -42,4 +43,6 @@ public interface WorkflowInfo {
   String getParentRunId();
 
   WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes();
+
+  DataConverter getDataConverter();
 }

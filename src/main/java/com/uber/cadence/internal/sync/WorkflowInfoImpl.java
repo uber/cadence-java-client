@@ -20,6 +20,7 @@ package com.uber.cadence.internal.sync;
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
+import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.replay.DecisionContext;
 import com.uber.cadence.workflow.WorkflowInfo;
 import java.time.Duration;
@@ -82,5 +83,10 @@ final class WorkflowInfoImpl implements WorkflowInfo {
   @Override
   public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
     return context.getWorkflowExecutionStartedEventAttributes();
+  }
+
+  @Override
+  public DataConverter getDataConverter() {
+    return context.getDataConverter();
   }
 }

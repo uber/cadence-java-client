@@ -80,6 +80,8 @@ public interface DecisionContext extends ReplayAware {
    */
   SearchAttributes getSearchAttributes();
 
+  DataConverter getDataConverter();
+
   /**
    * Returns all of the current contexts being propagated by a {@link
    * com.uber.cadence.context.ContextPropagator}. The key is the {@link ContextPropagator#getName()}

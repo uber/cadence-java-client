@@ -598,6 +598,11 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public DataConverter getDataConverter() {
+      return null;
+    }
+
+    @Override
     public Map<String, Object> getPropagatedContexts() {
       return null;
     }
