@@ -24,6 +24,7 @@ import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
 import com.uber.cadence.workflow.*;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 
@@ -70,8 +71,10 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
         // Skip migration on non-cron and child workflows
         WorkflowExecutionStartedEventAttributes startedEventAttributes =
             input.getWorkflowExecutionStartedEventAttributes();
-        if (startedEventAttributes.cronSchedule == ""
-            || startedEventAttributes.getParentWorkflowExecution().getWorkflowId() != "") {
+        if (startedEventAttributes.cronSchedule == null
+            || !startedEventAttributes.cronSchedule.equals(""))
+          return next.executeWorkflow(workflowDefinition, input);
+        if (isChildWorkflow(startedEventAttributes)) {
           return next.executeWorkflow(workflowDefinition, input);
         }
 
@@ -120,5 +123,72 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
   private MigrationDecision shouldMigrate(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
     return new MigrationDecision(true, "");
+  }
+
+  @Override
+  public void continueAsNew(
+      Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
+
+    int version = getVersion(versionChangeID, Workflow.DEFAULT_VERSION, versionV1);
+    switch (version) {
+      case versionV1:
+        WorkflowInfo workflowInfo = Workflow.getWorkflowInfo();
+        WorkflowExecutionStartedEventAttributes startedEventAttributes =
+            workflowInfo.getWorkflowExecutionStartedEventAttributes();
+        if (isChildWorkflow(startedEventAttributes)) {
+          next.continueAsNew(workflowType, options, args);
+        }
+        MigrationDecision decision =
+            Workflow.sideEffect(MigrationDecision.class, () -> new MigrationDecision(true, ""));
+        if (decision.shouldMigrate) {
+          StartWorkflowExecutionRequest request =
+              new StartWorkflowExecutionRequest()
+                  .setDomain(workflowInfo.getDomain())
+                  .setWorkflowId(workflowInfo.getWorkflowId())
+                  .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
+                  .setInput(startedEventAttributes.getInput())
+                  .setWorkflowType(
+                      new WorkflowType()
+                          .setName(startedEventAttributes.getWorkflowType().getName()))
+                  .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
+                  .setRetryPolicy(startedEventAttributes.getRetryPolicy())
+                  .setRequestId(UUID.randomUUID().toString())
+                  .setIdentity(startedEventAttributes.getIdentity())
+                  .setMemo(startedEventAttributes.getMemo())
+                  .setCronSchedule(startedEventAttributes.getCronSchedule())
+                  .setDelayStartSeconds(startedEventAttributes.getFirstDecisionTaskBackoffSeconds())
+                  .setHeader(startedEventAttributes.getHeader())
+                  .setSearchAttributes(startedEventAttributes.getSearchAttributes())
+                  .setExecutionStartToCloseTimeoutSeconds(
+                      startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
+                  .setTaskStartToCloseTimeoutSeconds(
+                      startedEventAttributes.getTaskStartToCloseTimeoutSeconds());
+          ActivityOptions activityOptions =
+              new ActivityOptions.Builder()
+                  .setScheduleToCloseTimeout(Duration.ofSeconds(10))
+                  .setRetryOptions(new RetryOptions.Builder().build())
+                  .build();
+          MigrationActivities activities =
+              Workflow.newActivityStub(MigrationActivities.class, activityOptions);
+          try {
+            MigrationActivities.StartNewWorkflowExecutionResponse response =
+                activities.startWorkflowInNewDomain(
+                    new MigrationActivities.StartNewWorkflowRequest());
+            // TODO: add metrics and logging
+            throw new CancellationException(
+                "cancel due to migration:" + response.response.toString());
+          } catch (ActivityException e) {
+            // fallback if start workflow in new domain failed
+            next.continueAsNew(workflowType, options, args);
+          }
+        }
+      default:
+        next.continueAsNew(workflowType, options, args);
+    }
+  }
+
+  public boolean isChildWorkflow(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
+    return startedEventAttributes.isSetParentWorkflowExecution()
+        || !startedEventAttributes.getParentWorkflowExecution().isSetWorkflowId();
   }
 }
