@@ -71,8 +71,7 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
         // Skip migration on non-cron and child workflows
         WorkflowExecutionStartedEventAttributes startedEventAttributes =
             input.getWorkflowExecutionStartedEventAttributes();
-        if (startedEventAttributes.cronSchedule == null
-            || !startedEventAttributes.cronSchedule.equals(""))
+        if (!isCronSchedule(startedEventAttributes))
           return next.executeWorkflow(workflowDefinition, input);
         if (isChildWorkflow(startedEventAttributes)) {
           return next.executeWorkflow(workflowDefinition, input);
@@ -95,7 +94,6 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setIdentity(startedEventAttributes.getIdentity())
                   .setMemo(startedEventAttributes.getMemo())
                   .setCronSchedule(startedEventAttributes.getCronSchedule())
-                  .setDelayStartSeconds(startedEventAttributes.getFirstDecisionTaskBackoffSeconds())
                   .setHeader(startedEventAttributes.getHeader())
                   .setSearchAttributes(startedEventAttributes.getSearchAttributes())
                   .setExecutionStartToCloseTimeoutSeconds(
@@ -146,7 +144,7 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setDomain(workflowInfo.getDomain())
                   .setWorkflowId(workflowInfo.getWorkflowId())
                   .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
-                  .setInput(startedEventAttributes.getInput())
+                  .setInput(workflowInfo.getDataConverter().toData(args))
                   .setWorkflowType(
                       new WorkflowType()
                           .setName(startedEventAttributes.getWorkflowType().getName()))
@@ -156,7 +154,6 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
                   .setIdentity(startedEventAttributes.getIdentity())
                   .setMemo(startedEventAttributes.getMemo())
                   .setCronSchedule(startedEventAttributes.getCronSchedule())
-                  .setDelayStartSeconds(startedEventAttributes.getFirstDecisionTaskBackoffSeconds())
                   .setHeader(startedEventAttributes.getHeader())
                   .setSearchAttributes(startedEventAttributes.getSearchAttributes())
                   .setExecutionStartToCloseTimeoutSeconds(
@@ -189,6 +186,11 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
 
   public boolean isChildWorkflow(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
     return startedEventAttributes.isSetParentWorkflowExecution()
-        || !startedEventAttributes.getParentWorkflowExecution().isSetWorkflowId();
+        && !startedEventAttributes.getParentWorkflowExecution().isSetWorkflowId();
+  }
+
+  public boolean isCronSchedule(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
+    return startedEventAttributes.isSetCronSchedule()
+        || !startedEventAttributes.cronSchedule.equals("");
   }
 }
