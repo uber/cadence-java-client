@@ -19,6 +19,7 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
@@ -79,6 +80,9 @@ public interface DecisionContext extends ReplayAware {
    */
   SearchAttributes getSearchAttributes();
 
+  /** Returns DataConverter that serializes data */
+  DataConverter getDataConverter();
+
   /**
    * Returns all of the current contexts being propagated by a {@link
    * com.uber.cadence.context.ContextPropagator}. The key is the {@link ContextPropagator#getName()}
@@ -88,6 +92,9 @@ public interface DecisionContext extends ReplayAware {
 
   /** Returns the set of configured context propagators */
   List<ContextPropagator> getContextPropagators();
+
+  /** Returns the startedEventWorkflow attributes */
+  WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes();
 
   /**
    * Used to dynamically schedule an activity for execution
