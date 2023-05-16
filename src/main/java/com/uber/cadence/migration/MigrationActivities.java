@@ -26,10 +26,18 @@ public interface MigrationActivities {
   // workflow migration
   final class StartNewWorkflowRequest {
     StartWorkflowExecutionRequest request;
+
+    StartNewWorkflowRequest(StartWorkflowExecutionRequest request) {
+      this.request = request;
+    }
   }
 
   final class StartNewWorkflowExecutionResponse {
     StartWorkflowExecutionResponse response;
+
+    StartNewWorkflowExecutionResponse(StartWorkflowExecutionResponse response) {
+      this.response = response;
+    }
   }
 
   StartNewWorkflowExecutionResponse startWorkflowInNewDomain(StartNewWorkflowRequest request);

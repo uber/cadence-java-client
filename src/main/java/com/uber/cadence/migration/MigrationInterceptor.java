@@ -103,7 +103,7 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
           try {
             MigrationActivities.StartNewWorkflowExecutionResponse response =
                 activities.startWorkflowInNewDomain(
-                    new MigrationActivities.StartNewWorkflowRequest());
+                    new MigrationActivities.StartNewWorkflowRequest(request));
             // TODO: add metrics and logging
             throw new CancellationException(
                 "cancel due to migration:" + response.response.toString());
