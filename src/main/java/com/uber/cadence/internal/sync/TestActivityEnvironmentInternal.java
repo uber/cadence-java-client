@@ -32,6 +32,7 @@ import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.workflow.*;
 import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;

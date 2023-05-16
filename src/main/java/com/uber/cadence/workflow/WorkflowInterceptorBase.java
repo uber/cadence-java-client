@@ -47,6 +47,11 @@ public class WorkflowInterceptorBase implements WorkflowInterceptor {
   }
 
   @Override
+  public byte[] executeWorkflow(SyncWorkflowDefinition workflowDefinition, byte[] input) {
+    return next.executeWorkflow(workflowDefinition, input);
+  }
+
+  @Override
   public <R> Promise<R> executeActivity(
       String activityName,
       Class<R> resultClass,
