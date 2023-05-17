@@ -20,6 +20,7 @@ package com.uber.cadence.migration;
 import com.uber.cadence.*;
 import com.uber.cadence.serviceclient.DummyIWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.thrift.TException;
 
 public class MigrationIWorkflowService extends DummyIWorkflowService {
@@ -43,25 +44,36 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       StartWorkflowExecutionRequest startRequest) throws TException {
 
     if (shouldStartInNew(startRequest.getWorkflowId()))
-      serviceNew.StartWorkflowExecution(startRequest);
+      return serviceNew.StartWorkflowExecution(startRequest);
 
     return serviceOld.StartWorkflowExecution(startRequest);
   }
 
   private boolean shouldStartInNew(String workflowID) {
 
+    AtomicReference<DescribeWorkflowExecutionResponse> executionInNewResponse =
+        new AtomicReference<>();
+    AtomicReference<DescribeWorkflowExecutionResponse> executionInOldResponse =
+        new AtomicReference<>();
     Thread serviceNewThread =
         new Thread(
             () -> {
+              DescribeWorkflowExecutionRequest describeWorkflowExecutionRequest =
+                  new DescribeWorkflowExecutionRequest();
+              describeWorkflowExecutionRequest.setDomain(domainNew);
+              describeWorkflowExecutionRequest.setExecution(
+                  new WorkflowExecution().setWorkflowId(workflowID));
               try {
-                serviceNew.DescribeWorkflowExecution(
-                    new DescribeWorkflowExecutionRequest()
-                        .setDomain(domainNew)
-                        .setExecution(new WorkflowExecution().setWorkflowId(workflowID)));
+                //  DescribeWorkflowExecutionResponse executionInNewResponse = null;
+                executionInNewResponse.set(
+                    serviceNew.DescribeWorkflowExecution(
+                        new DescribeWorkflowExecutionRequest()
+                            .setDomain(domainNew)
+                            .setExecution(new WorkflowExecution().setWorkflowId(workflowID))));
               } catch (EntityNotExistsError e) {
-                throw new RuntimeException("Entity does not exist in new domain" + domainNew, e);
+                // TODO perform any logging here
               } catch (TException e) {
-                throw new RuntimeException(e);
+                // TODO perform any logging here
               }
             });
     serviceNewThread.start();
@@ -70,14 +82,15 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         new Thread(
             () -> {
               try {
-                serviceOld.DescribeWorkflowExecution(
-                    new DescribeWorkflowExecutionRequest()
-                        .setDomain(domainOld)
-                        .setExecution(new WorkflowExecution().setWorkflowId(workflowID)));
+                executionInOldResponse.set(
+                    serviceOld.DescribeWorkflowExecution(
+                        new DescribeWorkflowExecutionRequest()
+                            .setDomain(domainOld)
+                            .setExecution(new WorkflowExecution().setWorkflowId(workflowID))));
               } catch (EntityNotExistsError e) {
-                throw new RuntimeException("Entity does not exist in old domain" + domainOld, e);
+                // TODO perform any logging here
               } catch (TException e) {
-                throw new RuntimeException(e);
+                // TODO perform any logging here
               }
             });
     serviceOldThread.start();
@@ -90,10 +103,11 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     }
 
     // exist in both domains or exist in only new - start in new
-    if (serviceNew != null && serviceOld != null) {
-      return true;
-    }
+    if (executionInNewResponse.get() != null && executionInOldResponse.get() != null) return true;
+    // exist in old and workflow is still open
+    if (executionInOldResponse.get() != null
+        && executionInOldResponse.get().workflowExecutionInfo.closeStatus == null) return false;
 
-    return false;
+    return true;
   }
 }
