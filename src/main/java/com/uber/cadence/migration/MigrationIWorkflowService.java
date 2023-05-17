@@ -104,7 +104,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     return serviceOld.SignalWithStartWorkflowExecution(signalWithStartRequest);
   }
 
-  @Override
+@Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistory(
       GetWorkflowExecutionHistoryRequest getRequest) throws TException {
     if (shouldStartInNew(getRequest.execution.getWorkflowId()))
