@@ -58,13 +58,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     Thread serviceNewThread =
         new Thread(
             () -> {
-              DescribeWorkflowExecutionRequest describeWorkflowExecutionRequest =
-                  new DescribeWorkflowExecutionRequest();
-              describeWorkflowExecutionRequest.setDomain(domainNew);
-              describeWorkflowExecutionRequest.setExecution(
-                  new WorkflowExecution().setWorkflowId(workflowID));
               try {
-                //  DescribeWorkflowExecutionResponse executionInNewResponse = null;
                 executionInNewResponse.set(
                     serviceNew.DescribeWorkflowExecution(
                         new DescribeWorkflowExecutionRequest()
@@ -104,7 +98,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
     // exist in both domains or exist in only new - start in new
     if (executionInNewResponse.get() != null && executionInOldResponse.get() != null) return true;
-    // exist in old and workflow is still open
+    // exist in old and workflow is still open - start in old
     if (executionInOldResponse.get() != null
         && executionInOldResponse.get().workflowExecutionInfo.closeStatus == null) return false;
 
