@@ -56,8 +56,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                       || (respOld.isSetWorkflowExecutionInfo()
                           && respOld
                               .getWorkflowExecutionInfo()
-                              .isSetCloseStatus()) // execution not exist in new and execution is closed in old
-)
+                              .isSetCloseStatus()) // execution not exist in new and execution is
+              // closed in old
+              )
           .get();
     } catch (CompletionException e) {
       throw e.getCause() instanceof TException
