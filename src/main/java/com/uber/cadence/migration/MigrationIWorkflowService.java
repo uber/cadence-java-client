@@ -163,8 +163,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken()
-        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -194,8 +193,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
-          ListWorkflowExecutionsRequest listRequest)
-          throws TException {
+      ListWorkflowExecutionsRequest listRequest) throws TException {
     ListWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
@@ -206,14 +204,13 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken()
-            || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
-                Arrays.copyOfRange(
-                        listRequest.getNextPageToken(),
-                        _marker.length,
-                        listRequest.getNextPageToken().length));
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListWorkflowExecutions(listRequest);
 
@@ -224,11 +221,11 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
       System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
       System.arraycopy(
-              response.getNextPageToken(),
-              0,
-              combinedNextPageToken,
-              _marker.length,
-              response.getNextPageToken().length);
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
       response.setNextPageToken(combinedNextPageToken);
       return response;
     }
