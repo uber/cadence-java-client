@@ -20,6 +20,7 @@ package com.uber.cadence.migration;
 import com.uber.cadence.*;
 import com.uber.cadence.serviceclient.DummyIWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.apache.thrift.TException;
@@ -144,6 +145,11 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     return fromResponse;
   }
 
+  public boolean hasPrefix(byte[] s, byte[] prefix) {
+    return s.length >= prefix.length
+        && Arrays.equals(Arrays.copyOfRange(s, 0, prefix.length), prefix);
+  }
+
   @Override
   public ListWorkflowExecutionsResponse ListWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws BadRequestError, TException {
@@ -157,7 +163,15 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (listRequest.getNextPageToken() == null) {
+    if (listRequest.getNextPageToken() == null
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
       response = serviceNew.ListWorkflowExecutions(listRequest);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
