@@ -31,7 +31,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private String domainOld, domainNew;
   private static final int _defaultPageSize = 10;
   private static final String _listWorkflow = "_listWorkflow";
- private static final String _scanWorkflow = "_scanWorkflow";
+  private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
