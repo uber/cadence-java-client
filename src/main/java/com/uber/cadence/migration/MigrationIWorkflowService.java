@@ -20,6 +20,7 @@ package com.uber.cadence.migration;
 import com.uber.cadence.*;
 import com.uber.cadence.serviceclient.DummyIWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.apache.thrift.TException;
@@ -28,6 +29,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   private IWorkflowService serviceOld, serviceNew;
   private String domainOld, domainNew;
+  private static final int _defaultPageSize = 10;
+  private static final String _listWorkflow = "_listWorkflow";
+  byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
       IWorkflowService serviceOld,
@@ -105,5 +109,86 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (shouldStartInNew(getRequest.execution.getWorkflowId()))
       return serviceNew.GetWorkflowExecutionHistory(getRequest);
     return serviceOld.GetWorkflowExecutionHistory(getRequest);
+  }
+
+  private ListWorkflowExecutionsResponse callOldCluster(
+      ListWorkflowExecutionsRequest listWorkflowExecutionsRequest,
+      int pageSizeOverride,
+      String searchType)
+      throws TException {
+
+    if (pageSizeOverride != 0) {
+      listWorkflowExecutionsRequest.setPageSize(pageSizeOverride);
+    }
+    ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
+    if (searchType == _listWorkflow) {
+      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+    }
+    // TODO add scanworkflow implementation and use this method
+    //    else if(searchType == _scanWorkflow) {
+    //      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest)
+    //    }
+    return response;
+  }
+
+  private ListWorkflowExecutionsResponse appendResultsFromOldCluster(
+      ListWorkflowExecutionsRequest listWorkflowExecutionsRequest,
+      ListWorkflowExecutionsResponse response,
+      String searchType)
+      throws TException {
+    int responsePageSize = response.getExecutions().size();
+    int neededPageSize = listWorkflowExecutionsRequest.getPageSize() - responsePageSize;
+
+    ListWorkflowExecutionsResponse fromResponse =
+        callOldCluster(listWorkflowExecutionsRequest, neededPageSize, searchType);
+    fromResponse.getExecutions().addAll(response.getExecutions());
+    return fromResponse;
+  }
+
+  public boolean hasPrefix(byte[] s, byte[] prefix) {
+    return s.length >= prefix.length
+        && Arrays.equals(Arrays.copyOfRange(s, 0, prefix.length), prefix);
+  }
+
+  @Override
+  public ListWorkflowExecutionsResponse ListWorkflowExecutions(
+      ListWorkflowExecutionsRequest listRequest) throws BadRequestError, TException {
+    ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
+    if (listRequest == null) {
+      throw new BadRequestError("List request is null");
+    } else if (listRequest.getDomain() == null) {
+      throw new BadRequestError("Domain is null");
+    }
+    if (listRequest.getPageSize() == 0) {
+      listRequest.pageSize = _defaultPageSize;
+    }
+
+    if (listRequest.getNextPageToken() == null
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
+      response = serviceNew.ListWorkflowExecutions(listRequest);
+
+      if (response.getExecutions().size() < listRequest.getPageSize()) {
+        appendResultsFromOldCluster(listRequest, response, _listWorkflow);
+      }
+
+      byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
+      System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
+      System.arraycopy(
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
+      response.setNextPageToken(combinedNextPageToken);
+      return response;
+    }
+    return callOldCluster(listRequest, 0, _listWorkflow);
   }
 }
