@@ -31,6 +31,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private String domainOld, domainNew;
   private static final int _defaultPageSize = 10;
   private static final String _listWorkflow = "_listWorkflow";
+  private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
@@ -124,10 +125,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (searchType == _listWorkflow) {
       response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
     }
-    // TODO add scanworkflow implementation and use this method
-    //    else if(searchType == _scanWorkflow) {
-    //      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest)
-    //    }
+    else if(searchType == _scanWorkflow) {
+          response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+        }
     return response;
   }
 
@@ -152,19 +152,18 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public ListWorkflowExecutionsResponse ListWorkflowExecutions(
-      ListWorkflowExecutionsRequest listRequest) throws BadRequestError, TException {
-    ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
+      ListWorkflowExecutionsRequest listRequest) throws TException {
+    ListWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (listRequest.getDomain() == null) {
+    } else if (!listRequest.isSetDomain()) {
       throw new BadRequestError("Domain is null");
     }
-    if (listRequest.getPageSize() == 0) {
+    if (!listRequest.isSetPageSize()) {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (listRequest.getNextPageToken() == null
-        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -190,5 +189,46 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       return response;
     }
     return callOldCluster(listRequest, 0, _listWorkflow);
+  }
+
+  @Override
+  public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
+      ListWorkflowExecutionsRequest listRequest) throws TException {
+    ListWorkflowExecutionsResponse response;
+    if (listRequest == null) {
+      throw new BadRequestError("List request is null");
+    } else if (!listRequest.isSetDomain()) {
+      throw new BadRequestError("Domain is null");
+    }
+    if (!listRequest.isSetPageSize()) {
+      listRequest.pageSize = _defaultPageSize;
+    }
+
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
+      response = serviceNew.ListWorkflowExecutions(listRequest);
+
+      if (response.getExecutions().size() < listRequest.getPageSize()) {
+        appendResultsFromOldCluster(listRequest, response, _scanWorkflow);
+      }
+
+      byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
+      System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
+      System.arraycopy(
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
+      response.setNextPageToken(combinedNextPageToken);
+      return response;
+    }
+    return callOldCluster(listRequest, 0, _scanWorkflow);
   }
 }
