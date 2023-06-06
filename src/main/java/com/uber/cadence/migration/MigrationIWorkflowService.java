@@ -31,6 +31,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private String domainOld, domainNew;
   private static final int _defaultPageSize = 10;
   private static final String _listWorkflow = "_listWorkflow";
+  private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
@@ -124,10 +125,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (searchType == _listWorkflow) {
       response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
     }
-    // TODO add scanworkflow implementation and use this method
-    //    else if(searchType == _scanWorkflow) {
-    //      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest)
-    //    }
+    else if(searchType == _scanWorkflow) {
+          response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+        }
     return response;
   }
 
@@ -215,7 +215,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       response = serviceNew.ListWorkflowExecutions(listRequest);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
-        appendResultsFromOldCluster(listRequest, response, _listWorkflow);
+        appendResultsFromOldCluster(listRequest, response, _scanWorkflow);
       }
 
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
@@ -229,6 +229,6 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       response.setNextPageToken(combinedNextPageToken);
       return response;
     }
-    return callOldCluster(listRequest, 0, _listWorkflow);
+    return callOldCluster(listRequest, 0, _scanWorkflow);
   }
 }
