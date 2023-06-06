@@ -123,9 +123,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     }
     ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
     if (searchType == _listWorkflow) {
-      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+      response = serviceOld.ListWorkflowExecutions(listWorkflowExecutionsRequest);
     } else if (searchType == _scanWorkflow) {
-      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+      response = serviceOld.ScanWorkflowExecutions(listWorkflowExecutionsRequest);
     }
     return response;
   }
