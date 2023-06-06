@@ -123,11 +123,10 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     }
     ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
     if (searchType == _listWorkflow) {
-      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+      response = serviceOld.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+    } else if (searchType == _scanWorkflow) {
+      response = serviceOld.ScanWorkflowExecutions(listWorkflowExecutionsRequest);
     }
-    else if(searchType == _scanWorkflow) {
-          response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
-        }
     return response;
   }
 
@@ -230,5 +229,24 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       return response;
     }
     return callOldCluster(listRequest, 0, _scanWorkflow);
+  }
+
+  @Override
+  public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest) throws TException {
+    if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
+      return serviceNew.QueryWorkflow(queryRequest);
+    return serviceOld.QueryWorkflow(queryRequest);
+  }
+
+  @Override
+  public CountWorkflowExecutionsResponse CountWorkflowExecutions(
+      CountWorkflowExecutionsRequest countRequest) throws TException {
+
+    CountWorkflowExecutionsResponse countResponseNew =
+        serviceNew.CountWorkflowExecutions(countRequest);
+    CountWorkflowExecutionsResponse countResponseOld =
+        serviceOld.CountWorkflowExecutions(countRequest);
+    countResponseOld.setCount(countResponseOld.getCount() + countResponseNew.getCount());
+    return countResponseOld;
   }
 }
