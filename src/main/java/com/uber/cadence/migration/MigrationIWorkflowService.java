@@ -289,6 +289,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     }
     return serviceOld.ListClosedWorkflowExecutions(listRequest);
   }
+  
   @Override
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
