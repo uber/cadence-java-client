@@ -192,8 +192,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
-          ListOpenWorkflowExecutionsRequest listRequest)
-          throws TException {
+      ListOpenWorkflowExecutionsRequest listRequest) throws TException {
     ListOpenWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
@@ -207,19 +206,20 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
-                Arrays.copyOfRange(
-                        listRequest.getNextPageToken(),
-                        _marker.length,
-                        listRequest.getNextPageToken().length));
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListOpenWorkflowExecutions(listRequest);
 
-      if(response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
+      if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
         ListOpenWorkflowExecutionsRequest copiedRequest = new ListOpenWorkflowExecutionsRequest();
         copiedRequest = listRequest;
         copiedRequest.maximumPageSize = neededPageSize;
-        ListOpenWorkflowExecutionsResponse fromResponse = serviceOld.ListOpenWorkflowExecutions(copiedRequest);
+        ListOpenWorkflowExecutionsResponse fromResponse =
+            serviceOld.ListOpenWorkflowExecutions(copiedRequest);
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
@@ -228,22 +228,20 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
       System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
       System.arraycopy(
-              response.getNextPageToken(),
-              0,
-              combinedNextPageToken,
-              _marker.length,
-              response.getNextPageToken().length);
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
       response.setNextPageToken(combinedNextPageToken);
       return response;
-
-      }
-      return serviceOld.ListOpenWorkflowExecutions(listRequest);
     }
+    return serviceOld.ListOpenWorkflowExecutions(listRequest);
+  }
 
   @Override
   public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
-          ListClosedWorkflowExecutionsRequest listRequest)
-          throws TException {
+      ListClosedWorkflowExecutionsRequest listRequest) throws TException {
     ListClosedWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
@@ -257,19 +255,21 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
-                Arrays.copyOfRange(
-                        listRequest.getNextPageToken(),
-                        _marker.length,
-                        listRequest.getNextPageToken().length));
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListClosedWorkflowExecutions(listRequest);
 
-      if(response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
+      if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
-        ListClosedWorkflowExecutionsRequest copiedRequest = new ListClosedWorkflowExecutionsRequest();
+        ListClosedWorkflowExecutionsRequest copiedRequest =
+            new ListClosedWorkflowExecutionsRequest();
         copiedRequest = listRequest;
         copiedRequest.maximumPageSize = neededPageSize;
-        ListClosedWorkflowExecutionsResponse fromResponse = serviceOld.ListClosedWorkflowExecutions(copiedRequest);
+        ListClosedWorkflowExecutionsResponse fromResponse =
+            serviceOld.ListClosedWorkflowExecutions(copiedRequest);
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
@@ -278,18 +278,17 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
       System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
       System.arraycopy(
-              response.getNextPageToken(),
-              0,
-              combinedNextPageToken,
-              _marker.length,
-              response.getNextPageToken().length);
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
       response.setNextPageToken(combinedNextPageToken);
       return response;
-
     }
     return serviceOld.ListClosedWorkflowExecutions(listRequest);
   }
-  
+
   @Override
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
@@ -352,8 +351,8 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
-          throws TException {
-    if(shouldStartInNew(terminateRequest.getWorkflowExecution().getWorkflowId()))
+      throws TException {
+    if (shouldStartInNew(terminateRequest.getWorkflowExecution().getWorkflowId()))
       serviceNew.TerminateWorkflowExecution(terminateRequest);
     serviceOld.TerminateWorkflowExecution(terminateRequest);
   }
