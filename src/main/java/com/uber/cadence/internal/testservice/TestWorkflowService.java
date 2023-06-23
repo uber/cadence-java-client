@@ -748,11 +748,22 @@ public final class TestWorkflowService implements IWorkflowService {
     return mutableState.query(queryRequest);
   }
 
+  // TODO not all fields are populated
   @Override
   public DescribeWorkflowExecutionResponse DescribeWorkflowExecution(
       DescribeWorkflowExecutionRequest describeRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    ExecutionId executionId =
+        new ExecutionId(describeRequest.getDomain(), describeRequest.getExecution());
+    TestWorkflowMutableState mutableState = getMutableState(executionId);
+    return new DescribeWorkflowExecutionResponse()
+        .setWorkflowExecutionInfo(
+            new WorkflowExecutionInfo()
+                .setExecution(mutableState.getExecutionId().getExecution())
+                .setParentExecution(
+                    mutableState.getParent().isPresent()
+                        ? mutableState.getParent().get().getExecutionId().getExecution()
+                        : null));
   }
 
   @Override
