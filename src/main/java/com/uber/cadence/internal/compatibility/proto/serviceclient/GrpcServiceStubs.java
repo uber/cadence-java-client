@@ -106,7 +106,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     headers.put(FEATURE_VERSION_HEADER_KEY, Version.FEATURE_VERSION);
     headers.put(CLIENT_IMPL_HEADER_KEY, CLIENT_IMPL_HEADER_VALUE);
     headers.put(RPC_SERVICE_NAME_HEADER_KEY, options.getServiceName());
-    headers.put(RPC_CALLER_NAME_HEADER_KEY, CLIENT_IMPL_HEADER_VALUE);
+    headers.put(RPC_CALLER_NAME_HEADER_KEY, options.getClientAppName());
     headers.put(RPC_ENCODING_HEADER_KEY, "proto");
     if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
       headers.put(ISOLATION_GROUP_HEADER_KEY, options.getIsolationGroup());
