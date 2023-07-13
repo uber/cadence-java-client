@@ -20,6 +20,7 @@ package com.uber.cadence.serviceclient;
 import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_LONG_POLL;
 import static com.uber.cadence.internal.metrics.MetricsTagValue.REQUEST_TYPE_NORMAL;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -150,6 +151,10 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       Gson gson = gsonBuilder.create();
       String serialized = gson.toJson(options.getFeatureFlags());
       builder.put("cadence-client-feature-flags", serialized);
+    }
+
+    if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
+      builder.put("cadence-client-isolation-group", options.getIsolationGroup());
     }
 
     return builder.build();
