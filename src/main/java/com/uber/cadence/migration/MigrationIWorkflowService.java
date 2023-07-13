@@ -215,8 +215,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
       if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
-        ListOpenWorkflowExecutionsRequest copiedRequest = new ListOpenWorkflowExecutionsRequest();
-        copiedRequest = listRequest;
+        ListOpenWorkflowExecutionsRequest copiedRequest = new ListOpenWorkflowExecutionsRequest(listRequest);
         copiedRequest.maximumPageSize = neededPageSize;
         ListOpenWorkflowExecutionsResponse fromResponse =
             serviceOld.ListOpenWorkflowExecutions(copiedRequest);
@@ -265,8 +264,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
         ListClosedWorkflowExecutionsRequest copiedRequest =
-            new ListClosedWorkflowExecutionsRequest();
-        copiedRequest = listRequest;
+            new ListClosedWorkflowExecutionsRequest(listRequest);
         copiedRequest.maximumPageSize = neededPageSize;
         ListClosedWorkflowExecutionsResponse fromResponse =
             serviceOld.ListClosedWorkflowExecutions(copiedRequest);
