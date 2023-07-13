@@ -31,6 +31,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private String domainOld, domainNew;
   private static final int _defaultPageSize = 10;
   private static final String _listWorkflow = "_listWorkflow";
+  private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
@@ -122,12 +123,10 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     }
     ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
     if (searchType == _listWorkflow) {
-      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+      response = serviceOld.ListWorkflowExecutions(listWorkflowExecutionsRequest);
+    } else if (searchType == _scanWorkflow) {
+      response = serviceOld.ScanWorkflowExecutions(listWorkflowExecutionsRequest);
     }
-    // TODO add scanworkflow implementation and use this method
-    //    else if(searchType == _scanWorkflow) {
-    //      response = serviceNew.ListWorkflowExecutions(listWorkflowExecutionsRequest)
-    //    }
     return response;
   }
 
@@ -230,5 +229,171 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       return response;
     }
     return callOldCluster(listRequest, 0, _listWorkflow);
+  }
+
+  @Override
+  public ListOpenWorkflowExecutionsResponse ListOpenWorkflowExecutions(
+      ListOpenWorkflowExecutionsRequest listRequest) throws TException {
+    ListOpenWorkflowExecutionsResponse response;
+    if (listRequest == null) {
+      throw new BadRequestError("List request is null");
+    } else if (!listRequest.isSetDomain()) {
+      throw new BadRequestError("Domain is null");
+    }
+    if (!listRequest.isSetMaximumPageSize()) {
+      listRequest.maximumPageSize = _defaultPageSize;
+    }
+
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
+      response = serviceNew.ListOpenWorkflowExecutions(listRequest);
+
+      if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
+        int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
+        ListOpenWorkflowExecutionsRequest copiedRequest =
+            new ListOpenWorkflowExecutionsRequest(listRequest);
+        copiedRequest.maximumPageSize = neededPageSize;
+        ListOpenWorkflowExecutionsResponse fromResponse =
+            serviceOld.ListOpenWorkflowExecutions(copiedRequest);
+
+        fromResponse.getExecutions().addAll(response.getExecutions());
+        return fromResponse;
+      }
+
+      byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
+      System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
+      System.arraycopy(
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
+      response.setNextPageToken(combinedNextPageToken);
+      return response;
+    }
+    return serviceOld.ListOpenWorkflowExecutions(listRequest);
+  }
+
+  @Override
+  public ListClosedWorkflowExecutionsResponse ListClosedWorkflowExecutions(
+      ListClosedWorkflowExecutionsRequest listRequest) throws TException {
+    ListClosedWorkflowExecutionsResponse response;
+    if (listRequest == null) {
+      throw new BadRequestError("List request is null");
+    } else if (!listRequest.isSetDomain()) {
+      throw new BadRequestError("Domain is null");
+    }
+    if (!listRequest.isSetMaximumPageSize()) {
+      listRequest.maximumPageSize = _defaultPageSize;
+    }
+
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
+      response = serviceNew.ListClosedWorkflowExecutions(listRequest);
+
+      if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
+        int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
+        ListClosedWorkflowExecutionsRequest copiedRequest =
+            new ListClosedWorkflowExecutionsRequest(listRequest);
+        copiedRequest.maximumPageSize = neededPageSize;
+        ListClosedWorkflowExecutionsResponse fromResponse =
+            serviceOld.ListClosedWorkflowExecutions(copiedRequest);
+
+        fromResponse.getExecutions().addAll(response.getExecutions());
+        return fromResponse;
+      }
+
+      byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
+      System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
+      System.arraycopy(
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
+      response.setNextPageToken(combinedNextPageToken);
+      return response;
+    }
+    return serviceOld.ListClosedWorkflowExecutions(listRequest);
+  }
+
+  @Override
+  public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
+      ListWorkflowExecutionsRequest listRequest) throws TException {
+    ListWorkflowExecutionsResponse response;
+    if (listRequest == null) {
+      throw new BadRequestError("List request is null");
+    } else if (!listRequest.isSetDomain()) {
+      throw new BadRequestError("Domain is null");
+    }
+    if (!listRequest.isSetPageSize()) {
+      listRequest.pageSize = _defaultPageSize;
+    }
+
+    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+        listRequest.setNextPageToken(
+            Arrays.copyOfRange(
+                listRequest.getNextPageToken(),
+                _marker.length,
+                listRequest.getNextPageToken().length));
+      }
+      response = serviceNew.ListWorkflowExecutions(listRequest);
+
+      if (response.getExecutions().size() < listRequest.getPageSize()) {
+        appendResultsFromOldCluster(listRequest, response, _scanWorkflow);
+      }
+
+      byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
+      System.arraycopy(_marker, 0, combinedNextPageToken, 0, _marker.length);
+      System.arraycopy(
+          response.getNextPageToken(),
+          0,
+          combinedNextPageToken,
+          _marker.length,
+          response.getNextPageToken().length);
+      response.setNextPageToken(combinedNextPageToken);
+      return response;
+    }
+    return callOldCluster(listRequest, 0, _scanWorkflow);
+  }
+
+  @Override
+  public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest) throws TException {
+    if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
+      return serviceNew.QueryWorkflow(queryRequest);
+    return serviceOld.QueryWorkflow(queryRequest);
+  }
+
+  @Override
+  public CountWorkflowExecutionsResponse CountWorkflowExecutions(
+      CountWorkflowExecutionsRequest countRequest) throws TException {
+
+    CountWorkflowExecutionsResponse countResponseNew =
+        serviceNew.CountWorkflowExecutions(countRequest);
+    CountWorkflowExecutionsResponse countResponseOld =
+        serviceOld.CountWorkflowExecutions(countRequest);
+    countResponseOld.setCount(countResponseOld.getCount() + countResponseNew.getCount());
+    return countResponseOld;
+  }
+
+  @Override
+  public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
+      throws TException {
+    if (shouldStartInNew(terminateRequest.getWorkflowExecution().getWorkflowId()))
+      serviceNew.TerminateWorkflowExecution(terminateRequest);
+    serviceOld.TerminateWorkflowExecution(terminateRequest);
   }
 }
