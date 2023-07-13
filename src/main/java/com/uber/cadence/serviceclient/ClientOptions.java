@@ -79,6 +79,8 @@ public class ClientOptions {
   private final IAuthorizationProvider authProvider;
   /** Optional Feature flags to turn on/off some Cadence features */
   private final FeatureFlags featureFlags;
+  /** Optional isolation group of the service if tasklist isolation is enabled */
+  private final String isolationGroup;
 
   private ClientOptions(Builder builder) {
     if (Strings.isNullOrEmpty(builder.host)) {
@@ -123,6 +125,7 @@ public class ClientOptions {
       this.headers = ImmutableMap.of();
     }
     this.authProvider = builder.authProvider;
+    this.isolationGroup = builder.isolationGroup;
   }
 
   public static ClientOptions defaultInstance() {
@@ -194,6 +197,10 @@ public class ClientOptions {
     return this.featureFlags;
   }
 
+  public String getIsolationGroup() {
+    return this.isolationGroup;
+  }
+
   /**
    * Builder is the builder for ClientOptions.
    *
@@ -216,6 +223,7 @@ public class ClientOptions {
     private Map<String, String> headers;
     private IAuthorizationProvider authProvider;
     private FeatureFlags featureFlags;
+    private String isolationGroup;
 
     private Builder() {}
 
@@ -347,6 +355,17 @@ public class ClientOptions {
 
     public Builder setHeaders(Map<String, String> headers) {
       this.headers = headers;
+      return this;
+    }
+
+    /**
+     * Sets the isolation group to be used for matching.
+     *
+     * @param isolationGroup
+     * @return Builder for ClentOptions
+     */
+    public Builder setIsolationGroup(String isolationGroup) {
+      this.isolationGroup = isolationGroup;
       return this;
     }
 
