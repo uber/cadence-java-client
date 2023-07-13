@@ -31,7 +31,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private String domainOld, domainNew;
   private static final int _defaultPageSize = 10;
   private static final String _listWorkflow = "_listWorkflow";
- private static final String _scanWorkflow = "_scanWorkflow";
+  private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
   MigrationIWorkflowService(
@@ -351,8 +351,10 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   @Override
   public void TerminateWorkflowExecution(TerminateWorkflowExecutionRequest terminateRequest)
       throws TException {
-    if (shouldStartInNew(terminateRequest.getWorkflowExecution().getWorkflowId()))
+    try {
       serviceNew.TerminateWorkflowExecution(terminateRequest);
-    serviceOld.TerminateWorkflowExecution(terminateRequest);
+    } catch (EntityNotExistsError e) {
+      serviceOld.TerminateWorkflowExecution(terminateRequest);
+    }
   }
 }
