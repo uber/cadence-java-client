@@ -15,6 +15,7 @@
  */
 package com.uber.cadence.internal.compatibility.proto.serviceclient;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.api.v1.DomainAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIBlockingStub;
@@ -61,6 +62,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
       Metadata.Key.of("cadence-client-feature-version", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> CLIENT_IMPL_HEADER_KEY =
       Metadata.Key.of("cadence-client-name", Metadata.ASCII_STRING_MARSHALLER);
+  private static final Metadata.Key<String> ISOLATION_GROUP_HEADER_KEY =
+      Metadata.Key.of("cadence-client-isolation-group", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> RPC_SERVICE_NAME_HEADER_KEY =
       Metadata.Key.of("rpc-service", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> RPC_CALLER_NAME_HEADER_KEY =
@@ -103,8 +106,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     headers.put(FEATURE_VERSION_HEADER_KEY, Version.FEATURE_VERSION);
     headers.put(CLIENT_IMPL_HEADER_KEY, CLIENT_IMPL_HEADER_VALUE);
     headers.put(RPC_SERVICE_NAME_HEADER_KEY, options.getServiceName());
-    headers.put(RPC_CALLER_NAME_HEADER_KEY, CLIENT_IMPL_HEADER_VALUE);
+    headers.put(RPC_CALLER_NAME_HEADER_KEY, options.getClientAppName());
     headers.put(RPC_ENCODING_HEADER_KEY, "proto");
+    if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
+      headers.put(ISOLATION_GROUP_HEADER_KEY, options.getIsolationGroup());
+    }
     Channel interceptedChannel =
         ClientInterceptors.intercept(
             channel,

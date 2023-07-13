@@ -1,4 +1,30 @@
 # Changelog
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> fac5b4f (3.9.0 release (#823))
+## 3.9.0
+### Added
+- Add ability to override activity options
+- Add executeWorkflow method to WorkflowInterceptor
+- Add isolation group to service client options so that requests are populated with isolation group header
+- Add cause tag for transient poll failures
+- Add workflow start event and data converter to workflow info
+### Changed
+- Update dependencies
+- Remove unused code
+- Remove reflective objects exception due to failing builds
+- Fix the gradle project for M1 macs
+- Add cronschedule to history start event and fix isCron check of listworkflow for test env
+
+## 3.8.1
+- remove opentelemetry-bom dependency.
+<<<<<<< HEAD
+=======
+>>>>>>> 3174675 (Add isolation group header to service client (#821))
+=======
+>>>>>>> fac5b4f (3.9.0 release (#823))
 ## 3.8.0
 - Graceful shutdown based on sigterm handler
 - Adding cross domain signal/child workflow creation support
