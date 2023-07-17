@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -39,8 +38,7 @@ public class MigrationIWorkflowServiceTest {
 
   @Mock private IWorkflowService serviceNew;
 
-  @Captor private ArgumentCaptor<StartWorkflowExecutionRequest> startRequestCaptor;
-  @Captor private ArgumentCaptor<ListWorkflowExecutionsRequest> listRequestCaptor;
+  @Captor private ArgumentCaptor<StartWorkflowExecutionRequest> requestCaptor;
 
   private MigrationIWorkflowService migrationService;
 
@@ -60,6 +58,7 @@ public class MigrationIWorkflowServiceTest {
             .setWorkflowId("123")
             .setWorkflowType(new WorkflowType().setName("sampleWorkflow"))
             .setRequestId("123");
+
     DescribeWorkflowExecutionRequest describeWorkflowExecutionRequest =
         new DescribeWorkflowExecutionRequest()
             .setDomain("domainNew")
