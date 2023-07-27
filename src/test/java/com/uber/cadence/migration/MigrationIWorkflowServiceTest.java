@@ -38,7 +38,8 @@ public class MigrationIWorkflowServiceTest {
 
   @Mock private IWorkflowService serviceNew;
 
-  @Captor private ArgumentCaptor<StartWorkflowExecutionRequest> requestCaptor;
+  @Captor private ArgumentCaptor<StartWorkflowExecutionRequest> startRequestCaptor;
+  @Captor private ArgumentCaptor<ListWorkflowExecutionsRequest> listRequestCaptor;
 
   private MigrationIWorkflowService migrationService;
 
