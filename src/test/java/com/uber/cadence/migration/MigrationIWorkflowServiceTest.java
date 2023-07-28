@@ -155,6 +155,7 @@ public class MigrationIWorkflowServiceTest {
 
     assertNull(startWorkflowExecutionResponse);
   }
+<<<<<<< HEAD
 
   @Test
   public void testListWorkflows_InitialRequest() throws TException {
