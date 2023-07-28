@@ -46,7 +46,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     this.domainNew = domainNew;
   }
 
-  Boolean shouldStartInNew(String workflowID) throws TException {
+  private Boolean shouldStartInNew(String workflowID) throws TException {
     try {
       return describeWorkflowExecution(serviceNew, domainNew, workflowID)
           .thenCombine(
