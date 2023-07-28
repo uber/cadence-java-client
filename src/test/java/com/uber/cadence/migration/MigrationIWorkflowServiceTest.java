@@ -164,42 +164,4 @@ public class MigrationIWorkflowServiceTest {
 
     assertNull(startWorkflowExecutionResponse);
   }
-
-  //TODO: Addition of other tests
-  //  @Test
-  //  public void testListWorkflowExecutions_startNewWorkflow() throws TException {
-  //
-  //    ListWorkflowExecutionsRequest listRequest =
-  //        new ListWorkflowExecutionsRequest().setDomain("domain").setPageSize(10);
-  //    listRequest.setNextPageToken("sample workflow".getBytes());
-  //
-  //    ListWorkflowExecutionsResponse responseNew = new ListWorkflowExecutionsResponse();
-  //
-  //    when(serviceNew.ListWorkflowExecutions(listRequest)).thenReturn(responseNew);
-  //
-  //    ListWorkflowExecutionsResponse response =
-  // migrationService.ListWorkflowExecutions(listRequest);
-  //
-  //    // assertNotNull("Response is null", response);
-  //    assertEquals(responseNew, response);
-  //    verify(serviceNew, times(1)).ListWorkflowExecutions(listRequestCaptor.capture());
-  //    //    assertEquals(listRequest, listRequestCaptor.getValue());
-  //  }
-  //
-  //  @Test
-  //  public void testListWorkflowExecutions_startOldWorkflow() throws TException {
-  //
-  //    ListWorkflowExecutionsRequest listRequest =
-  //        new ListWorkflowExecutionsRequest().setDomain("domain").setPageSize(10);
-  //
-  //    ListWorkflowExecutionsResponse responseOld = new ListWorkflowExecutionsResponse();
-  //    when(serviceOld.ListWorkflowExecutions(listRequest)).thenReturn(responseOld);
-  //
-  //    ListWorkflowExecutionsResponse response =
-  // migrationService.ListWorkflowExecutions(listRequest);
-  //
-  //    assertEquals(responseOld, response);
-  //    verify(serviceOld, times(1)).ListWorkflowExecutions(listRequestCaptor.capture());
-  //    assertEquals(listRequest, listRequestCaptor.getValue());
-  //  }
 }
