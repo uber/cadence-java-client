@@ -122,9 +122,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listWorkflowExecutionsRequest.setPageSize(pageSizeOverride);
     }
     ListWorkflowExecutionsResponse response = new ListWorkflowExecutionsResponse();
-    if (searchType == _listWorkflow) {
+    if (searchType.equals(_listWorkflow)) {
       response = serviceOld.ListWorkflowExecutions(listWorkflowExecutionsRequest);
-    } else if (searchType == _scanWorkflow) {
+    } else if (searchType.equals(_scanWorkflow)) {
       response = serviceOld.ScanWorkflowExecutions(listWorkflowExecutionsRequest);
     }
     return response;
@@ -152,7 +152,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   @Override
   public ListWorkflowExecutionsResponse ListWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
-    ListWorkflowExecutionsResponse response;
+
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
     } else if (!listRequest.isSetDomain()) {
@@ -170,7 +170,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 _marker.length,
                 listRequest.getNextPageToken().length));
       }
-      response = serviceNew.ListWorkflowExecutions(listRequest);
+      ListWorkflowExecutionsResponse response = serviceNew.ListWorkflowExecutions(listRequest);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
         appendResultsFromOldCluster(listRequest, response, _listWorkflow);
