@@ -17,6 +17,7 @@
 
 package com.uber.cadence.migration;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.*;
 import com.uber.cadence.serviceclient.DummyIWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -140,30 +141,58 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
     ListWorkflowExecutionsResponse fromResponse =
         callOldCluster(listWorkflowExecutionsRequest, neededPageSize, searchType);
+
+    // if old cluster is empty
+    if (fromResponse == null) {
+      return response;
+    }
+
     fromResponse.getExecutions().addAll(response.getExecutions());
     return fromResponse;
   }
 
   public boolean hasPrefix(byte[] s, byte[] prefix) {
-    return s.length >= prefix.length
-        && Arrays.equals(Arrays.copyOfRange(s, 0, prefix.length), prefix);
+    return s == null
+        ? false
+        : s.length >= prefix.length
+            && Arrays.equals(Arrays.copyOfRange(s, 0, prefix.length), prefix);
   }
 
+  /**
+   * This method handles pagination and combines results from both the new and old workflow service
+   * clusters. The method first checks if the nextPageToken is not set or starts with the marker
+   * (_marker) to determine if it should query the new cluster (serviceNew) or combine results from
+   * both the new and old clusters. If nextPageToken is set and doesn't start with the marker, it
+   * queries the old cluster (serviceOld). In case the response from the new cluster is null, it
+   * retries the request on the old cluster. If the number of workflow executions returned by the
+   * new cluster is less than the pageSize, it appends results from the old cluster to the response.
+   *
+   * @param listRequest The ListWorkflowExecutionsRequest containing the query parameters, including
+   *     domain, nextPageToken, pageSize, and other filtering options.
+   * @return The ListWorkflowExecutionsResponse containing a list of WorkflowExecutionInfo
+   *     representing the workflow executions that match the query criteria. The response also
+   *     includes a nextPageToken to support pagination.
+   * @throws TException if there's any communication error with the underlying workflow service.
+   * @throws BadRequestError if the provided ListWorkflowExecutionsRequest is invalid (null or lacks
+   *     a domain).
+   */
   @Override
   public ListWorkflowExecutionsResponse ListWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
 
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetPageSize()) {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
-      if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+      if (hasPrefix(listRequest.getNextPageToken(), _marker) == true) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
                 listRequest.getNextPageToken(),
@@ -171,9 +200,10 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 listRequest.getNextPageToken().length));
       }
       ListWorkflowExecutionsResponse response = serviceNew.ListWorkflowExecutions(listRequest);
+      if (response == null) return callOldCluster(listRequest, 0, _listWorkflow);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
-        appendResultsFromOldCluster(listRequest, response, _listWorkflow);
+        return appendResultsFromOldCluster(listRequest, response, _listWorkflow);
       }
 
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
@@ -190,6 +220,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     return callOldCluster(listRequest, 0, _listWorkflow);
   }
 
+  // similar in logic to ListWorkflows
   @Override
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
@@ -212,6 +243,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListWorkflowExecutions(listRequest);
+      if (response == null) return callOldCluster(listRequest, 0, _listWorkflow);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
         appendResultsFromOldCluster(listRequest, response, _listWorkflow);
@@ -253,6 +285,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListOpenWorkflowExecutions(listRequest);
+      if (response == null) return serviceOld.ListOpenWorkflowExecutions(listRequest);
 
       if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
@@ -302,6 +335,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 listRequest.getNextPageToken().length));
       }
       response = serviceNew.ListClosedWorkflowExecutions(listRequest);
+      if (response == null) return serviceOld.ListClosedWorkflowExecutions(listRequest);
 
       if (response.getExecutionsSize() < listRequest.getMaximumPageSize()) {
         int neededPageSize = listRequest.getMaximumPageSize() - response.getExecutionsSize();
