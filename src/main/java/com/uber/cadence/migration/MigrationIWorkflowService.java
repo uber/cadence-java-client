@@ -183,7 +183,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
     } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
-      throw new BadRequestError("Domain is null");
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetPageSize()) {
       listRequest.pageSize = _defaultPageSize;
