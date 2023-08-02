@@ -67,7 +67,6 @@ public class MigrationIWorkflowServiceTest {
 
     // Verify DescribeWorkflowExecution calls for both services return null
     when(serviceNew.DescribeWorkflowExecution(describeWorkflowExecutionRequest)).thenReturn(null);
-
     when(serviceOld.DescribeWorkflowExecution(describeOldWorkflowExecutionRequest))
         .thenReturn(null);
 
@@ -86,11 +85,10 @@ public class MigrationIWorkflowServiceTest {
 
     // Verify that no other methods are called
     verifyNoMoreInteractions(serviceNew);
-
     verifyNoMoreInteractions(serviceOld);
   }
 
-  // Previous running workflow found: expected to launch a wf in the new cluster
+  // Previous running workflow found: expected to launch a wf in the old cluster
   @Test
   public void testStartWorkflowExecution_startOldWorkflow() throws TException {
 
@@ -100,7 +98,6 @@ public class MigrationIWorkflowServiceTest {
             .setWorkflowType(new WorkflowType().setName("sampleWorkflow"))
             .setRequestId("123");
 
-    // Verify DescribeWorkflowExecution calls for both services return null
     when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(null);
 
     DescribeWorkflowExecutionResponse describeWorkflowExecutionResponse =
@@ -343,7 +340,6 @@ public class MigrationIWorkflowServiceTest {
     expectedResponseWithToken.getExecutions().add(executionInfo2);
     expectedResponseWithToken.setNextPageToken("totestToken".getBytes());
 
-    // Test fetch from 'to' cluster for initial request
     when(serviceNew.ListWorkflowExecutions(any())).thenReturn(expectedResponseWithToken);
     ListWorkflowExecutionsResponse response = migrationService.ListWorkflowExecutions(request);
     assertEquals(expectedResponseWithToken, response);
@@ -353,8 +349,7 @@ public class MigrationIWorkflowServiceTest {
             .setDomain(domainNew)
             .setPageSize(two)
             .setNextPageToken("".getBytes());
-    //     Test if fetching from new cluster result size is less than pageSize, fetch additional
-    // records from old cluster
+
     when(serviceNew.ListWorkflowExecutions(any())).thenReturn(expectedResponseWithToken);
     response = migrationService.ListWorkflowExecutions(requestTwoItems);
     assertEquals(expectedResponseWithToken, response);
