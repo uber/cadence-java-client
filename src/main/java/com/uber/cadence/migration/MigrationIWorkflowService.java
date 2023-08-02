@@ -200,7 +200,6 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 listRequest.getNextPageToken().length));
       }
       ListWorkflowExecutionsResponse response = serviceNew.ListWorkflowExecutions(listRequest);
-
       if (response == null) return callOldCluster(listRequest, 0, _listWorkflow);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
