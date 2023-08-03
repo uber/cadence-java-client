@@ -278,7 +278,7 @@ public class MigrationIWorkflowServiceTest {
     try {
       migrationService.ListWorkflowExecutions(new ListWorkflowExecutionsRequest().setPageSize(10));
     } catch (BadRequestError e) {
-      assertEquals("Domain is null", e.getMessage());
+      assertEquals("Domain is null or empty", e.getMessage());
     }
   }
 
@@ -355,6 +355,227 @@ public class MigrationIWorkflowServiceTest {
 
     when(serviceNew.ListWorkflowExecutions(any())).thenReturn(expectedResponseWithToken);
     response = migrationService.ListWorkflowExecutions(requestTwoItems);
+    assertEquals(expectedResponseWithToken, response);
+  }
+
+  @Test
+  public void testScanWorkflow_InitialRequest() throws TException {
+
+    String domainNew = "test";
+    int one = 1;
+
+    ListWorkflowExecutionsRequest request =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(one)
+            .setNextPageToken("".getBytes());
+
+    ListWorkflowExecutionsResponse mockSingleResultResponse =
+        new ListWorkflowExecutionsResponse().setExecutions(new ArrayList<>());
+
+    WorkflowExecutionInfo executionInfo = new WorkflowExecutionInfo();
+    executionInfo.setExecution(
+        new WorkflowExecution().setWorkflowId("testWfId").setRunId("testRunId"));
+    mockSingleResultResponse.getExecutions().add(executionInfo);
+    mockSingleResultResponse.setNextPageToken("testToken".getBytes());
+
+    // Mock the serviceNew to return the expected response for the initial request.
+    when(serviceNew.ScanWorkflowExecutions(any())).thenReturn(mockSingleResultResponse);
+
+    // Perform the test and check if the response matches the expected result.
+    ListWorkflowExecutionsResponse response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(mockSingleResultResponse, response);
+  }
+
+  // Test scanWorkflow when new cluster returns an empty response and it falls back to the old
+  // cluster.
+  @Test
+  public void testScanWorkflow_OldClusterCall() throws TException {
+
+    String domainNew = "test";
+    int one = 1;
+
+    ListWorkflowExecutionsRequest request =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(one)
+            .setNextPageToken("".getBytes());
+
+    ListWorkflowExecutionsResponse mockEmptyResponse =
+        new ListWorkflowExecutionsResponse()
+            .setExecutions(new ArrayList<>())
+            .setNextPageToken((byte[]) null);
+
+    ListWorkflowExecutionsResponse mockSingleResultResponse =
+        new ListWorkflowExecutionsResponse().setExecutions(new ArrayList<>());
+
+    WorkflowExecutionInfo executionInfo = new WorkflowExecutionInfo();
+    executionInfo.setExecution(
+        new WorkflowExecution().setWorkflowId("testWfId").setRunId("testRunId"));
+    mockSingleResultResponse.getExecutions().add(executionInfo);
+    mockSingleResultResponse.setNextPageToken("testToken".getBytes());
+
+    // Mock the serviceNew to return an empty response.
+    when(serviceNew.ScanWorkflowExecutions(any())).thenReturn(mockEmptyResponse);
+
+    // Perform the first test to check if the response is empty as the new cluster returned no
+    // results.
+    ListWorkflowExecutionsResponse response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(mockEmptyResponse, response);
+
+    // Mock the serviceOld to return the expected response.
+    when(serviceOld.ScanWorkflowExecutions(any())).thenReturn(mockSingleResultResponse);
+
+    // Perform the second test to check if the response is now populated with data from the old
+    // cluster.
+    response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(mockSingleResultResponse, response);
+  }
+
+  @Test
+  public void testScanWorkflow_FetchFromBothClusters() throws TException {
+
+    String domainNew = "test";
+    int one = 1;
+    int two = 2;
+
+    ListWorkflowExecutionsRequest request =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(one)
+            .setNextPageToken("".getBytes());
+
+    ListWorkflowExecutionsResponse mockSingleResultResponse =
+        new ListWorkflowExecutionsResponse().setExecutions(new ArrayList<>());
+
+    WorkflowExecutionInfo executionInfo = new WorkflowExecutionInfo();
+    executionInfo.setExecution(
+        new WorkflowExecution().setWorkflowId("testWfId").setRunId("testRunId"));
+    mockSingleResultResponse.getExecutions().add(executionInfo);
+    mockSingleResultResponse.setNextPageToken("testToken".getBytes());
+
+    // Mock the serviceOld to return the expected response.
+    when(serviceOld.ScanWorkflowExecutions(any())).thenReturn(mockSingleResultResponse);
+
+    // Perform the first test to check if the response is populated with data from the old cluster.
+    ListWorkflowExecutionsResponse response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(mockSingleResultResponse, response);
+
+    ListWorkflowExecutionsRequest requestTwoItems =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(two)
+            .setNextPageToken("".getBytes());
+
+    // Mock the serviceNew to return the expected response.
+    when(serviceNew.ScanWorkflowExecutions(any())).thenReturn(mockSingleResultResponse);
+
+    // Perform the second test to check if the response is now populated with data from the new
+    // cluster.
+    response = migrationService.ScanWorkflowExecutions(requestTwoItems);
+    assertEquals(mockSingleResultResponse, response);
+  }
+
+  @Test
+  public void testScanWorkflow_EmptyRequestTests() throws TException {
+
+    // Test when the request is null.
+    try {
+      migrationService.ScanWorkflowExecutions(null);
+    } catch (BadRequestError e) {
+      assertEquals("List request is null", e.getMessage());
+    }
+
+    // Test when the domain is null.
+    try {
+      migrationService.ScanWorkflowExecutions(new ListWorkflowExecutionsRequest().setPageSize(10));
+    } catch (BadRequestError e) {
+      assertEquals("Domain is null or empty", e.getMessage());
+    }
+  }
+
+  // Test when an error is returned from the internal client, and the response is null.
+  @Test
+  public void testScanWorkflow_Error() throws TException {
+
+    String domainNew = "test";
+
+    when(serviceNew.ListWorkflowExecutions(any())).thenReturn(null);
+    ListWorkflowExecutionsResponse response =
+        migrationService.ScanWorkflowExecutions(
+            new ListWorkflowExecutionsRequest().setDomain(domainNew));
+    verify(serviceNew, times(1)).ScanWorkflowExecutions(any());
+    assertNull(response);
+  }
+
+  // Test scanWorkflow when fetching only from the 'from' cluster.
+  @Test
+  public void testScanWorkflow_FromClusterOnly() throws TException {
+
+    String domain = "test";
+    int one = 1;
+
+    ListWorkflowExecutionsRequest request =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domain)
+            .setPageSize(one)
+            .setNextPageToken("".getBytes());
+
+    ListWorkflowExecutionsResponse mockEmptyResponse =
+        new ListWorkflowExecutionsResponse()
+            .setExecutions(new ArrayList<>())
+            .setNextPageToken("".getBytes());
+
+    // Mock the serviceOld to return an empty response.
+    when(serviceOld.ScanWorkflowExecutions(any())).thenReturn(mockEmptyResponse);
+
+    // Perform the test to check if the response is empty as the new cluster returned no results.
+    ListWorkflowExecutionsResponse response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(mockEmptyResponse, response);
+  }
+
+  @Test
+  public void testScanWorkflows_ResponseWithToken() throws TException {
+
+    String domainNew = "test";
+    int one = 1;
+    int two = 2;
+
+    ListWorkflowExecutionsRequest request =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(one)
+            .setNextPageToken("".getBytes());
+
+    ListWorkflowExecutionsResponse expectedResponseWithToken = new ListWorkflowExecutionsResponse();
+    expectedResponseWithToken.setExecutions(new ArrayList<>());
+    WorkflowExecutionInfo executionInfo1 = new WorkflowExecutionInfo();
+    executionInfo1.setExecution(
+        new WorkflowExecution().setWorkflowId("testWfId").setRunId("testRunId"));
+    WorkflowExecutionInfo executionInfo2 = new WorkflowExecutionInfo();
+    executionInfo2.setExecution(
+        new WorkflowExecution().setWorkflowId("testWfId").setRunId("testRunId"));
+    expectedResponseWithToken.getExecutions().add(executionInfo1);
+    expectedResponseWithToken.getExecutions().add(executionInfo2);
+    expectedResponseWithToken.setNextPageToken("totestToken".getBytes());
+
+    // Mock the serviceNew to return the expected response with a token.
+    when(serviceNew.ScanWorkflowExecutions(any())).thenReturn(expectedResponseWithToken);
+
+    // Perform the first test to check if the response contains a token from the new cluster.
+    ListWorkflowExecutionsResponse response = migrationService.ScanWorkflowExecutions(request);
+    assertEquals(expectedResponseWithToken, response);
+
+    ListWorkflowExecutionsRequest requestTwoItems =
+        new ListWorkflowExecutionsRequest()
+            .setDomain(domainNew)
+            .setPageSize(two)
+            .setNextPageToken("".getBytes());
+
+    // Perform the second test to check if the response contains a token from the new cluster for a
+    // different page size.
+    when(serviceNew.ScanWorkflowExecutions(any())).thenReturn(expectedResponseWithToken);
+    response = migrationService.ScanWorkflowExecutions(requestTwoItems);
     assertEquals(expectedResponseWithToken, response);
   }
 }
