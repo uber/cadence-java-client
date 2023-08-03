@@ -71,8 +71,8 @@ public final class WorkflowClientOptions {
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
       identity = options.getIdentity();
-      queryRejectCondition = options.getQueryRejectCondition();
       contextPropagators = options.getContextPropagators();
+      queryRejectCondition = options.getQueryRejectCondition();
     }
 
     public Builder setDomain(String domain) {
