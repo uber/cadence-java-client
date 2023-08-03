@@ -391,6 +391,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         serviceNew.CountWorkflowExecutions(countRequest);
     CountWorkflowExecutionsResponse countResponseOld =
         serviceOld.CountWorkflowExecutions(countRequest);
+    if (countResponseNew == null) return countResponseOld;
+    if (countResponseOld == null) return countResponseNew;
+
     countResponseOld.setCount(countResponseOld.getCount() + countResponseNew.getCount());
     return countResponseOld;
   }

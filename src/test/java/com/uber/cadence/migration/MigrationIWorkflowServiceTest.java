@@ -579,4 +579,49 @@ public class MigrationIWorkflowServiceTest {
     response = migrationService.ScanWorkflowExecutions(requestTwoItems);
     assertEquals(expectedResponseWithToken, response);
   }
+
+  @Test
+  public void testCountWorkflow_bothClusterSuccess() throws TException {
+
+    String domain = "test";
+    String query = "";
+
+    CountWorkflowExecutionsRequest request =
+        new CountWorkflowExecutionsRequest().setDomain(domain).setQuery(query);
+    CountWorkflowExecutionsResponse mockResponseOld =
+        new CountWorkflowExecutionsResponse().setCount(2);
+    CountWorkflowExecutionsResponse mockResponseNew =
+        new CountWorkflowExecutionsResponse().setCount(3);
+
+    CountWorkflowExecutionsResponse expectedResponse =
+        new CountWorkflowExecutionsResponse(mockResponseNew);
+    expectedResponse.setCount(5);
+
+    // both clusters return successful response
+    when(serviceOld.CountWorkflowExecutions(any())).thenReturn(mockResponseOld);
+    when(serviceNew.CountWorkflowExecutions(any())).thenReturn(mockResponseNew);
+    CountWorkflowExecutionsResponse response = migrationService.CountWorkflowExecutions(request);
+    assertEquals(expectedResponse, response);
+  }
+
+  @Test
+  public void testCountWorkflow_errorInOneCluster() throws TException {
+
+    String domain = "test";
+    String query = "";
+
+    CountWorkflowExecutionsRequest request =
+        new CountWorkflowExecutionsRequest().setDomain(domain).setQuery(query);
+    CountWorkflowExecutionsResponse mockResponseOld =
+        new CountWorkflowExecutionsResponse().setCount(2);
+
+    CountWorkflowExecutionsResponse expectedResponse =
+        new CountWorkflowExecutionsResponse(mockResponseOld);
+    expectedResponse.setCount(2);
+
+    when(serviceOld.CountWorkflowExecutions(any())).thenReturn(mockResponseOld);
+    when(serviceNew.CountWorkflowExecutions(any())).thenReturn(null);
+    CountWorkflowExecutionsResponse response = migrationService.CountWorkflowExecutions(request);
+    assertEquals(expectedResponse, response);
+  }
 }
