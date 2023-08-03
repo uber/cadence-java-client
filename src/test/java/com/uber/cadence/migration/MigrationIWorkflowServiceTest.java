@@ -71,7 +71,8 @@ public class MigrationIWorkflowServiceTest {
 
     // Verify DescribeWorkflowExecution calls for both services return null
     when(serviceNew.DescribeWorkflowExecution(describeWorkflowExecutionRequest)).thenReturn(null);
-    when(serviceOld.DescribeWorkflowExecution(describeOldWorkflowExecutionRequest)).thenReturn(null);
+    when(serviceOld.DescribeWorkflowExecution(describeOldWorkflowExecutionRequest))
+        .thenReturn(null);
 
     StartWorkflowExecutionResponse responseNew = new StartWorkflowExecutionResponse();
     when(serviceNew.StartWorkflowExecution(startRequest)).thenReturn(responseNew);
