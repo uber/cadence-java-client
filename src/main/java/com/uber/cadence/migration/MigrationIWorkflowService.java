@@ -220,21 +220,34 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     return callOldCluster(listRequest, 0, _listWorkflow);
   }
 
-  // similar in logic to ListWorkflows
+  /**
+   * Scans workflow executions based on the provided request parameters, handling pagination and
+   * combining results from the new and old clusters. The method queries the new cluster
+   * (serviceNew) if nextPageToken is not set or starts with the marker (_marker). Otherwise, it
+   * queries the old cluster (serviceOld). Results from the old cluster are appended if needed to
+   * maintain correct pagination.
+   *
+   * @param listRequest The ListWorkflowExecutionsRequest containing query parameters.
+   * @return The ListWorkflowExecutionsResponse with WorkflowExecutionInfo and nextPageToken.
+   * @throws TException if there's any communication error with the workflow service.
+   * @throws BadRequestError if the provided ListWorkflowExecutionsRequest is invalid.
+   */
   @Override
   public ListWorkflowExecutionsResponse ScanWorkflowExecutions(
       ListWorkflowExecutionsRequest listRequest) throws TException {
     ListWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetPageSize()) {
       listRequest.pageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -242,11 +255,11 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
                 _marker.length,
                 listRequest.getNextPageToken().length));
       }
-      response = serviceNew.ListWorkflowExecutions(listRequest);
-      if (response == null) return callOldCluster(listRequest, 0, _listWorkflow);
+      response = serviceNew.ScanWorkflowExecutions(listRequest);
+      if (response == null) return callOldCluster(listRequest, 0, _scanWorkflow);
 
       if (response.getExecutions().size() < listRequest.getPageSize()) {
-        appendResultsFromOldCluster(listRequest, response, _listWorkflow);
+        return appendResultsFromOldCluster(listRequest, response, _scanWorkflow);
       }
 
       byte[] combinedNextPageToken = new byte[_marker.length + response.getNextPageToken().length];
@@ -260,7 +273,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       response.setNextPageToken(combinedNextPageToken);
       return response;
     }
-    return callOldCluster(listRequest, 0, _listWorkflow);
+    return callOldCluster(listRequest, 0, _scanWorkflow);
   }
 
   @Override
