@@ -282,14 +282,14 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     ListOpenWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetMaximumPageSize()) {
       listRequest.maximumPageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken() || listRequest.getNextPageToken().length == 0 || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -332,8 +332,8 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     ListClosedWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetMaximumPageSize()) {
       listRequest.maximumPageSize = _defaultPageSize;
