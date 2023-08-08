@@ -1,5 +1,8 @@
 # Changelog
 
+##3.9.1-preview
+- Added initialization of contextPropagators from passed options
+
 ## 3.9.0
 ### Added
 - Add ability to override activity options
