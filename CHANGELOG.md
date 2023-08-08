@@ -1,6 +1,6 @@
 # Changelog
 
-##3.9.1-preview
+## 3.9.1
 - Added initialization of contextPropagators from passed options
 
 ## 3.9.0
