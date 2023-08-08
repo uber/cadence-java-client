@@ -378,9 +378,15 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest) throws TException {
-    if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
-      return serviceNew.QueryWorkflow(queryRequest);
-    return serviceOld.QueryWorkflow(queryRequest);
+
+    try {
+      if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
+        return serviceNew.QueryWorkflow(queryRequest);
+      return serviceOld.QueryWorkflow(queryRequest);
+    } catch (NullPointerException e) {
+      throw new NullPointerException(
+          "Query does not have workflowID associated: " + e.getMessage());
+    }
   }
 
   @Override

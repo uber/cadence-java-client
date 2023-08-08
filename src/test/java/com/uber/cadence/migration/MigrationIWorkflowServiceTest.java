@@ -17,8 +17,7 @@
 
 package com.uber.cadence.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.*;
@@ -27,8 +26,6 @@ import java.util.ArrayList;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -37,10 +34,6 @@ public class MigrationIWorkflowServiceTest {
   @Mock private IWorkflowService serviceOld;
 
   @Mock private IWorkflowService serviceNew;
-
-  @Captor private ArgumentCaptor<StartWorkflowExecutionRequest> startRequestCaptor;
-  @Captor private ArgumentCaptor<ListWorkflowExecutionsRequest> listRequestCaptor;
-
   private MigrationIWorkflowService migrationService;
 
   @Before
@@ -130,7 +123,6 @@ public class MigrationIWorkflowServiceTest {
   public void testStartWorkflow_noWorkflowID() throws TException {
     StartWorkflowExecutionRequest startRequest =
         new StartWorkflowExecutionRequest()
-            .setWorkflowId("123")
             .setWorkflowType(new WorkflowType().setName("sampleWorkflow"))
             .setRequestId("123");
 
@@ -623,5 +615,116 @@ public class MigrationIWorkflowServiceTest {
     when(serviceNew.CountWorkflowExecutions(any())).thenReturn(null);
     CountWorkflowExecutionsResponse response = migrationService.CountWorkflowExecutions(request);
     assertEquals(expectedResponse, response);
+  }
+
+  // query in the new cluster
+  @Test
+  public void testQueryWorkflow_queryWorkflowInNew() throws TException {
+
+    String domain = "test";
+    String wfID = "123";
+
+    QueryWorkflowRequest queryWorkflowRequest =
+        new QueryWorkflowRequest()
+            .setDomain(domain)
+            .setQuery(new WorkflowQuery())
+            .setExecution(new WorkflowExecution().setWorkflowId(wfID));
+
+    DescribeWorkflowExecutionResponse describeWorkflowExecutionResponse =
+        new DescribeWorkflowExecutionResponse();
+
+    when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(describeWorkflowExecutionResponse);
+    when(serviceOld.DescribeWorkflowExecution(any())).thenReturn(null);
+
+    QueryWorkflowResponse mockResponse = new QueryWorkflowResponse();
+    when(serviceNew.QueryWorkflow(any())).thenReturn(mockResponse);
+
+    QueryWorkflowResponse response = migrationService.QueryWorkflow(queryWorkflowRequest);
+
+    // Verify interactions
+    verify(serviceNew, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceNew, times(1)).QueryWorkflow(any());
+
+    // Verify that no other methods are called
+    verifyNoMoreInteractions(serviceNew);
+    verifyNoMoreInteractions(serviceOld);
+
+    // Assert the response
+    assertEquals(mockResponse, response);
+  }
+
+  // query found in the old cluster
+  @Test
+  public void testQueryWorkflow_queryWorkflowInOld() throws TException {
+
+    String domain = "test";
+    String wfID = "123";
+
+    QueryWorkflowRequest queryWorkflowRequest =
+        new QueryWorkflowRequest()
+            .setDomain(domain)
+            .setQuery(new WorkflowQuery())
+            .setExecution(new WorkflowExecution().setWorkflowId(wfID));
+
+    when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(null);
+
+    DescribeWorkflowExecutionResponse describeWorkflowExecutionResponse =
+        new DescribeWorkflowExecutionResponse();
+    when(serviceOld.DescribeWorkflowExecution(any())).thenReturn(describeWorkflowExecutionResponse);
+
+    QueryWorkflowResponse mockResponse = new QueryWorkflowResponse();
+    when(serviceOld.QueryWorkflow(any())).thenReturn(mockResponse);
+
+    QueryWorkflowResponse response = migrationService.QueryWorkflow(queryWorkflowRequest);
+
+    // Verify interactions
+    verify(serviceNew, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).QueryWorkflow(any());
+
+    // Verify that no other methods are called
+    verifyNoMoreInteractions(serviceNew);
+    verifyNoMoreInteractions(serviceOld);
+
+    // Assert the response
+    assertEquals(mockResponse, response);
+  }
+
+  @Test
+  public void testQueryWorkflow_noWorkflowID() throws TException {
+
+    String domain = "test";
+    QueryWorkflowRequest request = new QueryWorkflowRequest().setDomain(domain);
+    QueryWorkflowResponse response = new QueryWorkflowResponse();
+    try {
+      response = migrationService.QueryWorkflow(request);
+      assertNull(response);
+    } catch (NullPointerException e) {
+      assertNotNull(response);
+    }
+  }
+
+  @Test
+  public void testQueryWorkflow_errorInDescribeWorkflowExecution() throws TException {
+
+    String domain = "test";
+    String wfID = "123";
+
+    QueryWorkflowRequest queryWorkflowRequest =
+        new QueryWorkflowRequest()
+            .setDomain(domain)
+            .setQuery(new WorkflowQuery())
+            .setExecution(new WorkflowExecution().setWorkflowId(wfID));
+
+    when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(null);
+    when(serviceOld.DescribeWorkflowExecution(any())).thenReturn(null);
+    QueryWorkflowResponse queryWorkflowResponse =
+        migrationService.QueryWorkflow(queryWorkflowRequest);
+    // Verify interactions
+    verify(serviceNew, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).DescribeWorkflowExecution(any());
+
+    assertNull(queryWorkflowResponse);
   }
 }
