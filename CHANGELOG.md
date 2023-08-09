@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.9.1
+- Added initialization of contextPropagators from passed options
+- Updated rpc-caller header of grpc
+
 ## 3.9.0
 ### Added
 - Add ability to override activity options
