@@ -1,9 +1,9 @@
 # Changelog
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> fac5b4f (3.9.0 release (#823))
+## 3.9.1
+- Added initialization of contextPropagators from passed options
+- Updated rpc-caller header of grpc
+
 ## 3.9.0
 ### Added
 - Add ability to override activity options
@@ -20,11 +20,7 @@
 
 ## 3.8.1
 - remove opentelemetry-bom dependency.
-<<<<<<< HEAD
-=======
->>>>>>> 3174675 (Add isolation group header to service client (#821))
-=======
->>>>>>> fac5b4f (3.9.0 release (#823))
+
 ## 3.8.0
 - Graceful shutdown based on sigterm handler
 - Adding cross domain signal/child workflow creation support

@@ -59,7 +59,7 @@ public final class WorkflowClientOptions {
     private DataConverter dataConverter = JsonDataConverter.getInstance();
     private WorkflowClientInterceptor[] interceptors = EMPTY_INTERCEPTOR_ARRAY;
     private Scope metricsScope = NoopScope.getInstance();
-    private String identity = ManagementFactory.getRuntimeMXBean().getName();;
+    private String identity = ManagementFactory.getRuntimeMXBean().getName();
     private List<ContextPropagator> contextPropagators = EMPTY_CONTEXT_PROPAGATORS;
     private QueryRejectCondition queryRejectCondition;
 
@@ -71,6 +71,7 @@ public final class WorkflowClientOptions {
       interceptors = options.getInterceptors();
       metricsScope = options.getMetricsScope();
       identity = options.getIdentity();
+      contextPropagators = options.getContextPropagators();
       queryRejectCondition = options.getQueryRejectCondition();
     }
 
