@@ -289,7 +289,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listRequest.maximumPageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || listRequest.getNextPageToken().length == 0 || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -307,6 +309,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         copiedRequest.maximumPageSize = neededPageSize;
         ListOpenWorkflowExecutionsResponse fromResponse =
             serviceOld.ListOpenWorkflowExecutions(copiedRequest);
+        if (fromResponse == null) return response;
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
@@ -339,7 +342,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
       listRequest.maximumPageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -357,6 +362,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         copiedRequest.maximumPageSize = neededPageSize;
         ListClosedWorkflowExecutionsResponse fromResponse =
             serviceOld.ListClosedWorkflowExecutions(copiedRequest);
+        if (fromResponse == null) return response;
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
