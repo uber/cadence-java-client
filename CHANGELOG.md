@@ -20,6 +20,7 @@
 
 ## 3.8.1
 - remove opentelemetry-bom dependency.
+
 ## 3.8.0
 - Graceful shutdown based on sigterm handler
 - Adding cross domain signal/child workflow creation support
