@@ -282,14 +282,16 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     ListOpenWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetMaximumPageSize()) {
       listRequest.maximumPageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -307,6 +309,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         copiedRequest.maximumPageSize = neededPageSize;
         ListOpenWorkflowExecutionsResponse fromResponse =
             serviceOld.ListOpenWorkflowExecutions(copiedRequest);
+        if (fromResponse == null) return response;
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
@@ -332,14 +335,16 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
     ListClosedWorkflowExecutionsResponse response;
     if (listRequest == null) {
       throw new BadRequestError("List request is null");
-    } else if (!listRequest.isSetDomain()) {
-      throw new BadRequestError("Domain is null");
+    } else if (Strings.isNullOrEmpty(listRequest.getDomain())) {
+      throw new BadRequestError("Domain is null or empty");
     }
     if (!listRequest.isSetMaximumPageSize()) {
       listRequest.maximumPageSize = _defaultPageSize;
     }
 
-    if (!listRequest.isSetNextPageToken() || hasPrefix(listRequest.getNextPageToken(), _marker)) {
+    if (!listRequest.isSetNextPageToken()
+        || listRequest.getNextPageToken().length == 0
+        || hasPrefix(listRequest.getNextPageToken(), _marker)) {
       if (hasPrefix(listRequest.getNextPageToken(), _marker)) {
         listRequest.setNextPageToken(
             Arrays.copyOfRange(
@@ -357,6 +362,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         copiedRequest.maximumPageSize = neededPageSize;
         ListClosedWorkflowExecutionsResponse fromResponse =
             serviceOld.ListClosedWorkflowExecutions(copiedRequest);
+        if (fromResponse == null) return response;
 
         fromResponse.getExecutions().addAll(response.getExecutions());
         return fromResponse;
@@ -378,9 +384,15 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
 
   @Override
   public QueryWorkflowResponse QueryWorkflow(QueryWorkflowRequest queryRequest) throws TException {
-    if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
-      return serviceNew.QueryWorkflow(queryRequest);
-    return serviceOld.QueryWorkflow(queryRequest);
+
+    try {
+      if (shouldStartInNew(queryRequest.getExecution().getWorkflowId()))
+        return serviceNew.QueryWorkflow(queryRequest);
+      return serviceOld.QueryWorkflow(queryRequest);
+    } catch (NullPointerException e) {
+      throw new NullPointerException(
+          "Query does not have workflowID associated: " + e.getMessage());
+    }
   }
 
   @Override
@@ -391,6 +403,9 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
         serviceNew.CountWorkflowExecutions(countRequest);
     CountWorkflowExecutionsResponse countResponseOld =
         serviceOld.CountWorkflowExecutions(countRequest);
+    if (countResponseNew == null) return countResponseOld;
+    if (countResponseOld == null) return countResponseNew;
+
     countResponseOld.setCount(countResponseOld.getCount() + countResponseNew.getCount());
     return countResponseOld;
   }
