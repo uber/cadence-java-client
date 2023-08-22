@@ -17,15 +17,20 @@
 
 package com.uber.cadence.migration;
 
-import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionResponse;
-import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.workflow.WorkflowInterceptor;
+import java.util.function.Function;
 
-public interface MigrationActivities {
-  @ActivityMethod
-  StartWorkflowExecutionResponse startWorkflowInNewDomain(StartWorkflowExecutionRequest request);
+public class MigrationInterceptorFactory
+    implements Function<WorkflowInterceptor, WorkflowInterceptor> {
+  private final WorkflowClient clientInNewDomain;
 
-  @ActivityMethod
-  void cancelWorkflowInCurrentDomain(RequestCancelWorkflowExecutionRequest request);
+  public MigrationInterceptorFactory(WorkflowClient clientInNewDomain) {
+    this.clientInNewDomain = clientInNewDomain;
+  }
+
+  @Override
+  public WorkflowInterceptor apply(WorkflowInterceptor next) {
+    return new MigrationInterceptor(next, this.clientInNewDomain);
+  }
 }

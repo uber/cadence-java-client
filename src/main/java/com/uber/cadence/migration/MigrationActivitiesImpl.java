@@ -17,18 +17,37 @@
 
 package com.uber.cadence.migration;
 
+import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.workflow.Workflow;
 
 public class MigrationActivitiesImpl implements MigrationActivities {
-  private final WorkflowClient clientInNewDomain;
+  private final WorkflowClient clientInCurrDomain, clientInNewDomain;
 
-  public MigrationActivitiesImpl(WorkflowClient clientInNewDomain) {
+  public MigrationActivitiesImpl(
+      WorkflowClient clientInCurrDomain, WorkflowClient clientInNewDomain) {
+    this.clientInCurrDomain = clientInCurrDomain;
     this.clientInNewDomain = clientInNewDomain;
   }
 
   @Override
-  public StartNewWorkflowExecutionResponse startWorkflowInNewDomain(
-      StartNewWorkflowRequest request) {
-    return null;
+  public StartWorkflowExecutionResponse startWorkflowInNewDomain(
+      StartWorkflowExecutionRequest request) {
+    try {
+      return clientInNewDomain.getService().StartWorkflowExecution(request);
+    } catch (Exception e) {
+      throw Workflow.wrap(e);
+    }
+  }
+
+  @Override
+  public void cancelWorkflowInCurrentDomain(RequestCancelWorkflowExecutionRequest request) {
+    try {
+      clientInCurrDomain.getService().RequestCancelWorkflowExecution(request);
+    } catch (Exception e) {
+      throw Workflow.wrap(e);
+    }
   }
 }
