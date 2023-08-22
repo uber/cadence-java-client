@@ -17,32 +17,25 @@
 
 package com.uber.cadence.migration;
 
+import com.google.common.base.Strings;
 import com.uber.cadence.*;
 import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.WorkflowClient;
-import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.sync.SyncWorkflowDefinition;
 import com.uber.cadence.workflow.*;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 
 public class MigrationInterceptor extends WorkflowInterceptorBase {
-
-  // TODO: add new domain override
   private final WorkflowInterceptor next;
+  private final String domainNew;
+  private WorkflowClient clientInNewDomain;
 
-  private final MigrationActivities migrationActivities;
   private static final String versionChangeID = "cadenceMigrationInterceptor";
   private static final int versionV1 = 1;
-  private final ActivityOptions options =
-      new ActivityOptions.Builder()
-          .setScheduleToCloseTimeout(Duration.ofSeconds(10))
-          .setRetryOptions(new RetryOptions.Builder().build())
-          .build();
-  private final MigrationActivities activities =
-      Workflow.newActivityStub(MigrationActivities.class, options);
+  private final ActivityOptions activityOptions =
+      new ActivityOptions.Builder().setScheduleToCloseTimeout(Duration.ofSeconds(10)).build();
 
   private class MigrationDecision {
     boolean shouldMigrate;
@@ -57,14 +50,32 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
   public MigrationInterceptor(WorkflowInterceptor next, WorkflowClient clientInNewDomain) {
     super(next);
     this.next = next;
-    this.migrationActivities = new MigrationActivitiesImpl(clientInNewDomain);
+    this.domainNew = clientInNewDomain.getOptions().getDomain();
   }
 
+  /**
+   * MigrationInterceptor intercept executeWorkflow method to identify cron scheduled workflows.
+   *
+   * <p>Steps to migrate a cron workflow: 1. Identify cron and non-child workflows from start event
+   * 2. Start execution in the new domain 3. Cancel current workflow execution 4. If anything
+   * failed, fallback to cron workflow execution
+   *
+   * <p>If successful, the current cron workflow should be canceled with migration reason and a new
+   * workflow execution with the same workflow-id and input should start in the new domain.
+   *
+   * <p>WARNING: it's possible to have both workflows running at the same time, if cancel step
+   * failed.
+   *
+   * @param workflowDefinition
+   * @param input
+   * @return workflow result
+   */
   @Override
   public byte[] executeWorkflow(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
 
     WorkflowInfo workflowInfo = Workflow.getWorkflowInfo();
+    // Versioning to ensure replay is deterministic
     int version = getVersion(versionChangeID, Workflow.DEFAULT_VERSION, versionV1);
     switch (version) {
       case versionV1:
@@ -77,37 +88,37 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
           return next.executeWorkflow(workflowDefinition, input);
         }
 
+        // deterministically make migration decision by a SideEffect
         MigrationDecision decision =
             Workflow.sideEffect(
                 MigrationDecision.class, () -> shouldMigrate(workflowDefinition, input));
         if (decision.shouldMigrate) {
-          StartWorkflowExecutionRequest request =
-              new StartWorkflowExecutionRequest()
-                  .setDomain(workflowInfo.getDomain())
-                  .setWorkflowId(workflowInfo.getWorkflowId())
-                  .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
-                  .setInput(input.getInput())
-                  .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
-                  .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
-                  .setRetryPolicy(startedEventAttributes.getRetryPolicy())
-                  .setRequestId(UUID.randomUUID().toString())
-                  .setIdentity(startedEventAttributes.getIdentity())
-                  .setMemo(startedEventAttributes.getMemo())
-                  .setCronSchedule(startedEventAttributes.getCronSchedule())
-                  .setHeader(startedEventAttributes.getHeader())
-                  .setSearchAttributes(startedEventAttributes.getSearchAttributes())
-                  .setExecutionStartToCloseTimeoutSeconds(
-                      startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
-                  .setTaskStartToCloseTimeoutSeconds(
-                      startedEventAttributes.getTaskStartToCloseTimeoutSeconds());
-
+          MigrationActivities activities =
+              Workflow.newActivityStub(MigrationActivities.class, activityOptions);
           try {
-            MigrationActivities.StartNewWorkflowExecutionResponse response =
-                activities.startWorkflowInNewDomain(
-                    new MigrationActivities.StartNewWorkflowRequest());
-            // TODO: add metrics and logging
-            throw new CancellationException(
-                "cancel due to migration:" + response.response.toString());
+            // start new workflow in new domain
+            activities.startWorkflowInNewDomain(
+                new StartWorkflowExecutionRequest()
+                    .setDomain(domainNew)
+                    .setWorkflowId(workflowInfo.getWorkflowId())
+                    .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
+                    .setInput(input.getInput())
+                    .setWorkflowType(new WorkflowType().setName(input.getWorkflowType().getName()))
+                    .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
+                    .setRetryPolicy(startedEventAttributes.getRetryPolicy())
+                    .setRequestId(UUID.randomUUID().toString())
+                    .setIdentity(startedEventAttributes.getIdentity())
+                    .setMemo(startedEventAttributes.getMemo())
+                    .setCronSchedule(startedEventAttributes.getCronSchedule())
+                    .setHeader(startedEventAttributes.getHeader())
+                    .setSearchAttributes(startedEventAttributes.getSearchAttributes())
+                    .setExecutionStartToCloseTimeoutSeconds(
+                        startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
+                    .setTaskStartToCloseTimeoutSeconds(
+                        startedEventAttributes.getTaskStartToCloseTimeoutSeconds()));
+
+            // cancel current workflow
+            cancelCurrentWorkflow();
           } catch (ActivityException e) {
             // fallback if start workflow in new domain failed
             return next.executeWorkflow(workflowDefinition, input);
@@ -123,10 +134,27 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
     return new MigrationDecision(true, "");
   }
 
+  /**
+   * MigrationInterceptor intercepts continueAsNew method to migrate workflows that explicitly wants
+   * to continue as new.
+   *
+   * <p>Steps to migrate a continue-as-new workflow: 1. workflow execution is already finished and
+   * is about to continue as new 2.
+   *
+   * <p>NOTE: For cron workflows, this method will NOT be called but is handled by executeWorkflow
+   *
+   * <p>WARNING: Like cron-workflow migration, it's possible to have two continue-as-new workflows
+   * running in two domains if cancellation fails.
+   *
+   * @param workflowType
+   * @param options
+   * @param args
+   */
   @Override
   public void continueAsNew(
       Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
 
+    // Versioning to ensure replay is deterministic
     int version = getVersion(versionChangeID, Workflow.DEFAULT_VERSION, versionV1);
     switch (version) {
       case versionV1:
@@ -139,41 +167,31 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
         MigrationDecision decision =
             Workflow.sideEffect(MigrationDecision.class, () -> new MigrationDecision(true, ""));
         if (decision.shouldMigrate) {
-          StartWorkflowExecutionRequest request =
-              new StartWorkflowExecutionRequest()
-                  .setDomain(workflowInfo.getDomain())
-                  .setWorkflowId(workflowInfo.getWorkflowId())
-                  .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
-                  .setInput(workflowInfo.getDataConverter().toData(args))
-                  .setWorkflowType(
-                      new WorkflowType()
-                          .setName(startedEventAttributes.getWorkflowType().getName()))
-                  .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
-                  .setRetryPolicy(startedEventAttributes.getRetryPolicy())
-                  .setRequestId(UUID.randomUUID().toString())
-                  .setIdentity(startedEventAttributes.getIdentity())
-                  .setMemo(startedEventAttributes.getMemo())
-                  .setCronSchedule(startedEventAttributes.getCronSchedule())
-                  .setHeader(startedEventAttributes.getHeader())
-                  .setSearchAttributes(startedEventAttributes.getSearchAttributes())
-                  .setExecutionStartToCloseTimeoutSeconds(
-                      startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
-                  .setTaskStartToCloseTimeoutSeconds(
-                      startedEventAttributes.getTaskStartToCloseTimeoutSeconds());
-          ActivityOptions activityOptions =
-              new ActivityOptions.Builder()
-                  .setScheduleToCloseTimeout(Duration.ofSeconds(10))
-                  .setRetryOptions(new RetryOptions.Builder().build())
-                  .build();
-          MigrationActivities activities =
-              Workflow.newActivityStub(MigrationActivities.class, activityOptions);
           try {
-            MigrationActivities.StartNewWorkflowExecutionResponse response =
-                activities.startWorkflowInNewDomain(
-                    new MigrationActivities.StartNewWorkflowRequest());
-            // TODO: add metrics and logging
-            throw new CancellationException(
-                "cancel due to migration:" + response.response.toString());
+            MigrationActivities activities =
+                Workflow.newActivityStub(MigrationActivities.class, activityOptions);
+            activities.startWorkflowInNewDomain(
+                new StartWorkflowExecutionRequest()
+                    .setDomain(domainNew)
+                    .setWorkflowId(workflowInfo.getWorkflowId())
+                    .setTaskList(new TaskList().setName(startedEventAttributes.taskList.getName()))
+                    .setInput(workflowInfo.getDataConverter().toData(args))
+                    .setWorkflowType(
+                        new WorkflowType()
+                            .setName(startedEventAttributes.getWorkflowType().getName()))
+                    .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.TerminateIfRunning)
+                    .setRetryPolicy(startedEventAttributes.getRetryPolicy())
+                    .setRequestId(UUID.randomUUID().toString())
+                    .setIdentity(startedEventAttributes.getIdentity())
+                    .setMemo(startedEventAttributes.getMemo())
+                    .setCronSchedule(startedEventAttributes.getCronSchedule())
+                    .setHeader(startedEventAttributes.getHeader())
+                    .setSearchAttributes(startedEventAttributes.getSearchAttributes())
+                    .setExecutionStartToCloseTimeoutSeconds(
+                        startedEventAttributes.getExecutionStartToCloseTimeoutSeconds())
+                    .setTaskStartToCloseTimeoutSeconds(
+                        startedEventAttributes.getTaskStartToCloseTimeoutSeconds()));
+            cancelCurrentWorkflow();
           } catch (ActivityException e) {
             // fallback if start workflow in new domain failed
             next.continueAsNew(workflowType, options, args);
@@ -184,13 +202,31 @@ public class MigrationInterceptor extends WorkflowInterceptorBase {
     }
   }
 
-  public boolean isChildWorkflow(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
+  private boolean isChildWorkflow(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
     return startedEventAttributes.isSetParentWorkflowExecution()
         && !startedEventAttributes.getParentWorkflowExecution().isSetWorkflowId();
   }
 
-  public boolean isCronSchedule(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
-    return startedEventAttributes.isSetCronSchedule()
-        || !startedEventAttributes.cronSchedule.equals("");
+  private boolean isCronSchedule(WorkflowExecutionStartedEventAttributes startedEventAttributes) {
+    return !Strings.isNullOrEmpty(startedEventAttributes.cronSchedule);
+  }
+
+  private void cancelCurrentWorkflow() {
+    // a detached scope is needed otherwise there will be a race condition between
+    // completion of activity and the workflow cancellation event
+    WorkflowInfo workflowInfo = Workflow.getWorkflowInfo();
+    MigrationActivities activities =
+        Workflow.newActivityStub(MigrationActivities.class, activityOptions);
+    Workflow.newDetachedCancellationScope(
+            () -> {
+              activities.cancelWorkflowInCurrentDomain(
+                  new RequestCancelWorkflowExecutionRequest()
+                      .setDomain(workflowInfo.getDomain())
+                      .setWorkflowExecution(
+                          new WorkflowExecution()
+                              .setWorkflowId(workflowInfo.getWorkflowId())
+                              .setRunId(workflowInfo.getRunId())));
+            })
+        .run();
   }
 }
