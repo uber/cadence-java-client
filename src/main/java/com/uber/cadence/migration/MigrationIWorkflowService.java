@@ -36,7 +36,7 @@ public class MigrationIWorkflowService extends DummyIWorkflowService {
   private static final String _scanWorkflow = "_scanWorkflow";
   byte[] _marker = "to".getBytes();
 
-  MigrationIWorkflowService(
+  public MigrationIWorkflowService(
       IWorkflowService serviceOld,
       String domainOld,
       IWorkflowService serviceNew,
