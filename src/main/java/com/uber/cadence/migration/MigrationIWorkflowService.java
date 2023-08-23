@@ -17,11 +17,10 @@
 
 package com.uber.cadence.migration;
 
-
 import com.google.common.base.Strings;
 import com.uber.cadence.*;
-import com.uber.cadence.serviceclient.IWorkflowServiceBase;
 import com.uber.cadence.serviceclient.IWorkflowService;
+import com.uber.cadence.serviceclient.IWorkflowServiceBase;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -383,41 +382,41 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
   private Boolean shouldStartInNew(String workflowID) throws TException {
     try {
       return describeWorkflowExecution(serviceNew, domainNew, workflowID)
-              .thenCombine(
-                      describeWorkflowExecution(serviceOld, domainOld, workflowID),
-                      (respNew, respOld) ->
-                              respNew != null // execution already in new
-                                      || respOld == null // execution not exist in new and not exist in old
-                                      || (respOld.isSetWorkflowExecutionInfo()
-                                      && respOld
-                                      .getWorkflowExecutionInfo()
-                                      .isSetCloseStatus()) // execution not exist in new and execution is
-                      // closed in old
+          .thenCombine(
+              describeWorkflowExecution(serviceOld, domainOld, workflowID),
+              (respNew, respOld) ->
+                  respNew != null // execution already in new
+                      || respOld == null // execution not exist in new and not exist in old
+                      || (respOld.isSetWorkflowExecutionInfo()
+                          && respOld
+                              .getWorkflowExecutionInfo()
+                              .isSetCloseStatus()) // execution not exist in new and execution is
+              // closed in old
               )
-              .get();
+          .get();
     } catch (CompletionException e) {
       throw e.getCause() instanceof TException
-              ? (TException) e.getCause()
-              : new TException("unknown error: " + e.getMessage());
+          ? (TException) e.getCause()
+          : new TException("unknown error: " + e.getMessage());
     } catch (Exception e) {
       throw new TException("Unknown error: " + e.getMessage());
     }
   }
 
   private CompletableFuture<DescribeWorkflowExecutionResponse> describeWorkflowExecution(
-          IWorkflowService service, String domain, String workflowID) {
+      IWorkflowService service, String domain, String workflowID) {
     return CompletableFuture.supplyAsync(
-            () -> {
-              try {
-                return service.DescribeWorkflowExecution(
-                        new DescribeWorkflowExecutionRequest()
-                                .setDomain(domain)
-                                .setExecution(new WorkflowExecution().setWorkflowId(workflowID)));
-              } catch (EntityNotExistsError e) {
-                return null;
-              } catch (Exception e) {
-                throw new CompletionException(e);
-              }
-            });
+        () -> {
+          try {
+            return service.DescribeWorkflowExecution(
+                new DescribeWorkflowExecutionRequest()
+                    .setDomain(domain)
+                    .setExecution(new WorkflowExecution().setWorkflowId(workflowID)));
+          } catch (EntityNotExistsError e) {
+            return null;
+          } catch (Exception e) {
+            throw new CompletionException(e);
+          }
+        });
   }
 }

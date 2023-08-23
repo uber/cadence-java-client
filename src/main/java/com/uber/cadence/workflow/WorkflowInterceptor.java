@@ -35,10 +35,12 @@ import java.util.function.Supplier;
 public interface WorkflowInterceptor {
 
   public final class WorkflowExecuteInput {
+    private final WorkflowExecutionStartedEventAttributes workflowEventStart;
     private final WorkflowType workflowType;
     private final byte[] input;
 
     public WorkflowExecuteInput(WorkflowExecutionStartedEventAttributes workflowEventStart) {
+      this.workflowEventStart = workflowEventStart;
       this.workflowType = workflowEventStart.workflowType;
       this.input = workflowEventStart.getInput();
     }
@@ -49,6 +51,10 @@ public interface WorkflowInterceptor {
 
     public byte[] getInput() {
       return input;
+    }
+
+    public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
+      return workflowEventStart;
     }
   }
 
