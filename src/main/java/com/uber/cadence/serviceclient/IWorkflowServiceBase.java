@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 
-public class DummyIWorkflowService implements IWorkflowService {
+public class IWorkflowServiceBase implements IWorkflowService {
 
   @Override
   public void RegisterDomain(RegisterDomainRequest registerRequest)
