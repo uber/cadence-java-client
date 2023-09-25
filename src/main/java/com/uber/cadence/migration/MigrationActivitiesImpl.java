@@ -20,6 +20,7 @@ package com.uber.cadence.migration;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionResponse;
+import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.workflow.Workflow;
 
@@ -33,10 +34,12 @@ public class MigrationActivitiesImpl implements MigrationActivities {
   }
 
   @Override
-  public StartWorkflowExecutionResponse startWorkflowInNewDomain(
+  public StartWorkflowInNewResponse startWorkflowInNewDomain(
       StartWorkflowExecutionRequest request) {
     try {
-      return clientInNewDomain.getService().StartWorkflowExecution(request);
+      return new StartWorkflowInNewResponse(clientInNewDomain.getService().StartWorkflowExecution(request),"New workflow starting successful");
+    } catch (WorkflowExecutionAlreadyStartedError e) {
+      return new StartWorkflowInNewResponse(null,"Workflow already started");
     } catch (Exception e) {
       throw Workflow.wrap(e);
     }

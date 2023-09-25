@@ -24,7 +24,7 @@ import com.uber.cadence.activity.ActivityMethod;
 
 public interface MigrationActivities {
   @ActivityMethod
-  StartWorkflowExecutionResponse startWorkflowInNewDomain(StartWorkflowExecutionRequest request);
+  StartWorkflowInNewResponse startWorkflowInNewDomain(StartWorkflowExecutionRequest request);
 
   @ActivityMethod
   void cancelWorkflowInCurrentDomain(RequestCancelWorkflowExecutionRequest request);
