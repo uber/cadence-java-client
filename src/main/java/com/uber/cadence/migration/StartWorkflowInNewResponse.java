@@ -21,10 +21,10 @@ import com.uber.cadence.StartWorkflowExecutionResponse;
 
 public class StartWorkflowInNewResponse {
   StartWorkflowExecutionResponse startWorkflowExecutionResponse;
-  String message;
+  String status;
 
   StartWorkflowInNewResponse(StartWorkflowExecutionResponse startWorkflowResponse, String msg) {
     startWorkflowExecutionResponse = startWorkflowResponse;
-    message = msg;
+    status = msg;
   }
 }
