@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.10.1
+- Added case of workflow already started for migration
+
 ## 3.10.0
 - Added migrationIWorkflowService
 - Added migrationInterceptor
