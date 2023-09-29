@@ -69,7 +69,6 @@ dependencies {
     compile group: 'com.auth0', name: 'java-jwt', version:'3.10.2'
     compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.21.9'
     compile group: 'com.google.api.grpc', name: 'proto-google-common-protos', version: '2.10.0'
-    compile group: 'io.grpc', name: 'grpc-testing', version: '1.51.0'
     compile group: 'com.google.protobuf', name: 'protobuf-java-util', version: '3.21.9'
 
     implementation 'io.grpc:grpc-netty-shaded:1.28.0'
@@ -81,6 +80,7 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'com.googlecode.junit-toolbox', name: 'junit-toolbox', version: '2.4'
     testCompile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    testCompile group: 'io.grpc', name: 'grpc-testing', version: '1.51.0'
 }
 
 license {
