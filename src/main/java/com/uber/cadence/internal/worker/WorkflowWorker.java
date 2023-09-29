@@ -104,7 +104,12 @@ public final class WorkflowWorker extends SuspendableWorkerBase
           new Poller<>(
               options.getIdentity(),
               new WorkflowPollTask(
-                  service, domain, taskList, options.getMetricsScope(), options.getIdentity()),
+                  service,
+                  domain,
+                  taskList,
+                  TaskListKind.TASK_LIST_KIND_NORMAL,
+                  options.getMetricsScope(),
+                  options.getIdentity()),
               pollTaskExecutor,
               options.getPollerOptions(),
               options.getMetricsScope());
