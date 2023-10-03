@@ -74,7 +74,6 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     pollRequest.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
 
     TaskList tl = new TaskList().setName(taskList).setKind(taskListKind.toThrift());
-    tl.setName(taskList);
     pollRequest.setTaskList(tl);
 
     if (log.isDebugEnabled()) {
