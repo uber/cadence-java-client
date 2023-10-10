@@ -29,6 +29,7 @@ public class WorkflowPollTaskFactory
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
+  private final TaskListKind taskListKind;
   private final Scope metricScope;
   private final String identity;
 
@@ -36,17 +37,19 @@ public class WorkflowPollTaskFactory
       IWorkflowService service,
       String domain,
       String taskList,
+      TaskListKind taskListKind,
       Scope metricScope,
       String identity) {
     this.service = Objects.requireNonNull(service, "service should not be null");
     this.domain = Objects.requireNonNull(domain, "domain should not be null");
     this.taskList = Objects.requireNonNull(taskList, "taskList should not be null");
+    this.taskListKind = Objects.requireNonNull(taskListKind, "taskList should not be null");
     this.metricScope = Objects.requireNonNull(metricScope, "metricScope should not be null");
     this.identity = Objects.requireNonNull(identity, "identity should not be null");
   }
 
   @Override
   public Poller.PollTask<PollForDecisionTaskResponse> get() {
-    return new WorkflowPollTask(service, domain, taskList, metricScope, identity);
+    return new WorkflowPollTask(service, domain, taskList, taskListKind, metricScope, identity);
   }
 }
