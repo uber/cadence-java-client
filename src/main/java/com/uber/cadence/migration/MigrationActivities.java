@@ -19,13 +19,23 @@ package com.uber.cadence.migration;
 
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionRequest;
-import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.activity.ActivityMethod;
 
 public interface MigrationActivities {
+  /**
+   * Starts a new workflow execution in a new domain.
+   *
+   * @param request The request to start the workflow in new domain.
+   * @return A response indicating the status of the operation.
+   */
   @ActivityMethod
-  StartWorkflowExecutionResponse startWorkflowInNewDomain(StartWorkflowExecutionRequest request);
+  StartWorkflowInNewResponse startWorkflowInNewDomain(StartWorkflowExecutionRequest request);
 
+  /**
+   * Cancels a workflow execution in the current domain.
+   *
+   * @param request The request to cancel the workflow.
+   */
   @ActivityMethod
   void cancelWorkflowInCurrentDomain(RequestCancelWorkflowExecutionRequest request);
 }
