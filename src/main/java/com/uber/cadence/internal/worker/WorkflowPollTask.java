@@ -45,18 +45,21 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
+  private final TaskListKind taskListKind;
   private final String identity;
 
   WorkflowPollTask(
       IWorkflowService service,
       String domain,
       String taskList,
+      TaskListKind taskListKind,
       Scope metricScope,
       String identity) {
     this.identity = Objects.requireNonNull(identity);
     this.service = Objects.requireNonNull(service);
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
+    this.taskListKind = Objects.requireNonNull(taskListKind);
     this.metricScope = Objects.requireNonNull(metricScope);
   }
 
@@ -70,8 +73,7 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     pollRequest.setIdentity(identity);
     pollRequest.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
 
-    TaskList tl = new TaskList();
-    tl.setName(taskList);
+    TaskList tl = new TaskList().setName(taskList).setKind(taskListKind.toThrift());
     pollRequest.setTaskList(tl);
 
     if (log.isDebugEnabled()) {
