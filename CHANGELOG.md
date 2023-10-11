@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.10.1
+- Fixed the bug: workflow already started for migration
+
 ## 3.10.0
 - Added migrationIWorkflowService
 - Added migrationInterceptor
