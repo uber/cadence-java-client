@@ -2,6 +2,7 @@
 
 ## 3.10.1
 - Fixed the bug: workflow already started for migration
+- Populate tasklistkind in poll request
 
 ## 3.10.0
 - Added migrationIWorkflowService
