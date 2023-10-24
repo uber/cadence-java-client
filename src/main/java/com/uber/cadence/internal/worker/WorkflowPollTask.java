@@ -17,6 +17,9 @@
 
 package com.uber.cadence.internal.worker;
 
+import static com.uber.cadence.internal.metrics.MetricsTagValue.INTERNAL_SERVICE_ERROR;
+import static com.uber.cadence.internal.metrics.MetricsTagValue.SERVICE_BUSY;
+
 import com.uber.cadence.InternalServiceError;
 import com.uber.cadence.PollForDecisionTaskRequest;
 import com.uber.cadence.PollForDecisionTaskResponse;
@@ -42,18 +45,21 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
+  private final TaskListKind taskListKind;
   private final String identity;
 
   WorkflowPollTask(
       IWorkflowService service,
       String domain,
       String taskList,
+      TaskListKind taskListKind,
       Scope metricScope,
       String identity) {
     this.identity = Objects.requireNonNull(identity);
     this.service = Objects.requireNonNull(service);
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
+    this.taskListKind = Objects.requireNonNull(taskListKind);
     this.metricScope = Objects.requireNonNull(metricScope);
   }
 
@@ -67,8 +73,7 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     pollRequest.setIdentity(identity);
     pollRequest.setBinaryChecksum(BinaryChecksum.getBinaryChecksum());
 
-    TaskList tl = new TaskList();
-    tl.setName(taskList);
+    TaskList tl = new TaskList().setName(taskList).setKind(taskListKind.toThrift());
     pollRequest.setTaskList(tl);
 
     if (log.isDebugEnabled()) {
@@ -77,8 +82,17 @@ final class WorkflowPollTask implements Poller.PollTask<PollForDecisionTaskRespo
     PollForDecisionTaskResponse result;
     try {
       result = service.PollForDecisionTask(pollRequest);
-    } catch (InternalServiceError | ServiceBusyError e) {
-      metricScope.counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER).inc(1);
+    } catch (InternalServiceError e) {
+      metricScope
+          .tagged(ImmutableMap.of(MetricsTag.CAUSE, INTERNAL_SERVICE_ERROR))
+          .counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER)
+          .inc(1);
+      throw e;
+    } catch (ServiceBusyError e) {
+      metricScope
+          .tagged(ImmutableMap.of(MetricsTag.CAUSE, SERVICE_BUSY))
+          .counter(MetricsType.DECISION_POLL_TRANSIENT_FAILED_COUNTER)
+          .inc(1);
       throw e;
     } catch (TException e) {
       metricScope.counter(MetricsType.DECISION_POLL_FAILED_COUNTER).inc(1);

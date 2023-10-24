@@ -15,11 +15,19 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.metrics;
+package com.uber.cadence.internal.worker;
 
-public class MetricsTagValue {
-  public static final String REQUEST_TYPE_NORMAL = "normal";
-  public static final String REQUEST_TYPE_LONG_POLL = "long-poll";
-  public static final String SERVICE_BUSY = "serviceBusy";
-  public static final String INTERNAL_SERVICE_ERROR = "internalServiceError";
+public enum TaskListKind {
+  TASK_LIST_KIND_NORMAL(0),
+  TASK_LIST_KIND_STICKY(1);
+
+  private final int value;
+
+  TaskListKind(int value) {
+    this.value = value;
+  }
+
+  public com.uber.cadence.TaskListKind toThrift() {
+    return com.uber.cadence.TaskListKind.findByValue(this.value);
+  }
 }

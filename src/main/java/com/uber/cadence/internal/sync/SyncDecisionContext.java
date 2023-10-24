@@ -40,6 +40,7 @@ import com.uber.cadence.internal.replay.ExecuteActivityParameters;
 import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
 import com.uber.cadence.workflow.ActivityTimeoutException;
@@ -88,13 +89,15 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final WorkflowTimers timers = new WorkflowTimers();
   private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
   private final byte[] lastCompletionResult;
+  private final WorkflowImplementationOptions workflowImplementationOptions;
 
   public SyncDecisionContext(
       DecisionContext context,
       DataConverter converter,
       List<ContextPropagator> contextPropagators,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      byte[] lastCompletionResult) {
+      byte[] lastCompletionResult,
+      WorkflowImplementationOptions workflowImplementationOptions) {
     this.context = context;
     this.converter = converter;
     this.contextPropagators = contextPropagators;
@@ -105,6 +108,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     }
     this.headInterceptor = interceptor;
     this.lastCompletionResult = lastCompletionResult;
+    this.workflowImplementationOptions = workflowImplementationOptions;
   }
 
   /**
@@ -121,6 +125,12 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
   public WorkflowInterceptor getWorkflowInterceptor() {
     return headInterceptor;
+  }
+
+  @Override
+  public byte[] executeWorkflow(
+      SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
+    return workflowDefinition.execute(input.getInput());
   }
 
   @Override
@@ -763,5 +773,9 @@ final class SyncDecisionContext implements WorkflowInterceptor {
 
     SearchAttributes attr = InternalUtils.convertMapToSearchAttributes(searchAttributes);
     context.upsertSearchAttributes(attr);
+  }
+
+  public WorkflowImplementationOptions getWorkflowImplementationOptions() {
+    return workflowImplementationOptions;
   }
 }

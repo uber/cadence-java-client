@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.metrics;
 
 import com.uber.cadence.internal.replay.ReplayAware;
-import com.uber.m3.tally.Buckets;
 import com.uber.m3.tally.Capabilities;
 import com.uber.m3.tally.Counter;
 import com.uber.m3.tally.Gauge;
@@ -173,7 +172,8 @@ public class ReplayAwareScope implements Scope {
   }
 
   @Override
-  public Histogram histogram(String name, Buckets buckets) {
+  @SuppressWarnings("deprecation")
+  public Histogram histogram(String name, com.uber.m3.tally.Buckets buckets) {
     return new ReplayAwareHistogram(scope.histogram(name, buckets));
   }
 

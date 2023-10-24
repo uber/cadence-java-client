@@ -19,6 +19,7 @@ package com.uber.cadence.converter;
 
 import static org.junit.Assert.*;
 
+import com.google.gson.JsonIOException;
 import com.uber.cadence.EventType;
 import com.uber.cadence.History;
 import com.uber.cadence.HistoryEvent;
@@ -262,7 +263,7 @@ public class JsonDataConverterTest {
     assertNotNull(causeFromConverted);
     assertEquals(DataConverterException.class, causeFromConverted.getClass());
     assertNotNull(causeFromConverted.getCause());
-    assertEquals(IllegalArgumentException.class, causeFromConverted.getCause().getClass());
+    assertEquals(JsonIOException.class, causeFromConverted.getCause().getClass());
 
     assertNotNull(causeFromConverted.getSuppressed());
     assertEquals(1, causeFromConverted.getSuppressed().length);

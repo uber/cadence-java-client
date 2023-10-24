@@ -24,6 +24,7 @@ import com.uber.cadence.workflow.ActivityStub;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.function.Function;
 
 class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
@@ -43,9 +44,32 @@ class ActivityInvocationHandler extends ActivityInvocationHandlerBase {
   @Override
   protected Function<Object[], Object> getActivityFunc(
       Method method, MethodRetry methodRetry, ActivityMethod activityMethod, String activityName) {
+
+    ActivityOptions activityOptionsOverride = null;
+    WorkflowThread workflowThread = WorkflowInternal.getRootWorkflowContext();
+    if (workflowThread.getDecisionContext() != null
+        && workflowThread.getDecisionContext().getWorkflowImplementationOptions() != null) {
+      Map<String, ActivityOptions> activityOptionsMap =
+          workflowThread
+              .getDecisionContext()
+              .getWorkflowImplementationOptions()
+              .getActivityOptions();
+
+      if (activityOptionsMap.containsKey(activityName)) {
+        activityOptionsOverride = activityOptionsMap.get(activityName);
+      }
+    }
+
     Function<Object[], Object> function;
     ActivityOptions mergedOptions = ActivityOptions.merge(activityMethod, methodRetry, options);
-    ActivityStub stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
+    ActivityStub stub;
+    if (activityOptionsOverride == null) {
+      stub = ActivityStubImpl.newInstance(mergedOptions, activityExecutor);
+    } else {
+      ActivityOptions mergedOverrideOptions =
+          ActivityOptions.merge(activityMethod, methodRetry, activityOptionsOverride);
+      stub = ActivityStubImpl.newInstance(mergedOverrideOptions, activityExecutor);
+    }
 
     function =
         (a) -> stub.execute(activityName, method.getReturnType(), method.getGenericReturnType(), a);

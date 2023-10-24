@@ -15,11 +15,22 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.metrics;
+package com.uber.cadence.migration;
 
-public class MetricsTagValue {
-  public static final String REQUEST_TYPE_NORMAL = "normal";
-  public static final String REQUEST_TYPE_LONG_POLL = "long-poll";
-  public static final String SERVICE_BUSY = "serviceBusy";
-  public static final String INTERNAL_SERVICE_ERROR = "internalServiceError";
+import com.uber.cadence.client.WorkflowClient;
+import com.uber.cadence.workflow.WorkflowInterceptor;
+import java.util.function.Function;
+
+public class MigrationInterceptorFactory
+    implements Function<WorkflowInterceptor, WorkflowInterceptor> {
+  private final WorkflowClient clientInNewDomain;
+
+  public MigrationInterceptorFactory(WorkflowClient clientInNewDomain) {
+    this.clientInNewDomain = clientInNewDomain;
+  }
+
+  @Override
+  public WorkflowInterceptor apply(WorkflowInterceptor next) {
+    return new MigrationInterceptor(next, this.clientInNewDomain);
+  }
 }

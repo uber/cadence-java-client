@@ -15,11 +15,16 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.metrics;
+package com.uber.cadence.migration;
 
-public class MetricsTagValue {
-  public static final String REQUEST_TYPE_NORMAL = "normal";
-  public static final String REQUEST_TYPE_LONG_POLL = "long-poll";
-  public static final String SERVICE_BUSY = "serviceBusy";
-  public static final String INTERNAL_SERVICE_ERROR = "internalServiceError";
+import com.uber.cadence.StartWorkflowExecutionResponse;
+
+public class StartWorkflowInNewResponse {
+  StartWorkflowExecutionResponse startWorkflowExecutionResponse;
+  String status;
+
+  StartWorkflowInNewResponse(StartWorkflowExecutionResponse startWorkflowResponse, String msg) {
+    startWorkflowExecutionResponse = startWorkflowResponse;
+    status = msg;
+  }
 }

@@ -15,11 +15,18 @@
  *  permissions and limitations under the License.
  */
 
-package com.uber.cadence.internal.metrics;
+package com.uber.cadence.internal.worker;
 
-public class MetricsTagValue {
-  public static final String REQUEST_TYPE_NORMAL = "normal";
-  public static final String REQUEST_TYPE_LONG_POLL = "long-poll";
-  public static final String SERVICE_BUSY = "serviceBusy";
-  public static final String INTERNAL_SERVICE_ERROR = "internalServiceError";
+import static junit.framework.TestCase.*;
+
+import org.junit.Test;
+
+public class TaskListKindTest {
+  @Test
+  public void toThrift() {
+    assertEquals(
+        TaskListKind.TASK_LIST_KIND_NORMAL.toThrift(), com.uber.cadence.TaskListKind.NORMAL);
+    assertEquals(
+        TaskListKind.TASK_LIST_KIND_STICKY.toThrift(), com.uber.cadence.TaskListKind.STICKY);
+  }
 }

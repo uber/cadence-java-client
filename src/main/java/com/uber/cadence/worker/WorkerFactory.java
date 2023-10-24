@@ -27,11 +27,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.replay.DeciderCache;
-import com.uber.cadence.internal.worker.PollDecisionTaskDispatcher;
-import com.uber.cadence.internal.worker.Poller;
-import com.uber.cadence.internal.worker.PollerOptions;
-import com.uber.cadence.internal.worker.WorkerShutDownHandler;
-import com.uber.cadence.internal.worker.WorkflowPollTaskFactory;
+import com.uber.cadence.internal.worker.*;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
 import java.net.InetAddress;
@@ -131,6 +127,7 @@ public final class WorkerFactory {
                     workflowClient.getService(),
                     workflowClient.getOptions().getDomain(),
                     getStickyTaskListName(),
+                    TaskListKind.TASK_LIST_KIND_STICKY,
                     stickyScope,
                     workflowClient.getOptions().getIdentity())
                 .get(),
@@ -199,7 +196,7 @@ public final class WorkerFactory {
             statusErrorMessage,
             "start WorkerFactory",
             state.name(),
-            String.format("%s, %s", State.Initial.name(), State.Initial.name())));
+            String.format("%s, %s", State.Initial.name(), State.Started.name())));
     if (state == State.Started) {
       return;
     }

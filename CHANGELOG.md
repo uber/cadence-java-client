@@ -1,4 +1,34 @@
 # Changelog
+
+## 3.10.1
+- Fixed the bug: workflow already started for migration
+- Populate tasklistkind in poll request
+
+## 3.10.0
+- Added migrationIWorkflowService
+- Added migrationInterceptor
+- Moved out TracingInterceptor from WorkflowTest to a separate package
+
+## 3.9.1
+- Added initialization of contextPropagators from passed options
+- Updated rpc-caller header of grpc
+
+## 3.9.0
+### Added
+- Add ability to override activity options
+- Add executeWorkflow method to WorkflowInterceptor
+- Add isolation group to service client options so that requests are populated with isolation group header
+- Add cause tag for transient poll failures
+- Add workflow start event and data converter to workflow info
+### Changed
+- Update dependencies
+- Remove unused code
+- Remove reflective objects exception due to failing builds
+- Fix the gradle project for M1 macs
+- Add cronschedule to history start event and fix isCron check of listworkflow for test env
+
+## 3.8.1
+- remove opentelemetry-bom dependency.
 ## 3.8.0
 - Graceful shutdown based on sigterm handler
 - Adding cross domain signal/child workflow creation support

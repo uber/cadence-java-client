@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 
 import com.uber.cadence.internal.metrics.ReplayAwareScope;
 import com.uber.cadence.internal.replay.ReplayAware;
-import com.uber.m3.tally.Buckets;
 import com.uber.m3.tally.Counter;
 import com.uber.m3.tally.Gauge;
 import com.uber.m3.tally.Histogram;
@@ -60,11 +59,10 @@ public class ReplayAwareScopeTest {
     Timer timer = mock(Timer.class);
     Histogram histogram = mock(Histogram.class);
 
-    Buckets buckets = ValueBuckets.linear(0, 10, 10);
     when(scope.counter("test-counter")).thenReturn(counter);
     when(scope.gauge("test-gauge")).thenReturn(gauge);
     when(scope.timer("test-timer")).thenReturn(timer);
-    when(scope.histogram("test-histogram", buckets)).thenReturn(histogram);
+    when(scope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10))).thenReturn(histogram);
 
     TestContext context = new TestContext(true);
     Scope replayAwareScope = new ReplayAwareScope(scope, context, System::currentTimeMillis);
@@ -72,8 +70,10 @@ public class ReplayAwareScopeTest {
     replayAwareScope.counter("test-counter").inc(1);
     replayAwareScope.gauge("test-gauge").update(100.0);
     replayAwareScope.timer("test-timer").record(Duration.ofMillis(100));
-    replayAwareScope.histogram("test-histogram", buckets).recordValue(10);
-    replayAwareScope.histogram("test-histogram", buckets).recordDuration(Duration.ofHours(1));
+    replayAwareScope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10)).recordValue(10);
+    replayAwareScope
+        .histogram("test-histogram", ValueBuckets.linear(0, 10, 10))
+        .recordDuration(Duration.ofHours(1));
 
     verify(counter, never()).inc(1);
     verify(gauge, never()).update(100.0);
@@ -90,11 +90,10 @@ public class ReplayAwareScopeTest {
     Timer timer = mock(Timer.class);
     Histogram histogram = mock(Histogram.class);
 
-    Buckets buckets = ValueBuckets.linear(0, 10, 10);
     when(scope.counter("test-counter")).thenReturn(counter);
     when(scope.gauge("test-gauge")).thenReturn(gauge);
     when(scope.timer("test-timer")).thenReturn(timer);
-    when(scope.histogram("test-histogram", buckets)).thenReturn(histogram);
+    when(scope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10))).thenReturn(histogram);
 
     TestContext context = new TestContext(false);
     Scope replayAwareScope = new ReplayAwareScope(scope, context, System::currentTimeMillis);
@@ -102,8 +101,10 @@ public class ReplayAwareScopeTest {
     replayAwareScope.counter("test-counter").inc(1);
     replayAwareScope.gauge("test-gauge").update(100.0);
     replayAwareScope.timer("test-timer").record(Duration.ofMillis(100));
-    replayAwareScope.histogram("test-histogram", buckets).recordValue(10);
-    replayAwareScope.histogram("test-histogram", buckets).recordDuration(Duration.ofHours(1));
+    replayAwareScope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10)).recordValue(10);
+    replayAwareScope
+        .histogram("test-histogram", ValueBuckets.linear(0, 10, 10))
+        .recordDuration(Duration.ofHours(1));
 
     verify(counter, times(1)).inc(1);
     verify(gauge, times(1)).update(100.0);
@@ -131,9 +132,8 @@ public class ReplayAwareScopeTest {
     Timer timer = mock(Timer.class);
     Histogram histogram = mock(Histogram.class);
 
-    Buckets buckets = ValueBuckets.linear(0, 10, 10);
     when(scope.timer("test-timer")).thenReturn(timer);
-    when(scope.histogram("test-histogram", buckets)).thenReturn(histogram);
+    when(scope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10))).thenReturn(histogram);
 
     TestContext context = new TestContext(false);
     TestClock clock = new TestClock();
@@ -143,7 +143,7 @@ public class ReplayAwareScopeTest {
     clock.setTime(100);
     sw.stop();
 
-    sw = replayAwareScope.histogram("test-histogram", buckets).start();
+    sw = replayAwareScope.histogram("test-histogram", ValueBuckets.linear(0, 10, 10)).start();
     clock.setTime(150);
     sw.stop();
 

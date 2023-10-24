@@ -71,8 +71,7 @@ import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.testing.WorkflowReplayer;
 import com.uber.cadence.worker.*;
-import com.uber.cadence.workflow.Functions.Func;
-import com.uber.cadence.workflow.Functions.Func1;
+import com.uber.cadence.workflow.interceptors.TracingWorkflowInterceptorFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -80,7 +79,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
-import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -112,9 +110,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -358,6 +353,15 @@ public class WorkflowTest {
     }
   }
 
+  private void startWorkerFor(WorkflowImplementationOptions options, Class<?>... workflowTypes) {
+    worker.registerWorkflowImplementationTypes(options, workflowTypes);
+    if (useExternalService) {
+      workerFactory.start();
+    } else {
+      testEnvironment.start();
+    }
+  }
+
   // TODO: Refactor testEnvironment to support testing through real service to avoid this
   // conditional switches
   void registerDelayedCallback(Duration delay, Runnable r) {
@@ -460,6 +464,16 @@ public class WorkflowTest {
     }
   }
 
+  public static class TestWorkflowActivityOptionOverride implements TestWorkflow1 {
+
+    @Override
+    public String execute(String taskList) {
+      TestActivities activities = Workflow.newActivityStub(TestActivities.class);
+
+      return activities.timeOutActivity();
+    }
+  }
+
   public static class TestSyncWorkflowImpl implements TestWorkflow1 {
 
     @Override
@@ -484,6 +498,7 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("activity10", result);
     tracer.setExpected(
+        "executeWorkflow: TestWorkflow1::execute",
         "sleep PT2S",
         "executeActivity TestActivities::activityWithDelay",
         "executeActivity TestActivities::activity2");
@@ -1257,7 +1272,16 @@ public class WorkflowTest {
             TestContinueAsNew.class, newWorkflowOptionsBuilder(this.taskList).build());
     int result = client.execute(4, continuedTaskList);
     assertEquals(111, result);
-    tracer.setExpected("continueAsNew", "continueAsNew", "continueAsNew", "continueAsNew");
+    tracer.setExpected(
+        "executeWorkflow: TestContinueAsNew::execute",
+        "continueAsNew",
+        "executeWorkflow: TestContinueAsNew::execute",
+        "continueAsNew",
+        "executeWorkflow: TestContinueAsNew::execute",
+        "continueAsNew",
+        "executeWorkflow: TestContinueAsNew::execute",
+        "continueAsNew",
+        "executeWorkflow: TestContinueAsNew::execute");
   }
 
   public static class TestAsyncActivityWorkflowImpl implements TestWorkflow1 {
@@ -2137,10 +2161,18 @@ public class WorkflowTest {
     assertEquals("testTimer", result);
     if (useExternalService) {
       tracer.setExpected(
-          "registerQuery getTrace", "newTimer PT0.7S", "newTimer PT1.3S", "newTimer PT10S");
+          "executeWorkflow: testActivity",
+          "registerQuery getTrace",
+          "newTimer PT0.7S",
+          "newTimer PT1.3S",
+          "newTimer PT10S");
     } else {
       tracer.setExpected(
-          "registerQuery getTrace", "newTimer PT11M40S", "newTimer PT21M40S", "newTimer PT10H");
+          "executeWorkflow: testActivity",
+          "registerQuery getTrace",
+          "newTimer PT11M40S",
+          "newTimer PT21M40S",
+          "newTimer PT10H");
     }
   }
 
@@ -3306,7 +3338,9 @@ public class WorkflowTest {
         workflowClient.newWorkflowStub(TestWorkflowSignaled.class, options.build());
     assertEquals("Hello World!", client.execute());
     tracer.setExpected(
+        "executeWorkflow: TestWorkflowSignaled::execute",
         "executeChildWorkflow SignalingChild::execute",
+        "executeWorkflow: SignalingChild::execute",
         "signalExternalWorkflow " + UUID_REGEXP + " testSignal");
   }
 
@@ -3971,6 +4005,9 @@ public class WorkflowTest {
 
     void neverComplete();
 
+    @ActivityMethod(startToCloseTimeoutSeconds = 1, scheduleToCloseTimeoutSeconds = 1)
+    String timeOutActivity();
+
     @ActivityMethod(
       scheduleToStartTimeoutSeconds = 5,
       scheduleToCloseTimeoutSeconds = 5,
@@ -4051,6 +4088,7 @@ public class WorkflowTest {
 
     @Override
     public String activity() {
+
       invocations.add("activity");
       return "activity";
     }
@@ -4182,6 +4220,17 @@ public class WorkflowTest {
     public void neverComplete() {
       invocations.add("neverComplete");
       Activity.doNotCompleteOnReturn(); // Simulate activity timeout
+    }
+
+    @Override
+    public String timeOutActivity() {
+      try {
+        Thread.sleep(2000);
+      } catch (InterruptedException e) {
+        return "activityWasInterrupted";
+      }
+
+      return "activityCompletedSuccessfully";
     }
 
     @Override
@@ -4465,7 +4514,11 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("activity1", result);
-    tracer.setExpected("sideEffect", "sleep PT1S", "executeActivity customActivity1");
+    tracer.setExpected(
+        "executeWorkflow: TestWorkflow1::execute",
+        "sideEffect",
+        "sleep PT1S",
+        "executeActivity customActivity1");
   }
 
   private static final Map<String, Queue<Long>> mutableSideEffectValue =
@@ -4561,6 +4614,7 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("activity22activity1activity1activity1", result);
     tracer.setExpected(
+        "executeWorkflow: TestWorkflow1::execute",
         "getVersion",
         "executeActivity TestActivities::activity2",
         "getVersion",
@@ -4731,6 +4785,7 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("activity22activity", result);
     tracer.setExpected(
+        "executeWorkflow: TestWorkflowQuery::execute",
         "registerQuery TestWorkflowQuery::query",
         "getVersion",
         "executeActivity TestActivities::activity2",
@@ -4775,6 +4830,7 @@ public class WorkflowTest {
     String result = workflowStub.execute(taskList);
     assertEquals("activity", result);
     tracer.setExpected(
+        "executeWorkflow: TestWorkflowQuery::execute",
         "registerQuery TestWorkflowQuery::query",
         "getVersion",
         "getVersion",
@@ -4810,7 +4866,8 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("done", result);
-    tracer.setExpected("getVersion", "upsertSearchAttributes");
+    tracer.setExpected(
+        "executeWorkflow: TestWorkflow1::execute", "getVersion", "upsertSearchAttributes");
   }
 
   public static class TestVersionNotSupportedWorkflowImpl implements TestWorkflow1 {
@@ -5019,37 +5076,6 @@ public class WorkflowTest {
     }
   }
 
-  private static class TracingWorkflowInterceptorFactory
-      implements Function<WorkflowInterceptor, WorkflowInterceptor> {
-
-    private final FilteredTrace trace = new FilteredTrace();
-    private List<String> expected;
-
-    @Override
-    public WorkflowInterceptor apply(WorkflowInterceptor next) {
-      return new TracingWorkflowInterceptor(trace, next);
-    }
-
-    public String getTrace() {
-      return String.join("\n", trace.getImpl());
-    }
-
-    public void setExpected(String... expected) {
-      this.expected = Arrays.asList(expected);
-    }
-
-    public void assertExpected() {
-      if (expected != null) {
-        List<String> traceElements = trace.getImpl();
-        for (int i = 0; i < traceElements.size(); i++) {
-          String t = traceElements.get(i);
-          String expectedRegExp = expected.get(i);
-          Assert.assertTrue(t + " doesn't match " + expectedRegExp, t.matches(expectedRegExp));
-        }
-      }
-    }
-  }
-
   public static class TestUUIDAndRandom implements TestWorkflow1 {
 
     @Override
@@ -5079,7 +5105,11 @@ public class WorkflowTest {
             TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
     String result = workflowStub.execute(taskList);
     assertEquals("foo10", result);
-    tracer.setExpected("sideEffect", "sideEffect", "executeActivity TestActivities::activity2");
+    tracer.setExpected(
+        "executeWorkflow: TestWorkflow1::execute",
+        "sideEffect",
+        "sideEffect",
+        "executeActivity TestActivities::activity2");
   }
 
   public interface GenericParametersActivity {
@@ -5819,23 +5849,6 @@ public class WorkflowTest {
         "timerfiring.json", TimerFiringWorkflowImpl.class);
   }
 
-  private static class FilteredTrace {
-
-    private final List<String> impl = Collections.synchronizedList(new ArrayList<>());
-
-    public boolean add(String s) {
-      log.trace("FilteredTrace isReplaying=" + Workflow.isReplaying());
-      if (!Workflow.isReplaying()) {
-        return impl.add(s);
-      }
-      return true;
-    }
-
-    List<String> getImpl() {
-      return impl;
-    }
-  }
-
   public interface TestCompensationWorkflow {
     @WorkflowMethod
     void compensate();
@@ -5907,10 +5920,13 @@ public class WorkflowTest {
             TestSagaWorkflow.class, newWorkflowOptionsBuilder(taskList).build());
     sagaWorkflow.execute(taskList, false);
     tracer.setExpected(
+        "executeWorkflow: TestSagaWorkflow::execute",
         "executeActivity customActivity1",
         "executeChildWorkflow TestMultiargsWorkflowsFunc::func",
+        "executeWorkflow: TestMultiargsWorkflowsFunc::func",
         "executeActivity TestActivities::throwIO",
         "executeChildWorkflow TestCompensationWorkflow::compensate",
+        "executeWorkflow: TestCompensationWorkflow::compensate",
         "executeActivity TestActivities::activity2");
   }
 
@@ -6028,7 +6044,10 @@ public class WorkflowTest {
             TestUpsertSearchAttributes.class, newWorkflowOptionsBuilder(taskList).build());
     String result = testWorkflow.execute(taskList, "testKey");
     assertEquals("done", result);
-    tracer.setExpected("upsertSearchAttributes", "executeActivity TestActivities::activity");
+    tracer.setExpected(
+        "executeWorkflow: TestUpsertSearchAttributes::execute",
+        "upsertSearchAttributes",
+        "executeActivity TestActivities::activity");
   }
 
   public static class TestMultiargsWorkflowsFuncChild implements TestMultiargsWorkflowsFunc2 {
@@ -6072,144 +6091,6 @@ public class WorkflowTest {
     String result = parent.func();
     String expected = String.format("%s - %s", null, workflowId);
     assertEquals(expected, result);
-  }
-
-  private static class TracingWorkflowInterceptor implements WorkflowInterceptor {
-
-    private final FilteredTrace trace;
-    private final WorkflowInterceptor next;
-
-    private TracingWorkflowInterceptor(FilteredTrace trace, WorkflowInterceptor next) {
-      this.trace = trace;
-      this.next = Objects.requireNonNull(next);
-    }
-
-    @Override
-    public <R> Promise<R> executeActivity(
-        String activityName,
-        Class<R> resultClass,
-        Type resultType,
-        Object[] args,
-        ActivityOptions options) {
-      trace.add("executeActivity " + activityName);
-      return next.executeActivity(activityName, resultClass, resultType, args, options);
-    }
-
-    @Override
-    public <R> Promise<R> executeLocalActivity(
-        String activityName,
-        Class<R> resultClass,
-        Type resultType,
-        Object[] args,
-        LocalActivityOptions options) {
-      trace.add("executeLocalActivity " + activityName);
-      return next.executeLocalActivity(activityName, resultClass, resultType, args, options);
-    }
-
-    @Override
-    public <R> WorkflowResult<R> executeChildWorkflow(
-        String workflowType,
-        Class<R> resultClass,
-        Type resultType,
-        Object[] args,
-        ChildWorkflowOptions options) {
-      trace.add("executeChildWorkflow " + workflowType);
-      return next.executeChildWorkflow(workflowType, resultClass, resultType, args, options);
-    }
-
-    @Override
-    public Random newRandom() {
-      trace.add("newRandom");
-      return next.newRandom();
-    }
-
-    @Override
-    public Promise<Void> signalExternalWorkflow(
-        String domain, WorkflowExecution execution, String signalName, Object[] args) {
-      trace.add("signalExternalWorkflow " + execution.getWorkflowId() + " " + signalName);
-      return next.signalExternalWorkflow(domain, execution, signalName, args);
-    }
-
-    @Override
-    public Promise<Void> signalExternalWorkflow(
-        WorkflowExecution execution, String signalName, Object[] args) {
-      trace.add("signalExternalWorkflow " + execution.getWorkflowId() + " " + signalName);
-      return next.signalExternalWorkflow(execution, signalName, args);
-    }
-
-    @Override
-    public Promise<Void> cancelWorkflow(WorkflowExecution execution) {
-      trace.add("cancelWorkflow " + execution.getWorkflowId());
-      return next.cancelWorkflow(execution);
-    }
-
-    @Override
-    public void sleep(Duration duration) {
-      trace.add("sleep " + duration);
-      next.sleep(duration);
-    }
-
-    @Override
-    public boolean await(Duration timeout, String reason, Supplier<Boolean> unblockCondition) {
-      trace.add("await " + timeout + " " + reason);
-      return next.await(timeout, reason, unblockCondition);
-    }
-
-    @Override
-    public void await(String reason, Supplier<Boolean> unblockCondition) {
-      trace.add("await " + reason);
-      next.await(reason, unblockCondition);
-    }
-
-    @Override
-    public Promise<Void> newTimer(Duration duration) {
-      trace.add("newTimer " + duration);
-      return next.newTimer(duration);
-    }
-
-    @Override
-    public <R> R sideEffect(Class<R> resultClass, Type resultType, Func<R> func) {
-      trace.add("sideEffect");
-      return next.sideEffect(resultClass, resultType, func);
-    }
-
-    @Override
-    public <R> R mutableSideEffect(
-        String id, Class<R> resultClass, Type resultType, BiPredicate<R, R> updated, Func<R> func) {
-      trace.add("mutableSideEffect");
-      return next.mutableSideEffect(id, resultClass, resultType, updated, func);
-    }
-
-    @Override
-    public int getVersion(String changeID, int minSupported, int maxSupported) {
-      trace.add("getVersion");
-      return next.getVersion(changeID, minSupported, maxSupported);
-    }
-
-    @Override
-    public void continueAsNew(
-        Optional<String> workflowType, Optional<ContinueAsNewOptions> options, Object[] args) {
-      trace.add("continueAsNew");
-      next.continueAsNew(workflowType, options, args);
-    }
-
-    @Override
-    public void registerQuery(String queryType, Type[] argTypes, Func1<Object[], Object> callback) {
-      trace.add("registerQuery " + queryType);
-      next.registerQuery(queryType, argTypes, callback);
-    }
-
-    @Override
-    public UUID randomUUID() {
-      trace.add("randomUUID");
-      return next.randomUUID();
-    }
-
-    @Override
-    public void upsertSearchAttributes(Map<String, Object> searchAttributes) {
-      trace.add("upsertSearchAttributes");
-      next.upsertSearchAttributes(searchAttributes);
-    }
   }
 
   public static class TestGetVersionWorkflowRetryImpl implements TestWorkflow3 {
@@ -6279,5 +6160,43 @@ public class WorkflowTest {
 
     WorkflowReplayer.replayWorkflowExecutionFromResource(
         "testGetVersionWithRetryHistory.json", TestGetVersionWorkflowRetryImpl.class);
+  }
+
+  @Test(expected = ExecutionException.class)
+  public void testWorkflowTimesOutWhenNoOverridesProvided() throws Exception {
+    startWorkerFor(TestWorkflowActivityOptionOverride.class);
+
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    // Activity doesn't timeout because we overrode the timeouts to be longer.
+    assertEquals("activityCompletedSuccessfully", result.get());
+  }
+
+  @Test
+  public void testActivityDoesntTimeoutWhenTimeoutsAreLonger() throws Exception {
+    Map<String, ActivityOptions> activityOptionsMap = new HashMap<>();
+    activityOptionsMap.put(
+        "TestActivities::timeOutActivity",
+        new ActivityOptions.Builder()
+            .setScheduleToCloseTimeout(Duration.ofSeconds(3))
+            .setStartToCloseTimeout(Duration.ofSeconds(3))
+            .build());
+
+    startWorkerFor(
+        new WorkflowImplementationOptions.Builder()
+            .setActivityOptionOverrides(activityOptionsMap)
+            .build(),
+        TestWorkflowActivityOptionOverride.class);
+
+    TestWorkflow1 workflowStub =
+        workflowClient.newWorkflowStub(
+            TestWorkflow1.class, newWorkflowOptionsBuilder(taskList).build());
+
+    CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
+    // Activity doesn't timeout because we overrode the timeouts to be longer.
+    assertEquals("activityCompletedSuccessfully", result.get());
   }
 }

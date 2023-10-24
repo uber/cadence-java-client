@@ -163,6 +163,20 @@ import java.util.Optional;
  *     }
  * </code></pre>
  *
+ * <p>Caution: since using this sometimes implies "long" timeouts, activity-worker losses prior to
+ * recording the {@link Activity#getTaskToken()} in an external system (or prior to another thread
+ * calling it) may not be noticed until the "long" timeout occurs. This can be resolved by having
+ * another system call {@link com.uber.cadence.client.ActivityCompletionClient#heartbeat(byte[],
+ * Object)} while that external action is running, but there is currently no way to mitigate this
+ * issue without these heartbeats. For in-process-only async completion, relying on heartbeating is
+ * safe and reliable because these heartbeats should occur as long as the process / background
+ * thread is still running.
+ *
+ * <p>If you cannot heartbeat and cannot tolerate this kind of delayed-activity-loss detection,
+ * consider emulating a long activity via a signal channel instead: you can start a short-lived
+ * activity and wait for a "saved to external system" signal, retrying as necessary, and then wait
+ * for an "external system finished" signal containing the final result.
+ *
  * <h3>Activity Heartbeating</h3>
  *
  * <p>Some activities are long running. To react to their crashes quickly, use a heartbeat
@@ -201,9 +215,23 @@ import java.util.Optional;
 public final class Activity {
 
   /**
-   * If this method is called during an activity execution then activity is not going to complete
-   * when its method returns. It is expected to be completed asynchronously using {@link
+   * If this method is called during an activity execution then activity will not complete when its
+   * method returns. It is expected to be completed asynchronously using {@link
    * com.uber.cadence.client.ActivityCompletionClient}.
+   *
+   * <p>Caution: since using this sometimes implies "long" timeouts, activity-worker losses prior to
+   * recording the {@link Activity#getTaskToken()} in an external system (or prior to another thread
+   * calling it) may not be noticed until the "long" timeout occurs. This can be resolved by having
+   * another system call {@link com.uber.cadence.client.ActivityCompletionClient#heartbeat(byte[],
+   * Object)} while that external action is running, but there is currently no way to mitigate this
+   * issue without these heartbeats. For in-process-only async completion, relying on heartbeating
+   * is safe and reliable because these heartbeats should occur as long as the process / background
+   * thread is still running.
+   *
+   * <p>If you cannot heartbeat and cannot tolerate this kind of delayed-activity-loss detection,
+   * consider emulating a long activity via a signal channel instead: you can start a short-lived
+   * activity and wait for a "saved to external system" signal, retrying as necessary, and then wait
+   * for an "external system finished" signal containing the final result.
    */
   public static void doNotCompleteOnReturn() {
     ActivityInternal.doNotCompleteOnReturn();

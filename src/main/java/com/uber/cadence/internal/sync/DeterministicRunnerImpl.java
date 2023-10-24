@@ -19,6 +19,7 @@ package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.WorkflowExecution;
+import com.uber.cadence.WorkflowExecutionStartedEventAttributes;
 import com.uber.cadence.WorkflowType;
 import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.converter.DataConverter;
@@ -187,7 +188,12 @@ class DeterministicRunnerImpl implements DeterministicRunner {
 
   private static SyncDecisionContext newDummySyncDecisionContext() {
     return new SyncDecisionContext(
-        new DummyDecisionContext(), JsonDataConverter.getInstance(), null, (next) -> next, null);
+        new DummyDecisionContext(),
+        JsonDataConverter.getInstance(),
+        null,
+        (next) -> next,
+        null,
+        null);
   }
 
   SyncDecisionContext getDecisionContext() {
@@ -592,12 +598,22 @@ class DeterministicRunnerImpl implements DeterministicRunner {
     }
 
     @Override
+    public DataConverter getDataConverter() {
+      return null;
+    }
+
+    @Override
     public Map<String, Object> getPropagatedContexts() {
       return null;
     }
 
     @Override
     public List<ContextPropagator> getContextPropagators() {
+      return null;
+    }
+
+    @Override
+    public WorkflowExecutionStartedEventAttributes getWorkflowExecutionStartedEventAttributes() {
       return null;
     }
 

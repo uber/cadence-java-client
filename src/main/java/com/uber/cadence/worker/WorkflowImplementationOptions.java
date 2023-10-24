@@ -19,6 +19,9 @@ package com.uber.cadence.worker;
 
 import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.BlockWorkflow;
 
+import com.uber.cadence.activity.ActivityOptions;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public final class WorkflowImplementationOptions {
@@ -26,6 +29,7 @@ public final class WorkflowImplementationOptions {
   public static final class Builder {
 
     private NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy = BlockWorkflow;
+    private Map<String, ActivityOptions> activityOptionOverrides = new HashMap<>();
 
     /**
      * Optional: Sets how decision worker deals with non-deterministic history events (presumably
@@ -39,20 +43,46 @@ public final class WorkflowImplementationOptions {
       return this;
     }
 
+    /**
+     * Set overrides for a specific workflow implementation for activity options.
+     *
+     * @param activityOptionOverrides a map where the key is the activity name and the value is the
+     *     activity options that should override existing activity configuration that comes
+     *     from @ActivityMethod annotation.
+     */
+    public Builder setActivityOptionOverrides(
+        Map<String, ActivityOptions> activityOptionOverrides) {
+      this.activityOptionOverrides = activityOptionOverrides;
+      return this;
+    }
+
     public WorkflowImplementationOptions build() {
-      return new WorkflowImplementationOptions(nonDeterministicWorkflowPolicy);
+      return new WorkflowImplementationOptions(
+          nonDeterministicWorkflowPolicy, activityOptionOverrides);
     }
   }
 
   private final NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy;
+  private Map<String, ActivityOptions> activityOptions;
 
   public WorkflowImplementationOptions(
       NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy) {
     this.nonDeterministicWorkflowPolicy = nonDeterministicWorkflowPolicy;
   }
 
+  public WorkflowImplementationOptions(
+      NonDeterministicWorkflowPolicy nonDeterministicWorkflowPolicy,
+      Map<String, ActivityOptions> activityOptions) {
+    this.nonDeterministicWorkflowPolicy = nonDeterministicWorkflowPolicy;
+    this.activityOptions = activityOptions;
+  }
+
   public NonDeterministicWorkflowPolicy getNonDeterministicWorkflowPolicy() {
     return nonDeterministicWorkflowPolicy;
+  }
+
+  public Map<String, ActivityOptions> getActivityOptions() {
+    return activityOptions;
   }
 
   @Override
@@ -60,6 +90,7 @@ public final class WorkflowImplementationOptions {
     return "WorkflowImplementationOptions{"
         + "nonDeterministicWorkflowPolicy="
         + nonDeterministicWorkflowPolicy
+        + activityOptions
         + '}';
   }
 
@@ -68,11 +99,12 @@ public final class WorkflowImplementationOptions {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     WorkflowImplementationOptions that = (WorkflowImplementationOptions) o;
-    return nonDeterministicWorkflowPolicy == that.nonDeterministicWorkflowPolicy;
+    return nonDeterministicWorkflowPolicy == that.nonDeterministicWorkflowPolicy
+        && Objects.equals(activityOptions, that.activityOptions);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(nonDeterministicWorkflowPolicy);
+    return Objects.hash(nonDeterministicWorkflowPolicy, activityOptions);
   }
 }
