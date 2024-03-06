@@ -13,15 +13,15 @@ RUN apk add git libstdc++
 
 # Compile source
 RUN set -ex ;\
-	wget https://github.com/apache/thrift/archive/refs/tags/${APACHE_THRIFT_VERSION}.tar.gz && \
-	tar -xvf ${APACHE_THRIFT_VERSION}.tar.gz && \
-	rm ${APACHE_THRIFT_VERSION}.tar.gz && \
-	cd ${APACHE_THRIFT_VERSION}/ && \
+	wget https://github.com/apache/thrift/archive/refs/tags/${APACHE_THRIFT_VERSION}.tar.gz -O thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	tar -xvf thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	rm thrift-${APACHE_THRIFT_VERSION}.tar.gz && \
+	cd thrift-${APACHE_THRIFT_VERSION}/ && \
 	./configure --enable-libs=no --enable-tests=no --enable-tutorial=no --with-cpp=no --with-c_glib=no --with-java=yes --with-ruby=no --with-erlang=no --with-go=no --with-nodejs=no --with-python=no && \
 	make && \
 	make install && \
 	cd .. && \
-	rm -rf ${APACHE_THRIFT_VERSION}
+	rm -rf thrift-${APACHE_THRIFT_VERSION}
 
 # Cleanup packages and remove cache
 RUN apk del build-dependencies wget && rm -rf /var/cache/apk/*
