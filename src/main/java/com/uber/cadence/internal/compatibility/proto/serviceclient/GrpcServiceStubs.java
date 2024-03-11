@@ -48,6 +48,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -70,6 +71,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
       Metadata.Key.of("rpc-caller", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> RPC_ENCODING_HEADER_KEY =
       Metadata.Key.of("rpc-encoding", Metadata.ASCII_STRING_MARSHALLER);
+  private static final Metadata.Key<String> CADENCE_AUTHORIZATION_KEY =
+          Metadata.Key.of("cadence-authorization", Metadata.ASCII_STRING_MARSHALLER);
 
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
@@ -110,6 +113,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     headers.put(RPC_ENCODING_HEADER_KEY, "proto");
     if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
       headers.put(ISOLATION_GROUP_HEADER_KEY, options.getIsolationGroup());
+    }
+    if (options.getAuthProvider() != null) {
+      headers.put(
+              CADENCE_AUTHORIZATION_KEY,
+              new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
     }
     Channel interceptedChannel =
         ClientInterceptors.intercept(
