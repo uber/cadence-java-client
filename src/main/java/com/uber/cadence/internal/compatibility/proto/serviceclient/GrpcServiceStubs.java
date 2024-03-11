@@ -72,7 +72,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private static final Metadata.Key<String> RPC_ENCODING_HEADER_KEY =
       Metadata.Key.of("rpc-encoding", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> CADENCE_AUTHORIZATION_KEY =
-          Metadata.Key.of("cadence-authorization", Metadata.ASCII_STRING_MARSHALLER);
+      Metadata.Key.of("cadence-authorization", Metadata.ASCII_STRING_MARSHALLER);
 
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
@@ -116,8 +116,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     }
     if (options.getAuthProvider() != null) {
       headers.put(
-              CADENCE_AUTHORIZATION_KEY,
-              new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
+          CADENCE_AUTHORIZATION_KEY,
+          new String(options.getAuthProvider().getAuthToken(), StandardCharsets.UTF_8));
     }
     Channel interceptedChannel =
         ClientInterceptors.intercept(
