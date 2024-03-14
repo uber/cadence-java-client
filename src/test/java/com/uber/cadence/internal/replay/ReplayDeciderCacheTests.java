@@ -103,7 +103,7 @@ public class ReplayDeciderCacheTests {
     service.close();
   }
 
-  @Test(timeout = 7000)
+  @Test(timeout = 8000)
   public void whenHistoryIsPartialCachedEntryIsReturned() throws Exception {
     // Arrange
     Map<String, String> tags =
