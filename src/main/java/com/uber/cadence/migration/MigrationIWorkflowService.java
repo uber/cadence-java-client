@@ -56,12 +56,32 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
     return serviceOld.StartWorkflowExecution(startRequest);
   }
 
+  /**
+   * SignalWithStartWorkflowExecution is used to ensure sending signal to a workflow. If the
+   * workflow is running, this results in WorkflowExecutionSignaled event being recorded in the
+   * history and a decision task being created for the execution. If the workflow is not running or
+   * not found, this results in WorkflowExecutionStarted and WorkflowExecutionSignaled events being
+   * recorded in history, and a decision task being created for the execution
+   */
   @Override
   public StartWorkflowExecutionResponse SignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest) throws TException {
     if (shouldStartInNew(signalWithStartRequest.getWorkflowId()))
       return serviceNew.SignalWithStartWorkflowExecution(signalWithStartRequest);
     return serviceOld.SignalWithStartWorkflowExecution(signalWithStartRequest);
+  }
+
+  /**
+   * SignalWorkflowExecution is used to send a signal event to running workflow execution. This
+   * results in WorkflowExecutionSignaled event recorded in the history and a decision task being
+   * created for the execution.
+   */
+  @Override
+  public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
+      throws TException {
+    if (shouldStartInNew(signalRequest.getWorkflowExecution().getWorkflowId()))
+      serviceNew.SignalWorkflowExecution(signalRequest);
+    else serviceOld.SignalWorkflowExecution(signalRequest);
   }
 
   @Override
