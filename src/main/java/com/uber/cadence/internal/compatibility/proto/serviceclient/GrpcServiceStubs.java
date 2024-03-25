@@ -31,6 +31,7 @@ import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
 import com.uber.cadence.internal.Version;
 import com.uber.cadence.serviceclient.ClientOptions;
+import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -48,6 +49,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -70,6 +72,9 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
       Metadata.Key.of("rpc-caller", Metadata.ASCII_STRING_MARSHALLER);
   private static final Metadata.Key<String> RPC_ENCODING_HEADER_KEY =
       Metadata.Key.of("rpc-encoding", Metadata.ASCII_STRING_MARSHALLER);
+
+  private static final Metadata.Key<String> AUTHORIZATION_HEADER_KEY =
+      Metadata.Key.of("cadence-authorization", Metadata.ASCII_STRING_MARSHALLER);
 
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
@@ -111,6 +116,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
       headers.put(ISOLATION_GROUP_HEADER_KEY, options.getIsolationGroup());
     }
+
     Channel interceptedChannel =
         ClientInterceptors.intercept(
             channel,
@@ -119,6 +125,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             newOpenTelemetryInterceptor());
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
+    }
+    if (options.getAuthProvider() != null) {
+      interceptedChannel =
+          ClientInterceptors.intercept(
+              interceptedChannel, newAuthorizationInterceptor(options.getAuthProvider()));
     }
     this.domainBlockingStub = DomainAPIGrpc.newBlockingStub(interceptedChannel);
     this.domainFutureStub = DomainAPIGrpc.newFutureStub(interceptedChannel);
@@ -130,6 +141,36 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.workflowFutureStub = WorkflowAPIGrpc.newFutureStub(interceptedChannel);
     this.metaBlockingStub = MetaAPIGrpc.newBlockingStub(interceptedChannel);
     this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
+  }
+
+  private ClientInterceptor newAuthorizationInterceptor(IAuthorizationProvider provider) {
+    return new ClientInterceptor() {
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            headers.put(
+                AUTHORIZATION_HEADER_KEY,
+                new String(provider.getAuthToken(), StandardCharsets.UTF_8));
+
+            Listener<RespT> listener =
+                new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(
+                    responseListener) {
+
+                  @Override
+                  public void onHeaders(Metadata headers) {
+                    super.onHeaders(headers);
+                  }
+                };
+            super.start(listener, headers);
+          }
+        };
+      }
+    };
   }
 
   private ClientInterceptor newOpenTelemetryInterceptor() {
