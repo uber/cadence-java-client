@@ -28,6 +28,7 @@ import com.uber.cadence.internal.common.RpcRetryer;
 import com.uber.cadence.internal.logging.LoggerTag;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
 import com.uber.cadence.internal.worker.Poller.PollTask;
 import com.uber.cadence.serviceclient.IWorkflowService;
@@ -35,6 +36,7 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
+import io.opentracing.Span;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +53,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
+  private final TracingPropagator spanFactory;
 
   public ActivityWorker(
       IWorkflowService service,
@@ -72,6 +75,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
+    this.spanFactory = new TracingPropagator(options.getTracer());
 
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
@@ -138,6 +142,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
       MDC.put(LoggerTag.RUN_ID, task.getWorkflowExecution().getRunId());
 
       propagateContext(task);
+      Span span = spanFactory.activateSpanForExecuteActivity(task);
 
       try {
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
@@ -162,6 +167,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
         sendReply(task, new Result(null, null, cancelledRequest), metricsScope);
         sw.stop();
       } finally {
+        span.finish();
         MDC.remove(LoggerTag.ACTIVITY_ID);
         MDC.remove(LoggerTag.ACTIVITY_TYPE);
         MDC.remove(LoggerTag.WORKFLOW_ID);
