@@ -598,12 +598,16 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     startRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.StartWorkflowExecution_result> response = null;
     try {
+      // Write span context to header
+      if (!startRequest.isSetHeader()) {
+        startRequest.setHeader(new Header());
+      }
+      tracingPropagator.inject(startRequest.getHeader());
+
       ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
           buildThriftRequest(
               "StartWorkflowExecution",
               new WorkflowService.StartWorkflowExecution_args(startRequest));
-      // Write span context to header
-      tracingPropagator.inject(startRequest.getHeader());
 
       response = doRemoteCall(request);
       WorkflowService.StartWorkflowExecution_result result =
@@ -1490,6 +1494,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
               "SignalWithStartWorkflowExecution",
               new WorkflowService.SignalWithStartWorkflowExecution_args(signalWithStartRequest));
       // Write span context to header
+      if (!signalWithStartRequest.isSetHeader()) {
+        signalWithStartRequest.setHeader(new Header());
+      }
       tracingPropagator.inject(signalWithStartRequest.getHeader());
 
       response = doRemoteCall(request);

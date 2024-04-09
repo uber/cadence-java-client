@@ -20,7 +20,7 @@ package com.uber.cadence.worker;
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import io.opentracing.Tracer;
-import io.opentracing.noop.NoopTracerFactory;
+import io.opentracing.util.GlobalTracer;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -53,7 +53,7 @@ public final class WorkerOptions {
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
-    private Tracer tracer = NoopTracerFactory.create();
+    private Tracer tracer = GlobalTracer.get();
 
     private Builder() {}
 
@@ -140,7 +140,7 @@ public final class WorkerOptions {
     }
 
     /**
-     * Optional: Sets the tracer to use for tracing. Default is NoopTracerFactory.create().
+     * Optional: Sets the tracer to use for tracing. Default is GlobalTracer.get().
      *
      * @param tracer
      * @return

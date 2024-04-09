@@ -16,6 +16,8 @@
 package com.uber.cadence.internal.compatibility.proto.serviceclient;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.ByteString;
+import com.uber.cadence.api.v1.*;
 import com.uber.cadence.api.v1.DomainAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIBlockingStub;
@@ -30,6 +32,7 @@ import com.uber.cadence.api.v1.WorkflowAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
 import com.uber.cadence.internal.Version;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.cadence.serviceclient.ClientOptions;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -48,6 +51,11 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -116,7 +124,8 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             channel,
             deadlineInterceptor,
             MetadataUtils.newAttachHeadersInterceptor(headers),
-            newOpenTelemetryInterceptor());
+            newOpenTelemetryInterceptor(),
+            newOpenTracingInterceptor(options.getTracer()));
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
     }
@@ -156,6 +165,80 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             }
 
             super.start(responseListener, headers);
+          }
+        };
+      }
+    };
+  }
+
+  private ClientInterceptor newOpenTracingInterceptor(Tracer tracer) {
+    return new ClientInterceptor() {
+      private final TracingPropagator tracingPropagator = new TracingPropagator(tracer);
+      private final String OPERATIONFORMAT = "cadence-%s";
+
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            Span span =
+                tracingPropagator.activateSpanByServiceMethod(
+                    String.format(OPERATIONFORMAT, method.getBareMethodName()));
+            super.start(responseListener, headers);
+            span.finish();
+          }
+
+          @Override
+          public void sendMessage(ReqT message) {
+            if (Objects.equals(method.getBareMethodName(), "StartWorkflowExecution")
+                && message instanceof StartWorkflowExecutionRequest) {
+              StartWorkflowExecutionRequest request = (StartWorkflowExecutionRequest) message;
+              Map<String, byte[]> headers = new HashMap<>();
+              tracingPropagator.inject(headers);
+              Header.Builder headerBuilder = request.getHeader().toBuilder();
+              headers.forEach(
+                  (k, v) -> {
+                    headerBuilder.putFields(
+                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build());
+                  });
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      ((StartWorkflowExecutionRequest) message)
+                          .toBuilder()
+                          .setHeader(headerBuilder.build())
+                          .build();
+            }
+            if (Objects.equals(method.getBareMethodName(), "SignalWithStartWorkflowExecution")
+                && message instanceof SignalWithStartWorkflowExecutionRequest) {
+              SignalWithStartWorkflowExecutionRequest request =
+                  (SignalWithStartWorkflowExecutionRequest) message;
+              Map<String, byte[]> headers = new HashMap<>();
+              tracingPropagator.inject(headers);
+              Header.Builder headerBuilder = request.getStartRequest().getHeader().toBuilder();
+              headers.forEach(
+                  (k, v) -> {
+                    headerBuilder.putFields(
+                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build());
+                  });
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      ((SignalWithStartWorkflowExecutionRequest) message)
+                          .toBuilder()
+                          .setStartRequest(
+                              request
+                                  .getStartRequest()
+                                  .toBuilder()
+                                  .setHeader(headerBuilder.build()))
+                          .build();
+            }
+            super.sendMessage(message);
           }
         };
       }

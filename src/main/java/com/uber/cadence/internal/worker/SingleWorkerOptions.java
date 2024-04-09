@@ -23,7 +23,7 @@ import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
 import io.opentracing.Tracer;
-import io.opentracing.noop.NoopTracerFactory;
+import io.opentracing.util.GlobalTracer;
 import java.time.Duration;
 import java.util.List;
 
@@ -46,7 +46,7 @@ public final class SingleWorkerOptions {
     private Scope metricsScope;
     private boolean enableLoggingInReplay;
     private List<ContextPropagator> contextPropagators;
-    private Tracer tracer;
+    private Tracer tracer = GlobalTracer.get();
 
     private Builder() {}
 
@@ -124,10 +124,6 @@ public final class SingleWorkerOptions {
 
       if (metricsScope == null) {
         metricsScope = NoopScope.getInstance();
-      }
-
-      if (tracer == null) {
-        tracer = NoopTracerFactory.create();
       }
 
       return new SingleWorkerOptions(
