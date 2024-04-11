@@ -73,26 +73,36 @@ public class StartWorkflowTest {
 
   public static class TestActivityImpl implements TestActivity {
     private final Tracer tracer;
+    private final boolean shouldPropagate;
 
-    TestActivityImpl(Tracer tracer) {
+    TestActivityImpl(Tracer tracer, boolean shouldPropagate) {
       this.tracer = tracer;
+      this.shouldPropagate = shouldPropagate;
     }
 
     @Override
     public Integer AddOne(Integer i) {
-      assertEquals(
-          "context should propagate",
-          CONTEXT_VALUE,
-          tracer.activeSpan().getBaggageItem(CONTEXT_KEY));
+      if (shouldPropagate) {
+        assertEquals(
+            "context should propagate",
+            CONTEXT_VALUE,
+            tracer.activeSpan().getBaggageItem(CONTEXT_KEY));
+      } else {
+        assertNull("context should not propagate", tracer.activeSpan());
+      }
       return i + 1;
     }
 
     @Override
     public Integer Double(Integer i) {
-      assertEquals(
-          "context should propagate",
-          CONTEXT_VALUE,
-          tracer.activeSpan().getBaggageItem(CONTEXT_KEY));
+      if (shouldPropagate) {
+        assertEquals(
+            "context should propagate",
+            CONTEXT_VALUE,
+            tracer.activeSpan().getBaggageItem(CONTEXT_KEY));
+      } else {
+        assertNull("context should not propagate", tracer.activeSpan());
+      }
       return i * 2;
     }
   }
@@ -129,7 +139,7 @@ public class StartWorkflowTest {
     MockTracer mockTracer = new MockTracer();
     IWorkflowService service =
         new WorkflowServiceTChannel(ClientOptions.newBuilder().setTracer(mockTracer).build());
-    testStartWorkflowHelper(service, mockTracer);
+    testStartWorkflowHelper(service, mockTracer, true);
   }
 
   @Test
@@ -140,7 +150,7 @@ public class StartWorkflowTest {
         new Thrift2ProtoAdapter(
             IGrpcServiceStubs.newInstance(
                 ClientOptions.newBuilder().setTracer(mockTracer).setPort(7833).build()));
-    testStartWorkflowHelper(service, mockTracer);
+    testStartWorkflowHelper(service, mockTracer, true);
   }
 
   @Test
@@ -149,7 +159,7 @@ public class StartWorkflowTest {
     MockTracer mockTracer = new MockTracer();
     IWorkflowService service =
         new WorkflowServiceTChannel(ClientOptions.newBuilder().setTracer(mockTracer).build());
-    testSignalWithStartWorkflowHelper(service, mockTracer);
+    testSignalWithStartWorkflowHelper(service, mockTracer, true);
   }
 
   @Test
@@ -160,10 +170,47 @@ public class StartWorkflowTest {
         new Thrift2ProtoAdapter(
             IGrpcServiceStubs.newInstance(
                 ClientOptions.newBuilder().setTracer(mockTracer).setPort(7833).build()));
-    testSignalWithStartWorkflowHelper(service, mockTracer);
+    testSignalWithStartWorkflowHelper(service, mockTracer, true);
   }
 
-  private void testStartWorkflowHelper(IWorkflowService service, MockTracer mockTracer) {
+  @Test
+  public void testStartWorkflowTchannelNoPropagation() {
+    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.newBuilder().build());
+    testStartWorkflowHelper(service, mockTracer, false);
+  }
+
+  @Test
+  public void testStartWorkflowGRPCNoPropagation() {
+    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    IWorkflowService service =
+        new Thrift2ProtoAdapter(
+            IGrpcServiceStubs.newInstance(ClientOptions.newBuilder().setPort(7833).build()));
+    testStartWorkflowHelper(service, mockTracer, false);
+  }
+
+  @Test
+  public void testSignalStartWorkflowTchannelNoPropagation() {
+    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.newBuilder().build());
+    testSignalWithStartWorkflowHelper(service, mockTracer, false);
+  }
+
+  @Test
+  public void testSignalStartWorkflowGRPCNoPropagation() {
+    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    IWorkflowService service =
+        new Thrift2ProtoAdapter(
+            IGrpcServiceStubs.newInstance(ClientOptions.newBuilder().setPort(7833).build()));
+    testSignalWithStartWorkflowHelper(service, mockTracer, false);
+  }
+
+  private void testStartWorkflowHelper(
+      IWorkflowService service, MockTracer mockTracer, boolean shouldPropagate) {
     try {
       service.RegisterDomain(new RegisterDomainRequest().setName(DOMAIN));
     } catch (DomainAlreadyExistsError e) {
@@ -178,10 +225,15 @@ public class StartWorkflowTest {
 
     WorkerFactory workerFactory =
         WorkerFactory.newInstance(client, WorkerFactoryOptions.newBuilder().build());
-    Worker worker =
-        workerFactory.newWorker(
-            TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
-    worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer));
+    Worker worker;
+    if (shouldPropagate) {
+      worker =
+          workerFactory.newWorker(
+              TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
+    } else {
+      worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
+    }
+    worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer, shouldPropagate));
     worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class, DoubleWorkflowImpl.class);
     workerFactory.start();
 
@@ -216,40 +268,45 @@ public class StartWorkflowTest {
           });
       logger.info("spans: " + sb);
 
-      // assert start workflow
-      MockSpan spanStartWorkflow =
-          spans
-              .stream()
-              .filter(span -> span.operationName().contains("StartWorkflow"))
-              .findFirst()
-              .orElse(null);
-      if (spanStartWorkflow == null) {
-        fail("StartWorkflow span not found");
+      if (!shouldPropagate) {
+        assertEquals(1, spans.size());
+        workerFactory.shutdown();
+      } else {
+        // assert start workflow
+        MockSpan spanStartWorkflow =
+            spans
+                .stream()
+                .filter(span -> span.operationName().contains("StartWorkflow"))
+                .findFirst()
+                .orElse(null);
+        if (spanStartWorkflow == null) {
+          fail("StartWorkflow span not found");
+        }
+
+        // assert workflow spans
+        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
+        assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
+        assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
+
+        MockSpan spanExecuteActivity = getLinkedSpans(spans, spanExecuteWF.context()).get(0);
+        assertEquals(spanExecuteActivity.operationName(), "cadence-ExecuteActivity");
+        assertSpanReferences(spanExecuteActivity, "follows_from", spanExecuteWF);
+
+        MockSpan spanExecuteChildWF = getLinkedSpans(spans, spanExecuteWF.context()).get(1);
+        assertEquals(spanExecuteChildWF.operationName(), "cadence-ExecuteWorkflow");
+        assertSpanReferences(spanExecuteChildWF, "follows_from", spanExecuteWF);
+
+        MockSpan spanExecuteLocalActivity =
+            getLinkedSpans(spans, spanExecuteChildWF.context()).get(0);
+        assertEquals(spanExecuteLocalActivity.operationName(), "cadence-ExecuteLocalActivity");
+        assertSpanReferences(spanExecuteLocalActivity, "follows_from", spanExecuteChildWF);
       }
-
-      // assert workflow spans
-      MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
-      assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
-      assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
-
-      MockSpan spanExecuteActivity = getLinkedSpans(spans, spanExecuteWF.context()).get(0);
-      assertEquals(spanExecuteActivity.operationName(), "cadence-ExecuteActivity");
-      assertSpanReferences(spanExecuteActivity, "follows_from", spanExecuteWF);
-
-      MockSpan spanExecuteChildWF = getLinkedSpans(spans, spanExecuteWF.context()).get(1);
-      assertEquals(spanExecuteChildWF.operationName(), "cadence-ExecuteWorkflow");
-      assertSpanReferences(spanExecuteChildWF, "follows_from", spanExecuteWF);
-
-      MockSpan spanExecuteLocalActivity =
-          getLinkedSpans(spans, spanExecuteChildWF.context()).get(0);
-      assertEquals(spanExecuteLocalActivity.operationName(), "cadence-ExecuteLocalActivity");
-      assertSpanReferences(spanExecuteLocalActivity, "follows_from", spanExecuteChildWF);
-
       workerFactory.shutdown();
     }
   }
 
-  private void testSignalWithStartWorkflowHelper(IWorkflowService service, MockTracer mockTracer) {
+  private void testSignalWithStartWorkflowHelper(
+      IWorkflowService service, MockTracer mockTracer, boolean shouldPropagate) {
     try {
       service.RegisterDomain(new RegisterDomainRequest().setName(DOMAIN));
     } catch (DomainAlreadyExistsError e) {
@@ -264,10 +321,15 @@ public class StartWorkflowTest {
 
     WorkerFactory workerFactory =
         WorkerFactory.newInstance(client, WorkerFactoryOptions.newBuilder().build());
-    Worker worker =
-        workerFactory.newWorker(
-            TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
-    worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer));
+    Worker worker;
+    if (shouldPropagate) {
+      worker =
+          workerFactory.newWorker(
+              TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
+    } else {
+      worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
+    }
+    worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer, shouldPropagate));
     worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class, DoubleWorkflowImpl.class);
     workerFactory.start();
 
@@ -314,37 +376,41 @@ public class StartWorkflowTest {
           });
       logger.info("spans: " + sb);
 
-      // assert start workflow
-      MockSpan spanStartWorkflow =
-          spans
-              .stream()
-              .filter(span -> span.operationName().contains("StartWorkflow"))
-              .findFirst()
-              .orElse(null);
-      if (spanStartWorkflow == null) {
-        fail("StartWorkflow span not found");
+      if (!shouldPropagate) {
+        assertEquals(1, spans.size());
+        workerFactory.shutdown();
+      } else {
+        // assert start workflow
+        MockSpan spanStartWorkflow =
+            spans
+                .stream()
+                .filter(span -> span.operationName().contains("StartWorkflow"))
+                .findFirst()
+                .orElse(null);
+        if (spanStartWorkflow == null) {
+          fail("StartWorkflow span not found");
+        }
+
+        // assert workflow spans
+        List<MockSpan> workflowSpans =
+            getSpansByTraceID(spans, spanStartWorkflow.context().toTraceId());
+        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
+        assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
+        assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
+
+        MockSpan spanExecuteActivity = getLinkedSpans(spans, spanExecuteWF.context()).get(0);
+        assertEquals(spanExecuteActivity.operationName(), "cadence-ExecuteActivity");
+        assertSpanReferences(spanExecuteActivity, "follows_from", spanExecuteWF);
+
+        MockSpan spanExecuteChildWF = getLinkedSpans(spans, spanExecuteWF.context()).get(1);
+        assertEquals(spanExecuteChildWF.operationName(), "cadence-ExecuteWorkflow");
+        assertSpanReferences(spanExecuteChildWF, "follows_from", spanExecuteWF);
+
+        MockSpan spanExecuteLocalActivity =
+            getLinkedSpans(spans, spanExecuteChildWF.context()).get(0);
+        assertEquals(spanExecuteLocalActivity.operationName(), "cadence-ExecuteLocalActivity");
+        assertSpanReferences(spanExecuteLocalActivity, "follows_from", spanExecuteChildWF);
       }
-
-      // assert workflow spans
-      List<MockSpan> workflowSpans =
-          getSpansByTraceID(spans, spanStartWorkflow.context().toTraceId());
-      MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
-      assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
-      assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
-
-      MockSpan spanExecuteActivity = getLinkedSpans(spans, spanExecuteWF.context()).get(0);
-      assertEquals(spanExecuteActivity.operationName(), "cadence-ExecuteActivity");
-      assertSpanReferences(spanExecuteActivity, "follows_from", spanExecuteWF);
-
-      MockSpan spanExecuteChildWF = getLinkedSpans(spans, spanExecuteWF.context()).get(1);
-      assertEquals(spanExecuteChildWF.operationName(), "cadence-ExecuteWorkflow");
-      assertSpanReferences(spanExecuteChildWF, "follows_from", spanExecuteWF);
-
-      MockSpan spanExecuteLocalActivity =
-          getLinkedSpans(spans, spanExecuteChildWF.context()).get(0);
-      assertEquals(spanExecuteLocalActivity.operationName(), "cadence-ExecuteLocalActivity");
-      assertSpanReferences(spanExecuteLocalActivity, "follows_from", spanExecuteChildWF);
-
       workerFactory.shutdown();
     }
   }

@@ -25,7 +25,7 @@ import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import com.uber.m3.tally.Scope;
 import io.grpc.ManagedChannel;
 import io.opentracing.Tracer;
-import io.opentracing.util.GlobalTracer;
+import io.opentracing.noop.NoopTracerFactory;
 import java.util.Map;
 
 public class ClientOptions {
@@ -233,7 +233,8 @@ public class ClientOptions {
     private IAuthorizationProvider authProvider;
     private FeatureFlags featureFlags;
     private String isolationGroup;
-    private Tracer tracer = GlobalTracer.get();
+    // by default NoopTracer
+    private Tracer tracer = NoopTracerFactory.create();
 
     private Builder() {}
 
