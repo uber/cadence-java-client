@@ -32,6 +32,7 @@ import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.ServiceMethod;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.tchannel.api.ResponseCode;
@@ -47,6 +48,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Span;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -71,6 +73,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final ClientOptions options;
   private final Map<String, String> thriftHeaders;
   private final TChannel tChannel;
+  private final TracingPropagator tracingPropagator;
   private SubChannel subChannel;
 
   /**
@@ -82,6 +85,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.options = options;
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = new TChannel.Builder(options.getClientAppName()).build();
+    this.tracingPropagator = new TracingPropagator(options.getTracer());
 
     InetAddress address;
     try {
@@ -121,6 +125,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = null;
     this.subChannel = subChannel;
+    this.tracingPropagator = new TracingPropagator(options.getTracer());
   }
 
   private static Map<String, String> getThriftHeaders(ClientOptions options) {
@@ -316,6 +321,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> T measureRemoteCallWithTags(
       String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
+    Span span = tracingPropagator.activateSpanByServiceMethod(scopeName);
     Scope scope = options.getMetricsScope().subScope(scopeName);
     if (tags != null) {
       scope = scope.tagged(tags);
@@ -339,6 +345,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       sw.stop();
       scope.counter(MetricsType.CADENCE_ERROR).inc(1);
       throw e;
+    } finally {
+      span.finish();
     }
   }
 
@@ -590,10 +598,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     startRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.StartWorkflowExecution_result> response = null;
     try {
+      // Write span context to header
+      if (!startRequest.isSetHeader()) {
+        startRequest.setHeader(new Header());
+      }
+      tracingPropagator.inject(startRequest.getHeader());
+
       ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
           buildThriftRequest(
               "StartWorkflowExecution",
               new WorkflowService.StartWorkflowExecution_args(startRequest));
+
       response = doRemoteCall(request);
       WorkflowService.StartWorkflowExecution_result result =
           response.getBody(WorkflowService.StartWorkflowExecution_result.class);
@@ -1474,10 +1489,17 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.SignalWithStartWorkflowExecution_result> response = null;
     try {
+      // Write span context to header
+      if (!signalWithStartRequest.isSetHeader()) {
+        signalWithStartRequest.setHeader(new Header());
+      }
+      tracingPropagator.inject(signalWithStartRequest.getHeader());
+
       ThriftRequest<WorkflowService.SignalWithStartWorkflowExecution_args> request =
           buildThriftRequest(
               "SignalWithStartWorkflowExecution",
               new WorkflowService.SignalWithStartWorkflowExecution_args(signalWithStartRequest));
+
       response = doRemoteCall(request);
       WorkflowService.SignalWithStartWorkflowExecution_result result =
           response.getBody(WorkflowService.SignalWithStartWorkflowExecution_result.class);

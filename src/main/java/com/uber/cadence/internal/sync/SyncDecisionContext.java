@@ -40,6 +40,7 @@ import com.uber.cadence.internal.replay.ExecuteActivityParameters;
 import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
 import com.uber.cadence.internal.replay.SignalExternalWorkflowParameters;
 import com.uber.cadence.internal.replay.StartChildWorkflowExecutionParameters;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.ActivityException;
 import com.uber.cadence.workflow.ActivityFailureException;
@@ -58,6 +59,9 @@ import com.uber.cadence.workflow.SignalExternalWorkflowException;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.m3.tally.Scope;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import io.opentracing.noop.NoopTracerFactory;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.HashMap;
@@ -90,6 +94,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final Map<String, Functions.Func1<byte[], byte[]>> queryCallbacks = new HashMap<>();
   private final byte[] lastCompletionResult;
   private final WorkflowImplementationOptions workflowImplementationOptions;
+  private final TracingPropagator tracingPropagator;
 
   public SyncDecisionContext(
       DecisionContext context,
@@ -98,6 +103,24 @@ final class SyncDecisionContext implements WorkflowInterceptor {
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       byte[] lastCompletionResult,
       WorkflowImplementationOptions workflowImplementationOptions) {
+    this(
+        context,
+        converter,
+        contextPropagators,
+        interceptorFactory,
+        lastCompletionResult,
+        workflowImplementationOptions,
+        NoopTracerFactory.create());
+  }
+
+  public SyncDecisionContext(
+      DecisionContext context,
+      DataConverter converter,
+      List<ContextPropagator> contextPropagators,
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      byte[] lastCompletionResult,
+      WorkflowImplementationOptions workflowImplementationOptions,
+      Tracer tracer) {
     this.context = context;
     this.converter = converter;
     this.contextPropagators = contextPropagators;
@@ -109,6 +132,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     this.headInterceptor = interceptor;
     this.lastCompletionResult = lastCompletionResult;
     this.workflowImplementationOptions = workflowImplementationOptions;
+    this.tracingPropagator = new TracingPropagator(tracer);
   }
 
   /**
@@ -130,9 +154,18 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public byte[] executeWorkflow(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
-    return workflowDefinition.execute(input.getInput());
+    Span span = tracingPropagator.activateSpanForExecuteWorkflow(context);
+    try {
+      return workflowDefinition.execute(input.getInput());
+    } finally {
+      span.finish();
+    }
   }
 
+  /**
+   * Schedule an activity task for the provided activity name and input. The activity task is not
+   * necessarily executed in the same thread.
+   */
   @Override
   public <T> Promise<T> executeActivity(
       String activityName,
@@ -466,6 +499,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     for (ContextPropagator propagator : contextPropagators) {
       result.putAll(propagator.serializeContext(propagator.getCurrentContext()));
     }
+    // inject trace span context
+    tracingPropagator.inject(result);
     return result;
   }
 

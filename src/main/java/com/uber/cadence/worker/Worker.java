@@ -93,6 +93,7 @@ public final class Worker implements Suspendable {
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
             .setContextPropagators(contextPropagators)
+            .setTracer(options.getTracer())
             .build();
     activityWorker =
         new SyncActivityWorker(
@@ -107,6 +108,7 @@ public final class Worker implements Suspendable {
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
             .setContextPropagators(contextPropagators)
+            .setTracer(options.getTracer())
             .build();
     SingleWorkerOptions localActivityOptions =
         SingleWorkerOptions.newBuilder()
@@ -117,6 +119,7 @@ public final class Worker implements Suspendable {
             .setMetricsScope(metricsScope)
             .setEnableLoggingInReplay(factoryOptions.isEnableLoggingInReplay())
             .setContextPropagators(contextPropagators)
+            .setTracer(options.getTracer())
             .build();
     workflowWorker =
         new SyncWorkflowWorker(

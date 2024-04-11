@@ -24,6 +24,8 @@ import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import com.uber.m3.tally.Scope;
 import io.grpc.ManagedChannel;
+import io.opentracing.Tracer;
+import io.opentracing.noop.NoopTracerFactory;
 import java.util.Map;
 
 public class ClientOptions {
@@ -81,6 +83,8 @@ public class ClientOptions {
   private final FeatureFlags featureFlags;
   /** Optional isolation group of the service if tasklist isolation is enabled */
   private final String isolationGroup;
+  /** Optional tracer for service client, default is GlobalTracer */
+  private final Tracer tracer;
 
   private ClientOptions(Builder builder) {
     if (Strings.isNullOrEmpty(builder.host)) {
@@ -126,6 +130,7 @@ public class ClientOptions {
     }
     this.authProvider = builder.authProvider;
     this.isolationGroup = builder.isolationGroup;
+    this.tracer = builder.tracer;
   }
 
   public static ClientOptions defaultInstance() {
@@ -201,6 +206,10 @@ public class ClientOptions {
     return this.isolationGroup;
   }
 
+  public Tracer getTracer() {
+    return this.tracer;
+  }
+
   /**
    * Builder is the builder for ClientOptions.
    *
@@ -224,6 +233,8 @@ public class ClientOptions {
     private IAuthorizationProvider authProvider;
     private FeatureFlags featureFlags;
     private String isolationGroup;
+    // by default NoopTracer
+    private Tracer tracer = NoopTracerFactory.create();
 
     private Builder() {}
 
@@ -366,6 +377,17 @@ public class ClientOptions {
      */
     public Builder setIsolationGroup(String isolationGroup) {
       this.isolationGroup = isolationGroup;
+      return this;
+    }
+
+    /**
+     * Sets the tracer to be used for service client.
+     *
+     * @param tracer
+     * @return Builder for ClentOptions
+     */
+    public Builder setTracer(Tracer tracer) {
+      this.tracer = tracer;
       return this;
     }
 

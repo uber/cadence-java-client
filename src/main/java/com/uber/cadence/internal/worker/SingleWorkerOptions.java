@@ -22,6 +22,7 @@ import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.m3.tally.Scope;
+import io.opentracing.Tracer;
 import java.time.Duration;
 import java.util.List;
 
@@ -44,6 +45,7 @@ public final class SingleWorkerOptions {
     private Scope metricsScope;
     private boolean enableLoggingInReplay;
     private List<ContextPropagator> contextPropagators;
+    private Tracer tracer;
 
     private Builder() {}
 
@@ -56,6 +58,7 @@ public final class SingleWorkerOptions {
       this.metricsScope = options.getMetricsScope();
       this.enableLoggingInReplay = options.getEnableLoggingInReplay();
       this.contextPropagators = options.getContextPropagators();
+      this.tracer = options.getTracer();
     }
 
     public Builder setIdentity(String identity) {
@@ -99,6 +102,11 @@ public final class SingleWorkerOptions {
       return this;
     }
 
+    public Builder setTracer(Tracer tracer) {
+      this.tracer = tracer;
+      return this;
+    }
+
     public SingleWorkerOptions build() {
       if (pollerOptions == null) {
         pollerOptions =
@@ -125,7 +133,8 @@ public final class SingleWorkerOptions {
           pollerOptions,
           metricsScope,
           enableLoggingInReplay,
-          contextPropagators);
+          contextPropagators,
+          tracer);
     }
   }
 
@@ -137,6 +146,7 @@ public final class SingleWorkerOptions {
   private final Scope metricsScope;
   private final boolean enableLoggingInReplay;
   private List<ContextPropagator> contextPropagators;
+  private final Tracer tracer;
 
   private SingleWorkerOptions(
       String identity,
@@ -146,7 +156,8 @@ public final class SingleWorkerOptions {
       PollerOptions pollerOptions,
       Scope metricsScope,
       boolean enableLoggingInReplay,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      Tracer tracer) {
     this.identity = identity;
     this.dataConverter = dataConverter;
     this.taskExecutorThreadPoolSize = taskExecutorThreadPoolSize;
@@ -155,6 +166,7 @@ public final class SingleWorkerOptions {
     this.metricsScope = metricsScope;
     this.enableLoggingInReplay = enableLoggingInReplay;
     this.contextPropagators = contextPropagators;
+    this.tracer = tracer;
   }
 
   public String getIdentity() {
@@ -187,5 +199,9 @@ public final class SingleWorkerOptions {
 
   public List<ContextPropagator> getContextPropagators() {
     return contextPropagators;
+  }
+
+  public Tracer getTracer() {
+    return tracer;
   }
 }
