@@ -1489,15 +1489,16 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.SignalWithStartWorkflowExecution_result> response = null;
     try {
-      ThriftRequest<WorkflowService.SignalWithStartWorkflowExecution_args> request =
-          buildThriftRequest(
-              "SignalWithStartWorkflowExecution",
-              new WorkflowService.SignalWithStartWorkflowExecution_args(signalWithStartRequest));
       // Write span context to header
       if (!signalWithStartRequest.isSetHeader()) {
         signalWithStartRequest.setHeader(new Header());
       }
       tracingPropagator.inject(signalWithStartRequest.getHeader());
+
+      ThriftRequest<WorkflowService.SignalWithStartWorkflowExecution_args> request =
+          buildThriftRequest(
+              "SignalWithStartWorkflowExecution",
+              new WorkflowService.SignalWithStartWorkflowExecution_args(signalWithStartRequest));
 
       response = doRemoteCall(request);
       WorkflowService.SignalWithStartWorkflowExecution_result result =

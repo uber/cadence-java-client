@@ -67,7 +67,8 @@ public class TracingPropagator {
     Span span =
         tracer
             .buildSpan(EXECUTE_WORKFLOW)
-            .addReference(References.FOLLOWS_FROM, parent)
+            .addReference(
+                References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
             .withTag(TAG_WORKFLOW_TYPE, context.getWorkflowType().getName())
             .withTag(TAG_WORKFLOW_ID, context.getWorkflowId())
             .withTag(TAG_WORKFLOW_RUN_ID, context.getRunId())
@@ -81,7 +82,8 @@ public class TracingPropagator {
     Span span =
         tracer
             .buildSpan(EXECUTE_ACTIVITY)
-            .addReference(References.FOLLOWS_FROM, parent)
+            .addReference(
+                References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
             .withTag(
                 TAG_WORKFLOW_TYPE,
                 task.isSetWorkflowType() ? task.getWorkflowType().getName() : "null")
