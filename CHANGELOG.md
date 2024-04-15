@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.11.0
+- Added opentracing support in workflow lifecycles #876 
+
 ## 3.10.1
 - Fixed the bug: workflow already started for migration
 - Populate tasklistkind in poll request
