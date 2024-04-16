@@ -12,6 +12,7 @@ RUN apk update && apk add --virtual wget ca-certificates wget && apk add --virtu
 RUN apk add git libstdc++ bash curl
 
 # Install buildkite agent
+# https://buildkite.com/docs/agent/v3/linux
 RUN bash -c "`curl -sL https://raw.githubusercontent.com/buildkite/agent/main/install.sh`"
 RUN ln -s /root/.buildkite-agent/bin/buildkite-agent /usr/bin/buildkite-agent
 
