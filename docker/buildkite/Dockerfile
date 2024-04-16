@@ -9,7 +9,11 @@ ENV APACHE_THRIFT_VERSION=0.9.3
 # Install dependencies using apk
 RUN apk update && apk add --virtual wget ca-certificates wget && apk add --virtual build-dependencies build-base gcc
 # Git is needed in order to update the dls submodule
-RUN apk add git libstdc++
+RUN apk add git libstdc++ bash curl
+
+# Install buildkite agent
+RUN bash -c "`curl -sL https://raw.githubusercontent.com/buildkite/agent/main/install.sh`"
+RUN ln -s /root/.buildkite-agent/bin/buildkite-agent /usr/bin/buildkite-agent
 
 # Compile source
 RUN set -ex ;\
