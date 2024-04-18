@@ -60,8 +60,25 @@ public class IWorkflowServiceBase implements IWorkflowService {
   }
 
   @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
@@ -197,6 +214,15 @@ public class IWorkflowServiceBase implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, WorkflowExecutionAlreadyStartedError, ClientVersionNotSupportedError,
           TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
     throw new IllegalArgumentException("unimplemented");
   }
 
@@ -366,8 +392,22 @@ public class IWorkflowServiceBase implements IWorkflowService {
   }
 
   @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
     throw new IllegalArgumentException("unimplemented");
   }
@@ -478,6 +518,14 @@ public class IWorkflowServiceBase implements IWorkflowService {
   @Override
   public void SignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
       AsyncMethodCallback resultHandler)
       throws TException {
     throw new IllegalArgumentException("unimplemented");
