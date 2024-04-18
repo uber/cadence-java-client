@@ -224,7 +224,7 @@ public final class TestWorkflowService implements IWorkflowService {
       RestartWorkflowExecutionRequest restartRequest)
       throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
           EntityNotExistsError, ClientVersionNotSupportedError, TException {
-    return null;
+    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
@@ -247,7 +247,7 @@ public final class TestWorkflowService implements IWorkflowService {
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
-    return null;
+    throw new UnsupportedOperationException("not implemented");
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
@@ -594,7 +594,7 @@ public final class TestWorkflowService implements IWorkflowService {
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
-    return null;
+    throw new UnsupportedOperationException("not implemented");
   }
 
   // TODO: https://github.com/uber/cadence-java-client/issues/359
@@ -847,7 +847,9 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void RestartWorkflowExecution(
       RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
-      throws TException {}
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void GetTaskListsByDomain(
@@ -1045,7 +1047,9 @@ public final class TestWorkflowService implements IWorkflowService {
   public void SignalWithStartWorkflowExecutionAsync(
       SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
       AsyncMethodCallback resultHandler)
-      throws TException {}
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void ResetWorkflowExecution(
