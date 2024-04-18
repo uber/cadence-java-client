@@ -47,6 +47,7 @@ import com.uber.m3.tally.RootScopeBuilder;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.StatsReporter;
 import com.uber.m3.util.ImmutableMap;
+import io.opentracing.noop.NoopTracerFactory;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -727,7 +728,13 @@ public class DeterministicRunnerTest {
         new DeterministicRunnerImpl(
             threadPool,
             new SyncDecisionContext(
-                decisionContext, JsonDataConverter.getInstance(), null, next -> next, null, null),
+                decisionContext,
+                JsonDataConverter.getInstance(),
+                null,
+                next -> next,
+                null,
+                null,
+                NoopTracerFactory.create()),
             () -> 0L, // clock override
             () -> {
               Promise<Void> thread =
@@ -752,7 +759,13 @@ public class DeterministicRunnerTest {
         new DeterministicRunnerImpl(
             threadPool,
             new SyncDecisionContext(
-                decisionContext, JsonDataConverter.getInstance(), null, next -> next, null, null),
+                decisionContext,
+                JsonDataConverter.getInstance(),
+                null,
+                next -> next,
+                null,
+                null,
+                NoopTracerFactory.create()),
             () -> 0L, // clock override
             () -> {
               Promise<Void> thread =

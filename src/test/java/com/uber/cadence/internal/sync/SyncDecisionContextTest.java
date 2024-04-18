@@ -25,6 +25,7 @@ import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.converter.JsonDataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.replay.DecisionContext;
+import io.opentracing.noop.NoopTracerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.Before;
@@ -38,7 +39,13 @@ public class SyncDecisionContextTest {
   public void setUp() {
     this.context =
         new SyncDecisionContext(
-            mockDecisionContext, JsonDataConverter.getInstance(), null, (next) -> next, null, null);
+            mockDecisionContext,
+            JsonDataConverter.getInstance(),
+            null,
+            (next) -> next,
+            null,
+            null,
+            NoopTracerFactory.create());
   }
 
   @Test

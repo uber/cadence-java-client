@@ -40,6 +40,7 @@ import io.opentracing.SpanContext;
 import io.opentracing.Tracer;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
+import io.opentracing.util.GlobalTracer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -132,6 +133,17 @@ public class StartWorkflowTest {
   private static final Logger logger = LoggerFactory.getLogger(StartWorkflowTest.class);
   private static final String DOMAIN = "test-domain";
   private static final String TASK_LIST = "test-tasklist";
+
+  @Test
+  public void testStartWorkflowTchannelDefaultBehavior() {
+    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    GlobalTracer.registerIfAbsent(mockTracer);
+    IWorkflowService service =
+        new WorkflowServiceTChannel(
+            ClientOptions.newBuilder().build()); // default should propagate trace context
+    testStartWorkflowHelper(service, mockTracer, true);
+  }
 
   @Test
   public void testStartWorkflowTchannel() {

@@ -61,7 +61,6 @@ import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.m3.tally.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
-import io.opentracing.noop.NoopTracerFactory;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.HashMap;
@@ -95,23 +94,6 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final byte[] lastCompletionResult;
   private final WorkflowImplementationOptions workflowImplementationOptions;
   private final TracingPropagator tracingPropagator;
-
-  public SyncDecisionContext(
-      DecisionContext context,
-      DataConverter converter,
-      List<ContextPropagator> contextPropagators,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
-      byte[] lastCompletionResult,
-      WorkflowImplementationOptions workflowImplementationOptions) {
-    this(
-        context,
-        converter,
-        contextPropagators,
-        interceptorFactory,
-        lastCompletionResult,
-        workflowImplementationOptions,
-        NoopTracerFactory.create());
-  }
 
   public SyncDecisionContext(
       DecisionContext context,

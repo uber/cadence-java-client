@@ -38,6 +38,7 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.Functions.Func1;
 import com.uber.cadence.workflow.Promise;
 import com.uber.m3.tally.Scope;
+import io.opentracing.noop.NoopTracerFactory;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -193,7 +194,8 @@ class DeterministicRunnerImpl implements DeterministicRunner {
         null,
         (next) -> next,
         null,
-        null);
+        null,
+        NoopTracerFactory.create());
   }
 
   SyncDecisionContext getDecisionContext() {
