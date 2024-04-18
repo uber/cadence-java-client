@@ -48,12 +48,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
@@ -287,7 +282,7 @@ public final class WorkflowInternal {
 
   @SuppressWarnings("unchecked")
   public static Promise<Void> promiseAllOf(Promise<?>... promises) {
-    return new AllOfPromise(promises);
+    return new AllOfPromise(promises).thenApply(results -> null);
   }
 
   public static Promise<Object> promiseAnyOf(Iterable<Promise<?>> promises) {
