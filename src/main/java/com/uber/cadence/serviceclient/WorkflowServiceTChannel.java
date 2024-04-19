@@ -509,6 +509,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     measureRemoteProc(ServiceMethod.DEPRECATE_DOMAIN, () -> deprecateDomain(deprecateRequest));
   }
 
+  @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
   private void deprecateDomain(DeprecateDomainRequest deprecateRequest) throws TException {
     ThriftResponse<WorkflowService.DeprecateDomain_result> response = null;
     try {
@@ -591,6 +599,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       StartWorkflowExecutionRequest request) throws TException {
     return measureRemoteCall(
         ServiceMethod.START_WORKFLOW_EXECUTION, () -> startWorkflowExecution(request));
+  }
+
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   private StartWorkflowExecutionResponse startWorkflowExecution(
@@ -1436,6 +1453,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public ResetWorkflowExecutionResponse ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
@@ -2209,6 +2235,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void StartWorkflowExecutionWithTimeout(
       StartWorkflowExecutionRequest startRequest,
       AsyncMethodCallback resultHandler,
@@ -2555,6 +2588,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest, AsyncMethodCallback resultHandler)
       throws TException {
@@ -2688,6 +2729,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       DeprecateDomainRequest deprecateRequest, AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override
