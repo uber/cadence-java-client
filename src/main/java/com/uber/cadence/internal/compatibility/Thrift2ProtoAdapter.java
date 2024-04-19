@@ -80,9 +80,15 @@ import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedResponse;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.RestartWorkflowExecutionRequest;
+import com.uber.cadence.RestartWorkflowExecutionResponse;
 import com.uber.cadence.ServiceBusyError;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.TerminateWorkflowExecutionRequest;
@@ -187,12 +193,29 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
     return startWorkflowExecution(startRequest);
+  }
+
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   private StartWorkflowExecutionResponse startWorkflowExecution(
@@ -466,6 +489,15 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     } catch (StatusRuntimeException e) {
       throw ErrorMapper.Error(e);
     }
+  }
+
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override
@@ -770,10 +802,24 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override
@@ -903,6 +949,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override

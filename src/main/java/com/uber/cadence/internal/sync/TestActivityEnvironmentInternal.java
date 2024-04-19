@@ -442,6 +442,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+        SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+        throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+            DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+            ClientVersionNotSupportedError, TException {
+      return impl.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
+    }
+
+    @Override
     public ResetWorkflowExecutionResponse ResetWorkflowExecution(
         ResetWorkflowExecutionRequest resetRequest)
         throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
@@ -598,6 +607,13 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void RestartWorkflowExecution(
+        RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.RestartWorkflowExecution(restartRequest, resultHandler);
+    }
+
+    @Override
     public void GetTaskListsByDomain(
         GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
         throws org.apache.thrift.TException {
@@ -609,6 +625,13 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
         throws TException {
       impl.StartWorkflowExecution(startRequest, resultHandler);
+    }
+
+    @Override
+    public void StartWorkflowExecutionAsync(
+        StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.StartWorkflowExecutionAsync(startRequest, resultHandler);
     }
 
     @Override
@@ -752,6 +775,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void SignalWithStartWorkflowExecutionAsync(
+        SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+        AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest, resultHandler);
+    }
+
+    @Override
     public void ResetWorkflowExecution(
         ResetWorkflowExecutionRequest resetRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -890,6 +921,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+        RestartWorkflowExecutionRequest restartRequest)
+        throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+            EntityNotExistsError, ClientVersionNotSupportedError, TException {
+      return impl.RestartWorkflowExecution(restartRequest);
+    }
+
+    @Override
     public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
         throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
             ClientVersionNotSupportedError, TException {
@@ -902,6 +941,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
             ServiceBusyError, TException {
       return impl.StartWorkflowExecution(startRequest);
+    }
+
+    @Override
+    public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+        StartWorkflowExecutionAsyncRequest startRequest)
+        throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+            DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+            ClientVersionNotSupportedError, TException {
+      return impl.StartWorkflowExecutionAsync(startRequest);
     }
 
     @Override

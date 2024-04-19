@@ -78,12 +78,18 @@ import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedResponse;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.RestartWorkflowExecutionRequest;
+import com.uber.cadence.RestartWorkflowExecutionResponse;
 import com.uber.cadence.RetryPolicy;
 import com.uber.cadence.ServiceBusyError;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.TerminateWorkflowExecutionRequest;
@@ -214,6 +220,14 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
   public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
       throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
           ClientVersionNotSupportedError, TException {
@@ -225,6 +239,15 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest) throws TException {
     return startWorkflowExecutionImpl(
         startRequest, 0, Optional.empty(), OptionalLong.empty(), Optional.empty());
+  }
+
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new UnsupportedOperationException("not implemented");
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
@@ -565,6 +588,15 @@ public final class TestWorkflowService implements IWorkflowService {
         startRequest, 0, Optional.empty(), OptionalLong.empty(), Optional.of(signalRequest));
   }
 
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
   // TODO: https://github.com/uber/cadence-java-client/issues/359
   @Override
   public ResetWorkflowExecutionResponse ResetWorkflowExecution(
@@ -813,6 +845,13 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
   public void GetTaskListsByDomain(
       GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
       throws org.apache.thrift.TException {
@@ -824,6 +863,13 @@ public final class TestWorkflowService implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
     StartWorkflowExecutionWithTimeout(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
   }
 
   @Override
@@ -992,6 +1038,14 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void SignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
       AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");

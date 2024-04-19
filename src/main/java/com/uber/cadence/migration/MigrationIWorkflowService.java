@@ -56,6 +56,20 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
     return serviceOld.StartWorkflowExecution(startRequest);
   }
 
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+
+    if (shouldStartInNew(startRequest.getRequest().getWorkflowId())) {
+      return serviceNew.StartWorkflowExecutionAsync(startRequest);
+    }
+
+    return serviceOld.StartWorkflowExecutionAsync(startRequest);
+  }
+
   /**
    * SignalWithStartWorkflowExecution is used to ensure sending signal to a workflow. If the
    * workflow is running, this results in WorkflowExecutionSignaled event being recorded in the
@@ -71,6 +85,19 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
     return serviceOld.SignalWithStartWorkflowExecution(signalWithStartRequest);
   }
 
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    if (shouldStartInNew(signalWithStartRequest.getRequest().getWorkflowId())) {
+      return serviceNew.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
+    }
+
+    return serviceOld.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
+  }
+
   /**
    * SignalWorkflowExecution is used to send a signal event to running workflow execution. This
    * results in WorkflowExecutionSignaled event recorded in the history and a decision task being
@@ -82,6 +109,18 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
     if (shouldStartInNew(signalRequest.getWorkflowExecution().getWorkflowId()))
       serviceNew.SignalWorkflowExecution(signalRequest);
     else serviceOld.SignalWorkflowExecution(signalRequest);
+  }
+
+  @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    if (shouldStartInNew(restartRequest.getWorkflowExecution().getWorkflowId())) {
+      return serviceNew.RestartWorkflowExecution(restartRequest);
+    }
+
+    return serviceOld.RestartWorkflowExecution(restartRequest);
   }
 
   @Override
