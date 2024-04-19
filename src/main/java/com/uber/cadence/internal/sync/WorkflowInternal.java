@@ -287,7 +287,7 @@ public final class WorkflowInternal {
 
   @SuppressWarnings("unchecked")
   public static Promise<Void> promiseAllOf(Promise<?>... promises) {
-    return new AllOfPromise(promises);
+    return new AllOfPromise(promises).thenApply(results -> null);
   }
 
   public static Promise<Object> promiseAnyOf(Iterable<Promise<?>> promises) {
