@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.worker.WorkerFactory;
 import com.uber.m3.tally.NoopScope;
@@ -44,6 +45,7 @@ public class WorkerShutDownHandlerTest {
         WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
     when(mockClient.getOptions()).thenReturn(clientOptions);
     when(mockClient.getService()).thenReturn(mockService);
+    when(mockService.getOptions()).thenReturn(ClientOptions.defaultInstance());
   }
 
   @Test
