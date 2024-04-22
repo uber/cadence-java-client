@@ -104,6 +104,7 @@ import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.client.WorkflowStub;
 import com.uber.cadence.internal.testservice.TestWorkflowService;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
@@ -276,6 +277,11 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
 
     public long currentTimeMillis() {
       return impl.currentTimeMillis();
+    }
+
+    @Override
+    public ClientOptions getOptions() {
+      return impl.getOptions();
     }
 
     @Override

@@ -30,6 +30,8 @@ import org.apache.thrift.async.AsyncMethodCallback;
 public interface IWorkflowService extends Iface, AsyncIface {
   void close();
 
+  ClientOptions getOptions();
+
   /**
    * StartWorkflowExecutionWithTimeout start workflow same as StartWorkflowExecution but with
    * timeout

@@ -35,6 +35,7 @@ import com.uber.cadence.workflow.Functions.Func;
 import com.uber.cadence.workflow.WorkflowMethod;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.util.ImmutableMap;
+import io.opentracing.noop.NoopTracer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -75,6 +76,13 @@ public final class Worker implements Suspendable {
       List<ContextPropagator> contextPropagators) {
     this.taskList = Objects.requireNonNull(taskList);
     options = MoreObjects.firstNonNull(options, WorkerOptions.defaultInstance());
+    // try using client options tracer if worker options tracer is NoopTracer
+    if (options.getTracer() instanceof NoopTracer) {
+      options =
+          WorkerOptions.newBuilder(options)
+              .setTracer(client.getService().getOptions().getTracer())
+              .build();
+    }
     this.options = options;
 
     Scope metricsScope =

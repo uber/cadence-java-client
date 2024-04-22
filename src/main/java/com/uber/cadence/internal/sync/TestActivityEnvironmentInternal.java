@@ -26,6 +26,7 @@ import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -322,6 +323,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
   private class WorkflowServiceWrapper implements IWorkflowService {
 
     private final IWorkflowService impl;
+
+    @Override
+    public ClientOptions getOptions() {
+      return impl.getOptions();
+    }
 
     @Override
     public CompletableFuture<Boolean> isHealthy() {

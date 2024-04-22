@@ -174,6 +174,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     return buildThriftRequest(apiName, body, null);
   }
 
+  @Override
+  public ClientOptions getOptions() {
+    return options;
+  }
+
   /**
    * Checks if we have a valid connection to the Cadence cluster, and potentially resets the peer
    * list
