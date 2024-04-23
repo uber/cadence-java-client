@@ -25,6 +25,11 @@ import org.apache.thrift.async.AsyncMethodCallback;
 public class IWorkflowServiceBase implements IWorkflowService {
 
   @Override
+  public ClientOptions getOptions() {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void RegisterDomain(RegisterDomainRequest registerRequest)
       throws BadRequestError, DomainAlreadyExistsError, ServiceBusyError,
           ClientVersionNotSupportedError, TException {

@@ -103,6 +103,7 @@ import com.uber.cadence.internal.compatibility.proto.RequestMapper;
 import com.uber.cadence.internal.compatibility.proto.serviceclient.IGrpcServiceStubs;
 import com.uber.cadence.internal.compatibility.thrift.ErrorMapper;
 import com.uber.cadence.internal.compatibility.thrift.ResponseMapper;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import io.grpc.Deadline;
 import io.grpc.StatusRuntimeException;
@@ -119,6 +120,11 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   public Thrift2ProtoAdapter(IGrpcServiceStubs grpcServiceStubs) {
     this.grpcServiceStubs = grpcServiceStubs;
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return grpcServiceStubs.getOptions();
   }
 
   @Override

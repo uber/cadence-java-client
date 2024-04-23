@@ -105,6 +105,7 @@ import com.uber.cadence.WorkflowExecutionInfo;
 import com.uber.cadence.WorkflowIdReusePolicy;
 import com.uber.cadence.internal.testservice.TestWorkflowMutableStateImpl.QueryId;
 import com.uber.cadence.internal.testservice.TestWorkflowStore.WorkflowState;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.time.Duration;
 import java.util.HashMap;
@@ -145,6 +146,11 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void close() {
     store.close();
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return ClientOptions.defaultInstance();
   }
 
   private TestWorkflowMutableState getMutableState(ExecutionId executionId)

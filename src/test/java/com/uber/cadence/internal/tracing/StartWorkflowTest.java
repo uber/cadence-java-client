@@ -226,13 +226,7 @@ public class StartWorkflowTest {
     WorkerFactory workerFactory =
         WorkerFactory.newInstance(client, WorkerFactoryOptions.newBuilder().build());
     Worker worker;
-    if (shouldPropagate) {
-      worker =
-          workerFactory.newWorker(
-              TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
-    } else {
-      worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
-    }
+    worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
     worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer, shouldPropagate));
     worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class, DoubleWorkflowImpl.class);
     workerFactory.start();
@@ -322,13 +316,7 @@ public class StartWorkflowTest {
     WorkerFactory workerFactory =
         WorkerFactory.newInstance(client, WorkerFactoryOptions.newBuilder().build());
     Worker worker;
-    if (shouldPropagate) {
-      worker =
-          workerFactory.newWorker(
-              TASK_LIST, WorkerOptions.newBuilder().setTracer(mockTracer).build());
-    } else {
-      worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
-    }
+    worker = workerFactory.newWorker(TASK_LIST, WorkerOptions.newBuilder().build());
     worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer, shouldPropagate));
     worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class, DoubleWorkflowImpl.class);
     workerFactory.start();

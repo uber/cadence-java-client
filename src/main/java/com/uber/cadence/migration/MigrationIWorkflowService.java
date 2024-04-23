@@ -19,6 +19,7 @@ package com.uber.cadence.migration;
 
 import com.google.common.base.Strings;
 import com.uber.cadence.*;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowServiceBase;
 import java.util.Arrays;
@@ -44,6 +45,11 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
     this.domainOld = domainOld;
     this.serviceNew = serviceNew;
     this.domainNew = domainNew;
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return serviceOld.getOptions();
   }
 
   @Override

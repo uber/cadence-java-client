@@ -81,6 +81,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
 
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
+  private final ClientOptions options;
   private final ManagedChannel channel;
   private final boolean shutdownChannel;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean();
@@ -96,6 +97,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final MetaAPIGrpc.MetaAPIFutureStub metaFutureStub;
 
   GrpcServiceStubs(ClientOptions options) {
+    this.options = options;
     if (options.getGRPCChannel() != null) {
       this.channel = options.getGRPCChannel();
       shutdownChannel = false;
@@ -288,6 +290,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
 
   public DomainAPIGrpc.DomainAPIFutureStub domainFutureStub() {
     return domainFutureStub;
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return options;
   }
 
   @Override
