@@ -77,8 +77,12 @@ public class ServiceMethod {
       MetricsType.CADENCE_METRICS_PREFIX + "ResetWorkflowExecution";
   public static final String SIGNAL_WITH_START_WORKFLOW_EXECUTION =
       MetricsType.CADENCE_METRICS_PREFIX + "SignalWithStartWorkflowExecution";
+  public static final String SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC =
+      MetricsType.CADENCE_METRICS_PREFIX + "SignalWithStartWorkflowExecutionAsync";
   public static final String START_WORKFLOW_EXECUTION =
       MetricsType.CADENCE_METRICS_PREFIX + "StartWorkflowExecution";
+  public static final String START_WORKFLOW_EXECUTION_ASYNC =
+      MetricsType.CADENCE_METRICS_PREFIX + "StartWorkflowExecutionAsync";
   public static final String TERMINATE_WORKFLOW_EXECUTION =
       MetricsType.CADENCE_METRICS_PREFIX + "TerminateWorkflowExecution";
   public static final String UPDATE_DOMAIN = MetricsType.CADENCE_METRICS_PREFIX + "UpdateDomain";

@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -4627,7 +4628,7 @@ public class WorkflowTest {
 
   @Test
   public void testDelayStart() {
-    Assume.assumeTrue("skipping for non docker tests", useExternalService);
+    assumeTrue("skipping for non docker tests", useExternalService);
 
     int delaySeconds = 5;
     startWorkerFor(TestGetVersionWorkflowImpl.class);
@@ -4729,7 +4730,7 @@ public class WorkflowTest {
 
   @Test
   public void testGetVersionWithoutDecisionEvent() throws Exception {
-    Assume.assumeTrue("skipping as there will be no replay", disableStickyExecution);
+    assumeTrue("skipping as there will be no replay", disableStickyExecution);
     executionStarted = new CompletableFuture<>();
     getVersionExecuted.remove("getVersionWithoutDecisionEvent");
     startWorkerFor(TestGetVersionWithoutDecisionEventWorkflowImpl.class);
@@ -5015,7 +5016,7 @@ public class WorkflowTest {
 
   @Test
   public void testNonDeterministicWorkflowPolicyBlockWorkflow() {
-    Assume.assumeTrue("skipping as no replay in sticky", disableStickyExecution);
+    assumeTrue("skipping as no replay in sticky", disableStickyExecution);
     startWorkerFor(DeterminismFailingWorkflowImpl.class);
     WorkflowOptions options =
         new WorkflowOptions.Builder()
@@ -5045,7 +5046,7 @@ public class WorkflowTest {
 
   @Test
   public void testNonDeterministicWorkflowPolicyFailWorkflow() {
-    Assume.assumeTrue("skipping as no replay in sticky", disableStickyExecution);
+    assumeTrue("skipping as no replay in sticky", disableStickyExecution);
     WorkflowImplementationOptions implementationOptions =
         new WorkflowImplementationOptions.Builder()
             .setNonDeterministicWorkflowPolicy(FailWorkflow)
@@ -5629,7 +5630,7 @@ public class WorkflowTest {
 
   @Test
   public void testLocalActivityAndQueryStickyOff() throws InterruptedException {
-    Assume.assumeTrue("test for sticky off", disableStickyExecution);
+    assumeTrue("test for sticky off", disableStickyExecution);
 
     startWorkerFor(TestLocalActivityAndQueryWorkflow.class);
     WorkflowOptions options =
@@ -6198,5 +6199,56 @@ public class WorkflowTest {
     CompletableFuture<String> result = WorkflowClient.execute(workflowStub::execute, taskList);
     // Activity doesn't timeout because we overrode the timeouts to be longer.
     assertEquals("activityCompletedSuccessfully", result.get());
+  }
+
+  public static class TestEnqueueWorkflow implements QueryableWorkflow {
+    boolean signaled = false;
+    String result;
+
+    @Override
+    public String execute() {
+      Workflow.await(() -> signaled);
+      return result;
+    }
+
+    @Override
+    public String getState() {
+      return signaled ? "done" : "running";
+    }
+
+    @Override
+    public void mySignal(String value) {
+      result = value;
+      signaled = true;
+    }
+  }
+
+  @Test
+  public void testEnqueueWorkflow() throws Exception {
+    // The docker service isn't set up for async calls. Only run against the TestEnvironment version
+    // of this test
+    assumeTrue("The docker service doesn't support async calls", !useDockerService);
+    startWorkerFor(TestEnqueueWorkflow.class);
+
+    WorkflowStub stub =
+        workflowClient.newUntypedWorkflowStub(
+            "QueryableWorkflow::execute", newWorkflowOptionsBuilder(taskList).build());
+
+    stub.enqueueStart();
+
+    boolean isRunning = false;
+    while (!isRunning) {
+      try {
+        String result = stub.query("QueryableWorkflow::getState", String.class);
+        isRunning = true;
+        assertEquals("running", result);
+      } catch (WorkflowNotFoundException ex) {
+        sleep(Duration.ofMillis(5));
+      }
+    }
+
+    stub.signal("testSignal", "value");
+
+    assertEquals("value", stub.getResult(String.class));
   }
 }

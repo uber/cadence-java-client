@@ -650,6 +650,16 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void StartWorkflowExecutionAsyncWithTimeout(
+        StartWorkflowExecutionAsyncRequest startAsyncRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.StartWorkflowExecutionAsyncWithTimeout(
+          startAsyncRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
         throws TException {

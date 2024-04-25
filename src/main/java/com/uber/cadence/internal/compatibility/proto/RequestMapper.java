@@ -84,8 +84,10 @@ import com.uber.cadence.api.v1.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.api.v1.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.api.v1.RespondQueryTaskCompletedRequest;
 import com.uber.cadence.api.v1.ScanWorkflowExecutionsRequest;
+import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.SignalWorkflowExecutionRequest;
+import com.uber.cadence.api.v1.StartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.api.v1.StartWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.TerminateWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.UpdateDomainRequest;
@@ -449,7 +451,7 @@ public class RequestMapper {
     if (t.getDelayStartSeconds() > 0) {
       builder.setDelayStart(secondsToDuration(t.getDelayStartSeconds()));
     }
-    ;
+
     if (t.getIdentity() != null) {
       builder.setIdentity(t.getIdentity());
     }
@@ -462,6 +464,20 @@ public class RequestMapper {
       sb.setControl(arrayToByteString(t.getControl()));
     }
     return sb.build();
+  }
+
+  public static SignalWithStartWorkflowExecutionAsyncRequest
+      signalWithStartWorkflowExecutionAsyncRequest(
+          com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest t) {
+    if (t == null) {
+      return null;
+    }
+    SignalWithStartWorkflowExecutionAsyncRequest.Builder builder =
+        SignalWithStartWorkflowExecutionAsyncRequest.newBuilder();
+    if (t.getRequest() != null) {
+      builder.setRequest(signalWithStartWorkflowExecutionRequest(t.getRequest()));
+    }
+    return builder.build();
   }
 
   public static SignalWorkflowExecutionRequest signalWorkflowExecutionRequest(
@@ -516,6 +532,19 @@ public class RequestMapper {
       request.setIdentity(t.getIdentity());
     }
     return request.build();
+  }
+
+  public static StartWorkflowExecutionAsyncRequest startWorkflowExecutionAsyncRequest(
+      com.uber.cadence.StartWorkflowExecutionAsyncRequest t) {
+    if (t == null) {
+      return null;
+    }
+    StartWorkflowExecutionAsyncRequest.Builder builder =
+        StartWorkflowExecutionAsyncRequest.newBuilder();
+    if (t.getRequest() != null) {
+      builder.setRequest(startWorkflowExecutionRequest(t.getRequest()));
+    }
+    return builder.build();
   }
 
   public static TerminateWorkflowExecutionRequest terminateWorkflowExecutionRequest(

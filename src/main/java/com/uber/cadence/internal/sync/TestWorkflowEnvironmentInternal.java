@@ -532,6 +532,16 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     }
 
     @Override
+    public void StartWorkflowExecutionAsyncWithTimeout(
+        StartWorkflowExecutionAsyncRequest startAsyncRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.StartWorkflowExecutionAsyncWithTimeout(
+          startAsyncRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
     public void GetWorkflowExecutionHistory(
         GetWorkflowExecutionHistoryRequest getRequest, AsyncMethodCallback resultHandler)
         throws TException {
@@ -978,6 +988,22 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       public CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
           long timeout, TimeUnit unit, Object... args) {
         return next.startAsyncWithTimeout(timeout, unit, args);
+      }
+
+      @Override
+      public void enqueueStart(Object... args) {
+        next.enqueueStart(args);
+      }
+
+      @Override
+      public CompletableFuture<Void> enqueueStartAsync(Object... args) {
+        return next.enqueueStartAsync(args);
+      }
+
+      @Override
+      public CompletableFuture<Void> enqueueStartAsyncWithTimeout(
+          long timeout, TimeUnit unit, Object... args) {
+        return next.enqueueStartAsyncWithTimeout(timeout, unit, args);
       }
 
       @Override
