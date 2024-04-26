@@ -991,17 +991,17 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
-      public void enqueueStart(Object... args) {
-        next.enqueueStart(args);
+      public WorkflowExecution enqueueStart(Object... args) {
+        return next.enqueueStart(args);
       }
 
       @Override
-      public CompletableFuture<Void> enqueueStartAsync(Object... args) {
+      public CompletableFuture<WorkflowExecution> enqueueStartAsync(Object... args) {
         return next.enqueueStartAsync(args);
       }
 
       @Override
-      public CompletableFuture<Void> enqueueStartAsyncWithTimeout(
+      public CompletableFuture<WorkflowExecution> enqueueStartAsyncWithTimeout(
           long timeout, TimeUnit unit, Object... args) {
         return next.enqueueStartAsyncWithTimeout(timeout, unit, args);
       }

@@ -76,11 +76,12 @@ public interface WorkflowStub {
   CompletableFuture<WorkflowExecution> startAsyncWithTimeout(
       long timeout, TimeUnit unit, Object... args);
 
-  void enqueueStart(Object... args);
+  WorkflowExecution enqueueStart(Object... args);
 
-  CompletableFuture<Void> enqueueStartAsync(Object... args);
+  CompletableFuture<WorkflowExecution> enqueueStartAsync(Object... args);
 
-  CompletableFuture<Void> enqueueStartAsyncWithTimeout(long timeout, TimeUnit unit, Object... args);
+  CompletableFuture<WorkflowExecution> enqueueStartAsyncWithTimeout(
+      long timeout, TimeUnit unit, Object... args);
 
   WorkflowExecution signalWithStart(String signalName, Object[] signalArgs, Object[] startArgs);
 

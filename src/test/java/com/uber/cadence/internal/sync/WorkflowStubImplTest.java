@@ -50,8 +50,9 @@ public class WorkflowStubImplTest {
                 .setTaskList("taskList")
                 .build());
 
-    stub.enqueueStart("input");
+    WorkflowExecution execution = stub.enqueueStart("input");
 
+    assertEquals(new WorkflowExecution().setWorkflowId("workflowId"), execution);
     assertEquals(new WorkflowExecution().setWorkflowId("workflowId"), stub.getExecution());
 
     ArgumentCaptor<StartWorkflowExecutionParameters> captor =
@@ -81,7 +82,7 @@ public class WorkflowStubImplTest {
                 .setTaskList("taskList")
                 .build());
 
-    stub.enqueueStart("input");
+    WorkflowExecution execution = stub.enqueueStart("input");
 
     ArgumentCaptor<StartWorkflowExecutionParameters> captor =
         ArgumentCaptor.forClass(StartWorkflowExecutionParameters.class);
@@ -89,6 +90,7 @@ public class WorkflowStubImplTest {
 
     StartWorkflowExecutionParameters params = captor.getValue();
     assertNotNull("workflowId", params.getWorkflowId());
+    assertEquals(execution.getWorkflowId(), params.getWorkflowId());
   }
 
   @Test

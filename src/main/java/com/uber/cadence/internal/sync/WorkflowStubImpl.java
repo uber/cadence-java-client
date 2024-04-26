@@ -244,14 +244,14 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   @Override
-  public void enqueueStart(Object... args) {
+  public WorkflowExecution enqueueStart(Object... args) {
     if (!options.isPresent()) {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
     }
-    enqueueWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+    return enqueueWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
   }
 
-  private void enqueueWithOptions(WorkflowOptions o, Object... args) {
+  private WorkflowExecution enqueueWithOptions(WorkflowOptions o, Object... args) {
     StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
     try {
       genericClient.enqueueStartWorkflow(p);
@@ -265,15 +265,16 @@ class WorkflowStubImpl implements WorkflowStub {
     } catch (Exception e) {
       throw new WorkflowServiceException(execution.get(), workflowType, e);
     }
+    return execution.get();
   }
 
   @Override
-  public CompletableFuture<Void> enqueueStartAsync(Object... args) {
+  public CompletableFuture<WorkflowExecution> enqueueStartAsync(Object... args) {
     return enqueueStartAsyncWithTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS, args);
   }
 
   @Override
-  public CompletableFuture<Void> enqueueStartAsyncWithTimeout(
+  public CompletableFuture<WorkflowExecution> enqueueStartAsyncWithTimeout(
       long timeout, TimeUnit unit, Object... args) {
     if (!options.isPresent()) {
       throw new IllegalStateException("Required parameter WorkflowOptions is missing");
@@ -283,13 +284,18 @@ class WorkflowStubImpl implements WorkflowStub {
         timeout, unit, WorkflowOptions.merge(null, null, null, options.get()), args);
   }
 
-  private CompletableFuture<Void> enqueueAsyncWithOptions(
+  private CompletableFuture<WorkflowExecution> enqueueAsyncWithOptions(
       long timeout, TimeUnit unit, WorkflowOptions o, Object... args) {
     StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
     return genericClient
         .enqueueStartWorkflowAsync(p, unit.toMillis(timeout))
-        .thenAccept(
-            ignored -> execution.set(new WorkflowExecution().setWorkflowId(p.getWorkflowId())));
+        .thenApply(
+            ignored -> {
+              WorkflowExecution wfExecution =
+                  new WorkflowExecution().setWorkflowId(p.getWorkflowId());
+              execution.set(wfExecution);
+              return wfExecution;
+            });
   }
 
   private WorkflowExecution signalWithStartWithOptions(
