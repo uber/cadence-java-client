@@ -311,6 +311,98 @@ public final class WorkflowClientInternal implements WorkflowClient {
     return start(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
   }
 
+  public static WorkflowExecution enqueueStart(Functions.Proc workflow) {
+    WorkflowInvocationHandler.initAsyncInvocation(InvocationType.ENQUEUE_START);
+    try {
+      workflow.apply();
+      return WorkflowInvocationHandler.getAsyncInvocationResult(WorkflowExecution.class);
+    } finally {
+      WorkflowInvocationHandler.closeAsyncInvocation();
+    }
+  }
+
+  public static <A1> WorkflowExecution enqueueStart(Functions.Proc1<A1> workflow, A1 arg1) {
+    return enqueueStart(() -> workflow.apply(arg1));
+  }
+
+  public static <A1, A2> WorkflowExecution enqueueStart(
+      Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2));
+  }
+
+  public static <A1, A2, A3> WorkflowExecution enqueueStart(
+      Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3));
+  }
+
+  public static <A1, A2, A3, A4> WorkflowExecution enqueueStart(
+      Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4));
+  }
+
+  public static <A1, A2, A3, A4, A5> WorkflowExecution enqueueStart(
+      Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+  }
+
+  public static <A1, A2, A3, A4, A5, A6> WorkflowExecution enqueueStart(
+      Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
+  public static <R> WorkflowExecution enqueueStart(Functions.Func<R> workflow) {
+    return enqueueStart(
+        () -> {
+          workflow.apply();
+        });
+  }
+
+  public static <A1, R> WorkflowExecution enqueueStart(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return enqueueStart(() -> workflow.apply(arg1));
+  }
+
+  public static <A1, A2, R> WorkflowExecution enqueueStart(
+      Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2));
+  }
+
+  public static <A1, A2, A3, R> WorkflowExecution enqueueStart(
+      Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3));
+  }
+
+  public static <A1, A2, A3, A4, R> WorkflowExecution enqueueStart(
+      Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4));
+  }
+
+  public static <A1, A2, A3, A4, A5, R> WorkflowExecution enqueueStart(
+      Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5));
+  }
+
+  public static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution enqueueStart(
+      Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return enqueueStart(() -> workflow.apply(arg1, arg2, arg3, arg4, arg5, arg6));
+  }
+
   @SuppressWarnings("unchecked")
   public static CompletableFuture<Void> execute(Functions.Proc workflow) {
     WorkflowInvocationHandler.initAsyncInvocation(InvocationType.EXECUTE);
