@@ -193,54 +193,57 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             span.finish();
           }
 
+          @SuppressWarnings("unchecked")
           @Override
           public void sendMessage(ReqT message) {
             if (Objects.equals(method.getBareMethodName(), "StartWorkflowExecution")
                 && message instanceof StartWorkflowExecutionRequest) {
               StartWorkflowExecutionRequest request = (StartWorkflowExecutionRequest) message;
-              Map<String, byte[]> headers = new HashMap<>();
-              tracingPropagator.inject(headers);
-              Header.Builder headerBuilder = request.getHeader().toBuilder();
-              headers.forEach(
-                  (k, v) -> {
-                    headerBuilder.putFields(
-                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build());
-                  });
+              Header newHeader = addTracingHeaders(request.getHeader());
+
+              // cast should not throw error as we are using the builder
+              message = (ReqT) request.toBuilder().setHeader(newHeader).build();
+            } else if (Objects.equals(method.getBareMethodName(), "StartWorkflowExecutionAsync")
+                && message instanceof StartWorkflowExecutionAsyncRequest) {
+              StartWorkflowExecutionAsyncRequest request =
+                  (StartWorkflowExecutionAsyncRequest) message;
+              Header newHeader = addTracingHeaders(request.getRequest().getHeader());
 
               // cast should not throw error as we are using the builder
               message =
                   (ReqT)
-                      ((StartWorkflowExecutionRequest) message)
+                      request
                           .toBuilder()
-                          .setHeader(headerBuilder.build())
+                          .setRequest(request.getRequest().toBuilder().setHeader(newHeader))
                           .build();
-            }
-            if (Objects.equals(method.getBareMethodName(), "SignalWithStartWorkflowExecution")
+            } else if (Objects.equals(
+                    method.getBareMethodName(), "SignalWithStartWorkflowExecution")
                 && message instanceof SignalWithStartWorkflowExecutionRequest) {
               SignalWithStartWorkflowExecutionRequest request =
                   (SignalWithStartWorkflowExecutionRequest) message;
-              Map<String, byte[]> headers = new HashMap<>();
-              tracingPropagator.inject(headers);
-              Header.Builder headerBuilder = request.getStartRequest().getHeader().toBuilder();
-              headers.forEach(
-                  (k, v) -> {
-                    headerBuilder.putFields(
-                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build());
-                  });
+              Header newHeader = addTracingHeaders(request.getStartRequest().getHeader());
 
               // cast should not throw error as we are using the builder
               message =
                   (ReqT)
-                      ((SignalWithStartWorkflowExecutionRequest) message)
+                      request
                           .toBuilder()
                           .setStartRequest(
-                              request
-                                  .getStartRequest()
-                                  .toBuilder()
-                                  .setHeader(headerBuilder.build()))
+                              request.getStartRequest().toBuilder().setHeader(newHeader))
                           .build();
             }
             super.sendMessage(message);
+          }
+
+          private Header addTracingHeaders(Header header) {
+            Map<String, byte[]> headers = new HashMap<>();
+            tracingPropagator.inject(headers);
+            Header.Builder headerBuilder = header.toBuilder();
+            headers.forEach(
+                (k, v) ->
+                    headerBuilder.putFields(
+                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build()));
+            return headerBuilder.build();
           }
         };
       }

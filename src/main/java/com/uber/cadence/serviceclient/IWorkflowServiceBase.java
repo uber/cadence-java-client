@@ -668,6 +668,15 @@ public class IWorkflowServiceBase implements IWorkflowService {
   }
 
   @Override
+  public void StartWorkflowExecutionAsyncWithTimeout(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public GetWorkflowExecutionHistoryResponse GetWorkflowExecutionHistoryWithTimeout(
       GetWorkflowExecutionHistoryRequest getRequest, Long timeoutInMillis) throws TException {
     throw new IllegalArgumentException("unimplemented");

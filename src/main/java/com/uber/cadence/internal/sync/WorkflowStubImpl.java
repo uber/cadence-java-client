@@ -243,6 +243,61 @@ class WorkflowStubImpl implements WorkflowStub {
         });
   }
 
+  @Override
+  public WorkflowExecution enqueueStart(Object... args) {
+    if (!options.isPresent()) {
+      throw new IllegalStateException("Required parameter WorkflowOptions is missing");
+    }
+    return enqueueWithOptions(WorkflowOptions.merge(null, null, null, options.get()), args);
+  }
+
+  private WorkflowExecution enqueueWithOptions(WorkflowOptions o, Object... args) {
+    StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
+    try {
+      genericClient.enqueueStartWorkflow(p);
+      execution.set(new WorkflowExecution().setWorkflowId(p.getWorkflowId()));
+    } catch (WorkflowExecutionAlreadyStartedError e) {
+      execution.set(
+          new WorkflowExecution().setWorkflowId(p.getWorkflowId()).setRunId(e.getRunId()));
+      WorkflowExecution execution =
+          new WorkflowExecution().setWorkflowId(p.getWorkflowId()).setRunId(e.getRunId());
+      throw new DuplicateWorkflowException(execution, workflowType.get(), e.getMessage());
+    } catch (Exception e) {
+      throw new WorkflowServiceException(execution.get(), workflowType, e);
+    }
+    return execution.get();
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> enqueueStartAsync(Object... args) {
+    return enqueueStartAsyncWithTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS, args);
+  }
+
+  @Override
+  public CompletableFuture<WorkflowExecution> enqueueStartAsyncWithTimeout(
+      long timeout, TimeUnit unit, Object... args) {
+    if (!options.isPresent()) {
+      throw new IllegalStateException("Required parameter WorkflowOptions is missing");
+    }
+
+    return enqueueAsyncWithOptions(
+        timeout, unit, WorkflowOptions.merge(null, null, null, options.get()), args);
+  }
+
+  private CompletableFuture<WorkflowExecution> enqueueAsyncWithOptions(
+      long timeout, TimeUnit unit, WorkflowOptions o, Object... args) {
+    StartWorkflowExecutionParameters p = getStartWorkflowExecutionParameters(o, args);
+    return genericClient
+        .enqueueStartWorkflowAsync(p, unit.toMillis(timeout))
+        .thenApply(
+            ignored -> {
+              WorkflowExecution wfExecution =
+                  new WorkflowExecution().setWorkflowId(p.getWorkflowId());
+              execution.set(wfExecution);
+              return wfExecution;
+            });
+  }
+
   private WorkflowExecution signalWithStartWithOptions(
       WorkflowOptions options, String signalName, Object[] signalArgs, Object[] startArgs) {
     StartWorkflowExecutionParameters sp = getStartWorkflowExecutionParameters(options, startArgs);

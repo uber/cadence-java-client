@@ -21,6 +21,8 @@ public class MetricsType {
 
   public static final String CADENCE_METRICS_PREFIX = "cadence-";
   public static final String WORKFLOW_START_COUNTER = CADENCE_METRICS_PREFIX + "workflow-start";
+  public static final String WORKFLOW_START_ASYNC_COUNTER =
+      CADENCE_METRICS_PREFIX + "workflow-start-async";
   public static final String WORKFLOW_COMPLETED_COUNTER =
       CADENCE_METRICS_PREFIX + "workflow-completed";
   public static final String WORKFLOW_CANCELLED_COUNTER =

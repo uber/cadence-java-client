@@ -253,7 +253,9 @@ public final class TestWorkflowService implements IWorkflowService {
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    // Just run it
+    StartWorkflowExecution(startRequest.getRequest());
+    return new StartWorkflowExecutionAsyncResponse();
   }
 
   StartWorkflowExecutionResponse startWorkflowExecutionImpl(
@@ -872,13 +874,6 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
-  public void StartWorkflowExecutionAsync(
-      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
-      throws TException {
-    throw new UnsupportedOperationException("not implemented");
-  }
-
-  @Override
   public void StartWorkflowExecutionWithTimeout(
       StartWorkflowExecutionRequest startRequest,
       AsyncMethodCallback resultHandler,
@@ -893,6 +888,37 @@ public final class TestWorkflowService implements IWorkflowService {
             resultHandler.onError(e);
           }
         });
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    StartWorkflowExecutionAsyncWithTimeout(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsyncWithTimeout(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    // Treat it like a synchronous call but ignore the result
+    StartWorkflowExecutionWithTimeout(
+        startAsyncRequest.getRequest(),
+        new AsyncMethodCallback() {
+          @Override
+          public void onComplete(Object response) {
+            // Noop
+          }
+
+          @Override
+          public void onError(Exception exception) {
+            // Noop
+          }
+        },
+        timeoutInMillis);
+    resultHandler.onComplete(new StartWorkflowExecutionAsyncResponse());
   }
 
   @SuppressWarnings("unchecked") // Generator ignores that AsyncMethodCallback is generic

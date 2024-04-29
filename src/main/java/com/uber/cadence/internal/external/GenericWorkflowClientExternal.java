@@ -39,6 +39,12 @@ public interface GenericWorkflowClientExternal {
   CompletableFuture<WorkflowExecution> startWorkflowAsync(
       StartWorkflowExecutionParameters startParameters, Long timeoutInMillis);
 
+  void enqueueStartWorkflow(StartWorkflowExecutionParameters startParameters)
+      throws WorkflowExecutionAlreadyStartedError;
+
+  CompletableFuture<Void> enqueueStartWorkflowAsync(
+      StartWorkflowExecutionParameters startParameters, Long timeoutInMillis);
+
   void signalWorkflowExecution(SignalExternalWorkflowParameters signalParameters);
 
   CompletableFuture<Void> signalWorkflowExecutionAsync(
