@@ -470,6 +470,299 @@ public interface WorkflowClient {
   }
 
   /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static WorkflowExecution enqueueStart(Functions.Proc workflow) {
+    return WorkflowClientInternal.enqueueStart(workflow);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow argument
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1> WorkflowExecution enqueueStart(Functions.Proc1<A1> workflow, A1 arg1) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow argument
+   * @param arg2 second workflow argument
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2> WorkflowExecution enqueueStart(
+      Functions.Proc2<A1, A2> workflow, A1 arg1, A2 arg2) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow argument
+   * @param arg2 second workflow argument
+   * @param arg3 third workflow argument
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3> WorkflowExecution enqueueStart(
+      Functions.Proc3<A1, A2, A3> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4> WorkflowExecution enqueueStart(
+      Functions.Proc4<A1, A2, A3, A4> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 fifth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4, A5> WorkflowExecution enqueueStart(
+      Functions.Proc5<A1, A2, A3, A4, A5> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4, A5 arg5) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4, arg5);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 sixth workflow function parameter
+   * @param arg6 sixth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4, A5, A6> WorkflowExecution enqueueStart(
+      Functions.Proc6<A1, A2, A3, A4, A5, A6> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <R> WorkflowExecution enqueueStart(Functions.Func<R> workflow) {
+    return WorkflowClientInternal.enqueueStart(workflow);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, R> WorkflowExecution enqueueStart(Functions.Func1<A1, R> workflow, A1 arg1) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, R> WorkflowExecution enqueueStart(
+      Functions.Func2<A1, A2, R> workflow, A1 arg1, A2 arg2) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, R> WorkflowExecution enqueueStart(
+      Functions.Func3<A1, A2, A3, R> workflow, A1 arg1, A2 arg2, A3 arg3) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4, R> WorkflowExecution enqueueStart(
+      Functions.Func4<A1, A2, A3, A4, R> workflow, A1 arg1, A2 arg2, A3 arg3, A4 arg4) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 fifth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4, A5, R> WorkflowExecution enqueueStart(
+      Functions.Func5<A1, A2, A3, A4, A5, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4, arg5);
+  }
+
+  /**
+   * Schedules a workflow to be started at a future date via StartWorkflowExecutionAsync. This
+   * requires that async execution has been enabled for this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param workflow The only supported value is method reference to a proxy created through {@link
+   *     #newWorkflowStub(Class, WorkflowOptions)}.
+   * @param arg1 first workflow function parameter
+   * @param arg2 second workflow function parameter
+   * @param arg3 third workflow function parameter
+   * @param arg4 fourth workflow function parameter
+   * @param arg5 sixth workflow function parameter
+   * @param arg6 sixth workflow function parameter
+   * @return WorkflowExecution containing only the workflowId
+   */
+  static <A1, A2, A3, A4, A5, A6, R> WorkflowExecution enqueueStart(
+      Functions.Func6<A1, A2, A3, A4, A5, A6, R> workflow,
+      A1 arg1,
+      A2 arg2,
+      A3 arg3,
+      A4 arg4,
+      A5 arg5,
+      A6 arg6) {
+    return WorkflowClientInternal.enqueueStart(workflow, arg1, arg2, arg3, arg4, arg5, arg6);
+  }
+
+  /**
    * Executes zero argument workflow with void return type
    *
    * @param workflow The only supported value is method reference to a proxy created through {@link
