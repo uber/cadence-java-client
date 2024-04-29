@@ -56,6 +56,9 @@ public interface GenericWorkflowClientExternal {
   WorkflowExecution signalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionParameters parameters);
 
+  WorkflowExecution enqueueSignalWithStartWorkflowExecution(
+      SignalWithStartWorkflowExecutionParameters parameters);
+
   void requestCancelWorkflowExecution(WorkflowExecution execution);
 
   QueryWorkflowResponse queryWorkflow(QueryWorkflowParameters queryParameters);

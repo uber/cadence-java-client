@@ -43,6 +43,8 @@ public class MetricsType {
       CADENCE_METRICS_PREFIX + "workflow-get-history-latency";
   public static final String WORKFLOW_SIGNAL_WITH_START_COUNTER =
       CADENCE_METRICS_PREFIX + "workflow-signal-with-start";
+  public static final String WORKFLOW_SIGNAL_WITH_START_ASYNC_COUNTER =
+      CADENCE_METRICS_PREFIX + "workflow-signal-with-start-async";
 
   public static final String DECISION_POLL_COUNTER = CADENCE_METRICS_PREFIX + "decision-poll-total";
   public static final String DECISION_POLL_FAILED_COUNTER =

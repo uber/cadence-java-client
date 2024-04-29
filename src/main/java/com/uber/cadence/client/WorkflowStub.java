@@ -85,6 +85,9 @@ public interface WorkflowStub {
 
   WorkflowExecution signalWithStart(String signalName, Object[] signalArgs, Object[] startArgs);
 
+  WorkflowExecution enqueueSignalWithStart(
+      String signalName, Object[] signalArgs, Object[] startArgs);
+
   Optional<String> getWorkflowType();
 
   WorkflowExecution getExecution();

@@ -8,6 +8,7 @@ import com.uber.tchannel.api.TChannel;
 import com.uber.tchannel.api.handlers.ThriftRequestHandler;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
+import io.opentracing.mock.MockTracer;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,7 @@ import org.junit.rules.ExternalResource;
 public class FakeWorkflowServiceRule extends ExternalResource {
 
   private final Map<String, StubbedResponse<?>> stubbedResponses = new ConcurrentHashMap<>();
+  private final MockTracer tracer = new MockTracer();
   private TChannel tChannel;
   private IWorkflowService clientConn;
 
@@ -49,6 +51,7 @@ public class FakeWorkflowServiceRule extends ExternalResource {
     clientConn =
         new WorkflowServiceTChannel(
             ClientOptions.newBuilder()
+                .setTracer(tracer)
                 .setHost(tChannel.getListeningHost())
                 .setPort(tChannel.getListeningPort())
                 .build());
@@ -67,11 +70,16 @@ public class FakeWorkflowServiceRule extends ExternalResource {
   }
 
   public void resetStubs() {
+    tracer.reset();
     stubbedResponses.clear();
   }
 
   public IWorkflowService getClient() {
     return clientConn;
+  }
+
+  public MockTracer getTracer() {
+    return tracer;
   }
 
   public <V> CompletableFuture<V> stubEndpoint(

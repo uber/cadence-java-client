@@ -602,7 +602,8 @@ public final class TestWorkflowService implements IWorkflowService {
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
-    throw new UnsupportedOperationException("not implemented");
+    SignalWithStartWorkflowExecution(signalWithStartRequest.getRequest());
+    return new SignalWithStartWorkflowExecutionAsyncResponse();
   }
 
   // TODO: https://github.com/uber/cadence-java-client/issues/359

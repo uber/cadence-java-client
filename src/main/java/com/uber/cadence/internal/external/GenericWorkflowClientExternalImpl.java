@@ -25,6 +25,7 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RequestCancelWorkflowExecutionRequest;
 import com.uber.cadence.RetryPolicy;
 import com.uber.cadence.SearchAttributes;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionAsyncRequest;
@@ -411,7 +412,59 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     }
   }
 
+  @Override
+  public WorkflowExecution enqueueSignalWithStartWorkflowExecution(
+      SignalWithStartWorkflowExecutionParameters parameters) {
+    try {
+      return enqueueSignalWithStartWorkflowInternal(parameters);
+    } finally {
+      Map<String, String> tags =
+          new ImmutableMap.Builder<String, String>(3)
+              .put(
+                  MetricsTag.WORKFLOW_TYPE,
+                  parameters.getStartParameters().getWorkflowType().getName())
+              .put(MetricsTag.TASK_LIST, parameters.getStartParameters().getTaskList())
+              .put(MetricsTag.DOMAIN, domain)
+              .build();
+      metricsScope
+          .tagged(tags)
+          .counter(MetricsType.WORKFLOW_SIGNAL_WITH_START_ASYNC_COUNTER)
+          .inc(1);
+    }
+  }
+
+  private WorkflowExecution enqueueSignalWithStartWorkflowInternal(
+      SignalWithStartWorkflowExecutionParameters parameters) {
+    SignalWithStartWorkflowExecutionAsyncRequest request =
+        new SignalWithStartWorkflowExecutionAsyncRequest()
+            .setRequest(createSignalWithStartRequest(parameters));
+    try {
+      RpcRetryer.retryWithResult(
+          RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
+          () -> service.SignalWithStartWorkflowExecutionAsync(request));
+      return new WorkflowExecution().setWorkflowId(request.getRequest().getWorkflowId());
+    } catch (TException e) {
+      throw CheckedExceptionWrapper.wrap(e);
+    }
+  }
+
   private WorkflowExecution signalWithStartWorkflowInternal(
+      SignalWithStartWorkflowExecutionParameters parameters) {
+    SignalWithStartWorkflowExecutionRequest request = createSignalWithStartRequest(parameters);
+    try {
+      StartWorkflowExecutionResponse result =
+          RpcRetryer.retryWithResult(
+              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
+              () -> service.SignalWithStartWorkflowExecution(request));
+      return new WorkflowExecution()
+          .setRunId(result.getRunId())
+          .setWorkflowId(request.getWorkflowId());
+    } catch (TException e) {
+      throw CheckedExceptionWrapper.wrap(e);
+    }
+  }
+
+  private SignalWithStartWorkflowExecutionRequest createSignalWithStartRequest(
       SignalWithStartWorkflowExecutionParameters parameters) {
     SignalWithStartWorkflowExecutionRequest request = new SignalWithStartWorkflowExecutionRequest();
     request.setDomain(domain);
@@ -451,19 +504,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
     if (startParameters.getDelayStart() != null) {
       request.setDelayStartSeconds((int) startParameters.getDelayStart().getSeconds());
     }
-    StartWorkflowExecutionResponse result;
-    try {
-      result =
-          RpcRetryer.retryWithResult(
-              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
-              () -> service.SignalWithStartWorkflowExecution(request));
-    } catch (TException e) {
-      throw CheckedExceptionWrapper.wrap(e);
-    }
-    WorkflowExecution execution = new WorkflowExecution();
-    execution.setRunId(result.getRunId());
-    execution.setWorkflowId(request.getWorkflowId());
-    return execution;
+    return request;
   }
 
   @Override

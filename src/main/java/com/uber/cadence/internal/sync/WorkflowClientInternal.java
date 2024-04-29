@@ -210,7 +210,12 @@ public final class WorkflowClientInternal implements WorkflowClient {
 
   @Override
   public WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch) {
-    return ((SignalWithStartBatchRequest) signalWithStartBatch).invoke();
+    return ((SignalWithStartBatchRequest) signalWithStartBatch).execute();
+  }
+
+  @Override
+  public WorkflowExecution enqueueSignalWithStart(BatchRequest signalWithStartBatch) {
+    return ((SignalWithStartBatchRequest) signalWithStartBatch).enqueue();
   }
 
   @Override

@@ -8,11 +8,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Duration;
+import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.Header;
 import com.uber.cadence.api.v1.Memo;
 import com.uber.cadence.api.v1.Payload;
 import com.uber.cadence.api.v1.RetryPolicy;
 import com.uber.cadence.api.v1.SearchAttributes;
+import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.api.v1.StartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.api.v1.StartWorkflowExecutionRequest;
 import com.uber.cadence.api.v1.TaskList;
@@ -95,6 +97,50 @@ public class RequestMapperTest {
               .setHeader(Header.newBuilder().putFields("key", protoPayload("value")).build())
               .setDelayStart(seconds(3))
               .build();
+  private static final com.uber.cadence.SignalWithStartWorkflowExecutionRequest
+      THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION =
+          new SignalWithStartWorkflowExecutionRequest()
+              .setDomain("domain")
+              .setWorkflowId("workflowId")
+              .setWorkflowType(new com.uber.cadence.WorkflowType().setName("workflowType"))
+              .setTaskList(
+                  new com.uber.cadence.TaskList()
+                      .setName("taskList")
+                      .setKind(com.uber.cadence.TaskListKind.NORMAL))
+              .setInput("input".getBytes(StandardCharsets.UTF_8))
+              .setExecutionStartToCloseTimeoutSeconds(1)
+              .setTaskStartToCloseTimeoutSeconds(2)
+              .setIdentity("identity")
+              .setRequestId("requestId")
+              .setWorkflowIdReusePolicy(com.uber.cadence.WorkflowIdReusePolicy.AllowDuplicate)
+              .setSignalName("signalName")
+              .setSignalInput("signalInput".getBytes(StandardCharsets.UTF_8))
+              .setControl("control".getBytes(StandardCharsets.UTF_8))
+              .setRetryPolicy(
+                  new com.uber.cadence.RetryPolicy()
+                      .setInitialIntervalInSeconds(11)
+                      .setBackoffCoefficient(0.5)
+                      .setMaximumIntervalInSeconds(12)
+                      .setMaximumAttempts(13)
+                      .setNonRetriableErrorReasons(ImmutableList.of("error"))
+                      .setExpirationIntervalInSeconds(14))
+              .setCronSchedule("cronSchedule")
+              .setMemo(
+                  new com.uber.cadence.Memo().setFields(ImmutableMap.of("memo", utf8("memoValue"))))
+              .setSearchAttributes(
+                  new com.uber.cadence.SearchAttributes()
+                      .setIndexedFields(ImmutableMap.of("search", utf8("searchValue"))))
+              .setHeader(
+                  new com.uber.cadence.Header().setFields(ImmutableMap.of("key", utf8("value"))))
+              .setDelayStartSeconds(3);
+  private static final com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionRequest
+      PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION =
+          com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionRequest.newBuilder()
+              .setStartRequest(PROTO_START_WORKFLOW_EXECUTION)
+              .setSignalInput(protoPayload("signalInput"))
+              .setSignalName("signalName")
+              .setControl(ByteString.copyFromUtf8("control"))
+              .build();
 
   @Test
   public void testStartWorkflowExecutionRequest() {
@@ -125,6 +171,36 @@ public class RequestMapperTest {
         thrift, com.uber.cadence.StartWorkflowExecutionAsyncRequest._Fields.class);
 
     assertEquals(expected, RequestMapper.startWorkflowExecutionAsyncRequest(thrift));
+  }
+
+  @Test
+  public void testSignalWithStartWorkflowExecutionRequest() {
+    assertMissingFields(
+        THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION,
+        com.uber.cadence.SignalWithStartWorkflowExecutionRequest._Fields.class,
+        "jitterStartSeconds");
+
+    assertEquals(
+        PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION,
+        RequestMapper.signalWithStartWorkflowExecutionRequest(
+            THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION));
+  }
+
+  @Test
+  public void testSignalWithStartWorkflowExecutionAsyncRequest() {
+    com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest thrift =
+        new com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest()
+            .setRequest(THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION);
+
+    com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncRequest expected =
+        SignalWithStartWorkflowExecutionAsyncRequest.newBuilder()
+            .setRequest(PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION)
+            .build();
+
+    assertNoMissingFields(
+        thrift, com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest._Fields.class);
+
+    assertEquals(expected, RequestMapper.signalWithStartWorkflowExecutionAsyncRequest(thrift));
   }
 
   private static Duration seconds(int value) {
