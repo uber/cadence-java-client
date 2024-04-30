@@ -227,7 +227,8 @@ public interface WorkflowClient {
    * running. The batch before invocation must contain exactly two operations. One annotated
    * with @WorkflowMethod and another with @SignalMethod.
    *
-   * @return batch request used to call {@link #signalWithStart(BatchRequest)}
+   * @return batch request used to call {@link #signalWithStart(BatchRequest)} or {@link
+   *     #enqueueSignalWithStart(BatchRequest)}
    */
   BatchRequest newSignalWithStartRequest();
 
@@ -238,6 +239,20 @@ public interface WorkflowClient {
    * @return workflowID and runId of the signaled or started workflow.
    */
   WorkflowExecution signalWithStart(BatchRequest signalWithStartBatch);
+
+  /**
+   * Schedules a SignalWithStart operation to be performed at a future date via
+   * SignalWithStartWorkflowExecutionAsync. This requires that async execution has been enabled for
+   * this domain.
+   *
+   * <p>Note that the returned WorkflowExecution will <b>NOT</b> contain a {@code runId}, only a
+   * {@code workflowId}. This is because the {@code runId} is only determined at the time the
+   * workflow actually starts.
+   *
+   * @param signalWithStartBatch Must be created with {@link #newSignalWithStartRequest()}
+   * @return WorkflowExecution containing only the workflowId
+   */
+  WorkflowExecution enqueueSignalWithStart(BatchRequest signalWithStartBatch);
 
   /**
    * Refreshes all the tasks of a given workflow.

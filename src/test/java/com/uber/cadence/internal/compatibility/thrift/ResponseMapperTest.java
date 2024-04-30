@@ -23,6 +23,8 @@ import static org.junit.Assert.assertNotNull;
 
 import com.uber.cadence.api.v1.DescribeDomainResponse;
 import com.uber.cadence.api.v1.Domain;
+import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncResponse;
+import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionResponse;
 import com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.api.v1.StartWorkflowExecutionResponse;
 import com.uber.cadence.api.v1.UpdateDomainResponse;
@@ -76,6 +78,37 @@ public class ResponseMapperTest {
 
     assertNoMissingFields(
         response, com.uber.cadence.StartWorkflowExecutionAsyncResponse._Fields.class);
+
+    // No fields to test
+    assertNotNull(response);
+  }
+
+  @Test
+  public void testSignalWithStartWorkflowExecutionResponse() {
+    com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionResponse
+        startWorkflowExecutionResponse =
+            SignalWithStartWorkflowExecutionResponse.newBuilder().setRunId("runId").build();
+
+    com.uber.cadence.StartWorkflowExecutionResponse response =
+        ResponseMapper.signalWithStartWorkflowExecutionResponse(startWorkflowExecutionResponse);
+
+    assertNoMissingFields(response, com.uber.cadence.StartWorkflowExecutionResponse._Fields.class);
+
+    assertEquals("runId", response.getRunId());
+  }
+
+  @Test
+  public void testSignalWithStartWorkflowExecutionAsyncResponse() {
+    com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncResponse
+        startWorkflowExecutionResponse =
+            SignalWithStartWorkflowExecutionAsyncResponse.newBuilder().build();
+
+    com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse response =
+        ResponseMapper.signalWithStartWorkflowExecutionAsyncResponse(
+            startWorkflowExecutionResponse);
+
+    assertNoMissingFields(
+        response, com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse._Fields.class);
 
     // No fields to test
     assertNotNull(response);

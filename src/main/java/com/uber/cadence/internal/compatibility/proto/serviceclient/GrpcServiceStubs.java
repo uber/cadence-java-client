@@ -231,6 +231,30 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
                           .setStartRequest(
                               request.getStartRequest().toBuilder().setHeader(newHeader))
                           .build();
+            } else if (Objects.equals(
+                    method.getBareMethodName(), "SignalWithStartWorkflowExecutionAsync")
+                && message instanceof SignalWithStartWorkflowExecutionAsyncRequest) {
+              SignalWithStartWorkflowExecutionAsyncRequest request =
+                  (SignalWithStartWorkflowExecutionAsyncRequest) message;
+              Header newHeader =
+                  addTracingHeaders(request.getRequest().getStartRequest().getHeader());
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      request
+                          .toBuilder()
+                          .setRequest(
+                              request
+                                  .getRequest()
+                                  .toBuilder()
+                                  .setStartRequest(
+                                      request
+                                          .getRequest()
+                                          .getStartRequest()
+                                          .toBuilder()
+                                          .setHeader(newHeader)))
+                          .build();
             }
             super.sendMessage(message);
           }

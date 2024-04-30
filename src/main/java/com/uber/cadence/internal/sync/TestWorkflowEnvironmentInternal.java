@@ -1013,6 +1013,12 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
       }
 
       @Override
+      public WorkflowExecution enqueueSignalWithStart(
+          String signalName, Object[] signalArgs, Object[] startArgs) {
+        return next.enqueueSignalWithStart(signalName, signalArgs, startArgs);
+      }
+
+      @Override
       public Optional<String> getWorkflowType() {
         return next.getWorkflowType();
       }

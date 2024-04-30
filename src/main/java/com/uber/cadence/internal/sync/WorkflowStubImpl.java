@@ -324,6 +324,31 @@ class WorkflowStubImpl implements WorkflowStub {
   }
 
   @Override
+  public WorkflowExecution enqueueSignalWithStart(
+      String signalName, Object[] signalArgs, Object[] startArgs) {
+    if (!options.isPresent()) {
+      throw new IllegalStateException("Required parameter WorkflowOptions is missing");
+    }
+    return enqueueSignalWithStart(
+        WorkflowOptions.merge(null, null, null, options.get()), signalName, signalArgs, startArgs);
+  }
+
+  private WorkflowExecution enqueueSignalWithStart(
+      WorkflowOptions options, String signalName, Object[] signalArgs, Object[] startArgs) {
+    StartWorkflowExecutionParameters sp = getStartWorkflowExecutionParameters(options, startArgs);
+
+    byte[] signalInput = dataConverter.toData(signalArgs);
+    SignalWithStartWorkflowExecutionParameters p =
+        new SignalWithStartWorkflowExecutionParameters(sp, signalName, signalInput);
+    try {
+      execution.set(genericClient.enqueueSignalWithStartWorkflowExecution(p));
+    } catch (Exception e) {
+      throw new WorkflowServiceException(execution.get(), workflowType, e);
+    }
+    return execution.get();
+  }
+
+  @Override
   public Optional<String> getWorkflowType() {
     return workflowType;
   }
