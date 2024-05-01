@@ -27,9 +27,11 @@ import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.replay.ClockDecisionContext;
 import com.uber.cadence.internal.replay.ExecuteLocalActivityParameters;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
+import io.opentracing.Span;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -47,6 +49,7 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
   private final String taskList;
   private final SingleWorkerOptions options;
   private final LocalActivityPollTask laPollTask;
+  private final TracingPropagator spanFactory;
 
   public LocalActivityWorker(
       String domain, String taskList, SingleWorkerOptions options, ActivityTaskHandler handler) {
@@ -54,6 +57,7 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
     this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
     this.laPollTask = new LocalActivityPollTask();
+    this.spanFactory = new TracingPropagator(options.getTracer());
 
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
@@ -102,6 +106,10 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
       this.replayTimeUpdatedAtMillis = replayTimeUpdatedAtMillis;
       this.decisionTimeoutSeconds = decisionTimeoutSeconds;
     }
+
+    public ExecuteLocalActivityParameters getExecuteLocalActivityParameters() {
+      return params;
+    }
   }
 
   public BiFunction<Task, Duration, Boolean> getLocalActivityTaskPoller() {
@@ -119,6 +127,9 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
     @Override
     public void handle(Task task) throws Exception {
       propagateContext(task.params);
+
+      // start and activate span for local activities
+      Span span = spanFactory.activateSpanForExecuteLocalActivity(task);
 
       task.taskStartTime = System.currentTimeMillis();
       ActivityTaskHandler.Result result = handleLocalActivity(task);
@@ -152,6 +163,8 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
               .setDetails(marker.getResult());
       event.setMarkerRecordedEventAttributes(attributes);
       task.eventConsumer.accept(event);
+
+      span.finish();
     }
 
     @Override

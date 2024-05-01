@@ -71,6 +71,8 @@ import com.uber.cadence.QueryWorkflowResponse;
 import com.uber.cadence.RecordActivityTaskHeartbeatResponse;
 import com.uber.cadence.ResetWorkflowExecutionResponse;
 import com.uber.cadence.RespondDecisionTaskCompletedResponse;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse;
+import com.uber.cadence.StartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.UpdateDomainResponse;
 import com.uber.cadence.api.v1.WorkflowQuery;
@@ -86,6 +88,11 @@ public class ResponseMapper {
         new StartWorkflowExecutionResponse();
     startWorkflowExecutionResponse.setRunId(t.getRunId());
     return startWorkflowExecutionResponse;
+  }
+
+  public static StartWorkflowExecutionAsyncResponse startWorkflowExecutionAsyncResponse(
+      com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse t) {
+    return t == null ? null : new StartWorkflowExecutionAsyncResponse();
   }
 
   public static DescribeTaskListResponse describeTaskListResponse(
@@ -397,6 +404,12 @@ public class ResponseMapper {
         new StartWorkflowExecutionResponse();
     startWorkflowExecutionResponse.setRunId(t.getRunId());
     return startWorkflowExecutionResponse;
+  }
+
+  public static SignalWithStartWorkflowExecutionAsyncResponse
+      signalWithStartWorkflowExecutionAsyncResponse(
+          com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncResponse t) {
+    return t == null ? null : new SignalWithStartWorkflowExecutionAsyncResponse();
   }
 
   public static UpdateDomainResponse updateDomainResponse(

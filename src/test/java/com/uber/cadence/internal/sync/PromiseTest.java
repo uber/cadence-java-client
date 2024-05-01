@@ -20,6 +20,7 @@ package com.uber.cadence.internal.sync;
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -421,6 +422,63 @@ public class PromiseTest {
               expected.add("value2");
               expected.add("value3");
               assertEquals(expected, all.get());
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected =
+        new String[] {
+          "root begin",
+          "root before allOf",
+          "thread1 begin",
+          "thread1 done",
+          "thread3 begin",
+          "thread3 done",
+          "thread2 begin",
+          "thread2 done",
+          "root done"
+        };
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testAllOf_varArgs() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> {
+              trace.add("root begin");
+              CompletablePromise<String> f1 = Workflow.newPromise();
+              CompletablePromise<String> f2 = Workflow.newPromise();
+              CompletablePromise<String> f3 = Workflow.newPromise();
+
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        f1.complete("value1");
+                        trace.add("thread1 done");
+                      })
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread3 begin");
+                        f3.complete("value3");
+                        trace.add("thread3 done");
+                      })
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f2.complete("value2");
+                        trace.add("thread2 done");
+                      })
+                  .start();
+
+              trace.add("root before allOf");
+              Promise<Void> all = Promise.allOf(f1, f2, f3);
+
+              assertNull(all.get());
               trace.add("root done");
             });
     r.runUntilAllBlocked();

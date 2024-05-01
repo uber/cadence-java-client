@@ -32,6 +32,7 @@ import com.uber.cadence.internal.replay.ReplayWorkflow;
 import com.uber.cadence.internal.worker.WorkflowExecutionException;
 import com.uber.cadence.worker.WorkflowImplementationOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
+import io.opentracing.Tracer;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
@@ -49,6 +50,7 @@ class SyncWorkflow implements ReplayWorkflow {
   private final SyncWorkflowDefinition workflow;
   WorkflowImplementationOptions workflowImplementationOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final Tracer tracer;
   private DeciderCache cache;
   private WorkflowRunnable workflowProc;
   private DeterministicRunner runner;
@@ -60,7 +62,8 @@ class SyncWorkflow implements ReplayWorkflow {
       ExecutorService threadPool,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       DeciderCache cache,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      Tracer tracer) {
     this.workflow = Objects.requireNonNull(workflow);
     this.workflowImplementationOptions =
         workflowImplementationOptions == null
@@ -71,6 +74,7 @@ class SyncWorkflow implements ReplayWorkflow {
     this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
     this.cache = cache;
     this.contextPropagators = contextPropagators;
+    this.tracer = tracer;
   }
 
   @Override
@@ -97,7 +101,8 @@ class SyncWorkflow implements ReplayWorkflow {
             contextPropagators,
             interceptorFactory,
             event.getWorkflowExecutionStartedEventAttributes().getLastCompletionResult(),
-            workflowImplementationOptions);
+            workflowImplementationOptions,
+            tracer);
 
     workflowProc =
         new WorkflowRunnable(

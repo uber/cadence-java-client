@@ -42,6 +42,7 @@ import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowInfo;
 import com.uber.cadence.workflow.WorkflowInterceptor;
 import com.uber.cadence.workflow.WorkflowMethod;
+import io.opentracing.Tracer;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -61,6 +62,7 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
       LoggerFactory.getLogger(POJOWorkflowImplementationFactory.class);
   private static final byte[] EMPTY_BLOB = {};
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final Tracer tracer;
 
   private DataConverter dataConverter;
   private List<ContextPropagator> contextPropagators;
@@ -83,12 +85,14 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
       ExecutorService threadPool,
       Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
       DeciderCache cache,
-      List<ContextPropagator> contextPropagators) {
+      List<ContextPropagator> contextPropagators,
+      Tracer tracer) {
     this.dataConverter = Objects.requireNonNull(dataConverter);
     this.threadPool = Objects.requireNonNull(threadPool);
     this.interceptorFactory = Objects.requireNonNull(interceptorFactory);
     this.cache = cache;
     this.contextPropagators = contextPropagators;
+    this.tracer = tracer;
   }
 
   void setWorkflowImplementationTypes(
@@ -216,7 +220,8 @@ final class POJOWorkflowImplementationFactory implements ReplayWorkflowFactory {
         threadPool,
         interceptorFactory,
         cache,
-        contextPropagators);
+        contextPropagators,
+        tracer);
   }
 
   @Override

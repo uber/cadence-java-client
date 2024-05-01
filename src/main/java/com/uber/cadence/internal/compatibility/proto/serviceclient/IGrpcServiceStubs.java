@@ -39,6 +39,8 @@ public interface IGrpcServiceStubs {
     return new GrpcServiceStubs(options);
   }
 
+  ClientOptions getOptions();
+
   /** @return Blocking (synchronous) stub to domain service. */
   DomainAPIGrpc.DomainAPIBlockingStub domainBlockingStub();
 

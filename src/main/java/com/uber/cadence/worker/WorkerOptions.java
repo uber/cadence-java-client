@@ -19,6 +19,8 @@ package com.uber.cadence.worker;
 
 import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.workflow.WorkflowInterceptor;
+import io.opentracing.Tracer;
+import io.opentracing.noop.NoopTracerFactory;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -51,6 +53,8 @@ public final class WorkerOptions {
     private PollerOptions activityPollerOptions;
     private PollerOptions workflowPollerOptions;
     private Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory = (n) -> n;
+    // by default NoopTracer
+    private Tracer tracer = NoopTracerFactory.create();
 
     private Builder() {}
 
@@ -64,6 +68,7 @@ public final class WorkerOptions {
       this.activityPollerOptions = options.activityPollerOptions;
       this.workflowPollerOptions = options.workflowPollerOptions;
       this.interceptorFactory = options.interceptorFactory;
+      this.tracer = options.tracer;
     }
 
     /** Maximum number of activities started per second. Default is 0 which means unlimited. */
@@ -135,6 +140,17 @@ public final class WorkerOptions {
       return this;
     }
 
+    /**
+     * Optional: Sets the tracer to use for tracing. Default is NoopTracer
+     *
+     * @param tracer
+     * @return
+     */
+    public Builder setTracer(Tracer tracer) {
+      this.tracer = tracer;
+      return this;
+    }
+
     public WorkerOptions build() {
       return new WorkerOptions(
           workerActivitiesPerSecond,
@@ -144,7 +160,8 @@ public final class WorkerOptions {
           taskListActivitiesPerSecond,
           activityPollerOptions,
           workflowPollerOptions,
-          interceptorFactory);
+          interceptorFactory,
+          tracer);
     }
   }
 
@@ -156,6 +173,7 @@ public final class WorkerOptions {
   private final PollerOptions activityPollerOptions;
   private final PollerOptions workflowPollerOptions;
   private final Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory;
+  private final Tracer tracer;
 
   private WorkerOptions(
       double workerActivitiesPerSecond,
@@ -165,7 +183,8 @@ public final class WorkerOptions {
       double taskListActivitiesPerSecond,
       PollerOptions activityPollerOptions,
       PollerOptions workflowPollerOptions,
-      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory) {
+      Function<WorkflowInterceptor, WorkflowInterceptor> interceptorFactory,
+      Tracer tracer) {
     this.workerActivitiesPerSecond = workerActivitiesPerSecond;
     this.maxConcurrentActivityExecutionSize = maxConcurrentActivityExecutionSize;
     this.maxConcurrentWorkflowExecutionSize = maxConcurrentWorkflowExecutionSize;
@@ -174,6 +193,7 @@ public final class WorkerOptions {
     this.activityPollerOptions = activityPollerOptions;
     this.workflowPollerOptions = workflowPollerOptions;
     this.interceptorFactory = interceptorFactory;
+    this.tracer = tracer;
   }
 
   public double getWorkerActivitiesPerSecond() {
@@ -206,6 +226,10 @@ public final class WorkerOptions {
 
   public Function<WorkflowInterceptor, WorkflowInterceptor> getInterceptorFactory() {
     return interceptorFactory;
+  }
+
+  public Tracer getTracer() {
+    return tracer;
   }
 
   @Override

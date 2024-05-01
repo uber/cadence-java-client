@@ -122,4 +122,3 @@ services:
       - COVERALLS_REPO_TOKEN
     volumes:
       - "../../:/cadence-java-client"
-      - /usr/bin/buildkite-agent:/usr/bin/buildkite-agent

@@ -80,7 +80,8 @@ public class SyncWorkflowWorker
             workflowThreadPool,
             interceptorFactory,
             cache,
-            workflowOptions.getContextPropagators());
+            workflowOptions.getContextPropagators(),
+            workflowOptions.getTracer());
 
     laTaskHandler =
         new POJOActivityTaskHandler(

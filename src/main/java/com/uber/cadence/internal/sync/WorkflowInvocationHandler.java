@@ -50,6 +50,7 @@ class WorkflowInvocationHandler implements InvocationHandler, Supplier<WorkflowS
   public enum InvocationType {
     SYNC,
     START,
+    ENQUEUE_START,
     EXECUTE,
     SIGNAL_WITH_START,
   }
@@ -77,6 +78,8 @@ class WorkflowInvocationHandler implements InvocationHandler, Supplier<WorkflowS
     }
     if (type == InvocationType.START) {
       invocationContext.set(new StartWorkflowInvocationHandler());
+    } else if (type == InvocationType.ENQUEUE_START) {
+      invocationContext.set(new EnqueueStartWorkflowInvocationHandler());
     } else if (type == InvocationType.EXECUTE) {
       invocationContext.set(new ExecuteWorkflowInvocationHandler());
     } else if (type == InvocationType.SIGNAL_WITH_START) {
@@ -226,6 +229,31 @@ class WorkflowInvocationHandler implements InvocationHandler, Supplier<WorkflowS
     @SuppressWarnings("unchecked")
     public <R> R getResult(Class<R> resultClass) {
       return (R) result;
+    }
+  }
+
+  private static class EnqueueStartWorkflowInvocationHandler implements SpecificInvocationHandler {
+
+    private Object result;
+
+    @Override
+    public InvocationType getInvocationType() {
+      return InvocationType.ENQUEUE_START;
+    }
+
+    @Override
+    public void invoke(WorkflowStub untyped, Method method, Object[] args) throws Throwable {
+      WorkflowMethod workflowMethod = method.getAnnotation(WorkflowMethod.class);
+      if (workflowMethod == null) {
+        throw new IllegalArgumentException(
+            "WorkflowClient.enqueueStart can be called only on a method annotated with @WorkflowMethod");
+      }
+      result = untyped.enqueueStart(args);
+    }
+
+    @Override
+    public <R> R getResult(Class<R> resultClass) {
+      return resultClass.cast(result);
     }
   }
 
