@@ -32,6 +32,7 @@ import com.uber.cadence.internal.common.InternalUtils;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
 import com.uber.cadence.internal.metrics.ServiceMethod;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.tchannel.api.ResponseCode;
@@ -47,6 +48,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Span;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -71,7 +73,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final ClientOptions options;
   private final Map<String, String> thriftHeaders;
   private final TChannel tChannel;
-  private SubChannel subChannel;
+  private final TracingPropagator tracingPropagator;
+  private final SubChannel subChannel;
 
   /**
    * Creates Cadence client that connects to the specified host and port using specified options.
@@ -82,6 +85,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.options = options;
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = new TChannel.Builder(options.getClientAppName()).build();
+    this.tracingPropagator = new TracingPropagator(options.getTracer());
 
     InetAddress address;
     try {
@@ -121,6 +125,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = null;
     this.subChannel = subChannel;
+    this.tracingPropagator = new TracingPropagator(options.getTracer());
   }
 
   private static Map<String, String> getThriftHeaders(ClientOptions options) {
@@ -167,6 +172,11 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> ThriftRequest<T> buildThriftRequest(String apiName, T body) {
     return buildThriftRequest(apiName, body, null);
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return options;
   }
 
   /**
@@ -316,6 +326,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> T measureRemoteCallWithTags(
       String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
+    Span span = tracingPropagator.activateSpanByServiceMethod(scopeName);
     Scope scope = options.getMetricsScope().subScope(scopeName);
     if (tags != null) {
       scope = scope.tagged(tags);
@@ -339,6 +350,8 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       sw.stop();
       scope.counter(MetricsType.CADENCE_ERROR).inc(1);
       throw e;
+    } finally {
+      span.finish();
     }
   }
 
@@ -501,6 +514,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     measureRemoteProc(ServiceMethod.DEPRECATE_DOMAIN, () -> deprecateDomain(deprecateRequest));
   }
 
+  @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
   private void deprecateDomain(DeprecateDomainRequest deprecateRequest) throws TException {
     ThriftResponse<WorkflowService.DeprecateDomain_result> response = null;
     try {
@@ -587,13 +608,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private StartWorkflowExecutionResponse startWorkflowExecution(
       StartWorkflowExecutionRequest startRequest) throws TException {
-    startRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.StartWorkflowExecution_result> response = null;
     try {
+      initializeStartWorkflowRequest(startRequest);
+
       ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
           buildThriftRequest(
               "StartWorkflowExecution",
               new WorkflowService.StartWorkflowExecution_args(startRequest));
+
       response = doRemoteCall(request);
       WorkflowService.StartWorkflowExecution_result result =
           response.getBody(WorkflowService.StartWorkflowExecution_result.class);
@@ -618,12 +641,78 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("StartWorkflowExecution failed with unknown error:" + result);
     } finally {
       if (response != null) {
         response.release();
       }
     }
+  }
+
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.START_WORKFLOW_EXECUTION_ASYNC,
+        () -> startWorkflowExecutionAsync(startAsyncRequest));
+  }
+
+  private StartWorkflowExecutionAsyncResponse startWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest) throws TException {
+    ThriftResponse<WorkflowService.StartWorkflowExecutionAsync_result> response = null;
+    try {
+      initializeStartWorkflowRequest(startAsyncRequest.getRequest());
+
+      ThriftRequest<WorkflowService.StartWorkflowExecutionAsync_args> request =
+          buildThriftRequest(
+              "StartWorkflowExecutionAsync",
+              new WorkflowService.StartWorkflowExecutionAsync_args(startAsyncRequest));
+
+      response = doRemoteCall(request);
+      WorkflowService.StartWorkflowExecutionAsync_result result =
+          response.getBody(WorkflowService.StartWorkflowExecutionAsync_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return result.getSuccess();
+      }
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetSessionAlreadyExistError()) {
+        throw result.getSessionAlreadyExistError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetLimitExceededError()) {
+        throw result.getLimitExceededError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
+      throw new TException("StartWorkflowExecution failed with unknown error:" + result);
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
+  private void initializeStartWorkflowRequest(StartWorkflowExecutionRequest startRequest) {
+    startRequest.setRequestId(UUID.randomUUID().toString());
+    // Write span context to header
+    if (!startRequest.isSetHeader()) {
+      startRequest.setHeader(new Header());
+    }
+    tracingPropagator.inject(startRequest.getHeader());
   }
 
   @Override
@@ -1421,6 +1510,62 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest) throws TException {
+    return measureRemoteCall(
+        ServiceMethod.SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC,
+        () -> signalWithStartWorkflowExecutionAsync(signalWithStartRequest));
+  }
+
+  private SignalWithStartWorkflowExecutionAsyncResponse signalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest) throws TException {
+    ThriftResponse<WorkflowService.SignalWithStartWorkflowExecutionAsync_result> response = null;
+    try {
+      initializeSignalWithStartWorkflowRequest(signalWithStartRequest.getRequest());
+
+      ThriftRequest<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> request =
+          buildThriftRequest(
+              "SignalWithStartWorkflowExecutionAsync",
+              new WorkflowService.SignalWithStartWorkflowExecutionAsync_args(
+                  signalWithStartRequest));
+
+      response = doRemoteCall(request);
+      WorkflowService.SignalWithStartWorkflowExecutionAsync_result result =
+          response.getBody(WorkflowService.SignalWithStartWorkflowExecutionAsync_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return result.getSuccess();
+      }
+      if (result.isSetBadRequestError()) {
+        throw result.getBadRequestError();
+      }
+      if (result.isSetEntityNotExistError()) {
+        throw result.getEntityNotExistError();
+      }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetLimitExceededError()) {
+        throw result.getLimitExceededError();
+      }
+      if (result.isSetDomainNotActiveError()) {
+        throw result.getDomainNotActiveError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
+      throw new TException(
+          "SignalWithStartWorkflowExecutionAsync failed with unknown error:" + result);
+    } finally {
+      if (response != null) {
+        response.release();
+      }
+    }
+  }
+
+  @Override
   public ResetWorkflowExecutionResponse ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest)
       throws BadRequestError, InternalServiceError, EntityNotExistsError, ServiceBusyError,
@@ -1471,13 +1616,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private StartWorkflowExecutionResponse signalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest) throws TException {
-    signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
     ThriftResponse<WorkflowService.SignalWithStartWorkflowExecution_result> response = null;
     try {
+      initializeSignalWithStartWorkflowRequest(signalWithStartRequest);
+
       ThriftRequest<WorkflowService.SignalWithStartWorkflowExecution_args> request =
           buildThriftRequest(
               "SignalWithStartWorkflowExecution",
               new WorkflowService.SignalWithStartWorkflowExecution_args(signalWithStartRequest));
+
       response = doRemoteCall(request);
       WorkflowService.SignalWithStartWorkflowExecution_result result =
           response.getBody(WorkflowService.SignalWithStartWorkflowExecution_result.class);
@@ -1511,6 +1658,16 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         response.release();
       }
     }
+  }
+
+  private void initializeSignalWithStartWorkflowRequest(
+      SignalWithStartWorkflowExecutionRequest request) {
+    request.setRequestId(UUID.randomUUID().toString());
+    // Write span context to header
+    if (!request.isSetHeader()) {
+      request.setHeader(new Header());
+    }
+    tracingPropagator.inject(request.getHeader());
   }
 
   @Override
@@ -2198,8 +2355,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       StartWorkflowExecutionRequest startRequest,
       AsyncMethodCallback resultHandler,
       Long timeoutInMillis) {
-
-    startRequest.setRequestId(UUID.randomUUID().toString());
+    initializeStartWorkflowRequest(startRequest);
     timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
     ThriftRequest<WorkflowService.StartWorkflowExecution_args> request =
         buildThriftRequest(
@@ -2247,6 +2403,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
                   resultHandler.onError(result.getEntityNotExistError());
                   return;
                 }
+                if (result.isSetClientVersionNotSupportedError()) {
+                  resultHandler.onError(result.getClientVersionNotSupportedError());
+                }
                 resultHandler.onError(
                     new TException("StartWorkflowExecution failed with unknown error:" + result));
               } finally {
@@ -2258,6 +2417,94 @@ public class WorkflowServiceTChannel implements IWorkflowService {
         .exceptionally(
             (e) -> {
               log.error("Unexpected error in StartWorkflowExecution", e);
+              return null;
+            });
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    startWorkflowExecutionAsync(startRequest, resultHandler, null);
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsyncWithTimeout(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    startWorkflowExecutionAsync(startAsyncRequest, resultHandler, timeoutInMillis);
+  }
+
+  private void startWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    initializeStartWorkflowRequest(startAsyncRequest.getRequest());
+    timeoutInMillis = validateAndUpdateTimeout(timeoutInMillis, options.getRpcTimeoutMillis());
+    ThriftRequest<WorkflowService.StartWorkflowExecutionAsync_args> request =
+        buildThriftRequest(
+            "StartWorkflowExecutionAsync",
+            new WorkflowService.StartWorkflowExecutionAsync_args(startAsyncRequest),
+            timeoutInMillis);
+
+    CompletableFuture<ThriftResponse<WorkflowService.StartWorkflowExecutionAsync_result>> response =
+        doRemoteCallAsync(request);
+    response
+        .whenComplete(
+            (r, e) -> {
+              try {
+                if (e != null) {
+                  resultHandler.onError(CheckedExceptionWrapper.wrap(e));
+                  return;
+                }
+                WorkflowService.StartWorkflowExecutionAsync_result result =
+                    r.getBody(WorkflowService.StartWorkflowExecutionAsync_result.class);
+                if (r.getResponseCode() == ResponseCode.OK) {
+                  resultHandler.onComplete(result.getSuccess());
+                  return;
+                }
+                if (result.isSetBadRequestError()) {
+                  resultHandler.onError(result.getBadRequestError());
+                  return;
+                }
+                if (result.isSetSessionAlreadyExistError()) {
+                  resultHandler.onError(result.getSessionAlreadyExistError());
+                  return;
+                }
+                if (result.isSetServiceBusyError()) {
+                  resultHandler.onError(result.getServiceBusyError());
+                  return;
+                }
+                if (result.isSetDomainNotActiveError()) {
+                  resultHandler.onError(result.getDomainNotActiveError());
+                  return;
+                }
+                if (result.isSetLimitExceededError()) {
+                  resultHandler.onError(result.getLimitExceededError());
+                  return;
+                }
+                if (result.isSetEntityNotExistError()) {
+                  resultHandler.onError(result.getEntityNotExistError());
+                  return;
+                }
+                if (result.isSetClientVersionNotSupportedError()) {
+                  resultHandler.onError(result.getClientVersionNotSupportedError());
+                }
+                resultHandler.onError(
+                    new TException(
+                        "StartWorkflowExecutionAsync failed with unknown error:" + result));
+              } finally {
+                if (r != null) {
+                  r.release();
+                }
+              }
+            })
+        .exceptionally(
+            (e) -> {
+              log.error("Unexpected error in StartWorkflowExecutionAsync", e);
               return null;
             });
   }
@@ -2533,6 +2780,14 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void ResetWorkflowExecution(
       ResetWorkflowExecutionRequest resetRequest, AsyncMethodCallback resultHandler)
       throws TException {
@@ -2666,6 +2921,13 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       DeprecateDomainRequest deprecateRequest, AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override

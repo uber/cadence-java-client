@@ -16,6 +16,8 @@
 package com.uber.cadence.internal.compatibility.proto.serviceclient;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.ByteString;
+import com.uber.cadence.api.v1.*;
 import com.uber.cadence.api.v1.DomainAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc;
 import com.uber.cadence.api.v1.MetaAPIGrpc.MetaAPIBlockingStub;
@@ -30,7 +32,9 @@ import com.uber.cadence.api.v1.WorkflowAPIGrpc;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIBlockingStub;
 import com.uber.cadence.api.v1.WorkflowAPIGrpc.WorkflowAPIFutureStub;
 import com.uber.cadence.internal.Version;
+import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.cadence.serviceclient.ClientOptions;
+import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -48,6 +52,12 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Span;
+import io.opentracing.Tracer;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -71,8 +81,12 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private static final Metadata.Key<String> RPC_ENCODING_HEADER_KEY =
       Metadata.Key.of("rpc-encoding", Metadata.ASCII_STRING_MARSHALLER);
 
+  private static final Metadata.Key<String> AUTHORIZATION_HEADER_KEY =
+      Metadata.Key.of("cadence-authorization", Metadata.ASCII_STRING_MARSHALLER);
+
   private static final String CLIENT_IMPL_HEADER_VALUE = "uber-java";
 
+  private final ClientOptions options;
   private final ManagedChannel channel;
   private final boolean shutdownChannel;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean();
@@ -88,6 +102,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
   private final MetaAPIGrpc.MetaAPIFutureStub metaFutureStub;
 
   GrpcServiceStubs(ClientOptions options) {
+    this.options = options;
     if (options.getGRPCChannel() != null) {
       this.channel = options.getGRPCChannel();
       shutdownChannel = false;
@@ -111,14 +126,21 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     if (!Strings.isNullOrEmpty(options.getIsolationGroup())) {
       headers.put(ISOLATION_GROUP_HEADER_KEY, options.getIsolationGroup());
     }
+
     Channel interceptedChannel =
         ClientInterceptors.intercept(
             channel,
             deadlineInterceptor,
             MetadataUtils.newAttachHeadersInterceptor(headers),
-            newOpenTelemetryInterceptor());
+            newOpenTelemetryInterceptor(),
+            newOpenTracingInterceptor(options.getTracer()));
     if (log.isTraceEnabled()) {
       interceptedChannel = ClientInterceptors.intercept(interceptedChannel, tracingInterceptor);
+    }
+    if (options.getAuthProvider() != null) {
+      interceptedChannel =
+          ClientInterceptors.intercept(
+              interceptedChannel, newAuthorizationInterceptor(options.getAuthProvider()));
     }
     this.domainBlockingStub = DomainAPIGrpc.newBlockingStub(interceptedChannel);
     this.domainFutureStub = DomainAPIGrpc.newFutureStub(interceptedChannel);
@@ -130,6 +152,36 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
     this.workflowFutureStub = WorkflowAPIGrpc.newFutureStub(interceptedChannel);
     this.metaBlockingStub = MetaAPIGrpc.newBlockingStub(interceptedChannel);
     this.metaFutureStub = MetaAPIGrpc.newFutureStub(interceptedChannel);
+  }
+
+  private ClientInterceptor newAuthorizationInterceptor(IAuthorizationProvider provider) {
+    return new ClientInterceptor() {
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            headers.put(
+                AUTHORIZATION_HEADER_KEY,
+                new String(provider.getAuthToken(), StandardCharsets.UTF_8));
+
+            Listener<RespT> listener =
+                new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(
+                    responseListener) {
+
+                  @Override
+                  public void onHeaders(Metadata headers) {
+                    super.onHeaders(headers);
+                  }
+                };
+            super.start(listener, headers);
+          }
+        };
+      }
+    };
   }
 
   private ClientInterceptor newOpenTelemetryInterceptor() {
@@ -156,6 +208,107 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             }
 
             super.start(responseListener, headers);
+          }
+        };
+      }
+    };
+  }
+
+  private ClientInterceptor newOpenTracingInterceptor(Tracer tracer) {
+    return new ClientInterceptor() {
+      private final TracingPropagator tracingPropagator = new TracingPropagator(tracer);
+      private final String OPERATIONFORMAT = "cadence-%s";
+
+      @Override
+      public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+          MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+        return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(
+            next.newCall(method, callOptions)) {
+
+          @Override
+          public void start(Listener<RespT> responseListener, Metadata headers) {
+            Span span =
+                tracingPropagator.activateSpanByServiceMethod(
+                    String.format(OPERATIONFORMAT, method.getBareMethodName()));
+            super.start(responseListener, headers);
+            span.finish();
+          }
+
+          @SuppressWarnings("unchecked")
+          @Override
+          public void sendMessage(ReqT message) {
+            if (Objects.equals(method.getBareMethodName(), "StartWorkflowExecution")
+                && message instanceof StartWorkflowExecutionRequest) {
+              StartWorkflowExecutionRequest request = (StartWorkflowExecutionRequest) message;
+              Header newHeader = addTracingHeaders(request.getHeader());
+
+              // cast should not throw error as we are using the builder
+              message = (ReqT) request.toBuilder().setHeader(newHeader).build();
+            } else if (Objects.equals(method.getBareMethodName(), "StartWorkflowExecutionAsync")
+                && message instanceof StartWorkflowExecutionAsyncRequest) {
+              StartWorkflowExecutionAsyncRequest request =
+                  (StartWorkflowExecutionAsyncRequest) message;
+              Header newHeader = addTracingHeaders(request.getRequest().getHeader());
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      request
+                          .toBuilder()
+                          .setRequest(request.getRequest().toBuilder().setHeader(newHeader))
+                          .build();
+            } else if (Objects.equals(
+                    method.getBareMethodName(), "SignalWithStartWorkflowExecution")
+                && message instanceof SignalWithStartWorkflowExecutionRequest) {
+              SignalWithStartWorkflowExecutionRequest request =
+                  (SignalWithStartWorkflowExecutionRequest) message;
+              Header newHeader = addTracingHeaders(request.getStartRequest().getHeader());
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      request
+                          .toBuilder()
+                          .setStartRequest(
+                              request.getStartRequest().toBuilder().setHeader(newHeader))
+                          .build();
+            } else if (Objects.equals(
+                    method.getBareMethodName(), "SignalWithStartWorkflowExecutionAsync")
+                && message instanceof SignalWithStartWorkflowExecutionAsyncRequest) {
+              SignalWithStartWorkflowExecutionAsyncRequest request =
+                  (SignalWithStartWorkflowExecutionAsyncRequest) message;
+              Header newHeader =
+                  addTracingHeaders(request.getRequest().getStartRequest().getHeader());
+
+              // cast should not throw error as we are using the builder
+              message =
+                  (ReqT)
+                      request
+                          .toBuilder()
+                          .setRequest(
+                              request
+                                  .getRequest()
+                                  .toBuilder()
+                                  .setStartRequest(
+                                      request
+                                          .getRequest()
+                                          .getStartRequest()
+                                          .toBuilder()
+                                          .setHeader(newHeader)))
+                          .build();
+            }
+            super.sendMessage(message);
+          }
+
+          private Header addTracingHeaders(Header header) {
+            Map<String, byte[]> headers = new HashMap<>();
+            tracingPropagator.inject(headers);
+            Header.Builder headerBuilder = header.toBuilder();
+            headers.forEach(
+                (k, v) ->
+                    headerBuilder.putFields(
+                        k, Payload.newBuilder().setData(ByteString.copyFrom(v)).build()));
+            return headerBuilder.build();
           }
         };
       }
@@ -205,6 +358,11 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
 
   public DomainAPIGrpc.DomainAPIFutureStub domainFutureStub() {
     return domainFutureStub;
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return options;
   }
 
   @Override

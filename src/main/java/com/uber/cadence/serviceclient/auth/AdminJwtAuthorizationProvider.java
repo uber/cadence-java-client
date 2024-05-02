@@ -23,8 +23,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.sql.Date;
-import java.time.Clock;
+import java.time.Instant;
 
 public class AdminJwtAuthorizationProvider implements IAuthorizationProvider {
 
@@ -38,10 +37,13 @@ public class AdminJwtAuthorizationProvider implements IAuthorizationProvider {
 
   @Override
   public byte[] getAuthToken() {
+    final Instant now = Instant.now();
     final JWTCreator.Builder jwtBuilder = JWT.create();
+    int JWT_TTL_SECONDS = 60 * 10;
     jwtBuilder.withClaim("admin", true);
-    jwtBuilder.withClaim("ttl", 60 * 10);
-    jwtBuilder.withIssuedAt(Date.from(Clock.systemUTC().instant()));
+    jwtBuilder.withClaim("ttl", JWT_TTL_SECONDS);
+    jwtBuilder.withIssuedAt(now);
+    jwtBuilder.withExpiresAt(now.plusSeconds(JWT_TTL_SECONDS));
     return jwtBuilder
         .sign(Algorithm.RSA256(this.rsaPublicKey, this.rsaPrivateKey))
         .getBytes(StandardCharsets.UTF_8);

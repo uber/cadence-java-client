@@ -80,9 +80,15 @@ import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedResponse;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
+import com.uber.cadence.RestartWorkflowExecutionRequest;
+import com.uber.cadence.RestartWorkflowExecutionResponse;
 import com.uber.cadence.ServiceBusyError;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.SignalWorkflowExecutionRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncRequest;
+import com.uber.cadence.StartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.StartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.TerminateWorkflowExecutionRequest;
@@ -97,6 +103,7 @@ import com.uber.cadence.internal.compatibility.proto.RequestMapper;
 import com.uber.cadence.internal.compatibility.proto.serviceclient.IGrpcServiceStubs;
 import com.uber.cadence.internal.compatibility.thrift.ErrorMapper;
 import com.uber.cadence.internal.compatibility.thrift.ResponseMapper;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import io.grpc.Deadline;
 import io.grpc.StatusRuntimeException;
@@ -113,6 +120,11 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   public Thrift2ProtoAdapter(IGrpcServiceStubs grpcServiceStubs) {
     this.grpcServiceStubs = grpcServiceStubs;
+  }
+
+  @Override
+  public ClientOptions getOptions() {
+    return grpcServiceStubs.getOptions();
   }
 
   @Override
@@ -187,6 +199,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
@@ -195,12 +215,31 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     return startWorkflowExecution(startRequest);
   }
 
+  @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    initializeStartWorkflowExecutionRequest(startRequest.getRequest());
+    try {
+      com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .startWorkflowExecutionAsync(
+                  RequestMapper.startWorkflowExecutionAsyncRequest(startRequest));
+      return ResponseMapper.startWorkflowExecutionAsyncResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
+  }
+
   private StartWorkflowExecutionResponse startWorkflowExecution(
       StartWorkflowExecutionRequest startRequest)
       throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
           DomainNotActiveError, LimitExceededError, EntityNotExistsError,
           ClientVersionNotSupportedError, TException {
-    startRequest.setRequestId(UUID.randomUUID().toString());
+    initializeStartWorkflowExecutionRequest(startRequest);
     try {
       com.uber.cadence.api.v1.StartWorkflowExecutionResponse response =
           grpcServiceStubs
@@ -210,6 +249,10 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     } catch (StatusRuntimeException e) {
       throw ErrorMapper.Error(e);
     }
+  }
+
+  private void initializeStartWorkflowExecutionRequest(StartWorkflowExecutionRequest request) {
+    request.setRequestId(UUID.randomUUID().toString());
   }
 
   @Override
@@ -456,7 +499,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
           LimitExceededError, WorkflowExecutionAlreadyStartedError, ClientVersionNotSupportedError,
           TException {
     try {
-      signalWithStartRequest.setRequestId(UUID.randomUUID().toString());
+      initializeSignalWithStartWorkflowExecution(signalWithStartRequest);
       com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionResponse response =
           grpcServiceStubs
               .workflowBlockingStub()
@@ -466,6 +509,31 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
     } catch (StatusRuntimeException e) {
       throw ErrorMapper.Error(e);
     }
+  }
+
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    try {
+      initializeSignalWithStartWorkflowExecution(signalWithStartRequest.getRequest());
+      com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncResponse response =
+          grpcServiceStubs
+              .workflowBlockingStub()
+              .signalWithStartWorkflowExecutionAsync(
+                  RequestMapper.signalWithStartWorkflowExecutionAsyncRequest(
+                      signalWithStartRequest));
+      return ResponseMapper.signalWithStartWorkflowExecutionAsyncResponse(response);
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
+  }
+
+  private void initializeSignalWithStartWorkflowExecution(
+      SignalWithStartWorkflowExecutionRequest request) {
+    request.setRequestId(UUID.randomUUID().toString());
   }
 
   @Override
@@ -770,10 +838,45 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   @Override
+  public void RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
+  }
+
+  @Override
   public void StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest, AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+      throws TException {
+    try {
+      initializeStartWorkflowExecutionRequest(startRequest.getRequest());
+      ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse> resultFuture =
+          grpcServiceStubs
+              .workflowFutureStub()
+              .startWorkflowExecutionAsync(
+                  RequestMapper.startWorkflowExecutionAsyncRequest(startRequest));
+      resultFuture.addListener(
+          () -> {
+            try {
+              com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse response =
+                  resultFuture.get();
+              resultHandler.onComplete(
+                  ResponseMapper.startWorkflowExecutionAsyncResponse(response));
+            } catch (Exception e) {
+              resultHandler.onError(e);
+            }
+          },
+          ForkJoinPool.commonPool());
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
   }
 
   @Override
@@ -903,6 +1006,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       AsyncMethodCallback resultHandler)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  @Override
+  public void SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+      AsyncMethodCallback resultHandler)
+      throws TException {
+    throw new IllegalArgumentException("unimplemented");
   }
 
   @Override
@@ -1064,7 +1175,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       Long timeoutInMillis)
       throws TException {
     try {
-      startRequest.setRequestId(UUID.randomUUID().toString());
+      initializeStartWorkflowExecutionRequest(startRequest);
       ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionResponse> resultFuture =
           grpcServiceStubs
               .workflowFutureStub()
@@ -1075,6 +1186,37 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
             try {
               com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
               resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
+            } catch (Exception e) {
+              resultHandler.onError(e);
+            }
+          },
+          ForkJoinPool.commonPool());
+    } catch (StatusRuntimeException e) {
+      throw ErrorMapper.Error(e);
+    }
+  }
+
+  @Override
+  public void StartWorkflowExecutionAsyncWithTimeout(
+      StartWorkflowExecutionAsyncRequest startAsyncRequest,
+      AsyncMethodCallback resultHandler,
+      Long timeoutInMillis)
+      throws TException {
+    try {
+      initializeStartWorkflowExecutionRequest(startAsyncRequest.getRequest());
+      ListenableFuture<com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse> resultFuture =
+          grpcServiceStubs
+              .workflowFutureStub()
+              .withDeadline(Deadline.after(timeoutInMillis, TimeUnit.MILLISECONDS))
+              .startWorkflowExecutionAsync(
+                  RequestMapper.startWorkflowExecutionAsyncRequest(startAsyncRequest));
+      resultFuture.addListener(
+          () -> {
+            try {
+              com.uber.cadence.api.v1.StartWorkflowExecutionAsyncResponse response =
+                  resultFuture.get();
+              resultHandler.onComplete(
+                  ResponseMapper.startWorkflowExecutionAsyncResponse(response));
             } catch (Exception e) {
               resultHandler.onError(e);
             }

@@ -28,6 +28,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Date;
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 
@@ -56,6 +57,10 @@ public class AdminJwtAuthorizationProviderTest {
     assertTrue(adminClaim.asBoolean());
     final Claim ttlClaim = decodedJwt.getClaim("ttl");
     assertEquals((int) (60 * 10), (int) ttlClaim.asInt());
+    final Date expClaim = decodedJwt.getExpiresAt();
+    // Check if expClaim and issued at + ttl is the same time
+    assertEquals(
+        expClaim.toInstant(), decodedJwt.getIssuedAt().toInstant().plusSeconds(ttlClaim.asInt()));
   }
 
   private static String testPublicKey =

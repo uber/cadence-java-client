@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
+import ch.qos.logback.core.AppenderBase;
 import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
@@ -31,6 +31,8 @@ import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -38,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 public class LoggerTest {
 
-  private static final ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+  private static final ThreadSafeListAppender listAppender = new ThreadSafeListAppender();
 
   static {
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
@@ -118,7 +120,7 @@ public class LoggerTest {
 
   private int matchingLines(String message) {
     int i = 0;
-    for (ILoggingEvent event : listAppender.list) {
+    for (ILoggingEvent event : listAppender.getEvents()) {
       if (event.getFormattedMessage().contains(message)) {
         assertTrue(event.getMDCPropertyMap().containsKey(LoggerTag.WORKFLOW_ID));
         assertTrue(event.getMDCPropertyMap().containsKey(LoggerTag.WORKFLOW_TYPE));
@@ -128,5 +130,19 @@ public class LoggerTest {
       }
     }
     return i;
+  }
+
+  private static class ThreadSafeListAppender extends AppenderBase<ILoggingEvent> {
+
+    private final List<ILoggingEvent> events = new ArrayList<>();
+
+    @Override
+    protected synchronized void append(ILoggingEvent event) {
+      events.add(event);
+    }
+
+    public synchronized List<ILoggingEvent> getEvents() {
+      return new ArrayList<>(events);
+    }
   }
 }
