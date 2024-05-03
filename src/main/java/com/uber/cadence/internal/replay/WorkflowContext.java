@@ -162,9 +162,10 @@ final class WorkflowContext {
     }
 
     Map<String, byte[]> headerData = new HashMap<>();
-    fields.forEach((k, v) -> {
-      headerData.put(k, org.apache.thrift.TBaseHelper.byteBufferToByteArray(v));
-    });
+    fields.forEach(
+        (k, v) -> {
+          headerData.put(k, org.apache.thrift.TBaseHelper.byteBufferToByteArray(v));
+        });
 
     Map<String, Object> contextData = new HashMap<>();
     for (ContextPropagator propagator : contextPropagators) {
