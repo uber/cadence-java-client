@@ -156,7 +156,7 @@ final class WorkflowContext {
       return new HashMap<>();
     }
 
-    Map<String, Field> fields = headers.getFields();
+    Map<String, ByteBuffer> fields = headers.getFields();
     if (fields == null) {
       return new HashMap<>();
     }
