@@ -26,6 +26,7 @@ import com.uber.cadence.activity.LocalActivityOptions;
 import com.uber.cadence.internal.metrics.NoopScope;
 import com.uber.cadence.internal.worker.ActivityTaskHandler;
 import com.uber.cadence.internal.worker.ActivityTaskHandler.Result;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.testing.TestActivityEnvironment;
 import com.uber.cadence.testing.TestEnvironmentOptions;
@@ -324,6 +325,11 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     private final IWorkflowService impl;
 
     @Override
+    public ClientOptions getOptions() {
+      return impl.getOptions();
+    }
+
+    @Override
     public CompletableFuture<Boolean> isHealthy() {
       return impl.isHealthy();
     }
@@ -439,6 +445,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
             DomainNotActiveError, LimitExceededError, WorkflowExecutionAlreadyStartedError,
             TException {
       return impl.SignalWithStartWorkflowExecution(signalWithStartRequest);
+    }
+
+    @Override
+    public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+        SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+        throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+            DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+            ClientVersionNotSupportedError, TException {
+      return impl.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
     }
 
     @Override
@@ -598,6 +613,13 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void RestartWorkflowExecution(
+        RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.RestartWorkflowExecution(restartRequest, resultHandler);
+    }
+
+    @Override
     public void GetTaskListsByDomain(
         GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
         throws org.apache.thrift.TException {
@@ -612,12 +634,29 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public void StartWorkflowExecutionAsync(
+        StartWorkflowExecutionAsyncRequest startRequest, AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.StartWorkflowExecutionAsync(startRequest, resultHandler);
+    }
+
+    @Override
     public void StartWorkflowExecutionWithTimeout(
         StartWorkflowExecutionRequest startRequest,
         AsyncMethodCallback resultHandler,
         Long timeoutInMillis)
         throws TException {
       impl.StartWorkflowExecutionWithTimeout(startRequest, resultHandler, timeoutInMillis);
+    }
+
+    @Override
+    public void StartWorkflowExecutionAsyncWithTimeout(
+        StartWorkflowExecutionAsyncRequest startAsyncRequest,
+        AsyncMethodCallback resultHandler,
+        Long timeoutInMillis)
+        throws TException {
+      impl.StartWorkflowExecutionAsyncWithTimeout(
+          startAsyncRequest, resultHandler, timeoutInMillis);
     }
 
     @Override
@@ -749,6 +788,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         AsyncMethodCallback resultHandler)
         throws TException {
       impl.SignalWithStartWorkflowExecution(signalWithStartRequest, resultHandler);
+    }
+
+    @Override
+    public void SignalWithStartWorkflowExecutionAsync(
+        SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
+        AsyncMethodCallback resultHandler)
+        throws TException {
+      impl.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest, resultHandler);
     }
 
     @Override
@@ -890,6 +937,14 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
+    public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+        RestartWorkflowExecutionRequest restartRequest)
+        throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+            EntityNotExistsError, ClientVersionNotSupportedError, TException {
+      return impl.RestartWorkflowExecution(restartRequest);
+    }
+
+    @Override
     public GetTaskListsByDomainResponse GetTaskListsByDomain(GetTaskListsByDomainRequest request)
         throws BadRequestError, EntityNotExistsError, LimitExceededError, ServiceBusyError,
             ClientVersionNotSupportedError, TException {
@@ -902,6 +957,15 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
         throws BadRequestError, InternalServiceError, WorkflowExecutionAlreadyStartedError,
             ServiceBusyError, TException {
       return impl.StartWorkflowExecution(startRequest);
+    }
+
+    @Override
+    public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+        StartWorkflowExecutionAsyncRequest startRequest)
+        throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+            DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+            ClientVersionNotSupportedError, TException {
+      return impl.StartWorkflowExecutionAsync(startRequest);
     }
 
     @Override

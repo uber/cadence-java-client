@@ -19,6 +19,7 @@ package com.uber.cadence.migration;
 
 import com.google.common.base.Strings;
 import com.uber.cadence.*;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.IWorkflowServiceBase;
 import java.util.Arrays;
@@ -47,6 +48,11 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
   }
 
   @Override
+  public ClientOptions getOptions() {
+    return serviceOld.getOptions();
+  }
+
+  @Override
   public StartWorkflowExecutionResponse StartWorkflowExecution(
       StartWorkflowExecutionRequest startRequest) throws TException {
 
@@ -57,11 +63,70 @@ public class MigrationIWorkflowService extends IWorkflowServiceBase {
   }
 
   @Override
+  public StartWorkflowExecutionAsyncResponse StartWorkflowExecutionAsync(
+      StartWorkflowExecutionAsyncRequest startRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+
+    if (shouldStartInNew(startRequest.getRequest().getWorkflowId())) {
+      return serviceNew.StartWorkflowExecutionAsync(startRequest);
+    }
+
+    return serviceOld.StartWorkflowExecutionAsync(startRequest);
+  }
+
+  /**
+   * SignalWithStartWorkflowExecution is used to ensure sending signal to a workflow. If the
+   * workflow is running, this results in WorkflowExecutionSignaled event being recorded in the
+   * history and a decision task being created for the execution. If the workflow is not running or
+   * not found, this results in WorkflowExecutionStarted and WorkflowExecutionSignaled events being
+   * recorded in history, and a decision task being created for the execution
+   */
+  @Override
   public StartWorkflowExecutionResponse SignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest signalWithStartRequest) throws TException {
     if (shouldStartInNew(signalWithStartRequest.getWorkflowId()))
       return serviceNew.SignalWithStartWorkflowExecution(signalWithStartRequest);
     return serviceOld.SignalWithStartWorkflowExecution(signalWithStartRequest);
+  }
+
+  @Override
+  public SignalWithStartWorkflowExecutionAsyncResponse SignalWithStartWorkflowExecutionAsync(
+      SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest)
+      throws BadRequestError, WorkflowExecutionAlreadyStartedError, ServiceBusyError,
+          DomainNotActiveError, LimitExceededError, EntityNotExistsError,
+          ClientVersionNotSupportedError, TException {
+    if (shouldStartInNew(signalWithStartRequest.getRequest().getWorkflowId())) {
+      return serviceNew.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
+    }
+
+    return serviceOld.SignalWithStartWorkflowExecutionAsync(signalWithStartRequest);
+  }
+
+  /**
+   * SignalWorkflowExecution is used to send a signal event to running workflow execution. This
+   * results in WorkflowExecutionSignaled event recorded in the history and a decision task being
+   * created for the execution.
+   */
+  @Override
+  public void SignalWorkflowExecution(SignalWorkflowExecutionRequest signalRequest)
+      throws TException {
+    if (shouldStartInNew(signalRequest.getWorkflowExecution().getWorkflowId()))
+      serviceNew.SignalWorkflowExecution(signalRequest);
+    else serviceOld.SignalWorkflowExecution(signalRequest);
+  }
+
+  @Override
+  public RestartWorkflowExecutionResponse RestartWorkflowExecution(
+      RestartWorkflowExecutionRequest restartRequest)
+      throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
+          EntityNotExistsError, ClientVersionNotSupportedError, TException {
+    if (shouldStartInNew(restartRequest.getWorkflowExecution().getWorkflowId())) {
+      return serviceNew.RestartWorkflowExecution(restartRequest);
+    }
+
+    return serviceOld.RestartWorkflowExecution(restartRequest);
   }
 
   @Override

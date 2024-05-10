@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.12.0
+- Added support for new Async APIs for starting large numbers of workflows.
+- Added support for two-legged OAuth flow
+- Added support for standard JWT exp and iat claims
+- Updated WorkerOptions to default to the Tracer used to initialize WorkflowClient.
+- Fixed ClassCastException when using Promise#allOf(Promise<?>...)
+- Fixed NullPointerException in ContextPropagation when Header is present but fields is null
+
+## 3.11.0
+- Added opentracing support in workflow lifecycles #876 
+
 ## 3.10.1
 - Fixed the bug: workflow already started for migration
 - Populate tasklistkind in poll request

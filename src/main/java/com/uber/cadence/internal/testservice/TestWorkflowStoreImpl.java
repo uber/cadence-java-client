@@ -407,51 +407,66 @@ class TestWorkflowStoreImpl implements TestWorkflowStore {
   @Override
   public List<WorkflowExecutionInfo> listWorkflows(
       WorkflowState state, Optional<String> filterWorkflowId) {
-    List<WorkflowExecutionInfo> result = new ArrayList<>();
-    for (Entry<ExecutionId, HistoryStore> entry : this.histories.entrySet()) {
-      if (state == WorkflowState.OPEN) {
-        if (entry.getValue().isCompleted()) {
-          continue;
+    lock.lock();
+    List<WorkflowExecutionInfo> result;
+    try {
+      result = new ArrayList<>();
+      for (Entry<ExecutionId, HistoryStore> entry : this.histories.entrySet()) {
+        if (state == WorkflowState.OPEN) {
+          if (entry.getValue().isCompleted()) {
+            continue;
+          }
+          ExecutionId executionId = entry.getKey();
+          String workflowId = executionId.getWorkflowId().getWorkflowId();
+          if (filterWorkflowId.isPresent() && !workflowId.equals(filterWorkflowId.get())) {
+            continue;
+          }
+          List<HistoryEvent> history = entry.getValue().getHistory();
+          WorkflowExecutionInfo info =
+              new WorkflowExecutionInfo()
+                  .setExecution(executionId.getExecution())
+                  .setHistoryLength(history.size())
+                  .setStartTime(history.get(0).getTimestamp())
+                  .setIsCron(
+                      history
+                          .get(0)
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .isSetCronSchedule())
+                  .setType(
+                      history
+                          .get(0)
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .getWorkflowType());
+          result.add(info);
+        } else {
+          if (!entry.getValue().isCompleted()) {
+            continue;
+          }
+          ExecutionId executionId = entry.getKey();
+          String workflowId = executionId.getWorkflowId().getWorkflowId();
+          if (filterWorkflowId.isPresent() && !workflowId.equals(filterWorkflowId.get())) {
+            continue;
+          }
+          List<HistoryEvent> history = entry.getValue().getHistory();
+          WorkflowExecutionInfo info =
+              new WorkflowExecutionInfo()
+                  .setExecution(executionId.getExecution())
+                  .setHistoryLength(history.size())
+                  .setStartTime(history.get(0).getTimestamp())
+                  .setIsCron(
+                      history
+                          .get(0)
+                          .getWorkflowExecutionStartedEventAttributes()
+                          .isSetCronSchedule())
+                  .setType(
+                      history.get(0).getWorkflowExecutionStartedEventAttributes().getWorkflowType())
+                  .setCloseStatus(
+                      WorkflowExecutionUtils.getCloseStatus(history.get(history.size() - 1)));
+          result.add(info);
         }
-        ExecutionId executionId = entry.getKey();
-        String workflowId = executionId.getWorkflowId().getWorkflowId();
-        if (filterWorkflowId.isPresent() && !workflowId.equals(filterWorkflowId.get())) {
-          continue;
-        }
-        List<HistoryEvent> history = entry.getValue().getHistory();
-        WorkflowExecutionInfo info =
-            new WorkflowExecutionInfo()
-                .setExecution(executionId.getExecution())
-                .setHistoryLength(history.size())
-                .setStartTime(history.get(0).getTimestamp())
-                .setIsCron(
-                    history.get(0).getWorkflowExecutionStartedEventAttributes().isSetCronSchedule())
-                .setType(
-                    history.get(0).getWorkflowExecutionStartedEventAttributes().getWorkflowType());
-        result.add(info);
-      } else {
-        if (!entry.getValue().isCompleted()) {
-          continue;
-        }
-        ExecutionId executionId = entry.getKey();
-        String workflowId = executionId.getWorkflowId().getWorkflowId();
-        if (filterWorkflowId.isPresent() && !workflowId.equals(filterWorkflowId.get())) {
-          continue;
-        }
-        List<HistoryEvent> history = entry.getValue().getHistory();
-        WorkflowExecutionInfo info =
-            new WorkflowExecutionInfo()
-                .setExecution(executionId.getExecution())
-                .setHistoryLength(history.size())
-                .setStartTime(history.get(0).getTimestamp())
-                .setIsCron(
-                    history.get(0).getWorkflowExecutionStartedEventAttributes().isSetCronSchedule())
-                .setType(
-                    history.get(0).getWorkflowExecutionStartedEventAttributes().getWorkflowType())
-                .setCloseStatus(
-                    WorkflowExecutionUtils.getCloseStatus(history.get(history.size() - 1)));
-        result.add(info);
       }
+    } finally {
+      lock.unlock();
     }
     return result;
   }

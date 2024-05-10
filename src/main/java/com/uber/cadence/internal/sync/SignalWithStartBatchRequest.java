@@ -24,6 +24,7 @@ import com.uber.cadence.workflow.Functions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 final class SignalWithStartBatchRequest implements BatchRequest {
 
@@ -33,9 +34,17 @@ final class SignalWithStartBatchRequest implements BatchRequest {
   private String signalName;
   private Object[] signalArgs;
   private Object[] startArgs;
-  private AtomicBoolean invoked = new AtomicBoolean();
+  private final AtomicBoolean invoked = new AtomicBoolean();
 
-  WorkflowExecution invoke() {
+  WorkflowExecution enqueue() {
+    return invoke(this::enqueueSignalWithStart);
+  }
+
+  WorkflowExecution execute() {
+    return invoke(this::signalWithStart);
+  }
+
+  private WorkflowExecution invoke(Supplier<WorkflowExecution> commitFn) {
     if (!invoked.compareAndSet(false, true)) {
       throw new IllegalStateException(
           "A batch instance can be used only for a single signalWithStart call");
@@ -46,7 +55,7 @@ final class SignalWithStartBatchRequest implements BatchRequest {
       for (Functions.Proc request : requests) {
         request.apply();
       }
-      return signalWithStart();
+      return commitFn.get();
     } finally {
       WorkflowInvocationHandler.closeAsyncInvocation();
     }
@@ -54,6 +63,10 @@ final class SignalWithStartBatchRequest implements BatchRequest {
 
   private WorkflowExecution signalWithStart() {
     return stub.signalWithStart(signalName, signalArgs, startArgs);
+  }
+
+  private WorkflowExecution enqueueSignalWithStart() {
+    return stub.enqueueSignalWithStart(signalName, signalArgs, startArgs);
   }
 
   void signal(WorkflowStub stub, String signalName, Object[] args) {

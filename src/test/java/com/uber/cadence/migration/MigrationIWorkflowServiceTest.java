@@ -1129,4 +1129,93 @@ public class MigrationIWorkflowServiceTest {
     response = migrationService.ListClosedWorkflowExecutions(requestTwoItems);
     assertEquals(expectedResponseWithToken, response);
   }
+
+  @Test
+  public void testSignalWithStartWorkflowExecution_NewService() throws TException {
+    SignalWithStartWorkflowExecutionRequest request =
+        new SignalWithStartWorkflowExecutionRequest()
+            .setWorkflowId("newSignalWorkflow")
+            .setSignalName("TestSignal")
+            .setDomain("domainNew");
+
+    when(serviceNew.SignalWithStartWorkflowExecution(request))
+        .thenReturn(new StartWorkflowExecutionResponse().setRunId("newRunId"));
+
+    StartWorkflowExecutionResponse response =
+        migrationService.SignalWithStartWorkflowExecution(request);
+
+    assertEquals("newRunId", response.getRunId());
+    verify(serviceNew, times(1)).SignalWithStartWorkflowExecution(request);
+    verify(serviceOld, never()).SignalWithStartWorkflowExecution(request);
+  }
+
+  @Test
+  public void testSignalWithStartWorkflowExecution_OldService() throws TException {
+    SignalWithStartWorkflowExecutionRequest signal =
+        new SignalWithStartWorkflowExecutionRequest()
+            .setWorkflowId("testSignal")
+            .setDomain("oldDomain")
+            .setSignalName("sampleSignal");
+
+    when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(null);
+
+    DescribeWorkflowExecutionResponse describeWorkflowExecutionResponse =
+        new DescribeWorkflowExecutionResponse();
+    when(serviceOld.DescribeWorkflowExecution(any())).thenReturn(describeWorkflowExecutionResponse);
+
+    when(serviceOld.SignalWithStartWorkflowExecution(signal))
+        .thenReturn(new StartWorkflowExecutionResponse().setRunId("oldRunID"));
+    StartWorkflowExecutionResponse responseOld =
+        migrationService.SignalWithStartWorkflowExecution(signal);
+
+    verify(serviceNew, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).SignalWithStartWorkflowExecution(any());
+
+    verifyNoMoreInteractions(serviceNew);
+    verifyNoMoreInteractions(serviceOld);
+
+    assertEquals(responseOld.getRunId(), "oldRunID");
+  }
+
+  @Test
+  public void testSignalWorkflowExecution_SignalNewService() throws TException {
+    SignalWorkflowExecutionRequest request =
+        new SignalWorkflowExecutionRequest()
+            .setWorkflowExecution(new WorkflowExecution().setWorkflowId("newSignal"))
+            .setSignalName("signalNew")
+            .setDomain("domainNew");
+
+    doNothing().when(serviceNew).SignalWorkflowExecution(request);
+
+    migrationService.SignalWorkflowExecution(request);
+
+    verify(serviceNew, times(1)).SignalWorkflowExecution(request);
+    verify(serviceOld, never()).SignalWorkflowExecution(any());
+  }
+
+  @Test
+  public void testSignalWorkflowExecution_SignalInOldService() throws TException {
+    SignalWorkflowExecutionRequest request =
+        new SignalWorkflowExecutionRequest()
+            .setWorkflowExecution(new WorkflowExecution().setWorkflowId("oldSignal"))
+            .setSignalName("signalOld")
+            .setDomain("domainOld");
+
+    when(serviceNew.DescribeWorkflowExecution(any())).thenReturn(null);
+
+    DescribeWorkflowExecutionResponse describeWorkflowExecutionResponse =
+        new DescribeWorkflowExecutionResponse();
+    when(serviceOld.DescribeWorkflowExecution(any())).thenReturn(describeWorkflowExecutionResponse);
+
+    doNothing().when(serviceOld).SignalWorkflowExecution(request);
+    migrationService.SignalWorkflowExecution(request);
+
+    verify(serviceNew, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).DescribeWorkflowExecution(any());
+    verify(serviceOld, times(1)).SignalWorkflowExecution(any());
+
+    verifyNoMoreInteractions(serviceNew);
+    verifyNoMoreInteractions(serviceOld);
+  }
 }
