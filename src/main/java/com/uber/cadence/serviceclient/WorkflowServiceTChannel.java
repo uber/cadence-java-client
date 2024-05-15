@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import io.opentracing.Tracer;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.transport.TTransportException;
@@ -74,6 +75,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final Map<String, String> thriftHeaders;
   private final TChannel tChannel;
   private final TracingPropagator tracingPropagator;
+  private final Tracer tracer;
   private final SubChannel subChannel;
 
   /**
@@ -86,6 +88,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = new TChannel.Builder(options.getClientAppName()).build();
     this.tracingPropagator = new TracingPropagator(options.getTracer());
+    this.tracer = options.getTracer();
 
     InetAddress address;
     try {
@@ -326,14 +329,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> T measureRemoteCallWithTags(
       String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
-    Span span = tracingPropagator.activateSpanByServiceMethod(scopeName);
     Scope scope = options.getMetricsScope().subScope(scopeName);
     if (tags != null) {
       scope = scope.tagged(tags);
     }
     scope.counter(MetricsType.CADENCE_REQUEST).inc(1);
     Stopwatch sw = scope.timer(MetricsType.CADENCE_LATENCY).start();
-    try {
+
+    Span span = tracingPropagator.spanByServiceMethod(scopeName);
+    try (io.opentracing.Scope tracingScope = tracer.activateSpan(span)) {
       T resp = call.apply();
       sw.stop();
       return resp;

@@ -53,19 +53,16 @@ public class TracingPropagator {
     this.tracer = tracer;
   }
 
-  public Span activateSpanByServiceMethod(String serviceMethod) {
-    Span span = tracer.buildSpan(serviceMethod).asChildOf(tracer.activeSpan()).start();
-    tracer.activateSpan(span);
-    return span;
+  public Span spanByServiceMethod(String serviceMethod) {
+    return tracer.buildSpan(serviceMethod).asChildOf(tracer.activeSpan()).start();
   }
 
-  public Span activateSpanForExecuteWorkflow(DecisionContext context) {
+  public Span spanForExecuteWorkflow(DecisionContext context) {
     WorkflowExecutionStartedEventAttributes attributes =
         context.getWorkflowExecutionStartedEventAttributes();
     SpanContext parent = extract(attributes.getHeader());
 
-    Span span =
-        tracer
+    return tracer
             .buildSpan(EXECUTE_WORKFLOW)
             .addReference(
                 References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
@@ -73,14 +70,11 @@ public class TracingPropagator {
             .withTag(TAG_WORKFLOW_ID, context.getWorkflowId())
             .withTag(TAG_WORKFLOW_RUN_ID, context.getRunId())
             .start();
-    tracer.activateSpan(span);
-    return span;
   }
 
-  public Span activateSpanForExecuteActivity(PollForActivityTaskResponse task) {
+  public Span spanForExecuteActivity(PollForActivityTaskResponse task) {
     SpanContext parent = extract(task.getHeader());
-    Span span =
-        tracer
+    return tracer
             .buildSpan(EXECUTE_ACTIVITY)
             .addReference(
                 References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
@@ -98,12 +92,10 @@ public class TracingPropagator {
             .withTag(
                 TAG_ACTIVITY_TYPE,
                 task.isSetActivityType() ? task.getActivityType().getName() : "null")
-            .start();
-    tracer.activateSpan(span);
-    return span;
+                .start();
   }
 
-  public Span activateSpanForExecuteLocalActivity(Task task) {
+  public Span spanForExecuteLocalActivity(Task task) {
     ExecuteLocalActivityParameters params = task.getExecuteLocalActivityParameters();
 
     // retrieve spancontext from params

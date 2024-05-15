@@ -52,6 +52,7 @@ import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.nio.charset.StandardCharsets;
@@ -228,10 +229,13 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
           @Override
           public void start(Listener<RespT> responseListener, Metadata headers) {
             Span span =
-                tracingPropagator.activateSpanByServiceMethod(
+                tracingPropagator.spanByServiceMethod(
                     String.format(OPERATIONFORMAT, method.getBareMethodName()));
-            super.start(responseListener, headers);
-            span.finish();
+            try (Scope scope = tracer.activateSpan(span)) {
+              super.start(responseListener, headers);
+            } finally {
+                span.finish();
+            }
           }
 
           @SuppressWarnings("unchecked")
