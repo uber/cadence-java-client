@@ -49,6 +49,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -74,6 +75,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   private final Map<String, String> thriftHeaders;
   private final TChannel tChannel;
   private final TracingPropagator tracingPropagator;
+  private final Tracer tracer;
   private final SubChannel subChannel;
 
   /**
@@ -86,6 +88,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.thriftHeaders = getThriftHeaders(options);
     this.tChannel = new TChannel.Builder(options.getClientAppName()).build();
     this.tracingPropagator = new TracingPropagator(options.getTracer());
+    this.tracer = options.getTracer();
 
     InetAddress address;
     try {
@@ -126,6 +129,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.tChannel = null;
     this.subChannel = subChannel;
     this.tracingPropagator = new TracingPropagator(options.getTracer());
+    this.tracer = options.getTracer();
   }
 
   private static Map<String, String> getThriftHeaders(ClientOptions options) {
@@ -326,14 +330,15 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private <T> T measureRemoteCallWithTags(
       String scopeName, RemoteCall<T> call, Map<String, String> tags) throws TException {
-    Span span = tracingPropagator.activateSpanByServiceMethod(scopeName);
     Scope scope = options.getMetricsScope().subScope(scopeName);
     if (tags != null) {
       scope = scope.tagged(tags);
     }
     scope.counter(MetricsType.CADENCE_REQUEST).inc(1);
     Stopwatch sw = scope.timer(MetricsType.CADENCE_LATENCY).start();
-    try {
+
+    Span span = tracingPropagator.spanByServiceMethod(scopeName);
+    try (io.opentracing.Scope tracingScope = tracer.activateSpan(span)) {
       T resp = call.apply();
       sw.stop();
       return resp;

@@ -278,7 +278,7 @@ public class StartWorkflowTest {
         }
 
         // assert workflow spans
-        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
+        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(0);
         assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
         assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
 
@@ -382,7 +382,7 @@ public class StartWorkflowTest {
         // assert workflow spans
         List<MockSpan> workflowSpans =
             getSpansByTraceID(spans, spanStartWorkflow.context().toTraceId());
-        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(1);
+        MockSpan spanExecuteWF = getLinkedSpans(spans, spanStartWorkflow.context()).get(0);
         assertEquals(spanExecuteWF.operationName(), "cadence-ExecuteWorkflow");
         assertSpanReferences(spanExecuteWF, "follows_from", spanStartWorkflow);
 

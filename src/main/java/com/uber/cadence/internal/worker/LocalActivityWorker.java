@@ -32,6 +32,7 @@ import com.uber.m3.tally.Scope;
 import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.ImmutableMap;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,7 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
   private final SingleWorkerOptions options;
   private final LocalActivityPollTask laPollTask;
   private final TracingPropagator spanFactory;
+  private final Tracer tracer;
 
   public LocalActivityWorker(
       String domain, String taskList, SingleWorkerOptions options, ActivityTaskHandler handler) {
@@ -58,6 +60,7 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
     this.handler = handler;
     this.laPollTask = new LocalActivityPollTask();
     this.spanFactory = new TracingPropagator(options.getTracer());
+    this.tracer = options.getTracer();
 
     PollerOptions pollerOptions = options.getPollerOptions();
     if (pollerOptions.getPollThreadNamePrefix() == null) {
@@ -129,42 +132,43 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
       propagateContext(task.params);
 
       // start and activate span for local activities
-      Span span = spanFactory.activateSpanForExecuteLocalActivity(task);
+      Span span = spanFactory.spanForExecuteLocalActivity(task);
+      try (io.opentracing.Scope scope = tracer.activateSpan(span)) {
+        task.taskStartTime = System.currentTimeMillis();
+        ActivityTaskHandler.Result result = handleLocalActivity(task);
 
-      task.taskStartTime = System.currentTimeMillis();
-      ActivityTaskHandler.Result result = handleLocalActivity(task);
+        LocalActivityMarkerData.Builder markerBuilder = new LocalActivityMarkerData.Builder();
+        markerBuilder.setActivityId(task.params.getActivityId());
+        markerBuilder.setActivityType(task.params.getActivityType());
+        long replayTimeMillis =
+            task.currentTimeMillis.getAsLong()
+                + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
+        markerBuilder.setReplayTimeMillis(replayTimeMillis);
 
-      LocalActivityMarkerData.Builder markerBuilder = new LocalActivityMarkerData.Builder();
-      markerBuilder.setActivityId(task.params.getActivityId());
-      markerBuilder.setActivityType(task.params.getActivityType());
-      long replayTimeMillis =
-          task.currentTimeMillis.getAsLong()
-              + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
-      markerBuilder.setReplayTimeMillis(replayTimeMillis);
+        if (result.getTaskCompleted() != null) {
+          markerBuilder.setResult(result.getTaskCompleted().getResult());
+        } else if (result.getTaskFailedResult() != null) {
+          markerBuilder.setTaskFailedRequest(result.getTaskFailedResult().getTaskFailedRequest());
+          markerBuilder.setAttempt(result.getAttempt());
+          markerBuilder.setBackoff(result.getBackoff());
+        } else {
+          markerBuilder.setTaskCancelledRequest(result.getTaskCancelled());
+        }
 
-      if (result.getTaskCompleted() != null) {
-        markerBuilder.setResult(result.getTaskCompleted().getResult());
-      } else if (result.getTaskFailedResult() != null) {
-        markerBuilder.setTaskFailedRequest(result.getTaskFailedResult().getTaskFailedRequest());
-        markerBuilder.setAttempt(result.getAttempt());
-        markerBuilder.setBackoff(result.getBackoff());
-      } else {
-        markerBuilder.setTaskCancelledRequest(result.getTaskCancelled());
+        LocalActivityMarkerData marker = markerBuilder.build();
+
+        HistoryEvent event = new HistoryEvent();
+        event.setEventType(EventType.MarkerRecorded);
+        MarkerRecordedEventAttributes attributes =
+            new MarkerRecordedEventAttributes()
+                .setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)
+                .setHeader(marker.getHeader(options.getDataConverter()))
+                .setDetails(marker.getResult());
+        event.setMarkerRecordedEventAttributes(attributes);
+        task.eventConsumer.accept(event);
+      } finally {
+        span.finish();
       }
-
-      LocalActivityMarkerData marker = markerBuilder.build();
-
-      HistoryEvent event = new HistoryEvent();
-      event.setEventType(EventType.MarkerRecorded);
-      MarkerRecordedEventAttributes attributes =
-          new MarkerRecordedEventAttributes()
-              .setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)
-              .setHeader(marker.getHeader(options.getDataConverter()))
-              .setDetails(marker.getResult());
-      event.setMarkerRecordedEventAttributes(attributes);
-      task.eventConsumer.accept(event);
-
-      span.finish();
     }
 
     @Override

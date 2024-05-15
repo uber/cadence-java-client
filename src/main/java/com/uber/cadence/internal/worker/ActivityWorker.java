@@ -37,6 +37,7 @@ import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
   private final IWorkflowService service;
   private final String domain;
   private final String taskList;
+  private final Tracer tracer;
   private final TracingPropagator spanFactory;
 
   public ActivityWorker(
@@ -75,6 +77,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
     this.domain = Objects.requireNonNull(domain);
     this.taskList = Objects.requireNonNull(taskList);
     this.handler = handler;
+    this.tracer = options.getTracer();
     this.spanFactory = new TracingPropagator(options.getTracer());
 
     PollerOptions pollerOptions = options.getPollerOptions();
@@ -142,9 +145,8 @@ public class ActivityWorker extends SuspendableWorkerBase {
       MDC.put(LoggerTag.RUN_ID, task.getWorkflowExecution().getRunId());
 
       propagateContext(task);
-      Span span = spanFactory.activateSpanForExecuteActivity(task);
-
-      try {
+      Span span = spanFactory.spanForExecuteActivity(task);
+      try (io.opentracing.Scope scope = tracer.activateSpan(span)) {
         Stopwatch sw = metricsScope.timer(MetricsType.ACTIVITY_EXEC_LATENCY).start();
         ActivityTaskHandler.Result response = handler.handle(task, metricsScope, false);
         sw.stop();

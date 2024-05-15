@@ -35,23 +35,13 @@ import com.uber.cadence.internal.Version;
 import com.uber.cadence.internal.tracing.TracingPropagator;
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.auth.IAuthorizationProvider;
-import io.grpc.CallOptions;
-import io.grpc.Channel;
-import io.grpc.ClientCall;
-import io.grpc.ClientInterceptor;
-import io.grpc.ClientInterceptors;
-import io.grpc.Deadline;
-import io.grpc.ForwardingClientCall;
-import io.grpc.ForwardingClientCallListener;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
-import io.grpc.Metadata;
-import io.grpc.MethodDescriptor;
+import io.grpc.*;
 import io.grpc.stub.MetadataUtils;
 import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
+import io.opentracing.Scope;
 import io.opentracing.Span;
 import io.opentracing.Tracer;
 import java.nio.charset.StandardCharsets;
@@ -228,10 +218,23 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
           @Override
           public void start(Listener<RespT> responseListener, Metadata headers) {
             Span span =
-                tracingPropagator.activateSpanByServiceMethod(
+                tracingPropagator.spanByServiceMethod(
                     String.format(OPERATIONFORMAT, method.getBareMethodName()));
-            super.start(responseListener, headers);
-            span.finish();
+            Scope scope = tracer.activateSpan(span);
+            super.start(
+                new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(
+                    responseListener) {
+                  @Override
+                  public void onClose(Status status, Metadata trailers) {
+                    try {
+                      super.onClose(status, trailers);
+                    } finally {
+                      span.finish();
+                      scope.close();
+                    }
+                  }
+                },
+                headers);
           }
 
           @SuppressWarnings("unchecked")

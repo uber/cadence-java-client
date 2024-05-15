@@ -95,6 +95,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   private final byte[] lastCompletionResult;
   private final WorkflowImplementationOptions workflowImplementationOptions;
   private final TracingPropagator tracingPropagator;
+  private final Tracer tracer;
 
   public SyncDecisionContext(
       DecisionContext context,
@@ -133,6 +134,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
     this.lastCompletionResult = lastCompletionResult;
     this.workflowImplementationOptions = workflowImplementationOptions;
     this.tracingPropagator = new TracingPropagator(tracer);
+    this.tracer = tracer;
   }
 
   /**
@@ -154,8 +156,8 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   @Override
   public byte[] executeWorkflow(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
-    Span span = tracingPropagator.activateSpanForExecuteWorkflow(context);
-    try {
+    Span span = tracingPropagator.spanForExecuteWorkflow(context);
+    try (io.opentracing.Scope scope = tracer.activateSpan(span)) {
       return workflowDefinition.execute(input.getInput());
     } finally {
       span.finish();
