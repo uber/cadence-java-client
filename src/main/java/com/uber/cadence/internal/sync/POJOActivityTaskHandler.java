@@ -24,6 +24,7 @@ import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.RespondActivityTaskCompletedRequest;
 import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityTask;
 import com.uber.cadence.client.ActivityCancelledException;
 import com.uber.cadence.common.MethodRetry;
 import com.uber.cadence.converter.DataConverter;
@@ -201,7 +202,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
   }
 
   interface ActivityTaskExecutor {
-    ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope);
+    ActivityTaskHandler.Result execute(ActivityTask task, Scope metricsScope);
   }
 
   private class POJOActivityImplementation implements ActivityTaskExecutor {
@@ -214,7 +215,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     }
 
     @Override
-    public ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope) {
+    public ActivityTaskHandler.Result execute(ActivityTask task, Scope metricsScope) {
       ActivityExecutionContext context =
           new ActivityExecutionContextImpl(service, domain, task, dataConverter, heartbeatExecutor);
       byte[] input = task.getInput();
@@ -250,7 +251,7 @@ class POJOActivityTaskHandler implements ActivityTaskHandler {
     }
 
     @Override
-    public ActivityTaskHandler.Result execute(ActivityTaskImpl task, Scope metricsScope) {
+    public ActivityTaskHandler.Result execute(ActivityTask task, Scope metricsScope) {
       ActivityExecutionContext context =
           new LocalActivityExecutionContextImpl(service, domain, task);
       CurrentActivityExecutionContext.set(context);

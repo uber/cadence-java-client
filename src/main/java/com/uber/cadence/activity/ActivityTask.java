@@ -65,4 +65,5 @@ public interface ActivityTask {
   String getWorkflowDomain();
 
   int getAttempt();
+  byte[] getInput();
 }
