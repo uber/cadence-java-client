@@ -157,7 +157,7 @@ final class SyncDecisionContext implements WorkflowInterceptor {
   public byte[] executeWorkflow(
       SyncWorkflowDefinition workflowDefinition, WorkflowExecuteInput input) {
     Span span = tracingPropagator.spanForExecuteWorkflow(context);
-    try(io.opentracing.Scope scope = tracer.activateSpan(span)) {
+    try (io.opentracing.Scope scope = tracer.activateSpan(span)) {
       return workflowDefinition.execute(input.getInput());
     } finally {
       span.finish();

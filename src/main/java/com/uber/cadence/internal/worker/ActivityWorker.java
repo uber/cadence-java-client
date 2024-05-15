@@ -37,13 +37,13 @@ import com.uber.m3.tally.Stopwatch;
 import com.uber.m3.util.Duration;
 import com.uber.m3.util.ImmutableMap;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
-import io.opentracing.Tracer;
 import org.apache.thrift.TException;
 import org.slf4j.MDC;
 

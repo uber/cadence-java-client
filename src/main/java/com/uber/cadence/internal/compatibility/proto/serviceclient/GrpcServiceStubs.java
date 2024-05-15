@@ -234,7 +234,7 @@ final class GrpcServiceStubs implements IGrpcServiceStubs {
             try (Scope scope = tracer.activateSpan(span)) {
               super.start(responseListener, headers);
             } finally {
-                span.finish();
+              span.finish();
             }
           }
 

@@ -49,6 +49,7 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.context.propagation.TextMapPropagator;
 import io.opentelemetry.context.propagation.TextMapSetter;
 import io.opentracing.Span;
+import io.opentracing.Tracer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -59,7 +60,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import io.opentracing.Tracer;
 import org.apache.thrift.TException;
 import org.apache.thrift.async.AsyncMethodCallback;
 import org.apache.thrift.transport.TTransportException;
@@ -129,6 +129,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
     this.tChannel = null;
     this.subChannel = subChannel;
     this.tracingPropagator = new TracingPropagator(options.getTracer());
+    this.tracer = options.getTracer();
   }
 
   private static Map<String, String> getThriftHeaders(ClientOptions options) {

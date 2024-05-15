@@ -63,36 +63,32 @@ public class TracingPropagator {
     SpanContext parent = extract(attributes.getHeader());
 
     return tracer
-            .buildSpan(EXECUTE_WORKFLOW)
-            .addReference(
-                References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
-            .withTag(TAG_WORKFLOW_TYPE, context.getWorkflowType().getName())
-            .withTag(TAG_WORKFLOW_ID, context.getWorkflowId())
-            .withTag(TAG_WORKFLOW_RUN_ID, context.getRunId())
-            .start();
+        .buildSpan(EXECUTE_WORKFLOW)
+        .addReference(
+            References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
+        .withTag(TAG_WORKFLOW_TYPE, context.getWorkflowType().getName())
+        .withTag(TAG_WORKFLOW_ID, context.getWorkflowId())
+        .withTag(TAG_WORKFLOW_RUN_ID, context.getRunId())
+        .start();
   }
 
   public Span spanForExecuteActivity(PollForActivityTaskResponse task) {
     SpanContext parent = extract(task.getHeader());
     return tracer
-            .buildSpan(EXECUTE_ACTIVITY)
-            .addReference(
-                References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
-            .withTag(
-                TAG_WORKFLOW_TYPE,
-                task.isSetWorkflowType() ? task.getWorkflowType().getName() : "null")
-            .withTag(
-                TAG_WORKFLOW_ID,
-                task.isSetWorkflowExecution()
-                    ? task.getWorkflowExecution().getWorkflowId()
-                    : "null")
-            .withTag(
-                TAG_WORKFLOW_RUN_ID,
-                task.isSetWorkflowExecution() ? task.getWorkflowExecution().getRunId() : "null")
-            .withTag(
-                TAG_ACTIVITY_TYPE,
-                task.isSetActivityType() ? task.getActivityType().getName() : "null")
-                .start();
+        .buildSpan(EXECUTE_ACTIVITY)
+        .addReference(
+            References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
+        .withTag(
+            TAG_WORKFLOW_TYPE, task.isSetWorkflowType() ? task.getWorkflowType().getName() : "null")
+        .withTag(
+            TAG_WORKFLOW_ID,
+            task.isSetWorkflowExecution() ? task.getWorkflowExecution().getWorkflowId() : "null")
+        .withTag(
+            TAG_WORKFLOW_RUN_ID,
+            task.isSetWorkflowExecution() ? task.getWorkflowExecution().getRunId() : "null")
+        .withTag(
+            TAG_ACTIVITY_TYPE, task.isSetActivityType() ? task.getActivityType().getName() : "null")
+        .start();
   }
 
   public Span spanForExecuteLocalActivity(Task task) {

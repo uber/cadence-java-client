@@ -141,8 +141,8 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
         markerBuilder.setActivityId(task.params.getActivityId());
         markerBuilder.setActivityType(task.params.getActivityType());
         long replayTimeMillis =
-                task.currentTimeMillis.getAsLong()
-                        + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
+            task.currentTimeMillis.getAsLong()
+                + (System.currentTimeMillis() - task.replayTimeUpdatedAtMillis.getAsLong());
         markerBuilder.setReplayTimeMillis(replayTimeMillis);
 
         if (result.getTaskCompleted() != null) {
@@ -160,10 +160,10 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
         HistoryEvent event = new HistoryEvent();
         event.setEventType(EventType.MarkerRecorded);
         MarkerRecordedEventAttributes attributes =
-                new MarkerRecordedEventAttributes()
-                        .setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)
-                        .setHeader(marker.getHeader(options.getDataConverter()))
-                        .setDetails(marker.getResult());
+            new MarkerRecordedEventAttributes()
+                .setMarkerName(ClockDecisionContext.LOCAL_ACTIVITY_MARKER_NAME)
+                .setHeader(marker.getHeader(options.getDataConverter()))
+                .setDetails(marker.getResult());
         event.setMarkerRecordedEventAttributes(attributes);
         task.eventConsumer.accept(event);
       } finally {
