@@ -174,6 +174,7 @@ public class ActivityWorker extends SuspendableWorkerBase {
         MDC.remove(LoggerTag.ACTIVITY_TYPE);
         MDC.remove(LoggerTag.WORKFLOW_ID);
         MDC.remove(LoggerTag.RUN_ID);
+        unsetCurrentContext();
       }
     }
 
@@ -197,6 +198,12 @@ public class ActivityWorker extends SuspendableWorkerBase {
 
       for (ContextPropagator propagator : options.getContextPropagators()) {
         propagator.setCurrentContext(propagator.deserializeContext(headerData));
+      }
+    }
+
+    void unsetCurrentContext() {
+      for (ContextPropagator propagator : options.getContextPropagators()) {
+        propagator.unsetCurrentContext();
       }
     }
 

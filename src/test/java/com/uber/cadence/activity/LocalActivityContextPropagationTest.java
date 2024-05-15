@@ -218,6 +218,9 @@ public class LocalActivityContextPropagationTest {
       String propagatedContextName = ((Context) context).getContextName();
       wrapperContext.newContext(propagatedContextName);
     }
+
+    @Override
+    public void unsetCurrentContext() {}
   }
 
   private class WrapperContext {

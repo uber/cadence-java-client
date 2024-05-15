@@ -136,4 +136,7 @@ public interface ContextPropagator {
 
   /** Sets the current context */
   void setCurrentContext(Object context);
+
+  /** Unsets the current context. This is called when the context is no longer needed */
+  void unsetCurrentContext();
 }

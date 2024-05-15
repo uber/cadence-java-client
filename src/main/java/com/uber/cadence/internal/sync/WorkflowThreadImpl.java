@@ -137,6 +137,7 @@ class WorkflowThreadImpl implements WorkflowThread {
         thread.setName(originalName);
         thread = null;
         MDC.clear();
+        ContextThreadLocal.unsetCurrentContext();
       }
     }
 

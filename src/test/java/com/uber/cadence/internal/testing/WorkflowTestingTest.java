@@ -775,6 +775,11 @@ public class WorkflowTestingTest {
     public void setCurrentContext(Object context) {
       MDC.put("test", String.valueOf(context));
     }
+
+    @Override
+    public void unsetCurrentContext() {
+      MDC.remove("test");
+    }
   }
 
   public static class ContextPropagationWorkflowImpl implements TestWorkflow {
