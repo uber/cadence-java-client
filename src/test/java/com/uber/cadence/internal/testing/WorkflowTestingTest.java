@@ -17,9 +17,7 @@
 
 package com.uber.cadence.internal.testing;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,21 +43,10 @@ import com.uber.cadence.testing.SimulatedTimeoutException;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
-import com.uber.cadence.workflow.ActivityTimeoutException;
-import com.uber.cadence.workflow.Async;
-import com.uber.cadence.workflow.ChildWorkflowOptions;
-import com.uber.cadence.workflow.ChildWorkflowTimedOutException;
-import com.uber.cadence.workflow.Promise;
-import com.uber.cadence.workflow.SignalMethod;
-import com.uber.cadence.workflow.Workflow;
-import com.uber.cadence.workflow.WorkflowMethod;
+import com.uber.cadence.workflow.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -742,6 +729,37 @@ public class WorkflowTestingTest {
 
   public static class TestContextPropagator implements ContextPropagator {
 
+    //    public static class TestContext {
+    //        private final String testKey;
+    //        private final Integer level;
+    //
+    //        public TestContext(String testKey, Integer level) {
+    //            this.testKey = testKey;
+    //            this.level = level;
+    //        }
+    //
+    //        public String getTestKey() {
+    //            return testKey;
+    //        }
+    //        public Integer getLevel() {
+    //            return level;
+    //        }
+    //
+    //        public Map<String, byte[]> ToMap() {
+    //            return "TestContext{testKey=" + testKey + ", level=" + level + "}";
+    //        }
+    //    }
+
+    private int level;
+
+    TestContextPropagator() {
+      level = 0;
+    }
+
+    public int getLevel() {
+      return level;
+    }
+
     @Override
     public String getName() {
       return this.getClass().getName();
@@ -774,6 +792,13 @@ public class WorkflowTestingTest {
     @Override
     public void setCurrentContext(Object context) {
       MDC.put("test", String.valueOf(context));
+      level++;
+    }
+
+    @Override
+    public void unsetCurrentContext() {
+      MDC.remove("test");
+      level--;
     }
   }
 
@@ -793,13 +818,15 @@ public class WorkflowTestingTest {
     testEnvironment.start();
     MDC.put("test", "testing123");
     WorkflowClient client = testEnvironment.newWorkflowClient();
+    TestContextPropagator propagator = new TestContextPropagator();
     WorkflowOptions options =
         new WorkflowOptions.Builder()
-            .setContextPropagators(Collections.singletonList(new TestContextPropagator()))
+            .setContextPropagators(Collections.singletonList(propagator))
             .build();
     TestWorkflow workflow = client.newWorkflowStub(TestWorkflow.class, options);
     String result = workflow.workflow1("input1");
     assertEquals("testing123", result);
+    assertEquals(0, propagator.getLevel());
   }
 
   public static class ContextPropagationParentWorkflowImpl implements ParentWorkflow {

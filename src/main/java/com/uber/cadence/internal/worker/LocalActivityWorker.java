@@ -22,6 +22,7 @@ import com.uber.cadence.HistoryEvent;
 import com.uber.cadence.MarkerRecordedEventAttributes;
 import com.uber.cadence.PollForActivityTaskResponse;
 import com.uber.cadence.common.RetryOptions;
+import com.uber.cadence.context.ContextPropagator;
 import com.uber.cadence.internal.common.LocalActivityMarkerData;
 import com.uber.cadence.internal.metrics.MetricsTag;
 import com.uber.cadence.internal.metrics.MetricsType;
@@ -168,6 +169,7 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
         task.eventConsumer.accept(event);
       } finally {
         span.finish();
+        unsetCurrentContext();
       }
     }
 
@@ -239,6 +241,10 @@ public final class LocalActivityWorker extends SuspendableWorkerBase {
     Optional.ofNullable(params.getContext())
         .filter(context -> !context.isEmpty())
         .ifPresent(this::restoreContext);
+  }
+
+  private void unsetCurrentContext() {
+    options.getContextPropagators().forEach(ContextPropagator::unsetCurrentContext);
   }
 
   private void restoreContext(Map<String, byte[]> context) {

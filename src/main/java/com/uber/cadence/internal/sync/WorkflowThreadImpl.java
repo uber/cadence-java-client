@@ -132,6 +132,7 @@ class WorkflowThreadImpl implements WorkflowThread {
         }
         threadContext.setUnhandledException(e);
       } finally {
+        ContextThreadLocal.unsetCurrentContext();
         DeterministicRunnerImpl.setCurrentThreadInternal(null);
         threadContext.setStatus(Status.DONE);
         thread.setName(originalName);

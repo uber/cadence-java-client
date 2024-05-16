@@ -67,4 +67,10 @@ public class ContextThreadLocal {
       }
     }
   }
+
+  public static void unsetCurrentContext() {
+    for (ContextPropagator propagator : contextPropagators.get()) {
+      propagator.unsetCurrentContext();
+    }
+  }
 }
