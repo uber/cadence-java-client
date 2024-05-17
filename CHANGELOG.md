@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.12.1
+- Refactor ActivityTaskExecutor to use ActivityTask interface (#897)
+- Fixed memory leak caused by incorrect context deactivation (#896)
+- Added unsetCurrentContext to ContextPropagator interface (#898)
+
 ## 3.12.0
 - Added support for new Async APIs for starting large numbers of workflows.
 - Added support for two-legged OAuth flow
