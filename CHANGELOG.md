@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.12.2
+- Downgrade java-jwt dependency to 3.10.2 to fix #900
+
 ## 3.12.1
 - Refactor ActivityTaskExecutor to use ActivityTask interface (#897)
 - Fixed memory leak caused by incorrect context deactivation (#896)
