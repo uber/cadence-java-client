@@ -102,6 +102,7 @@ public class TracingPropagator {
     Span span =
         tracer
             .buildSpan(EXECUTE_LOCAL_ACTIVITY)
+            .ignoreActiveSpan()
             .addReference(References.FOLLOWS_FROM, parent)
             .withTag(TAG_WORKFLOW_ID, params.getWorkflowExecution().getWorkflowId())
             .withTag(TAG_WORKFLOW_RUN_ID, params.getWorkflowExecution().getRunId())
