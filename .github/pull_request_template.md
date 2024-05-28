@@ -11,6 +11,7 @@
 
 
 <!-- Assuming the worst case, what can be broken when deploying this change to production? -->
+<!-- If you are upgrading a dependency, please mention the major version change. Read changelogs and capture any breaking changes here. -->
 **Potential risks**
 
 <!-- Is it notable for release? e.g. schema updates, configuration or data migration required? If so, please mention it, and also update CHANGELOG.md -->
