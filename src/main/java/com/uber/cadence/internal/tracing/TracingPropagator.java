@@ -64,7 +64,8 @@ public class TracingPropagator {
 
     return tracer
         .buildSpan(EXECUTE_WORKFLOW)
-        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the start workflow context
+        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the start
+                            // workflow context
         .addReference(
             References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
         .withTag(TAG_WORKFLOW_TYPE, context.getWorkflowType().getName())
@@ -77,7 +78,8 @@ public class TracingPropagator {
     SpanContext parent = extract(task.getHeader());
     return tracer
         .buildSpan(EXECUTE_ACTIVITY)
-        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the execute workflow context
+        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the execute
+                            // workflow context
         .addReference(
             References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
         .withTag(
