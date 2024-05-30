@@ -22,7 +22,9 @@ import static org.junit.Assert.*;
 import com.uber.cadence.DomainAlreadyExistsError;
 import com.uber.cadence.RegisterDomainRequest;
 import com.uber.cadence.activity.ActivityMethod;
+import com.uber.cadence.activity.ActivityOptions;
 import com.uber.cadence.client.*;
+import com.uber.cadence.common.RetryOptions;
 import com.uber.cadence.internal.compatibility.Thrift2ProtoAdapter;
 import com.uber.cadence.internal.compatibility.proto.serviceclient.IGrpcServiceStubs;
 import com.uber.cadence.serviceclient.ClientOptions;
@@ -108,7 +110,16 @@ public class StartWorkflowTest {
   }
 
   public static class TestWorkflowImpl implements TestWorkflow {
-    private final TestActivity activities = Workflow.newActivityStub(TestActivity.class);
+    private final TestActivity activities =
+        Workflow.newActivityStub(
+            TestActivity.class,
+            new ActivityOptions.Builder()
+                .setRetryOptions(
+                    new RetryOptions.Builder()
+                        .setInitialInterval(Duration.ofSeconds(10))
+                        .setMaximumAttempts(2)
+                        .build())
+                .build());
 
     @Override
     public Integer AddOneThenDouble(Integer n) {
