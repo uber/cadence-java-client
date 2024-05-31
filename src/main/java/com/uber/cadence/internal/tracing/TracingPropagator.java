@@ -54,7 +54,7 @@ public class TracingPropagator {
   }
 
   public Span spanByServiceMethod(String serviceMethod) {
-    return tracer.buildSpan(serviceMethod).asChildOf(tracer.activeSpan()).start();
+    return tracer.buildSpan(serviceMethod).start();
   }
 
   public Span spanForExecuteWorkflow(DecisionContext context) {

@@ -43,8 +43,8 @@ import io.opentracing.Tracer;
 import io.opentracing.mock.MockSpan;
 import io.opentracing.mock.MockTracer;
 import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.junit.Assume;
 import org.junit.Test;
@@ -162,6 +162,85 @@ public class StartWorkflowTest {
             IGrpcServiceStubs.newInstance(
                 ClientOptions.newBuilder().setTracer(mockTracer).setPort(7833).build()));
     testStartWorkflowHelper(service, mockTracer, true);
+  }
+
+  @Test
+  public void testStartMultipleWorkflowGRPC() {
+    //    Assume.assumeTrue(useDockerService);
+    MockTracer mockTracer = new MockTracer();
+    IWorkflowService service =
+        new Thrift2ProtoAdapter(
+            IGrpcServiceStubs.newInstance(
+                ClientOptions.newBuilder().setTracer(mockTracer).setPort(7833).build()));
+    try {
+      service.RegisterDomain(new RegisterDomainRequest().setName(DOMAIN));
+    } catch (DomainAlreadyExistsError e) {
+      logger.info("domain already registered");
+    } catch (Exception e) {
+      fail("fail to register domain: " + e);
+    }
+
+    WorkflowClient client =
+        WorkflowClient.newInstance(
+            service, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
+
+    WorkerFactory workerFactory =
+        WorkerFactory.newInstance(
+            client, WorkerFactoryOptions.newBuilder().setMaxWorkflowThreadCount(2).build());
+    Worker worker;
+    worker =
+        workerFactory.newWorker(
+            TASK_LIST, WorkerOptions.newBuilder().setMaxConcurrentWorkflowExecutionSize(2).build());
+    worker.registerActivitiesImplementations(new TestActivityImpl(mockTracer, true));
+    worker.registerWorkflowImplementationTypes(TestWorkflowImpl.class, DoubleWorkflowImpl.class);
+    workerFactory.start();
+
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
+
+    for (int i = 0; i < 100; i++) {
+      int finalI = i;
+      futures.add(
+          CompletableFuture.runAsync(
+              () -> {
+                Span rootSpan = mockTracer.buildSpan("workflow=" + finalI).start();
+                rootSpan.setBaggageItem(CONTEXT_KEY, CONTEXT_VALUE);
+                mockTracer.activateSpan(rootSpan);
+                client.newWorkflowStub(TestWorkflow.class).AddOneThenDouble(finalI);
+                rootSpan.finish();
+              }));
+    }
+    try {
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+    } catch (Exception e) {
+      fail("workflow failure: " + e);
+    } finally {
+      // test debug log
+      StringBuilder sb = new StringBuilder();
+
+      List<MockSpan> spans = mockTracer.finishedSpans();
+      spans.forEach(
+          span -> {
+            sb.append(span.toString()).append("\n");
+          });
+      logger.info("spans: " + sb);
+      workerFactory.shutdown();
+
+      // assert activity span should have only 1 parent
+      List<MockSpan> filtered =
+          spans
+              .stream()
+              .filter(
+                  s ->
+                      s.operationName().contains("ExecuteActivity")
+                          || s.operationName().contains("ExecuteLocalActivity")
+                          || s.operationName().contains("ExecuteWorkflow"))
+              .collect(Collectors.toList());
+      assertFalse(filtered.isEmpty());
+      filtered.forEach(
+          s -> {
+            assertEquals(1, s.references().size());
+          });
+    }
   }
 
   @Test
