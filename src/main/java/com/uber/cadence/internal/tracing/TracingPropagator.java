@@ -54,7 +54,7 @@ public class TracingPropagator {
   }
 
   public Span spanByServiceMethod(String serviceMethod) {
-    return tracer.buildSpan(serviceMethod).asChildOf(tracer.activeSpan()).start();
+    return tracer.buildSpan(serviceMethod).start();
   }
 
   public Span spanForExecuteWorkflow(DecisionContext context) {
@@ -64,6 +64,8 @@ public class TracingPropagator {
 
     return tracer
         .buildSpan(EXECUTE_WORKFLOW)
+        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the start
+        // workflow context
         .addReference(
             References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
         .withTag(TAG_WORKFLOW_TYPE, context.getWorkflowType().getName())
@@ -76,6 +78,8 @@ public class TracingPropagator {
     SpanContext parent = extract(task.getHeader());
     return tracer
         .buildSpan(EXECUTE_ACTIVITY)
+        .ignoreActiveSpan() // ignore active span to start a new trace that ONLY links the execute
+        // workflow context
         .addReference(
             References.FOLLOWS_FROM, parent != NoopSpan.INSTANCE.context() ? parent : null)
         .withTag(
@@ -100,6 +104,7 @@ public class TracingPropagator {
     Span span =
         tracer
             .buildSpan(EXECUTE_LOCAL_ACTIVITY)
+            .ignoreActiveSpan()
             .addReference(References.FOLLOWS_FROM, parent)
             .withTag(TAG_WORKFLOW_ID, params.getWorkflowExecution().getWorkflowId())
             .withTag(TAG_WORKFLOW_RUN_ID, params.getWorkflowExecution().getRunId())
