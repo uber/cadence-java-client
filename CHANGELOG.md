@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.12.3
+- Remove unused direct dependency of com.google.http-client
+- Fix context propagation bug that would link two parents in some cases
+
 ## 3.12.2
 - Downgrade java-jwt dependency to 3.10.2 to fix #900
 
