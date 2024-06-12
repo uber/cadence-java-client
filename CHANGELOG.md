@@ -1,5 +1,8 @@
 # Changelog
 
+## 3.12.4
+- Fix incorrect span activation for local activities
+
 ## 3.12.3
 - Remove unused direct dependency of com.google.http-client
 - Fix context propagation bug that would link two parents in some cases
