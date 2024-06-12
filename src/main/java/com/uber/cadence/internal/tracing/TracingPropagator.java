@@ -101,17 +101,14 @@ public class TracingPropagator {
     // retrieve spancontext from params
     SpanContext parent = extract(params.getContext());
 
-    Span span =
-        tracer
-            .buildSpan(EXECUTE_LOCAL_ACTIVITY)
-            .ignoreActiveSpan()
-            .addReference(References.FOLLOWS_FROM, parent)
-            .withTag(TAG_WORKFLOW_ID, params.getWorkflowExecution().getWorkflowId())
-            .withTag(TAG_WORKFLOW_RUN_ID, params.getWorkflowExecution().getRunId())
-            .withTag(TAG_ACTIVITY_TYPE, params.getActivityType().getName())
-            .start();
-    tracer.activateSpan(span);
-    return span;
+    return tracer
+        .buildSpan(EXECUTE_LOCAL_ACTIVITY)
+        .ignoreActiveSpan()
+        .addReference(References.FOLLOWS_FROM, parent)
+        .withTag(TAG_WORKFLOW_ID, params.getWorkflowExecution().getWorkflowId())
+        .withTag(TAG_WORKFLOW_RUN_ID, params.getWorkflowExecution().getRunId())
+        .withTag(TAG_ACTIVITY_TYPE, params.getActivityType().getName())
+        .start();
   }
 
   public void inject(Map<String, byte[]> headers) {
