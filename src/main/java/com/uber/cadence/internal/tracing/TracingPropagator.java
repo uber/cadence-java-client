@@ -161,7 +161,7 @@ public class TracingPropagator {
                         Map.Entry::getKey,
                         e -> {
                           byte[] bytes = new byte[e.getValue().remaining()];
-                          e.getValue().get(bytes);
+                          e.getValue().duplicate().get(bytes);
                           return new String(bytes);
                         }))));
   }
