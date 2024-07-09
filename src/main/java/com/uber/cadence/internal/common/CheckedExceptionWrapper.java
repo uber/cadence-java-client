@@ -17,7 +17,6 @@
 
 package com.uber.cadence.internal.common;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 
 /**
@@ -26,17 +25,6 @@ import java.lang.reflect.InvocationTargetException;
  * com.uber.cadence.activity.Activity#wrap(Exception)} inside an activity code instead.
  */
 public final class CheckedExceptionWrapper extends RuntimeException {
-
-  private static final Field causeField;
-
-  static {
-    try {
-      causeField = Throwable.class.getDeclaredField("cause");
-      causeField.setAccessible(true);
-    } catch (NoSuchFieldException e) {
-      throw new RuntimeException("unexpected", e);
-    }
-  }
 
   /**
    * Returns CheckedExceptionWrapper if e is checked exception. If there is a need to return a
@@ -67,41 +55,18 @@ public final class CheckedExceptionWrapper extends RuntimeException {
   }
 
   /**
-   * Removes CheckedException wrapper from the whole chain of Exceptions. Assumes that wrapper
-   * always has a cause which cannot be a wrapper.
+   * Returns the underlying cause of {@code e} if it is a CheckedExceptionWrapper. Otherwise returns {@code e).
    */
-  public static Exception unwrap(Throwable e) {
-    Throwable head = e;
-    if (head instanceof CheckedExceptionWrapper) {
-      head = head.getCause();
-    }
-    Throwable tail = head;
-    Throwable current = tail.getCause();
-    while (current != null) {
-      if (current instanceof CheckedExceptionWrapper) {
-        current = current.getCause();
-        setThrowableCause(tail, current);
-      }
-      tail = current;
-      current = tail.getCause();
-    }
-    if (head instanceof Error) {
-      // Error should be propagated without any handling.
-      throw (Error) head;
-    }
-    return (Exception) head;
+  public static Exception unwrap(Exception e) {
+    // the constructor accepts Exception so this is always safe
+    return e instanceof CheckedExceptionWrapper ? (Exception) e.getCause() : e;
   }
 
   /**
-   * Throwable.initCause throws IllegalStateException if cause is already set. This method uses
-   * reflection to set it directly.
+   * Returns the underlying cause of {@code e} if it is a CheckedExceptionWrapper. Otherwise returns {@code e).
    */
-  private static void setThrowableCause(Throwable throwable, Throwable cause) {
-    try {
-      causeField.set(throwable, cause);
-    } catch (IllegalAccessException e) {
-      throw new RuntimeException("unexpected", e);
-    }
+  public static Throwable unwrap(Throwable t) {
+    return t instanceof CheckedExceptionWrapper ? t.getCause() : t;
   }
 
   private CheckedExceptionWrapper(Exception e) {

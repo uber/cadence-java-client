@@ -76,6 +76,7 @@ import com.uber.cadence.workflow.interceptors.TracingWorkflowInterceptorFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
@@ -4024,6 +4025,9 @@ public class WorkflowTest {
     void throwIOAnnotated();
 
     List<UUID> activityUUIDList(List<UUID> arg);
+
+    @ActivityMethod(scheduleToCloseTimeoutSeconds = 5)
+    void throwIOError();
   }
 
   private static class TestActivitiesImpl implements TestActivities {
@@ -4247,6 +4251,11 @@ public class WorkflowTest {
     @Override
     public List<UUID> activityUUIDList(List<UUID> arg) {
       return arg;
+    }
+
+    @Override
+    public void throwIOError() {
+      throw new IOError(new IOException("simulated IO problem"));
     }
 
     public int getLastAttempt() {
@@ -6250,5 +6259,44 @@ public class WorkflowTest {
     stub.signal("testSignal", "value");
 
     assertEquals("value", stub.getResult(String.class));
+  }
+
+  public interface ActivityThrowsErrorWorkflow {
+
+    @WorkflowMethod
+    void execute();
+  }
+
+  public static class ActivityThrowsErrorWorkflowImpl implements ActivityThrowsErrorWorkflow {
+
+    public ActivityThrowsErrorWorkflowImpl() {}
+
+    @Override
+    public void execute() {
+      TestActivities activity =
+          Workflow.newActivityStub(
+              TestActivities.class,
+              new ActivityOptions.Builder()
+                  .setTaskList(Workflow.getWorkflowInfo().getTaskList())
+                  .build());
+      activity.throwIOError();
+    }
+  }
+
+  @Test
+  public void testActivityThrowsError() throws Exception {
+    startWorkerFor(ActivityThrowsErrorWorkflowImpl.class);
+
+    ActivityThrowsErrorWorkflow stub =
+        workflowClient.newWorkflowStub(
+            ActivityThrowsErrorWorkflow.class, newWorkflowOptionsBuilder(taskList).build());
+
+    try {
+      stub.execute();
+    } catch (Throwable t) {
+      // Error isn't reported back to Cadence and the activity instead times out
+      assertTrue(t instanceof WorkflowFailureException);
+      assertTrue(t.getCause() instanceof ActivityTimeoutException);
+    }
   }
 }

@@ -30,6 +30,7 @@ import com.uber.cadence.QueryFailedError;
 import com.uber.cadence.WorkflowExecutionAlreadyCompletedError;
 import com.uber.cadence.WorkflowExecutionAlreadyStartedError;
 import com.uber.cadence.common.RetryOptions;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -201,6 +202,54 @@ public class RetryerTest {
     assertEquals(expectedList.size(), noRetryExceptions.size());
     for (Class<? extends Throwable> exp : noRetryExceptions) {
       assertTrue("Missing no retry exception in default options", expectedList.indexOf(exp) >= 0);
+    }
+  }
+
+  @Test
+  public void testAsyncThrowWrappedException() throws Exception {
+    IOException ex = new IOException("failure");
+    RetryOptions options =
+        new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofMillis(10))
+            .setMaximumInterval(Duration.ofMillis(100))
+            .setExpiration(Duration.ofMillis(500))
+            .setMaximumAttempts(1)
+            .validateBuildWithDefaults();
+    try {
+      RpcRetryer.retryWithResultAsync(
+              options,
+              () -> {
+                throw CheckedExceptionWrapper.wrap(ex);
+              })
+          .get();
+      fail("unreachable");
+    } catch (ExecutionException e) {
+      assertEquals(ex, e.getCause());
+    }
+  }
+
+  @Test
+  public void testAsyncCompleteWithWrappedException() throws Exception {
+    IOException ex = new IOException("failure");
+    RetryOptions options =
+        new RetryOptions.Builder()
+            .setInitialInterval(Duration.ofMillis(10))
+            .setMaximumInterval(Duration.ofMillis(100))
+            .setExpiration(Duration.ofMillis(500))
+            .setMaximumAttempts(1)
+            .validateBuildWithDefaults();
+    try {
+      RpcRetryer.retryWithResultAsync(
+              options,
+              () -> {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                future.completeExceptionally(CheckedExceptionWrapper.wrap(ex));
+                return future;
+              })
+          .get();
+      fail("unreachable");
+    } catch (ExecutionException e) {
+      assertEquals(ex, e.getCause());
     }
   }
 }

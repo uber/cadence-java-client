@@ -311,7 +311,7 @@ public final class WorkflowInternal {
     return CancellationScopeImpl.current();
   }
 
-  public static RuntimeException wrap(Throwable e) {
+  public static RuntimeException wrap(Exception e) {
     return CheckedExceptionWrapper.wrap(e);
   }
 

@@ -32,8 +32,6 @@ import java.time.Duration;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,30 +75,6 @@ public final class RpcRetryer {
   public interface RetryableFunc<R, E extends Throwable> {
 
     R apply() throws E;
-  }
-
-  /**
-   * Used to pass failure to a {@link java.util.concurrent.CompletionStage#thenCompose(Function)}
-   * which doesn't include exception parameter like {@link
-   * java.util.concurrent.CompletionStage#handle(BiFunction)} does.
-   */
-  private static class ValueExceptionPair<V> {
-
-    private final CompletableFuture<V> value;
-    private final Throwable exception;
-
-    ValueExceptionPair(CompletableFuture<V> value, Throwable exception) {
-      this.value = value;
-      this.exception = exception;
-    }
-
-    public CompletableFuture<V> getValue() {
-      return value;
-    }
-
-    public Throwable getException() {
-      return exception;
-    }
   }
 
   private static final Logger log = LoggerFactory.getLogger(RpcRetryer.class);
@@ -168,22 +142,8 @@ public final class RpcRetryer {
             options.getInitialInterval(),
             options.getMaximumInterval(),
             options.getBackoffCoefficient());
-    // Need this to unwrap checked exception.
-    CompletableFuture<R> unwrappedExceptionResult = new CompletableFuture<>();
-    CompletableFuture<R> result =
-        retryWithResultAsync(options, function, attempt + 1, startTime, throttler);
-    @SuppressWarnings({"FutureReturnValueIgnored", "unused"})
-    CompletableFuture<Void> ignored =
-        result.handle(
-            (r, e) -> {
-              if (e == null) {
-                unwrappedExceptionResult.complete(r);
-              } else {
-                unwrappedExceptionResult.completeExceptionally(unwrap(e));
-              }
-              return null;
-            });
-    return unwrappedExceptionResult;
+
+    return retryWithResultAsync(options, function, attempt + 1, startTime, throttler);
   }
 
   private static <R> CompletableFuture<R> retryWithResultAsync(
@@ -195,41 +155,13 @@ public final class RpcRetryer {
     options.validate();
     return throttler
         .throttle()
-        .thenCompose(
-            (ignore) -> {
-              // try-catch is because get() call might throw.
-              try {
-                CompletableFuture<R> result = function.get();
-                if (result == null) {
-                  return CompletableFuture.completedFuture(null);
-                }
-                return result.handle(
-                    (r, e) -> {
-                      if (e == null) {
-                        throttler.success();
-                        return r;
-                      } else {
-                        throttler.failure();
-                        throw CheckedExceptionWrapper.wrap(e);
-                      }
-                    });
-              } catch (Throwable e) {
-                throttler.failure();
-                throw CheckedExceptionWrapper.wrap(e);
-              }
-            })
+        .thenCompose(ignored -> function.get())
+        // Java 12 adds exceptionallyCompose, this is the closest we can get for now
         .handle((r, e) -> failOrRetry(options, function, attempt, startTime, throttler, r, e))
-        .thenCompose(
-            (pair) -> {
-              if (pair.getException() != null) {
-                throw CheckedExceptionWrapper.wrap(pair.getException());
-              }
-              return pair.getValue();
-            });
+        .thenCompose(x -> x);
   }
 
-  /** Using {@link ValueExceptionPair} as future#thenCompose doesn't include exception parameter. */
-  private static <R> ValueExceptionPair<R> failOrRetry(
+  private static <R> CompletableFuture<R> failOrRetry(
       RetryOptions options,
       Supplier<CompletableFuture<R>> function,
       int attempt,
@@ -238,45 +170,47 @@ public final class RpcRetryer {
       R r,
       Throwable e) {
     if (e == null) {
-      return new ValueExceptionPair<>(CompletableFuture.completedFuture(r), null);
+      throttler.success();
+      return CompletableFuture.completedFuture(r);
     }
+    throttler.failure();
     if (e instanceof CompletionException) {
       e = e.getCause();
     }
     // Do not retry Error
     if (e instanceof Error) {
-      return new ValueExceptionPair<>(null, e);
+      return completedExceptionally(e);
     }
     e = unwrap((Exception) e);
     long elapsed = System.currentTimeMillis() - startTime;
     if (options.getDoNotRetry() != null) {
       for (Class<?> exceptionToNotRetry : options.getDoNotRetry()) {
         if (exceptionToNotRetry.isAssignableFrom(e.getClass())) {
-          return new ValueExceptionPair<>(null, e);
+          return completedExceptionally(e);
         }
       }
     }
     int maxAttempts = options.getMaximumAttempts();
     if ((maxAttempts > 0 && attempt >= maxAttempts)
         || (options.getExpiration() != null && elapsed >= options.getExpiration().toMillis())) {
-      return new ValueExceptionPair<>(null, e);
+      return completedExceptionally(e);
     }
     log.debug("Retrying after failure", e);
-    CompletableFuture<R> next =
-        retryWithResultAsync(options, function, attempt + 1, startTime, throttler);
-    return new ValueExceptionPair<>(next, null);
+    return retryWithResultAsync(options, function, attempt + 1, startTime, throttler);
   }
 
-  private static <T extends Throwable> void rethrow(Exception e) throws T {
-    if (e instanceof RuntimeException) {
-      throw (RuntimeException) e;
-    } else {
-      @SuppressWarnings("unchecked")
-      T toRethrow = (T) e;
-      throw toRethrow;
-    }
+  // Java hack to throw a checked exception despite it not being declared
+  @SuppressWarnings("unchecked")
+  private static <T extends Throwable> void rethrow(Throwable e) throws T {
+    throw (T) e;
   }
 
   /** Prohibits instantiation. */
   private RpcRetryer() {}
+
+  private static <T> CompletableFuture<T> completedExceptionally(Throwable throwable) {
+    CompletableFuture<T> failed = new CompletableFuture<>();
+    failed.completeExceptionally(throwable);
+    return failed;
+  }
 }
