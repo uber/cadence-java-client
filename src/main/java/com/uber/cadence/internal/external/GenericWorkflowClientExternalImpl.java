@@ -244,7 +244,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   private StartWorkflowExecutionRequest getStartRequest(
       StartWorkflowExecutionParameters startParameters) {
-    StartWorkflowExecutionRequest request = new StartWorkflowExecutionRequest();
+    StartWorkflowExecutionRequest request =
+        new StartWorkflowExecutionRequest().setRequestId(generateUniqueId());
     request.setDomain(domain);
     if (startParameters.getInput() != null) {
       request.setInput(startParameters.getInput());
@@ -383,7 +384,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   private SignalWorkflowExecutionRequest getSignalRequest(
       SignalExternalWorkflowParameters signalParameters) {
-    SignalWorkflowExecutionRequest request = new SignalWorkflowExecutionRequest();
+    SignalWorkflowExecutionRequest request =
+        new SignalWorkflowExecutionRequest().setRequestId(generateUniqueId());
     request.setDomain(domain);
     request.setInput(signalParameters.getInput());
     request.setSignalName(signalParameters.getSignalName());
@@ -466,7 +468,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   private SignalWithStartWorkflowExecutionRequest createSignalWithStartRequest(
       SignalWithStartWorkflowExecutionParameters parameters) {
-    SignalWithStartWorkflowExecutionRequest request = new SignalWithStartWorkflowExecutionRequest();
+    SignalWithStartWorkflowExecutionRequest request =
+        new SignalWithStartWorkflowExecutionRequest().setRequestId(generateUniqueId());
     request.setDomain(domain);
     StartWorkflowExecutionParameters startParameters = parameters.getStartParameters();
     request.setSignalName(parameters.getSignalName());
@@ -509,7 +512,8 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   @Override
   public void requestCancelWorkflowExecution(WorkflowExecution execution) {
-    RequestCancelWorkflowExecutionRequest request = new RequestCancelWorkflowExecutionRequest();
+    RequestCancelWorkflowExecutionRequest request =
+        new RequestCancelWorkflowExecutionRequest().setRequestId(generateUniqueId());
     request.setDomain(domain);
     request.setWorkflowExecution(execution);
     try {
@@ -544,8 +548,7 @@ public final class GenericWorkflowClientExternalImpl implements GenericWorkflowC
 
   @Override
   public String generateUniqueId() {
-    String workflowId = UUID.randomUUID().toString();
-    return workflowId;
+    return UUID.randomUUID().toString();
   }
 
   @Override

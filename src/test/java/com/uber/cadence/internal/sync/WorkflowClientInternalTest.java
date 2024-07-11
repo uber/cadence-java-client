@@ -18,12 +18,16 @@
 package com.uber.cadence.internal.sync;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import com.uber.cadence.FakeWorkflowServiceRule;
+import com.uber.cadence.ServiceBusyError;
 import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncResponse;
 import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
 import com.uber.cadence.StartWorkflowExecutionAsyncRequest;
 import com.uber.cadence.StartWorkflowExecutionAsyncResponse;
+import com.uber.cadence.StartWorkflowExecutionResponse;
 import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.WorkflowService;
 import com.uber.cadence.WorkflowType;
@@ -38,6 +42,7 @@ import io.opentracing.mock.MockSpan;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.Charsets;
 import org.junit.Before;
@@ -62,7 +67,7 @@ public class WorkflowClientInternalTest {
   @Test
   public void testEnqueueStart() throws Exception {
     CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::StartWorkflowExecutionAsync",
             WorkflowService.StartWorkflowExecutionAsync_args.class,
             new WorkflowService.StartWorkflowExecutionAsync_result()
@@ -87,12 +92,13 @@ public class WorkflowClientInternalTest {
     assertEquals("domain", request.getRequest().getDomain());
     assertEquals("taskList", request.getRequest().getTaskList().getName());
     assertEquals("\"input\"", StandardCharsets.UTF_8.decode(request.request.input).toString());
+    assertNotNull(request.getRequest().getRequestId());
   }
 
   @Test
   public void testEnqueueStart_includesTracing() {
     CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::StartWorkflowExecutionAsync",
             WorkflowService.StartWorkflowExecutionAsync_args.class,
             new WorkflowService.StartWorkflowExecutionAsync_result()
@@ -136,7 +142,7 @@ public class WorkflowClientInternalTest {
   @Test
   public void testEnqueueStart_stronglyTyped() throws Exception {
     CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::StartWorkflowExecutionAsync",
             WorkflowService.StartWorkflowExecutionAsync_args.class,
             new WorkflowService.StartWorkflowExecutionAsync_result()
@@ -164,12 +170,13 @@ public class WorkflowClientInternalTest {
     assertEquals("domain", request.getRequest().getDomain());
     assertEquals("taskList", request.getRequest().getTaskList().getName());
     assertEquals("\"input\"", StandardCharsets.UTF_8.decode(request.request.input).toString());
+    assertNotNull(request.getRequest().getRequestId());
   }
 
   @Test
   public void testEnqueueStartAsync() {
     CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::StartWorkflowExecutionAsync",
             WorkflowService.StartWorkflowExecutionAsync_args.class,
             new WorkflowService.StartWorkflowExecutionAsync_result()
@@ -194,12 +201,13 @@ public class WorkflowClientInternalTest {
     assertEquals("domain", request.getRequest().getDomain());
     assertEquals("taskList", request.getRequest().getTaskList().getName());
     assertEquals("\"input\"", StandardCharsets.UTF_8.decode(request.request.input).toString());
+    assertNotNull(request.getRequest().getRequestId());
   }
 
   @Test
   public void testEnqueueSignalWithStart() {
     CompletableFuture<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::SignalWithStartWorkflowExecutionAsync",
             WorkflowService.SignalWithStartWorkflowExecutionAsync_args.class,
             new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
@@ -235,12 +243,13 @@ public class WorkflowClientInternalTest {
     assertEquals(
         "\"signalValue\"",
         StandardCharsets.UTF_8.decode(ByteBuffer.wrap(request.getSignalInput())).toString());
+    assertNotNull(request.getRequestId());
   }
 
   @Test
   public void testEnqueueSignalWithStart_includesTracing() {
     CompletableFuture<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::SignalWithStartWorkflowExecutionAsync",
             WorkflowService.SignalWithStartWorkflowExecutionAsync_args.class,
             new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
@@ -285,7 +294,7 @@ public class WorkflowClientInternalTest {
   @Test
   public void testEnqueueSignalWithStart_stronglyTyped() {
     CompletableFuture<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> requestFuture =
-        fakeService.stubEndpoint(
+        fakeService.stubSuccess(
             "WorkflowService::SignalWithStartWorkflowExecutionAsync",
             WorkflowService.SignalWithStartWorkflowExecutionAsync_args.class,
             new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
@@ -323,5 +332,207 @@ public class WorkflowClientInternalTest {
     assertEquals(
         "\"signalValue\"",
         StandardCharsets.UTF_8.decode(ByteBuffer.wrap(request.getSignalInput())).toString());
+    assertNotNull(request.getRequestId());
+  }
+
+  @Test
+  public void testEnqueueSignalWithStart_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::SignalWithStartWorkflowExecutionAsync",
+            WorkflowService.SignalWithStartWorkflowExecutionAsync_args.class,
+            new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.SignalWithStartWorkflowExecutionAsync_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::SignalWithStartWorkflowExecutionAsync",
+            WorkflowService.SignalWithStartWorkflowExecutionAsync_args.class,
+            new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
+                .setSuccess(new SignalWithStartWorkflowExecutionAsyncResponse()));
+
+    TestSignalWorkflow stub =
+        client.newWorkflowStub(
+            TestSignalWorkflow.class,
+            new WorkflowOptions.Builder()
+                .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
+                .setWorkflowId("workflowId")
+                .setTaskList("taskList")
+                .build());
+
+    BatchRequest batch = client.newSignalWithStartRequest();
+    batch.add(stub::test, "startValue");
+    batch.add(stub::signal, "signalValue");
+    client.enqueueSignalWithStart(batch);
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId =
+        firstAttempt.getNow(null).getSignalWithStartRequest().getRequest().getRequestId();
+    String secondRequestId =
+        secondAttempt.getNow(null).getSignalWithStartRequest().getRequest().getRequestId();
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
+  }
+
+  @Test
+  public void testEnqueueStart_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::StartWorkflowExecutionAsync",
+            WorkflowService.StartWorkflowExecutionAsync_args.class,
+            new WorkflowService.StartWorkflowExecutionAsync_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.StartWorkflowExecutionAsync_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::StartWorkflowExecutionAsync",
+            WorkflowService.StartWorkflowExecutionAsync_args.class,
+            new WorkflowService.StartWorkflowExecutionAsync_result()
+                .setSuccess(new StartWorkflowExecutionAsyncResponse()));
+
+    TestWorkflow stub =
+        client.newWorkflowStub(
+            TestWorkflow.class,
+            new WorkflowOptions.Builder()
+                .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
+                .setWorkflowId("workflowId")
+                .setTaskList("taskList")
+                .build());
+
+    WorkflowClient.enqueueStart(stub::test, "input");
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId = firstAttempt.getNow(null).getStartRequest().getRequest().getRequestId();
+    String secondRequestId =
+        secondAttempt.getNow(null).getStartRequest().getRequest().getRequestId();
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
+  }
+
+  @Test
+  public void testStartWorkflow_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.StartWorkflowExecution_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::StartWorkflowExecution",
+            WorkflowService.StartWorkflowExecution_args.class,
+            new WorkflowService.StartWorkflowExecution_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.StartWorkflowExecution_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::StartWorkflowExecution",
+            WorkflowService.StartWorkflowExecution_args.class,
+            new WorkflowService.StartWorkflowExecution_result()
+                .setSuccess(new StartWorkflowExecutionResponse().setRunId("foo")));
+
+    TestWorkflow stub =
+        client.newWorkflowStub(
+            TestWorkflow.class,
+            new WorkflowOptions.Builder()
+                .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
+                .setWorkflowId("workflowId")
+                .setTaskList("taskList")
+                .build());
+
+    WorkflowClient.start(stub::test, "input");
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId = firstAttempt.getNow(null).getStartRequest().requestId;
+    String secondRequestId = secondAttempt.getNow(null).getStartRequest().requestId;
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
+  }
+
+  @Test
+  public void testSignalWithStartWorkflow_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.SignalWithStartWorkflowExecution_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::SignalWithStartWorkflowExecution",
+            WorkflowService.SignalWithStartWorkflowExecution_args.class,
+            new WorkflowService.SignalWithStartWorkflowExecution_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.SignalWithStartWorkflowExecution_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::SignalWithStartWorkflowExecution",
+            WorkflowService.SignalWithStartWorkflowExecution_args.class,
+            new WorkflowService.SignalWithStartWorkflowExecution_result()
+                .setSuccess(new StartWorkflowExecutionResponse().setRunId("foo")));
+
+    TestSignalWorkflow stub =
+        client.newWorkflowStub(
+            TestSignalWorkflow.class,
+            new WorkflowOptions.Builder()
+                .setExecutionStartToCloseTimeout(Duration.ofSeconds(1))
+                .setTaskStartToCloseTimeout(Duration.ofSeconds(2))
+                .setWorkflowId("workflowId")
+                .setTaskList("taskList")
+                .build());
+
+    BatchRequest batch = client.newSignalWithStartRequest();
+    batch.add(stub::test, "startValue");
+    batch.add(stub::signal, "signalValue");
+    client.signalWithStart(batch);
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId = firstAttempt.getNow(null).getSignalWithStartRequest().requestId;
+    String secondRequestId = secondAttempt.getNow(null).getSignalWithStartRequest().requestId;
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
+  }
+
+  @Test
+  public void testSignalWorkflow_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.SignalWorkflowExecution_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::SignalWorkflowExecution",
+            WorkflowService.SignalWorkflowExecution_args.class,
+            new WorkflowService.SignalWorkflowExecution_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.SignalWorkflowExecution_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::SignalWorkflowExecution",
+            WorkflowService.SignalWorkflowExecution_args.class,
+            new WorkflowService.SignalWorkflowExecution_result());
+
+    TestSignalWorkflow stub = client.newWorkflowStub(TestSignalWorkflow.class, "workflowId");
+
+    stub.signal("signalValue");
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId = firstAttempt.getNow(null).getSignalRequest().getRequestId();
+    String secondRequestId = secondAttempt.getNow(null).getSignalRequest().getRequestId();
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
+  }
+
+  @Test
+  public void testCancel_usesConsistentRequestId() {
+    CompletableFuture<WorkflowService.RequestCancelWorkflowExecution_args> firstAttempt =
+        fakeService.stubError(
+            "WorkflowService::RequestCancelWorkflowExecution",
+            WorkflowService.RequestCancelWorkflowExecution_args.class,
+            new WorkflowService.RequestCancelWorkflowExecution_result()
+                .setServiceBusyError(new ServiceBusyError("try again later")));
+    CompletableFuture<WorkflowService.RequestCancelWorkflowExecution_args> secondAttempt =
+        fakeService.stubSuccess(
+            "WorkflowService::RequestCancelWorkflowExecution",
+            WorkflowService.RequestCancelWorkflowExecution_args.class,
+            new WorkflowService.RequestCancelWorkflowExecution_result());
+
+    WorkflowStub stub =
+        client.newUntypedWorkflowStub("workflowId", Optional.empty(), Optional.empty());
+    stub.cancel();
+
+    assertTrue("first request was not made", firstAttempt.isDone());
+    assertTrue("second request was not made", secondAttempt.isDone());
+    String firstRequestId = firstAttempt.getNow(null).getCancelRequest().getRequestId();
+    String secondRequestId = secondAttempt.getNow(null).getCancelRequest().getRequestId();
+    assertNotNull("first request must have a request id", firstRequestId);
+    assertEquals(firstRequestId, secondRequestId);
   }
 }

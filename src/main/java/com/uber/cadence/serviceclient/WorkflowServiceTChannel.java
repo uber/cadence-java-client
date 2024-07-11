@@ -712,7 +712,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   }
 
   private void initializeStartWorkflowRequest(StartWorkflowExecutionRequest startRequest) {
-    startRequest.setRequestId(UUID.randomUUID().toString());
+    if (!startRequest.isSetRequestId()) {
+      startRequest.setRequestId(UUID.randomUUID().toString());
+    }
     // Write span context to header
     if (!startRequest.isSetHeader()) {
       startRequest.setHeader(new Header());
@@ -1412,7 +1414,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private void requestCancelWorkflowExecution(RequestCancelWorkflowExecutionRequest cancelRequest)
       throws TException {
-    cancelRequest.setRequestId(UUID.randomUUID().toString());
+    if (!cancelRequest.isSetRequestId()) {
+      cancelRequest.setRequestId(UUID.randomUUID().toString());
+    }
     ThriftResponse<WorkflowService.RequestCancelWorkflowExecution_result> response = null;
     try {
       ThriftRequest<WorkflowService.RequestCancelWorkflowExecution_args> request =
@@ -1667,7 +1671,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
 
   private void initializeSignalWithStartWorkflowRequest(
       SignalWithStartWorkflowExecutionRequest request) {
-    request.setRequestId(UUID.randomUUID().toString());
+    if (!request.isSetRequestId()) {
+      request.setRequestId(UUID.randomUUID().toString());
+    }
     // Write span context to header
     if (!request.isSetHeader()) {
       request.setHeader(new Header());

@@ -10,8 +10,10 @@ import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
 import io.opentracing.mock.MockTracer;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -21,7 +23,7 @@ import org.junit.rules.ExternalResource;
  */
 public class FakeWorkflowServiceRule extends ExternalResource {
 
-  private final Map<String, StubbedResponse<?>> stubbedResponses = new ConcurrentHashMap<>();
+  private final Map<String, StubbedEndpoint> stubbedEndpoints = new ConcurrentHashMap<>();
   private final MockTracer tracer = new MockTracer();
   private TChannel tChannel;
   private IWorkflowService clientConn;
@@ -33,11 +35,16 @@ public class FakeWorkflowServiceRule extends ExternalResource {
         new ThriftRequestHandler<Object, Object>() {
           @Override
           public ThriftResponse<Object> handleImpl(ThriftRequest<Object> request) {
-            @SuppressWarnings("rawtypes")
-            StubbedResponse stub = stubbedResponses.get(request.getEndpoint());
-            if (stub == null) {
+            StubbedEndpoint endpoint = stubbedEndpoints.get(request.getEndpoint());
+            if (endpoint == null) {
               throw new IllegalStateException(
                   "Endpoint " + request.getEndpoint() + " was not stubbed");
+            }
+            @SuppressWarnings("rawtypes")
+            StubbedResponse stub = endpoint.getNext();
+            if (stub == null) {
+              throw new IllegalStateException(
+                  "Exhausted all invocations of  " + request.getEndpoint());
             }
             //noinspection unchecked
             stub.future.complete(request.getBody(stub.requestType));
@@ -59,7 +66,7 @@ public class FakeWorkflowServiceRule extends ExternalResource {
 
   @Override
   protected void after() {
-    stubbedResponses.clear();
+    stubbedEndpoints.clear();
     if (clientConn != null) {
       clientConn.close();
     }
@@ -71,7 +78,7 @@ public class FakeWorkflowServiceRule extends ExternalResource {
 
   public void resetStubs() {
     tracer.reset();
-    stubbedResponses.clear();
+    stubbedEndpoints.clear();
   }
 
   public IWorkflowService getClient() {
@@ -82,17 +89,35 @@ public class FakeWorkflowServiceRule extends ExternalResource {
     return tracer;
   }
 
-  public <V> CompletableFuture<V> stubEndpoint(
+  public <V> CompletableFuture<V> stubSuccess(
       String endpoint, Class<V> requestType, Object response) {
+    return stubEndpoint(endpoint, requestType, ResponseCode.OK, response);
+  }
+
+  public <V> CompletableFuture<V> stubError(
+      String endpoint, Class<V> requestType, Object response) {
+    return stubEndpoint(endpoint, requestType, ResponseCode.Error, response);
+  }
+
+  public <V> CompletableFuture<V> stubEndpoint(
+      String endpoint, Class<V> requestType, ResponseCode code, Object response) {
     CompletableFuture<V> future = new CompletableFuture<>();
-    StubbedResponse<?> existingStub =
-        stubbedResponses.putIfAbsent(
-            endpoint, new StubbedResponse<>(response, ResponseCode.OK, future, requestType));
-    if (existingStub != null) {
-      throw new IllegalStateException(
-          "Endpoint " + endpoint + " was already stubbed to return " + existingStub.body);
-    }
+    StubbedEndpoint endpointStub =
+        stubbedEndpoints.computeIfAbsent(endpoint, id -> new StubbedEndpoint());
+    endpointStub.addStub(new StubbedResponse<>(response, code, future, requestType));
     return future;
+  }
+
+  private static class StubbedEndpoint {
+    private final Queue<StubbedResponse<?>> responses = new ConcurrentLinkedQueue<>();
+
+    public void addStub(StubbedResponse<?> response) {
+      responses.add(response);
+    }
+
+    public StubbedResponse<?> getNext() {
+      return responses.poll();
+    }
   }
 
   private static class StubbedResponse<V> {
