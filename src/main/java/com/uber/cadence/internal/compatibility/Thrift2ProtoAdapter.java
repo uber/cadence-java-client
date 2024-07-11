@@ -252,7 +252,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   }
 
   private void initializeStartWorkflowExecutionRequest(StartWorkflowExecutionRequest request) {
-    request.setRequestId(UUID.randomUUID().toString());
+    if (!request.isSetRequestId()) {
+      request.setRequestId(UUID.randomUUID().toString());
+    }
   }
 
   @Override
@@ -466,7 +468,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, CancellationAlreadyRequestedError,
           ServiceBusyError, DomainNotActiveError, LimitExceededError,
           ClientVersionNotSupportedError, WorkflowExecutionAlreadyCompletedError, TException {
-    cancelRequest.setRequestId(UUID.randomUUID().toString());
+    if (!cancelRequest.isSetRequestId()) {
+      cancelRequest.setRequestId(UUID.randomUUID().toString());
+    }
     try {
       grpcServiceStubs
           .workflowBlockingStub()
@@ -482,7 +486,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, ClientVersionNotSupportedError,
           WorkflowExecutionAlreadyCompletedError, TException {
-    signalRequest.setRequestId(UUID.randomUUID().toString());
+    if (!signalRequest.isSetRequestId()) {
+      signalRequest.setRequestId(UUID.randomUUID().toString());
+    }
     try {
       grpcServiceStubs
           .workflowBlockingStub()
@@ -533,7 +539,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
 
   private void initializeSignalWithStartWorkflowExecution(
       SignalWithStartWorkflowExecutionRequest request) {
-    request.setRequestId(UUID.randomUUID().toString());
+    if (!request.isSetRequestId()) {
+      request.setRequestId(UUID.randomUUID().toString());
+    }
   }
 
   @Override
@@ -542,7 +550,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       throws BadRequestError, EntityNotExistsError, ServiceBusyError, DomainNotActiveError,
           LimitExceededError, ClientVersionNotSupportedError, TException {
     try {
-      resetRequest.setRequestId(UUID.randomUUID().toString());
+      if (!resetRequest.isSetRequestId()) {
+        resetRequest.setRequestId(UUID.randomUUID().toString());
+      }
       com.uber.cadence.api.v1.ResetWorkflowExecutionResponse response =
           grpcServiceStubs
               .workflowBlockingStub()
@@ -980,7 +990,9 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       SignalWorkflowExecutionRequest signalRequest, AsyncMethodCallback resultHandler)
       throws TException {
     try {
-      signalRequest.setRequestId(UUID.randomUUID().toString());
+      if (!signalRequest.isSetRequestId()) {
+        signalRequest.setRequestId(UUID.randomUUID().toString());
+      }
       ListenableFuture<com.uber.cadence.api.v1.SignalWorkflowExecutionResponse> resultFuture =
           grpcServiceStubs
               .workflowFutureStub()
