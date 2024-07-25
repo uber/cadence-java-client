@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.12.5
+- Fix transient test failures
+- Fix Request ID handling for server-side idempotency
+
 ## 3.12.4
 - Fix incorrect span activation for local activities
 
