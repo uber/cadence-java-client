@@ -74,11 +74,15 @@ public final class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
 
   protected ListWorkflowExecutionsResponse scanWorkflows(ListWorkflowExecutionsRequest request)
       throws Throwable {
-    log.info("Scanning workflows for domain: {} with query: {}", request.getDomain(), request.getQuery());
+    log.info(
+        "Scanning workflows for domain: {} with query: {}",
+        request.getDomain(),
+        request.getQuery());
     try {
-      ListWorkflowExecutionsResponse response = RpcRetryer.retryWithResult(
-          RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
-          () -> this.serviceClient.ScanWorkflowExecutions(request));
+      ListWorkflowExecutionsResponse response =
+          RpcRetryer.retryWithResult(
+              RpcRetryer.DEFAULT_RPC_RETRY_OPTIONS,
+              () -> this.serviceClient.ScanWorkflowExecutions(request));
       log.info("Successfully scanned workflows for domain: {}", request.getDomain());
       return response;
     } catch (BadRequestError | EntityNotExistsError | ClientVersionNotSupportedError e) {
@@ -105,12 +109,13 @@ public final class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
     log.info("Sampling workflows with rate: {}", samplingRate);
     int capacity = (int) (executionInfoList.size() * samplingRate);
     capacity = Math.max(capacity, 1);
-    List<WorkflowExecution> sampledExecutions = executionInfoList
-        .stream()
-        .unordered()
-        .map((executionInfo -> executionInfo.getExecution()))
-        .limit((long) (capacity))
-        .collect(Collectors.toList());
+    List<WorkflowExecution> sampledExecutions =
+        executionInfoList
+            .stream()
+            .unordered()
+            .map((executionInfo -> executionInfo.getExecution()))
+            .limit((long) (capacity))
+            .collect(Collectors.toList());
     log.info("Sampled {} workflows out of {}", sampledExecutions.size(), executionInfoList.size());
     return sampledExecutions;
   }
