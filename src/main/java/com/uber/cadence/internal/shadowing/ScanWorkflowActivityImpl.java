@@ -87,7 +87,7 @@ public final class ScanWorkflowActivityImpl implements ScanWorkflowActivity {
       return response;
     } catch (BadRequestError | EntityNotExistsError | ClientVersionNotSupportedError e) {
       log.error(
-          "failed to scan workflow records with non-retryable error. domain: "
+          "failed to scan workflow records with non-retryable error. Domain: "
               + request.getDomain()
               + "; query: "
               + request.getQuery(),
