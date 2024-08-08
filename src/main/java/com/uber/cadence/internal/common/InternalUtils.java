@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
+import org.apache.thrift.transport.TTransportException;
 
 /** Utility functions shared by the implementation code. */
 public final class InternalUtils {
@@ -167,10 +168,10 @@ public final class InternalUtils {
   // This method serializes history to blob data
   public static DataBlob SerializeFromHistoryToBlobData(History history) {
 
-    // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
-    TSerializer serializer = new TSerializer();
     DataBlob blob = new DataBlob();
     try {
+      // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
+      TSerializer serializer = new TSerializer();
       blob.setData(serializer.serialize(history));
     } catch (org.apache.thrift.TException err) {
       throw new RuntimeException("Serialize history to blob data failed", err);
@@ -215,7 +216,12 @@ public final class InternalUtils {
   public static List<DataBlob> SerializeFromHistoryEventToBlobData(List<HistoryEvent> events) {
 
     // TODO: move to global dependency after https://issues.apache.org/jira/browse/THRIFT-2218
-    TSerializer serializer = new TSerializer();
+    TSerializer serializer;
+    try {
+      serializer = new TSerializer();
+    } catch (TTransportException err) {
+      throw new RuntimeException("Serialize history event to blob data failed", err);
+    }
     List<DataBlob> blobs = Lists.newArrayListWithCapacity(events.size());
     for (HistoryEvent event : events) {
       DataBlob blob = new DataBlob();
