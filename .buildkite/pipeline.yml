@@ -35,18 +35,6 @@ agents:
   queue: buildkite-gcp
 
 steps:
-  - label: "fossa analyze"
-    plugins:
-      - kubernetes:
-          <<: *kubernetes
-          podSpec:
-            <<: *podSpec
-            containers:
-              - <<: *commandContainer
-                command:
-                - |-
-                  .buildkite/scripts/fossa.sh
-
   - label: "Lint Check"
     plugins:
       - kubernetes:
