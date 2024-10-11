@@ -287,6 +287,7 @@ task registerDomain(type:JavaExec) {
 test {
     dependsOn 'registerDomain'
     dependsOn 'licenseMain'
+    finalizedBy jacocoTestReport // report is always generated after tests run
     testLogging {
         events 'passed', 'skipped', 'failed'
         exceptionFormat 'full'
@@ -355,6 +356,7 @@ jacoco {
 }
 
 jacocoTestReport {
+    dependsOn test
     reports {
         xml.enabled = true // coveralls plugin depends on xml format report
         html.enabled = true

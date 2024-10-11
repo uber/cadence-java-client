@@ -1,0 +1,17 @@
+name: Workflow for Codecov
+on: [push, pull_request]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
+      - name: Install dependencies, run tests, and collect coverage
+        run: docker compose -f docker/buildkite/docker-compose.yaml run unit-test-test-service
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_ORG_TOKEN }}
+          slug: uber/cadence
