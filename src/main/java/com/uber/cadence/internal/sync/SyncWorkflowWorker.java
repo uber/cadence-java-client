@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.sync;
 
 import com.uber.cadence.PollForDecisionTaskResponse;
-import com.uber.cadence.WorkflowExecution;
 import com.uber.cadence.common.WorkflowExecutionHistory;
 import com.uber.cadence.converter.DataConverter;
 import com.uber.cadence.internal.common.InternalUtils;
@@ -222,18 +221,6 @@ public class SyncWorkflowWorker
   @Override
   public boolean isSuspended() {
     return workflowWorker.isSuspended() && laWorker.isSuspended() && ldaWorker.isSuspended();
-  }
-
-  public <R> R queryWorkflowExecution(
-      WorkflowExecution execution,
-      String queryType,
-      Class<R> resultClass,
-      Type resultType,
-      Object[] args)
-      throws Exception {
-    byte[] serializedArgs = dataConverter.toData(args);
-    byte[] result = workflowWorker.queryWorkflowExecution(execution, queryType, serializedArgs);
-    return dataConverter.fromData(result, resultClass, resultType);
   }
 
   public <R> R queryWorkflowExecution(
