@@ -34,11 +34,6 @@ final class SimulatedTimeoutExceptionInternal extends RuntimeException {
     this.details = details;
   }
 
-  SimulatedTimeoutExceptionInternal(TimeoutType timeoutType) {
-    this.timeoutType = timeoutType;
-    this.details = null;
-  }
-
   TimeoutType getTimeoutType() {
     return timeoutType;
   }

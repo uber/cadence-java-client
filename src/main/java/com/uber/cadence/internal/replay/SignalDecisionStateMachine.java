@@ -34,15 +34,6 @@ class SignalDecisionStateMachine extends DecisionStateMachineBase {
     this.attributes = attributes;
   }
 
-  /** Used for unit testing */
-  SignalDecisionStateMachine(
-      DecisionId id,
-      SignalExternalWorkflowExecutionDecisionAttributes attributes,
-      DecisionState state) {
-    super(id, state);
-    this.attributes = attributes;
-  }
-
   @Override
   public Decision getDecision() {
     switch (state) {
