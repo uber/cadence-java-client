@@ -34,9 +34,26 @@ import org.junit.Assert;
 public class MapperTestUtil {
 
   public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>>
+      void assertNoMissingFields(M message) {
+    assertNoMissingFields(message, findFieldsEnum(message));
+  }
+
+  public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>>
       void assertNoMissingFields(M message, Class<E> fields) {
     Assert.assertEquals(
-        "All fields expected to be set", Collections.emptySet(), getUnsetFields(message, fields));
+        "All fields expected to be set in " + message.getClass().getSimpleName(),
+        Collections.emptySet(),
+        getUnsetFields(message, fields));
+  }
+
+  public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>> void assertMissingFields(
+      M message, String... values) {
+    assertMissingFields(message, findFieldsEnum(message), ImmutableSet.copyOf(values));
+  }
+
+  public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>> void assertMissingFields(
+      M message, Set<String> values) {
+    assertMissingFields(message, findFieldsEnum(message), values);
   }
 
   public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>> void assertMissingFields(
@@ -47,7 +64,9 @@ public class MapperTestUtil {
   public static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>> void assertMissingFields(
       M message, Class<E> fields, Set<String> expected) {
     Assert.assertEquals(
-        "Additional fields are unexpectedly not set", expected, getUnsetFields(message, fields));
+        "Additional fields are unexpectedly not set in " + message.getClass().getSimpleName(),
+        expected,
+        getUnsetFields(message, fields));
   }
 
   private static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>>
@@ -56,5 +75,17 @@ public class MapperTestUtil {
         .filter(field -> !message.isSet(field))
         .map(TFieldIdEnum::getFieldName)
         .collect(Collectors.toSet());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <E extends Enum<E> & TFieldIdEnum, M extends TBase<M, E>> Class<E> findFieldsEnum(
+      M message) {
+    for (Class<?> declaredClass : message.getClass().getDeclaredClasses()) {
+      if ("_Fields".equals(declaredClass.getSimpleName())) {
+        return (Class<E>) declaredClass;
+      }
+    }
+    throw new IllegalStateException(
+        "Failed to find _Fields enum for " + message.getClass().getCanonicalName());
   }
 }

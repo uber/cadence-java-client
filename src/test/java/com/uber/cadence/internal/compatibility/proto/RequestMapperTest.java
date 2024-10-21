@@ -20,219 +20,237 @@ package com.uber.cadence.internal.compatibility.proto;
 import static com.uber.cadence.internal.compatibility.MapperTestUtil.assertMissingFields;
 import static com.uber.cadence.internal.compatibility.MapperTestUtil.assertNoMissingFields;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.protobuf.ByteString;
-import com.google.protobuf.Duration;
-import com.uber.cadence.SignalWithStartWorkflowExecutionRequest;
-import com.uber.cadence.api.v1.Header;
-import com.uber.cadence.api.v1.Memo;
-import com.uber.cadence.api.v1.Payload;
-import com.uber.cadence.api.v1.RetryPolicy;
-import com.uber.cadence.api.v1.SearchAttributes;
-import com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncRequest;
-import com.uber.cadence.api.v1.StartWorkflowExecutionAsyncRequest;
-import com.uber.cadence.api.v1.StartWorkflowExecutionRequest;
-import com.uber.cadence.api.v1.TaskList;
-import com.uber.cadence.api.v1.TaskListKind;
-import com.uber.cadence.api.v1.WorkflowIdReusePolicy;
-import com.uber.cadence.api.v1.WorkflowType;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
+import com.google.common.collect.ImmutableSet;
+import com.google.protobuf.Message;
+import com.uber.cadence.internal.compatibility.ProtoObjects;
+import com.uber.cadence.internal.compatibility.ThriftObjects;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.function.Function;
+import org.apache.thrift.TBase;
+import org.apache.thrift.TFieldIdEnum;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-public class RequestMapperTest {
+@RunWith(Parameterized.class)
+public class RequestMapperTest<
+    F extends Enum<F> & TFieldIdEnum, T extends TBase<T, F>, P extends Message> {
 
-  // These are shared between testStartWorkflowExecutionRequest and
-  // testStartWorkflowExecutionAsyncRequest
-  // because the mapper throws an exception if necessary fields are missing
-  private static final com.uber.cadence.StartWorkflowExecutionRequest
-      THRIFT_START_WORKFLOW_EXECUTION =
-          new com.uber.cadence.StartWorkflowExecutionRequest()
-              .setDomain("domain")
-              .setWorkflowId("workflowId")
-              .setWorkflowType(new com.uber.cadence.WorkflowType().setName("workflowType"))
-              .setTaskList(
-                  new com.uber.cadence.TaskList()
-                      .setName("taskList")
-                      .setKind(com.uber.cadence.TaskListKind.NORMAL))
-              .setInput("input".getBytes(StandardCharsets.UTF_8))
-              .setExecutionStartToCloseTimeoutSeconds(1)
-              .setTaskStartToCloseTimeoutSeconds(2)
-              .setIdentity("identity")
-              .setRequestId("requestId")
-              .setWorkflowIdReusePolicy(com.uber.cadence.WorkflowIdReusePolicy.AllowDuplicate)
-              .setRetryPolicy(
-                  new com.uber.cadence.RetryPolicy()
-                      .setInitialIntervalInSeconds(11)
-                      .setBackoffCoefficient(0.5)
-                      .setMaximumIntervalInSeconds(12)
-                      .setMaximumAttempts(13)
-                      .setNonRetriableErrorReasons(ImmutableList.of("error"))
-                      .setExpirationIntervalInSeconds(14))
-              .setCronSchedule("cronSchedule")
-              .setMemo(
-                  new com.uber.cadence.Memo().setFields(ImmutableMap.of("memo", utf8("memoValue"))))
-              .setSearchAttributes(
-                  new com.uber.cadence.SearchAttributes()
-                      .setIndexedFields(ImmutableMap.of("search", utf8("searchValue"))))
-              .setHeader(
-                  new com.uber.cadence.Header().setFields(ImmutableMap.of("key", utf8("value"))))
-              .setDelayStartSeconds(3);
-  private static final com.uber.cadence.api.v1.StartWorkflowExecutionRequest
-      PROTO_START_WORKFLOW_EXECUTION =
-          StartWorkflowExecutionRequest.newBuilder()
-              .setDomain("domain")
-              .setWorkflowId("workflowId")
-              .setWorkflowType(WorkflowType.newBuilder().setName("workflowType"))
-              .setTaskList(
-                  TaskList.newBuilder()
-                      .setName("taskList")
-                      .setKind(TaskListKind.TASK_LIST_KIND_NORMAL))
-              .setInput(protoPayload("input"))
-              .setExecutionStartToCloseTimeout(seconds(1))
-              .setTaskStartToCloseTimeout(seconds(2))
-              .setIdentity("identity")
-              .setRequestId("requestId")
-              .setWorkflowIdReusePolicy(
-                  WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE)
-              .setRetryPolicy(
-                  RetryPolicy.newBuilder()
-                      .setInitialInterval(seconds(11))
-                      .setBackoffCoefficient(0.5)
-                      .setMaximumInterval(seconds(12))
-                      .setMaximumAttempts(13)
-                      .addNonRetryableErrorReasons("error")
-                      .setExpirationInterval(seconds(14)))
-              .setCronSchedule("cronSchedule")
-              .setMemo(Memo.newBuilder().putFields("memo", protoPayload("memoValue")).build())
-              .setSearchAttributes(
-                  SearchAttributes.newBuilder()
-                      .putIndexedFields("search", protoPayload("searchValue"))
-                      .build())
-              .setHeader(Header.newBuilder().putFields("key", protoPayload("value")).build())
-              .setDelayStart(seconds(3))
-              .build();
-  private static final com.uber.cadence.SignalWithStartWorkflowExecutionRequest
-      THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION =
-          new SignalWithStartWorkflowExecutionRequest()
-              .setDomain("domain")
-              .setWorkflowId("workflowId")
-              .setWorkflowType(new com.uber.cadence.WorkflowType().setName("workflowType"))
-              .setTaskList(
-                  new com.uber.cadence.TaskList()
-                      .setName("taskList")
-                      .setKind(com.uber.cadence.TaskListKind.NORMAL))
-              .setInput("input".getBytes(StandardCharsets.UTF_8))
-              .setExecutionStartToCloseTimeoutSeconds(1)
-              .setTaskStartToCloseTimeoutSeconds(2)
-              .setIdentity("identity")
-              .setRequestId("requestId")
-              .setWorkflowIdReusePolicy(com.uber.cadence.WorkflowIdReusePolicy.AllowDuplicate)
-              .setSignalName("signalName")
-              .setSignalInput("signalInput".getBytes(StandardCharsets.UTF_8))
-              .setControl("control".getBytes(StandardCharsets.UTF_8))
-              .setRetryPolicy(
-                  new com.uber.cadence.RetryPolicy()
-                      .setInitialIntervalInSeconds(11)
-                      .setBackoffCoefficient(0.5)
-                      .setMaximumIntervalInSeconds(12)
-                      .setMaximumAttempts(13)
-                      .setNonRetriableErrorReasons(ImmutableList.of("error"))
-                      .setExpirationIntervalInSeconds(14))
-              .setCronSchedule("cronSchedule")
-              .setMemo(
-                  new com.uber.cadence.Memo().setFields(ImmutableMap.of("memo", utf8("memoValue"))))
-              .setSearchAttributes(
-                  new com.uber.cadence.SearchAttributes()
-                      .setIndexedFields(ImmutableMap.of("search", utf8("searchValue"))))
-              .setHeader(
-                  new com.uber.cadence.Header().setFields(ImmutableMap.of("key", utf8("value"))))
-              .setDelayStartSeconds(3);
-  private static final com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionRequest
-      PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION =
-          com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionRequest.newBuilder()
-              .setStartRequest(PROTO_START_WORKFLOW_EXECUTION)
-              .setSignalInput(protoPayload("signalInput"))
-              .setSignalName("signalName")
-              .setControl(ByteString.copyFromUtf8("control"))
-              .build();
+  @Parameterized.Parameter(0)
+  public String testName;
+
+  @Parameterized.Parameter(1)
+  public T from;
+
+  @Parameterized.Parameter(2)
+  public P to;
+
+  @Parameterized.Parameter(3)
+  public Function<T, P> via;
+
+  @Parameterized.Parameter(4)
+  public Set<String> missingFields;
 
   @Test
-  public void testStartWorkflowExecutionRequest() {
-    // Pulling in new IDL will intentionally cause this to fail. Either update the mapper or account
-    // for it here
-    assertMissingFields(
-        THRIFT_START_WORKFLOW_EXECUTION,
-        com.uber.cadence.StartWorkflowExecutionRequest._Fields.class,
-        "jitterStartSeconds");
-
-    assertEquals(
-        PROTO_START_WORKFLOW_EXECUTION,
-        RequestMapper.startWorkflowExecutionRequest(THRIFT_START_WORKFLOW_EXECUTION));
+  public void testFieldsPresent() {
+    // If IDL is updated, this will fail. Update the mapper or add it to the test
+    if (missingFields.isEmpty()) {
+      assertNoMissingFields(from);
+    } else {
+      assertMissingFields(from, missingFields);
+    }
   }
 
   @Test
-  public void testStartWorkflowExecutionAsyncRequest() {
-    com.uber.cadence.StartWorkflowExecutionAsyncRequest thrift =
-        new com.uber.cadence.StartWorkflowExecutionAsyncRequest()
-            .setRequest(THRIFT_START_WORKFLOW_EXECUTION);
-
-    com.uber.cadence.api.v1.StartWorkflowExecutionAsyncRequest expected =
-        StartWorkflowExecutionAsyncRequest.newBuilder()
-            .setRequest(PROTO_START_WORKFLOW_EXECUTION)
-            .build();
-
-    assertNoMissingFields(
-        thrift, com.uber.cadence.StartWorkflowExecutionAsyncRequest._Fields.class);
-
-    assertEquals(expected, RequestMapper.startWorkflowExecutionAsyncRequest(thrift));
+  public void testMapper() {
+    P actual = via.apply(from);
+    assertEquals(to, actual);
   }
 
   @Test
-  public void testSignalWithStartWorkflowExecutionRequest() {
-    assertMissingFields(
-        THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION,
-        com.uber.cadence.SignalWithStartWorkflowExecutionRequest._Fields.class,
-        "jitterStartSeconds");
+  public void testHandlesNull() {
+    P actual = via.apply(null);
 
-    assertEquals(
-        PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION,
-        RequestMapper.signalWithStartWorkflowExecutionRequest(
-            THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION));
+    assertNull("Mapper functions should accept null, returning null", actual);
   }
 
-  @Test
-  public void testSignalWithStartWorkflowExecutionAsyncRequest() {
-    com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest thrift =
-        new com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest()
-            .setRequest(THRIFT_SIGNAL_WITH_START_WORKFLOW_EXECUTION);
-
-    com.uber.cadence.api.v1.SignalWithStartWorkflowExecutionAsyncRequest expected =
-        SignalWithStartWorkflowExecutionAsyncRequest.newBuilder()
-            .setRequest(PROTO_SIGNAL_WITH_START_WORKFLOW_EXECUTION)
-            .build();
-
-    assertNoMissingFields(
-        thrift, com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest._Fields.class);
-
-    assertEquals(expected, RequestMapper.signalWithStartWorkflowExecutionAsyncRequest(thrift));
+  @Parameterized.Parameters(name = "{0}")
+  public static Iterable<Object[]> cases() {
+    return Arrays.asList(
+        testCase(
+            ThriftObjects.COUNT_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.COUNT_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::countWorkflowExecutionsRequest),
+        testCase(
+            ThriftObjects.DESCRIBE_TASK_LIST_REQUEST,
+            ProtoObjects.DESCRIBE_TASK_LIST_REQUEST,
+            RequestMapper::describeTaskListRequest),
+        testCase(
+            ThriftObjects.LIST_ARCHIVED_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.LIST_ARCHIVED_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::listArchivedWorkflowExecutionsRequest),
+        testCase(
+            ThriftObjects.REQUEST_CANCEL_WORKFLOW_EXECUTION_REQUEST,
+            ProtoObjects.REQUEST_CANCEL_WORKFLOW_EXECUTION_REQUEST,
+            RequestMapper::requestCancelWorkflowExecutionRequest,
+            "firstExecutionRunID",
+            "cause"),
+        testCase(
+            ThriftObjects.RESET_STICKY_TASK_LIST_REQUEST,
+            ProtoObjects.RESET_STICKY_TASK_LIST_REQUEST,
+            RequestMapper::resetStickyTaskListRequest),
+        testCase(
+            ThriftObjects.RESET_WORKFLOW_EXECUTION_REQUEST,
+            ProtoObjects.RESET_WORKFLOW_EXECUTION_REQUEST,
+            RequestMapper::resetWorkflowExecutionRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_CANCELED_BY_ID_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_CANCELED_BY_ID_REQUEST,
+            RequestMapper::respondActivityTaskCanceledByIdRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_CANCELED_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_CANCELED_REQUEST,
+            RequestMapper::respondActivityTaskCanceledRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_COMPLETED_BY_ID_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_COMPLETED_BY_ID_REQUEST,
+            RequestMapper::respondActivityTaskCompletedByIdRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_COMPLETED_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_COMPLETED_REQUEST,
+            RequestMapper::respondActivityTaskCompletedRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_FAILED_BY_ID_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_FAILED_BY_ID_REQUEST,
+            RequestMapper::respondActivityTaskFailedByIdRequest),
+        testCase(
+            ThriftObjects.RESPOND_ACTIVITY_TASK_FAILED_REQUEST,
+            ProtoObjects.RESPOND_ACTIVITY_TASK_FAILED_REQUEST,
+            RequestMapper::respondActivityTaskFailedRequest),
+        testCase(
+            ThriftObjects.RESPOND_DECISION_TASK_COMPLETED_REQUEST,
+            ProtoObjects.RESPOND_DECISION_TASK_COMPLETED_REQUEST,
+            RequestMapper::respondDecisionTaskCompletedRequest),
+        testCase(
+            ThriftObjects.RESPOND_DECISION_TASK_FAILED_REQUEST,
+            ProtoObjects.RESPOND_DECISION_TASK_FAILED_REQUEST,
+            RequestMapper::respondDecisionTaskFailedRequest),
+        testCase(
+            ThriftObjects.RESPOND_QUERY_TASK_COMPLETED_REQUEST,
+            ProtoObjects.RESPOND_QUERY_TASK_COMPLETED_REQUEST,
+            RequestMapper::respondQueryTaskCompletedRequest),
+        testCase(
+            ThriftObjects.LIST_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.SCAN_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::scanWorkflowExecutionsRequest),
+        testCase(
+            ThriftObjects.DESCRIBE_WORKFLOW_EXECUTION_REQUEST,
+            ProtoObjects.DESCRIBE_WORKFLOW_EXECUTION_REQUEST,
+            RequestMapper::describeWorkflowExecutionRequest),
+        testCase(
+            ThriftObjects.GET_WORKFLOW_EXECUTION_HISTORY_REQUEST,
+            ProtoObjects.GET_WORKFLOW_EXECUTION_HISTORY_REQUEST,
+            RequestMapper::getWorkflowExecutionHistoryRequest),
+        testCase(
+            ThriftObjects.START_WORKFLOW_EXECUTION,
+            ProtoObjects.START_WORKFLOW_EXECUTION,
+            RequestMapper::startWorkflowExecutionRequest,
+            "jitterStartSeconds"),
+        testCase(
+            ThriftObjects.SIGNAL_WITH_START_WORKFLOW_EXECUTION,
+            ProtoObjects.SIGNAL_WITH_START_WORKFLOW_EXECUTION,
+            RequestMapper::signalWithStartWorkflowExecutionRequest,
+            "jitterStartSeconds"),
+        testCase(
+            ThriftObjects.START_WORKFLOW_EXECUTION_ASYNC_REQUEST,
+            ProtoObjects.START_WORKFLOW_EXECUTION_ASYNC_REQUEST,
+            RequestMapper::startWorkflowExecutionAsyncRequest),
+        testCase(
+            ThriftObjects.SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC_REQUEST,
+            ProtoObjects.SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC_REQUEST,
+            RequestMapper::signalWithStartWorkflowExecutionAsyncRequest),
+        testCase(
+            ThriftObjects.SIGNAL_WORKFLOW_EXECUTION_REQUEST,
+            ProtoObjects.SIGNAL_WORKFLOW_EXECUTION_REQUEST,
+            RequestMapper::signalWorkflowExecutionRequest),
+        testCase(
+            ThriftObjects.TERMINATE_WORKFLOW_EXECUTION_REQUEST,
+            ProtoObjects.TERMINATE_WORKFLOW_EXECUTION_REQUEST,
+            RequestMapper::terminateWorkflowExecutionRequest,
+            "firstExecutionRunID"),
+        testCase(
+            ThriftObjects.DEPRECATE_DOMAIN_REQUEST,
+            ProtoObjects.DEPRECATE_DOMAIN_REQUEST,
+            RequestMapper::deprecateDomainRequest),
+        testCase(
+            ThriftObjects.DESCRIBE_DOMAIN_BY_ID_REQUEST,
+            ProtoObjects.DESCRIBE_DOMAIN_BY_ID_REQUEST,
+            RequestMapper::describeDomainRequest,
+            "name"),
+        testCase(
+            ThriftObjects.DESCRIBE_DOMAIN_BY_NAME_REQUEST,
+            ProtoObjects.DESCRIBE_DOMAIN_BY_NAME_REQUEST,
+            RequestMapper::describeDomainRequest,
+            "uuid"),
+        testCase(
+            ThriftObjects.LIST_DOMAINS_REQUEST,
+            ProtoObjects.LIST_DOMAINS_REQUEST,
+            RequestMapper::listDomainsRequest),
+        testCase(
+            ThriftObjects.LIST_TASK_LIST_PARTITIONS_REQUEST,
+            ProtoObjects.LIST_TASK_LIST_PARTITIONS_REQUEST,
+            RequestMapper::listTaskListPartitionsRequest),
+        testCase(
+            ThriftObjects.POLL_FOR_ACTIVITY_TASK_REQUEST,
+            ProtoObjects.POLL_FOR_ACTIVITY_TASK_REQUEST,
+            RequestMapper::pollForActivityTaskRequest),
+        testCase(
+            ThriftObjects.POLL_FOR_DECISION_TASK_REQUEST,
+            ProtoObjects.POLL_FOR_DECISION_TASK_REQUEST,
+            RequestMapper::pollForDecisionTaskRequest),
+        testCase(
+            ThriftObjects.QUERY_WORKFLOW_REQUEST,
+            ProtoObjects.QUERY_WORKFLOW_REQUEST,
+            RequestMapper::queryWorkflowRequest),
+        testCase(
+            ThriftObjects.RECORD_ACTIVITY_TASK_HEARTBEAT_BY_ID_REQUEST,
+            ProtoObjects.RECORD_ACTIVITY_TASK_HEARTBEAT_BY_ID_REQUEST,
+            RequestMapper::recordActivityTaskHeartbeatByIdRequest),
+        testCase(
+            ThriftObjects.RECORD_ACTIVITY_TASK_HEARTBEAT_REQUEST,
+            ProtoObjects.RECORD_ACTIVITY_TASK_HEARTBEAT_REQUEST,
+            RequestMapper::recordActivityTaskHeartbeatRequest),
+        testCase(
+            ThriftObjects.REGISTER_DOMAIN_REQUEST,
+            ProtoObjects.REGISTER_DOMAIN_REQUEST,
+            RequestMapper::registerDomainRequest,
+            "emitMetric"),
+        testCase(
+            ThriftObjects.UPDATE_DOMAIN_REQUEST,
+            // Data and replicationConfiguration are copied incorrectly due to a bug :(
+            ProtoObjects.UPDATE_DOMAIN_REQUEST,
+            RequestMapper::updateDomainRequest),
+        testCase(
+            ThriftObjects.LIST_CLOSED_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.LIST_CLOSED_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::listClosedWorkflowExecutionsRequest),
+        testCase(
+            ThriftObjects.LIST_OPEN_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.LIST_OPEN_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::listOpenWorkflowExecutionsRequest),
+        testCase(
+            ThriftObjects.LIST_WORKFLOW_EXECUTIONS_REQUEST,
+            ProtoObjects.LIST_WORKFLOW_EXECUTIONS_REQUEST,
+            RequestMapper::listWorkflowExecutionsRequest));
   }
 
-  private static Duration seconds(int value) {
-    return Duration.newBuilder().setSeconds(value).build();
-  }
-
-  private static Payload protoPayload(String value) {
-    return Payload.newBuilder().setData(ByteString.copyFromUtf8(value)).build();
-  }
-
-  private static ByteBuffer utf8(String value) {
-    return ByteBuffer.wrap(utf8Bytes(value));
-  }
-
-  private static byte[] utf8Bytes(String value) {
-    return value.getBytes(StandardCharsets.UTF_8);
+  private static <T, P> Object[] testCase(
+      T from, P to, Function<T, P> via, String... missingFields) {
+    return new Object[] {
+      from.getClass().getSimpleName(), from, to, via, ImmutableSet.copyOf(missingFields)
+    };
   }
 }
