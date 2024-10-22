@@ -1,7 +1,7 @@
 package com.uber.cadence;
 
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN2;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN2;
 
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;

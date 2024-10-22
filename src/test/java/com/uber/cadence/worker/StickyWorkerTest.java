@@ -17,7 +17,7 @@
 
 package com.uber.cadence.worker;
 
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
