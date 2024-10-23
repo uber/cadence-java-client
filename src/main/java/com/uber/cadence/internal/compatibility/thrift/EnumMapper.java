@@ -36,7 +36,9 @@ import com.uber.cadence.TimeoutType;
 import com.uber.cadence.WorkflowExecutionCloseStatus;
 import com.uber.cadence.WorkflowIdReusePolicy;
 
-class EnumMapper {
+public final class EnumMapper {
+
+  private EnumMapper() {}
 
   public static TaskListKind taskListKind(com.uber.cadence.api.v1.TaskListKind t) {
     switch (t) {
@@ -311,6 +313,8 @@ class EnumMapper {
         return null;
       case CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION:
         return CancelExternalWorkflowExecutionFailedCause.UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
+      case CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_COMPLETED:
+        return CancelExternalWorkflowExecutionFailedCause.WORKFLOW_ALREADY_COMPLETED;
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
@@ -323,6 +327,8 @@ class EnumMapper {
         return null;
       case SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION:
         return SignalExternalWorkflowExecutionFailedCause.UNKNOWN_EXTERNAL_WORKFLOW_EXECUTION;
+      case SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_CAUSE_WORKFLOW_ALREADY_COMPLETED:
+        return SignalExternalWorkflowExecutionFailedCause.WORKFLOW_ALREADY_COMPLETED;
     }
     throw new IllegalArgumentException("unexpected enum value");
   }
