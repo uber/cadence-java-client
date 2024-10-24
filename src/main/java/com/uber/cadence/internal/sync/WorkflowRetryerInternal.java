@@ -32,21 +32,6 @@ import java.time.Duration;
  */
 final class WorkflowRetryerInternal {
 
-  /**
-   * Retry procedure synchronously.
-   *
-   * @param options retry options.
-   * @param proc procedure to retry.
-   */
-  public static void retry(RetryOptions options, Functions.Proc proc) {
-    retry(
-        options,
-        () -> {
-          proc.apply();
-          return null;
-        });
-  }
-
   public static <R> R validateOptionsAndRetry(RetryOptions options, Functions.Func<R> func) {
     return retry(RetryOptions.merge(null, options), func);
   }

@@ -85,12 +85,6 @@ final class Throttler {
     log.debug("new rate=" + maxRatePerSecond + " (msg/sec)");
   }
 
-  public synchronized void throttle(int count) throws InterruptedException {
-    for (int i = 0; i < count; ++i) {
-      throttle();
-    }
-  }
-
   /**
    * When called on each request sleeps if called faster then configured average rate.
    *

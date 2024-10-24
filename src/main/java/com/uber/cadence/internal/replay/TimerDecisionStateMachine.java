@@ -41,13 +41,6 @@ class TimerDecisionStateMachine extends DecisionStateMachineBase {
     this.attributes = attributes;
   }
 
-  /** Used for unit testing */
-  TimerDecisionStateMachine(
-      DecisionId id, StartTimerDecisionAttributes attributes, DecisionState state) {
-    super(id, state);
-    this.attributes = attributes;
-  }
-
   @Override
   public Decision getDecision() {
     switch (state) {
