@@ -30,6 +30,7 @@ import org.apache.thrift.TDeserializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.TSerializer;
 import org.apache.thrift.protocol.TJSONProtocol;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Special handling of TBase message serialization and deserialization. This is to support for
@@ -48,8 +49,7 @@ public class TBaseTypeAdapterFactory implements TypeAdapterFactory {
           @Override
           public void write(JsonWriter jsonWriter, T value) throws IOException {
             try {
-              String result =
-                  newThriftSerializer().toString((TBase) value, StandardCharsets.UTF_8.name());
+              String result = newThriftSerializer().toString((TBase) value);
               jsonWriter.value(result);
             } catch (TException e) {
               throw new DataConverterException("Failed to serialize TBase", e);
@@ -73,11 +73,11 @@ public class TBaseTypeAdapterFactory implements TypeAdapterFactory {
     return result;
   }
 
-  private static TSerializer newThriftSerializer() {
+  private static TSerializer newThriftSerializer() throws TTransportException {
     return new TSerializer(new TJSONProtocol.Factory());
   }
 
-  private static TDeserializer newThriftDeserializer() {
+  private static TDeserializer newThriftDeserializer() throws TTransportException {
     return new TDeserializer(new TJSONProtocol.Factory());
   }
 }
