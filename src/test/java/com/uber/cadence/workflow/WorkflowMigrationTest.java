@@ -17,8 +17,8 @@
 
 package com.uber.cadence.workflow;
 
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN2;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN2;
 import static junit.framework.TestCase.fail;
 
 import com.uber.cadence.*;
