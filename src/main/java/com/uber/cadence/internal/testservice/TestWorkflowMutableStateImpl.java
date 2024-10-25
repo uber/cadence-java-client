@@ -1179,17 +1179,13 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
               .setWorkflowExecution(getExecutionId().getExecution())
               .setDomain(getExecutionId().getDomain())
               .setWorkflowType(startRequest.getWorkflowType());
-      ForkJoinPool.commonPool()
-          .execute(
-              () -> {
-                try {
-                  parent.get().childWorkflowStarted(a);
-                } catch (EntityNotExistsError | WorkflowExecutionAlreadyCompletedError e) {
-                  // Not a problem. Parent might just close by now.
-                } catch (BadRequestError | InternalServiceError e) {
-                  log.error("Failure reporting child completion", e);
-                }
-              });
+      try {
+        parent.get().childWorkflowStarted(a);
+      } catch (EntityNotExistsError | WorkflowExecutionAlreadyCompletedError e) {
+        // Not a problem. Parent might just close by now.
+      } catch (BadRequestError | InternalServiceError e) {
+        log.error("Failure reporting child completion", e);
+      }
     }
   }
 
