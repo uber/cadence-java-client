@@ -15,8 +15,8 @@
  */
 package com.uber.cadence.testing;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -87,7 +87,7 @@ public class WorkflowShadowerTest {
   }
 
   private class ScanWorkflowActivityParamsMatcher
-      extends ArgumentMatcher<ScanWorkflowActivityParams> {
+      implements ArgumentMatcher<ScanWorkflowActivityParams> {
     ScanWorkflowActivityParams params;
 
     public ScanWorkflowActivityParamsMatcher(ScanWorkflowActivityParams params) {
@@ -95,7 +95,7 @@ public class WorkflowShadowerTest {
     }
 
     @Override
-    public boolean matches(Object argument) {
+    public boolean matches(ScanWorkflowActivityParams argument) {
       ScanWorkflowActivityParams newParams = (ScanWorkflowActivityParams) argument;
       return params.getDomain().equals(newParams.getDomain())
           && params.getWorkflowQuery().equals(newParams.getWorkflowQuery())

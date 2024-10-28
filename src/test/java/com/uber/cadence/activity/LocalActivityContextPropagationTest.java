@@ -39,10 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class LocalActivityContextPropagationTest {
 
   private static final String LOCAL_ACTIVITY_CP_TASK_LIST = "LOCAL_ACTIVITY_CP_TASK_LIST";

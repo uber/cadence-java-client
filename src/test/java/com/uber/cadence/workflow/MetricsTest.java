@@ -19,8 +19,6 @@ package com.uber.cadence.workflow;
 
 import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.activity.ActivityOptions;
