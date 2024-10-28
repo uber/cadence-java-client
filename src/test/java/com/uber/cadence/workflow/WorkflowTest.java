@@ -27,8 +27,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -5730,10 +5728,6 @@ public class WorkflowTest {
 
   @Test
   public void testGetVersionRetry() throws ExecutionException, InterruptedException {
-    TestActivities activity = mock(TestActivities.class);
-    when(activity.activity1(1)).thenReturn(1);
-    cadenceTestRule.getWorker().registerActivitiesImplementations(activity);
-
     startWorkerFor(TestGetVersionWorkflowRetryImpl.class);
     TestWorkflow3 workflowStub =
         workflowClient.newWorkflowStub(

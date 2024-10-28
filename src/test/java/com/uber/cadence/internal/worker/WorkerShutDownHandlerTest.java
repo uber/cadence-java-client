@@ -32,11 +32,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 public class WorkerShutDownHandlerTest {
-  @Before
-  public void setUp() {
-    mockClient = mock(WorkflowClient.class);
-    mockService = mock(IWorkflowService.class);
-  }
 
   @Mock private WorkflowClient mockClient;
 
@@ -44,6 +39,8 @@ public class WorkerShutDownHandlerTest {
 
   @Before
   public void setup() {
+    mockClient = mock(WorkflowClient.class);
+    mockService = mock(IWorkflowService.class);
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
     when(mockClient.getOptions()).thenReturn(clientOptions);
