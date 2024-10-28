@@ -153,6 +153,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       }
     } else {
       RespondActivityTaskFailedByIDRequest request = new RespondActivityTaskFailedByIDRequest();
+      request.setActivityID(activityId);
       request.setReason(failure.getClass().getName());
       request.setDetails(dataConverter.toData(failure));
       request.setDomain(domain);
@@ -212,6 +213,7 @@ class ManualActivityCompletionClientImpl extends ManualActivityCompletionClient 
       }
     } else {
       RespondActivityTaskCanceledByIDRequest request = new RespondActivityTaskCanceledByIDRequest();
+      request.setActivityID(activityId);
       request.setDetails(dataConverter.toData(details));
       request.setDomain(domain);
       request.setWorkflowID(execution.getWorkflowId());

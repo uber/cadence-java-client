@@ -61,6 +61,10 @@ public class CadenceTestRule implements TestRule {
     };
   }
 
+  public <T> T newWorkflowStub(Class<T> tClass) {
+    return getWorkflowClient().newWorkflowStub(tClass, workflowOptionsBuilder().build());
+  }
+
   public TracingWorkflowInterceptorFactory getTracer() {
     return context.getTracer();
   }
