@@ -19,8 +19,6 @@ package com.uber.cadence.internal.replay;
 
 import static junit.framework.TestCase.assertEquals;
 import static org.junit.Assert.*;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.HistoryEvent;
@@ -211,7 +209,7 @@ public class ReplayDeciderCacheTests {
     // Wait for reporter
     Thread.sleep(600);
     verify(reporter, atLeastOnce())
-        .reportCounter(eq(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_TOTAL_FORCED_EVICTION), eq(tags), anyLong());
   }
 
   @Test

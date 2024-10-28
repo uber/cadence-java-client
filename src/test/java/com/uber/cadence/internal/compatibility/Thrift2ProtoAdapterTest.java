@@ -19,7 +19,7 @@ package com.uber.cadence.internal.compatibility;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import com.uber.cadence.SignalWithStartWorkflowExecutionAsyncRequest;
@@ -157,9 +157,10 @@ public class Thrift2ProtoAdapterTest {
             .toString());
   }
 
+  @SuppressWarnings("CheckReturnValue")
   private <REQ, RES> ArgumentCaptor<REQ> mockRpc(
       BiConsumer<REQ, StreamObserver<RES>> method, RES value) {
-    ArgumentCaptor<REQ> captor = new ArgumentCaptor<>();
+    ArgumentCaptor<REQ> captor = ArgumentCaptor.forClass(null);
     doAnswer(
             invocation -> {
               @SuppressWarnings("unchecked")
