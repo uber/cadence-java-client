@@ -20,8 +20,11 @@ package com.uber.cadence.internal.sync;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.uber.cadence.workflow.QueueConsumer;
 import com.uber.cadence.workflow.Workflow;
 import com.uber.cadence.workflow.WorkflowQueue;
+import java.util.concurrent.TimeUnit;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -135,6 +138,173 @@ public class WorkflowInternalQueueTest {
           "thread2 put2 success",
           "thread1 take2 success",
         };
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testPoll() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              WorkflowQueue<String> f = WorkflowInternal.newQueue(1);
+              f.offer("foo");
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          trace.add("thread1 begin");
+                          Assert.assertEquals("foo", f.poll(1, TimeUnit.SECONDS));
+                          trace.add("thread1 foo");
+                          Assert.assertNull(f.poll(1, TimeUnit.SECONDS));
+                          trace.add("thread1 done");
+                        } catch (InterruptedException e) {
+                          throw new RuntimeException(e);
+                        }
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 begin", "thread1 foo"};
+    trace.setExpected(expected);
+
+    currentTime += 1000;
+    r.runUntilAllBlocked();
+    expected =
+        new String[] {"root begin", "root done", "thread1 begin", "thread1 foo", "thread1 done"};
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testOffer() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              WorkflowQueue<String> f = WorkflowInternal.newQueue(1);
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        Assert.assertTrue(f.offer("foo"));
+                        Assert.assertFalse(f.offer("bar"));
+                        trace.add("thread1 done");
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 done"};
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testOfferTimed() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              WorkflowQueue<String> f = WorkflowInternal.newQueue(1);
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          trace.add("thread1 begin");
+                          Assert.assertTrue(f.offer("foo", 1, TimeUnit.SECONDS));
+                          trace.add("thread1 foo");
+                          Assert.assertFalse(f.offer("bar", 1, TimeUnit.SECONDS));
+                          trace.add("thread1 done");
+                        } catch (InterruptedException e) {
+                          throw new RuntimeException(e);
+                        }
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 begin", "thread1 foo"};
+    trace.setExpected(expected);
+
+    currentTime += 1000;
+    r.runUntilAllBlocked();
+    expected =
+        new String[] {"root begin", "root done", "thread1 begin", "thread1 foo", "thread1 done"};
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testMappedTake() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              WorkflowQueue<Boolean> f = WorkflowInternal.newQueue(1);
+              f.offer(true);
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          QueueConsumer<String> mappedQueue = f.map(x -> x ? "yes" : "no");
+                          trace.add("thread1 begin");
+                          Assert.assertEquals("yes", mappedQueue.take());
+                          trace.add("thread1 done");
+                        } catch (InterruptedException e) {
+                          throw new RuntimeException(e);
+                        }
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 begin", "thread1 done"};
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testMappedPoll() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              WorkflowQueue<Boolean> f = WorkflowInternal.newQueue(1);
+              f.offer(true);
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          QueueConsumer<String> mappedQueue =
+                              f.map(x -> x ? "yes" : "no").map(x -> x);
+                          trace.add("thread1 begin");
+                          Assert.assertEquals("yes", mappedQueue.poll(1, TimeUnit.SECONDS));
+                          trace.add("thread1 yes");
+                          Assert.assertNull(mappedQueue.poll(1, TimeUnit.SECONDS));
+
+                          trace.add("thread1 done");
+                        } catch (InterruptedException e) {
+                          throw new RuntimeException(e);
+                        }
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 begin", "thread1 yes"};
+    trace.setExpected(expected);
+
+    currentTime += 1000;
+    r.runUntilAllBlocked();
+    expected =
+        new String[] {"root begin", "root done", "thread1 begin", "thread1 yes", "thread1 done"};
     trace.setExpected(expected);
   }
 }
