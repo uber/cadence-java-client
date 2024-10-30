@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Map;
 
 public final class ThriftObjects {
@@ -43,6 +44,10 @@ public final class ThriftObjects {
   public static final String RUN_ID = "runId";
   public static final WorkflowExecution WORKFLOW_EXECUTION =
       new WorkflowExecution().setWorkflowId(WORKFLOW_ID).setRunId(RUN_ID);
+  public static final String PARENT_WORkFLOW_ID = "parentWorkflowId";
+  public static final String PARENT_RUN_ID = "parentRunId";
+  public static final WorkflowExecution PARENT_WORKFLOW_EXECUTION =
+      new WorkflowExecution().setWorkflowId(PARENT_WORkFLOW_ID).setRunId(PARENT_RUN_ID);
   public static final StickyExecutionAttributes STICKY_EXECUTION_ATTRIBUTES =
       new StickyExecutionAttributes()
           .setWorkerTaskList(TASK_LIST)
@@ -59,7 +64,16 @@ public final class ThriftObjects {
   public static final SearchAttributes SEARCH_ATTRIBUTES =
       new SearchAttributes().setIndexedFields(ImmutableMap.of("search", utf8("attributes")));
   public static final Map<String, String> DATA = ImmutableMap.of("dataKey", "dataValue");
-
+  public static final ResetPointInfo RESET_POINT_INFO =
+      new ResetPointInfo()
+          .setBinaryChecksum("binaryChecksum")
+          .setRunId("runId")
+          .setCreatedTimeNano(1)
+          .setResettable(true)
+          .setExpiringTimeNano(2)
+          .setFirstDecisionCompletedId(3);
+  public static final ResetPoints RESET_POINTS =
+      new ResetPoints().setPoints(Collections.singletonList(RESET_POINT_INFO));
   public static final ClusterReplicationConfiguration CLUSTER_REPLICATION_CONFIGURATION =
       new ClusterReplicationConfiguration().setClusterName("cluster");
 
@@ -189,6 +203,400 @@ public final class ThriftObjects {
                   .setMarkerName("markerName")
                   .setDetails(utf8("details"))
                   .setHeader(HEADER));
+
+  public static final WorkflowExecutionStartedEventAttributes
+      WORKFLOW_EXECUTION_STARTED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionStartedEventAttributes()
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setParentWorkflowDomain("parentDomainName")
+              .setParentWorkflowExecution(PARENT_WORKFLOW_EXECUTION)
+              .setParentInitiatedEventId(1)
+              .setTaskList(TASK_LIST)
+              .setInput(utf8("input"))
+              .setExecutionStartToCloseTimeoutSeconds(2)
+              .setTaskStartToCloseTimeoutSeconds(3)
+              .setContinuedExecutionRunId("continuedExecutionRunId")
+              .setInitiator(ContinueAsNewInitiator.RetryPolicy)
+              .setContinuedFailureReason("continuedFailureReason")
+              .setContinuedFailureDetails(utf8("continuedFailureDetails"))
+              .setLastCompletionResult(utf8("lastCompletionResult"))
+              .setOriginalExecutionRunId("originalExecutionRunId")
+              .setIdentity("identity")
+              .setFirstExecutionRunId("firstExecutionRunId")
+              .setRetryPolicy(RETRY_POLICY)
+              .setAttempt(4)
+              .setExpirationTimestamp(5)
+              .setCronSchedule("cronSchedule")
+              .setFirstDecisionTaskBackoffSeconds(6)
+              .setMemo(MEMO)
+              .setSearchAttributes(SEARCH_ATTRIBUTES)
+              .setPrevAutoResetPoints(RESET_POINTS)
+              .setHeader(HEADER);
+
+  public static final WorkflowExecutionCompletedEventAttributes
+      WORKFLOW_EXECUTION_COMPLETED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionCompletedEventAttributes()
+              .setResult(utf8("result"))
+              .setDecisionTaskCompletedEventId(1);
+
+  public static final WorkflowExecutionFailedEventAttributes
+      WORKFLOW_EXECUTION_FAILED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionFailedEventAttributes()
+              .setReason("reason")
+              .setDetails(utf8("details"))
+              .setDecisionTaskCompletedEventId(1);
+
+  public static final WorkflowExecutionTimedOutEventAttributes
+      WORKFLOW_EXECUTION_TIMED_OUT_EVENT_ATTRIBUTES =
+          new WorkflowExecutionTimedOutEventAttributes()
+              .setTimeoutType(TimeoutType.SCHEDULE_TO_CLOSE);
+
+  public static final DecisionTaskScheduledEventAttributes
+      DECISION_TASK_SCHEDULED_EVENT_ATTRIBUTES =
+          new DecisionTaskScheduledEventAttributes()
+              .setTaskList(TASK_LIST)
+              .setStartToCloseTimeoutSeconds(1)
+              .setAttempt(2);
+
+  public static final DecisionTaskStartedEventAttributes DECISION_TASK_STARTED_EVENT_ATTRIBUTES =
+      new DecisionTaskStartedEventAttributes()
+          .setScheduledEventId(1)
+          .setIdentity("identity")
+          .setRequestId("requestId");
+
+  public static final DecisionTaskCompletedEventAttributes
+      DECISION_TASK_COMPLETED_EVENT_ATTRIBUTES =
+          new DecisionTaskCompletedEventAttributes()
+              .setScheduledEventId(1)
+              .setStartedEventId(2)
+              .setIdentity("identity")
+              .setBinaryChecksum("binaryChecksum")
+              .setExecutionContext(utf8("executionContext"));
+
+  public static final DecisionTaskTimedOutEventAttributes DECISION_TASK_TIMED_OUT_EVENT_ATTRIBUTES =
+      new DecisionTaskTimedOutEventAttributes()
+          .setScheduledEventId(1)
+          .setStartedEventId(2)
+          .setTimeoutType(TimeoutType.SCHEDULE_TO_CLOSE)
+          .setBaseRunId("baseRunId")
+          .setNewRunId("newRunId")
+          .setForkEventVersion(3)
+          .setReason("reason")
+          .setCause(DecisionTaskTimedOutCause.RESET);
+
+  public static final DecisionTaskFailedEventAttributes DECISION_TASK_FAILED_EVENT_ATTRIBUTES =
+      new DecisionTaskFailedEventAttributes()
+          .setScheduledEventId(1)
+          .setStartedEventId(2)
+          .setCause(DecisionTaskFailedCause.BAD_BINARY)
+          .setReason("reason")
+          .setDetails(utf8("details"))
+          .setIdentity("identity")
+          .setBaseRunId("baseRun")
+          .setNewRunId("newRun")
+          .setForkEventVersion(3)
+          .setBinaryChecksum("binaryChecksum");
+
+  public static final ActivityTaskScheduledEventAttributes
+      ACTIVITY_TASK_SCHEDULED_EVENT_ATTRIBUTES =
+          new ActivityTaskScheduledEventAttributes()
+              .setActivityId("activityId")
+              .setActivityType(ACTIVITY_TYPE)
+              .setDomain("domain")
+              .setTaskList(TASK_LIST)
+              .setInput(utf8("input"))
+              .setScheduleToCloseTimeoutSeconds(1)
+              .setScheduleToStartTimeoutSeconds(2)
+              .setStartToCloseTimeoutSeconds(3)
+              .setHeartbeatTimeoutSeconds(4)
+              .setDecisionTaskCompletedEventId(5)
+              .setRetryPolicy(RETRY_POLICY)
+              .setHeader(HEADER);
+
+  public static final ActivityTaskStartedEventAttributes ACTIVITY_TASK_STARTED_EVENT_ATTRIBUTES =
+      new ActivityTaskStartedEventAttributes()
+          .setScheduledEventId(1)
+          .setIdentity("identity")
+          .setRequestId("requestId")
+          .setAttempt(2)
+          .setLastFailureReason("failureReason")
+          .setLastFailureDetails(utf8("failureDetails"));
+
+  public static final ActivityTaskCompletedEventAttributes
+      ACTIVITY_TASK_COMPLETED_EVENT_ATTRIBUTES =
+          new ActivityTaskCompletedEventAttributes()
+              .setResult(utf8("result"))
+              .setScheduledEventId(1)
+              .setStartedEventId(2)
+              .setIdentity("identity");
+
+  public static final ActivityTaskFailedEventAttributes ACTIVITY_TASK_FAILED_EVENT_ATTRIBUTES =
+      new ActivityTaskFailedEventAttributes()
+          .setReason("reason")
+          .setDetails(utf8("details"))
+          .setScheduledEventId(1)
+          .setStartedEventId(2)
+          .setIdentity("identity");
+
+  public static final ActivityTaskTimedOutEventAttributes ACTIVITY_TASK_TIMED_OUT_EVENT_ATTRIBUTES =
+      new ActivityTaskTimedOutEventAttributes()
+          .setDetails(utf8("details"))
+          .setScheduledEventId(1)
+          .setStartedEventId(2)
+          .setTimeoutType(TimeoutType.SCHEDULE_TO_CLOSE)
+          .setLastFailureReason("failureReason")
+          .setLastFailureDetails(utf8("failureDetails"));
+
+  public static final ActivityTaskCancelRequestedEventAttributes
+      ACTIVITY_TASK_CANCEL_REQUESTED_EVENT_ATTRIBUTES =
+          new ActivityTaskCancelRequestedEventAttributes()
+              .setActivityId("activityId")
+              .setDecisionTaskCompletedEventId(1);
+
+  public static final ActivityTaskCanceledEventAttributes ACTIVITY_TASK_CANCELED_EVENT_ATTRIBUTES =
+      new ActivityTaskCanceledEventAttributes()
+          .setDetails(utf8("details"))
+          .setLatestCancelRequestedEventId(1)
+          .setScheduledEventId(2)
+          .setStartedEventId(3)
+          .setIdentity("identity");
+
+  public static final RequestCancelActivityTaskFailedEventAttributes
+      REQUEST_CANCEL_ACTIVITY_TASK_FAILED_EVENT_ATTRIBUTES =
+          new RequestCancelActivityTaskFailedEventAttributes()
+              .setActivityId("activityId")
+              .setCause("cause")
+              .setDecisionTaskCompletedEventId(1);
+
+  public static final MarkerRecordedEventAttributes MARKER_RECORDED_EVENT_ATTRIBUTES =
+      new MarkerRecordedEventAttributes()
+          .setMarkerName("markerName")
+          .setDetails(utf8("details"))
+          .setDecisionTaskCompletedEventId(1)
+          .setHeader(HEADER);
+
+  public static final TimerCanceledEventAttributes TIMER_CANCELED_EVENT_ATTRIBUTES =
+      new TimerCanceledEventAttributes()
+          .setTimerId("timerId")
+          .setStartedEventId(1)
+          .setDecisionTaskCompletedEventId(2)
+          .setIdentity("identity");
+
+  public static final CancelTimerFailedEventAttributes CANCEL_TIMER_FAILED_EVENT_ATTRIBUTES =
+      new CancelTimerFailedEventAttributes()
+          .setTimerId("timerId")
+          .setCause("cause")
+          .setDecisionTaskCompletedEventId(1)
+          .setIdentity("identity");
+
+  public static final TimerFiredEventAttributes TIMER_FIRED_EVENT_ATTRIBUTES =
+      new TimerFiredEventAttributes().setTimerId("timerId").setStartedEventId(1);
+
+  public static final TimerStartedEventAttributes TIMER_STARTED_EVENT_ATTRIBUTES =
+      new TimerStartedEventAttributes()
+          .setTimerId("timerId")
+          .setStartToFireTimeoutSeconds(1)
+          .setDecisionTaskCompletedEventId(2);
+
+  public static final UpsertWorkflowSearchAttributesEventAttributes
+      UPSERT_WORKFLOW_SEARCH_ATTRIBUTES_EVENT_ATTRIBUTES =
+          new UpsertWorkflowSearchAttributesEventAttributes()
+              .setDecisionTaskCompletedEventId(1)
+              .setSearchAttributes(SEARCH_ATTRIBUTES);
+
+  public static final StartChildWorkflowExecutionInitiatedEventAttributes
+      START_CHILD_WORKFLOW_EXECUTION_INITIATED_EVENT_ATTRIBUTES =
+          new StartChildWorkflowExecutionInitiatedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowId(WORKFLOW_ID)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setTaskList(TASK_LIST)
+              .setInput(utf8("input"))
+              .setExecutionStartToCloseTimeoutSeconds(1)
+              .setTaskStartToCloseTimeoutSeconds(2)
+              .setParentClosePolicy(ParentClosePolicy.REQUEST_CANCEL)
+              .setControl(utf8("control"))
+              .setDecisionTaskCompletedEventId(3)
+              .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.AllowDuplicate)
+              .setRetryPolicy(RETRY_POLICY)
+              .setCronSchedule("cron")
+              .setHeader(HEADER)
+              .setMemo(MEMO)
+              .setSearchAttributes(SEARCH_ATTRIBUTES)
+              .setDelayStartSeconds(4);
+
+  public static final StartChildWorkflowExecutionFailedEventAttributes
+      START_CHILD_WORKFLOW_EXECUTION_FAILED_EVENT_ATTRIBUTES =
+          new StartChildWorkflowExecutionFailedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowId(WORKFLOW_ID)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setCause(ChildWorkflowExecutionFailedCause.WORKFLOW_ALREADY_RUNNING)
+              .setControl(utf8("control"))
+              .setInitiatedEventId(1)
+              .setDecisionTaskCompletedEventId(2);
+
+  public static final ChildWorkflowExecutionCanceledEventAttributes
+      CHILD_WORKFLOW_EXECUTION_CANCELED_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionCanceledEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setStartedEventId(2)
+              .setDetails(utf8("details"));
+
+  public static final ChildWorkflowExecutionCompletedEventAttributes
+      CHILD_WORKFLOW_EXECUTION_COMPLETED_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionCompletedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setStartedEventId(2)
+              .setResult(utf8("result"));
+
+  public static final ChildWorkflowExecutionFailedEventAttributes
+      CHILD_WORKFLOW_EXECUTION_FAILED_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionFailedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setStartedEventId(2)
+              .setReason("reason")
+              .setDetails(utf8("details"));
+
+  public static final ChildWorkflowExecutionStartedEventAttributes
+      CHILD_WORKFLOW_EXECUTION_STARTED_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionStartedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setHeader(HEADER);
+
+  public static final ChildWorkflowExecutionTerminatedEventAttributes
+      CHILD_WORKFLOW_EXECUTION_TERMINATED_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionTerminatedEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setStartedEventId(2);
+
+  public static final ChildWorkflowExecutionTimedOutEventAttributes
+      CHILD_WORKFLOW_EXECUTION_TIMED_OUT_EVENT_ATTRIBUTES =
+          new ChildWorkflowExecutionTimedOutEventAttributes()
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setInitiatedEventId(1)
+              .setStartedEventId(2)
+              .setTimeoutType(TimeoutType.SCHEDULE_TO_CLOSE);
+
+  public static final WorkflowExecutionTerminatedEventAttributes
+      WORKFLOW_EXECUTION_TERMINATED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionTerminatedEventAttributes()
+              .setReason("reason")
+              .setDetails(utf8("details"))
+              .setIdentity("identity");
+
+  public static final WorkflowExecutionCancelRequestedEventAttributes
+      WORKFLOW_EXECUTION_CANCEL_REQUESTED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionCancelRequestedEventAttributes()
+              .setCause("cause")
+              .setExternalInitiatedEventId(1)
+              .setExternalWorkflowExecution(WORKFLOW_EXECUTION)
+              .setIdentity("identity");
+
+  public static final WorkflowExecutionCanceledEventAttributes
+      WORKFLOW_EXECUTION_CANCELED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionCanceledEventAttributes()
+              .setDecisionTaskCompletedEventId(1)
+              .setDetails(utf8("details"));
+
+  public static final RequestCancelExternalWorkflowExecutionInitiatedEventAttributes
+      REQUEST_CANCEL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED_EVENT_ATTRIBUTES =
+          new RequestCancelExternalWorkflowExecutionInitiatedEventAttributes()
+              .setDecisionTaskCompletedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setControl(utf8("control"))
+              .setChildWorkflowOnly(true);
+
+  public static final RequestCancelExternalWorkflowExecutionFailedEventAttributes
+      REQUEST_CANCEL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_EVENT_ATTRIBUTES =
+          new RequestCancelExternalWorkflowExecutionFailedEventAttributes()
+              .setCause(CancelExternalWorkflowExecutionFailedCause.WORKFLOW_ALREADY_COMPLETED)
+              .setDecisionTaskCompletedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setInitiatedEventId(2)
+              .setControl(utf8("control"));
+
+  public static final ExternalWorkflowExecutionCancelRequestedEventAttributes
+      EXTERNAL_WORKFLOW_EXECUTION_CANCEL_REQUESTED_EVENT_ATTRIBUTES =
+          new ExternalWorkflowExecutionCancelRequestedEventAttributes()
+              .setInitiatedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION);
+
+  public static final WorkflowExecutionContinuedAsNewEventAttributes
+      WORKFLOW_EXECUTION_CONTINUED_AS_NEW_EVENT_ATTRIBUTES =
+          new WorkflowExecutionContinuedAsNewEventAttributes()
+              .setNewExecutionRunId("newRunId")
+              .setWorkflowType(WORKFLOW_TYPE)
+              .setTaskList(TASK_LIST)
+              .setInput(utf8("input"))
+              .setExecutionStartToCloseTimeoutSeconds(1)
+              .setTaskStartToCloseTimeoutSeconds(2)
+              .setDecisionTaskCompletedEventId(3)
+              .setBackoffStartIntervalInSeconds(4)
+              .setInitiator(ContinueAsNewInitiator.RetryPolicy)
+              .setFailureReason("failureReason")
+              .setFailureDetails(utf8("failureDetails"))
+              .setLastCompletionResult(utf8("lastCompletionResult"))
+              .setHeader(HEADER)
+              .setMemo(MEMO)
+              .setSearchAttributes(SEARCH_ATTRIBUTES);
+
+  public static final SignalExternalWorkflowExecutionInitiatedEventAttributes
+      SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_INITIATED_EVENT_ATTRIBUTES =
+          new SignalExternalWorkflowExecutionInitiatedEventAttributes()
+              .setDecisionTaskCompletedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setSignalName("signalName")
+              .setInput(utf8("input"))
+              .setControl(utf8("control"))
+              .setChildWorkflowOnly(true);
+
+  public static final SignalExternalWorkflowExecutionFailedEventAttributes
+      SIGNAL_EXTERNAL_WORKFLOW_EXECUTION_FAILED_EVENT_ATTRIBUTES =
+          new SignalExternalWorkflowExecutionFailedEventAttributes()
+              .setCause(SignalExternalWorkflowExecutionFailedCause.WORKFLOW_ALREADY_COMPLETED)
+              .setDecisionTaskCompletedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setInitiatedEventId(2)
+              .setControl(utf8("control"));
+
+  public static final WorkflowExecutionSignaledEventAttributes
+      WORKFLOW_EXECUTION_SIGNALED_EVENT_ATTRIBUTES =
+          new WorkflowExecutionSignaledEventAttributes()
+              .setSignalName("signalName")
+              .setInput(utf8("input"))
+              .setIdentity("identity");
+
+  public static final ExternalWorkflowExecutionSignaledEventAttributes
+      EXTERNAL_WORKFLOW_EXECUTION_SIGNALED_EVENT_ATTRIBUTES =
+          new ExternalWorkflowExecutionSignaledEventAttributes()
+              .setInitiatedEventId(1)
+              .setDomain("domain")
+              .setWorkflowExecution(WORKFLOW_EXECUTION)
+              .setControl(utf8("control"));
+
   public static final CountWorkflowExecutionsRequest COUNT_WORKFLOW_EXECUTIONS_REQUEST =
       new CountWorkflowExecutionsRequest().setDomain("domain").setQuery("query");
   public static final DescribeTaskListRequest DESCRIBE_TASK_LIST_REQUEST =
