@@ -74,10 +74,10 @@ final class WorkflowQueueImpl<E> implements WorkflowQueue<E> {
 
   @Override
   public boolean offer(E e, long timeout, TimeUnit unit) throws InterruptedException {
-    boolean timedOut =
+    boolean success =
         WorkflowThread.await(
             unit.toMillis(timeout), "WorkflowQueue.offer", () -> queue.size() < capacity);
-    if (timedOut) {
+    if (!success) {
       return false;
     }
     queue.addLast(e);
