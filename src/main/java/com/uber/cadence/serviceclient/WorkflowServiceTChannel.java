@@ -776,6 +776,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -2090,6 +2093,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();
       }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
@@ -2265,6 +2271,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
+      if (result.isSetInternalServiceError()) {
+        throw result.getInternalServiceError();
+      }
       throw new TException("GetClusterInfo failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -2295,6 +2304,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       response = doRemoteCall(request);
       WorkflowService.RefreshWorkflowTasks_result result =
           response.getBody(WorkflowService.RefreshWorkflowTasks_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return;
+      }
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();
       }
@@ -2307,6 +2319,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      throw new TException("RefreshWorkflowTasks failed with unknown error:" + result);
     } finally {
       if (response != null) {
         response.release();
