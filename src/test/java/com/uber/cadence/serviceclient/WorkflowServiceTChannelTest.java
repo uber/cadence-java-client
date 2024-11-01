@@ -14,8 +14,7 @@
  */
 package com.uber.cadence.serviceclient;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.*;
@@ -26,8 +25,11 @@ import com.uber.tchannel.api.errors.TChannelError;
 import com.uber.tchannel.headers.ArgScheme;
 import com.uber.tchannel.messages.ThriftRequest;
 import com.uber.tchannel.messages.ThriftResponse;
+import com.uber.tchannel.messages.generated.HealthStatus;
+import com.uber.tchannel.messages.generated.Meta;
 import java.util.Arrays;
 import org.apache.thrift.TException;
+import org.apache.thrift.async.AsyncMethodCallback;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -36,6 +38,10 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Enclosed.class)
 public class WorkflowServiceTChannelTest {
+
+  interface RemoteCallAsync<T> {
+    void apply(AsyncMethodCallback<T> callback) throws TException;
+  }
 
   private static class BaseTest<T, R> {
     SubChannel mockSubChannel;
@@ -77,6 +83,64 @@ public class WorkflowServiceTChannelTest {
         assertThrows(expectedException, method::apply);
       } else {
         assertEquals(expectedResponse, method.apply());
+      }
+    }
+
+    void testHelperWithCallback(RemoteCallAsync<R> method) throws TChannelError, TException {
+      when(mockSubChannel.send(any(ThriftRequest.class)))
+          .thenReturn(mockResponse(responseCode, responseBody));
+      method.apply(
+          new AsyncMethodCallback<R>() {
+            @Override
+            public void onComplete(R r) {
+              if (expectedException != null) {
+                fail("Expected exception but got response: " + r);
+              } else {
+                assertEquals(expectedResponse, r);
+              }
+            }
+
+            @Override
+            public void onError(Exception e) {
+              assertEquals(expectedException, e.getClass());
+            }
+          });
+    }
+
+    void assertUnimplementedWithCallback(RemoteCallAsync<R> method) {
+      assertThrows(
+          UnsupportedOperationException.class,
+          () ->
+              method.apply(
+                  new AsyncMethodCallback<R>() {
+                    @Override
+                    public void onComplete(R r) {
+                      fail("shouldn't reach this line");
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                      fail("shouldn't reach this line");
+                    }
+                  }));
+    }
+
+    void assertNoOpWithCallback(RemoteCallAsync<R> method) {
+      try {
+        method.apply(
+            new AsyncMethodCallback<R>() {
+              @Override
+              public void onComplete(R r) {
+                fail("shouldn't reach this line");
+              }
+
+              @Override
+              public void onError(Exception e) {
+                fail("shouldn't reach this line");
+              }
+            });
+      } catch (TException e) {
+        fail("should not throw exception:" + e);
       }
     }
   }
@@ -125,6 +189,14 @@ public class WorkflowServiceTChannelTest {
           () -> {
             service.RegisterDomain(new RegisterDomainRequest());
             return null;
+          });
+    }
+
+    @Test
+    public void responseIsHandledCorrectlyWithCallback() throws Exception {
+      testHelperWithCallback(
+          callback -> {
+            service.SignalWorkflowExecution(new SignalWorkflowExecutionRequest(), callback);
           });
     }
   }
@@ -177,6 +249,12 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.DescribeDomain(new DescribeDomainRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.DescribeDomain(new DescribeDomainRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -212,6 +290,12 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.ListDomains(new ListDomainsRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.ListDomains(new ListDomainsRequest(), callback));
     }
   }
 
@@ -257,6 +341,12 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.ResetWorkflowExecution(new ResetWorkflowExecutionRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.ListDomains(new ListDomainsRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -297,6 +387,14 @@ public class WorkflowServiceTChannelTest {
             service.TerminateWorkflowExecution(new TerminateWorkflowExecutionRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.TerminateWorkflowExecution(
+                  new TerminateWorkflowExecutionRequest(), callback));
     }
   }
 
@@ -341,6 +439,14 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.ListOpenWorkflowExecutions(new ListOpenWorkflowExecutionsRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.ListOpenWorkflowExecutions(
+                  new ListOpenWorkflowExecutionsRequest(), callback));
     }
   }
 
@@ -388,6 +494,14 @@ public class WorkflowServiceTChannelTest {
       testHelper(
           () -> service.ListClosedWorkflowExecutions(new ListClosedWorkflowExecutionsRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.ListClosedWorkflowExecutions(
+                  new ListClosedWorkflowExecutionsRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -431,6 +545,13 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.ListWorkflowExecutions(new ListWorkflowExecutionsRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.ListWorkflowExecutions(new ListWorkflowExecutionsRequest(), callback));
     }
   }
 
@@ -479,6 +600,14 @@ public class WorkflowServiceTChannelTest {
           () ->
               service.ListArchivedWorkflowExecutions(new ListArchivedWorkflowExecutionsRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.ListArchivedWorkflowExecutions(
+                  new ListArchivedWorkflowExecutionsRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -522,6 +651,13 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.ScanWorkflowExecutions(new ListWorkflowExecutionsRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.ScanWorkflowExecutions(new ListWorkflowExecutionsRequest(), callback));
     }
   }
 
@@ -567,6 +703,13 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.CountWorkflowExecutions(new CountWorkflowExecutionsRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.CountWorkflowExecutions(new CountWorkflowExecutionsRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -610,6 +753,11 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.GetSearchAttributes());
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(callback -> service.GetSearchAttributes(callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -650,6 +798,13 @@ public class WorkflowServiceTChannelTest {
             service.RespondQueryTaskCompleted(new RespondQueryTaskCompletedRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondQueryTaskCompleted(new RespondQueryTaskCompletedRequest(), callback));
     }
   }
 
@@ -694,6 +849,12 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.ResetStickyTaskList(new ResetStickyTaskListRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.ResetStickyTaskList(new ResetStickyTaskListRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -732,6 +893,12 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.QueryWorkflow(new QueryWorkflowRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.QueryWorkflow(new QueryWorkflowRequest(), callback));
     }
   }
 
@@ -777,6 +944,13 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.DescribeWorkflowExecution(new DescribeWorkflowExecutionRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.DescribeWorkflowExecution(new DescribeWorkflowExecutionRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -820,6 +994,12 @@ public class WorkflowServiceTChannelTest {
     public void testResponse() throws Exception {
       testHelper(() -> service.DescribeTaskList(new DescribeTaskListRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.DescribeTaskList(new DescribeTaskListRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -861,6 +1041,11 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.GetClusterInfo());
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertNoOpWithCallback(callback -> service.GetClusterInfo(callback));
     }
   }
 
@@ -905,6 +1090,13 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void testResponse() throws Exception {
       testHelper(() -> service.ListTaskListPartitions(new ListTaskListPartitionsRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertNoOpWithCallback(
+          callback ->
+              service.ListTaskListPartitions(new ListTaskListPartitionsRequest(), callback));
     }
   }
 
@@ -955,6 +1147,12 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(() -> service.UpdateDomain(new UpdateDomainRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.UpdateDomain(new UpdateDomainRequest(), callback));
     }
   }
 
@@ -1016,6 +1214,14 @@ public class WorkflowServiceTChannelTest {
           () ->
               service.GetWorkflowExecutionHistoryWithTimeout(
                   new GetWorkflowExecutionHistoryRequest(), 1000L));
+    }
+
+    @Test
+    public void responseIsHandledCorrectlyWithCallback() throws Exception {
+      testHelperWithCallback(
+          callback ->
+              service.GetWorkflowExecutionHistoryWithTimeout(
+                  new GetWorkflowExecutionHistoryRequest(), callback, 1000L));
     }
   }
 
@@ -1100,6 +1306,16 @@ public class WorkflowServiceTChannelTest {
                   new StartWorkflowExecutionAsyncRequest()
                       .setRequest(new StartWorkflowExecutionRequest())));
     }
+
+    @Test
+    public void responseIsHandledCorrectWithCallback() throws TChannelError, TException {
+      testHelperWithCallback(
+          callback ->
+              service.StartWorkflowExecutionAsync(
+                  new StartWorkflowExecutionAsyncRequest()
+                      .setRequest(new StartWorkflowExecutionRequest()),
+                  callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1179,6 +1395,13 @@ public class WorkflowServiceTChannelTest {
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(() -> service.StartWorkflowExecution(new StartWorkflowExecutionRequest()));
     }
+
+    @Test
+    public void responseIsHandledCorrectWithCallback() throws TChannelError, TException {
+      testHelperWithCallback(
+          callback ->
+              service.StartWorkflowExecution(new StartWorkflowExecutionRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1243,6 +1466,12 @@ public class WorkflowServiceTChannelTest {
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(() -> service.GetTaskListsByDomain(new GetTaskListsByDomainRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.GetTaskListsByDomain(new GetTaskListsByDomainRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1298,6 +1527,12 @@ public class WorkflowServiceTChannelTest {
             return null;
           });
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.DeprecateDomain(new DeprecateDomainRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1347,6 +1582,12 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(() -> service.PollForDecisionTask(new PollForDecisionTaskRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.PollForDecisionTask(new PollForDecisionTaskRequest(), callback));
     }
   }
 
@@ -1401,6 +1642,14 @@ public class WorkflowServiceTChannelTest {
       testHelper(
           () -> service.RespondDecisionTaskCompleted(new RespondDecisionTaskCompletedRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondDecisionTaskCompleted(
+                  new RespondDecisionTaskCompletedRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1450,6 +1699,12 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(() -> service.PollForActivityTask(new PollForActivityTaskRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback -> service.PollForActivityTask(new PollForActivityTaskRequest(), callback));
     }
   }
 
@@ -1502,6 +1757,14 @@ public class WorkflowServiceTChannelTest {
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(
           () -> service.RecordActivityTaskHeartbeat(new RecordActivityTaskHeartbeatRequest()));
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RecordActivityTaskHeartbeat(
+                  new RecordActivityTaskHeartbeatRequest(), callback));
     }
   }
 
@@ -1558,6 +1821,14 @@ public class WorkflowServiceTChannelTest {
               service.RecordActivityTaskHeartbeatByID(
                   new RecordActivityTaskHeartbeatByIDRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RecordActivityTaskHeartbeatByID(
+                  new RecordActivityTaskHeartbeatByIDRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1607,6 +1878,14 @@ public class WorkflowServiceTChannelTest {
             service.RespondActivityTaskCompleted(new RespondActivityTaskCompletedRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskCompleted(
+                  new RespondActivityTaskCompletedRequest(), callback));
     }
   }
 
@@ -1661,6 +1940,14 @@ public class WorkflowServiceTChannelTest {
             return null;
           });
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskCompletedByID(
+                  new RespondActivityTaskCompletedByIDRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1708,6 +1995,13 @@ public class WorkflowServiceTChannelTest {
             service.RespondActivityTaskFailed(new RespondActivityTaskFailedRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskFailed(new RespondActivityTaskFailedRequest(), callback));
     }
   }
 
@@ -1762,6 +2056,14 @@ public class WorkflowServiceTChannelTest {
             return null;
           });
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskFailedByID(
+                  new RespondActivityTaskFailedByIDRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1809,6 +2111,14 @@ public class WorkflowServiceTChannelTest {
             service.RespondActivityTaskCanceled(new RespondActivityTaskCanceledRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskCanceled(
+                  new RespondActivityTaskCanceledRequest(), callback));
     }
   }
 
@@ -1863,6 +2173,14 @@ public class WorkflowServiceTChannelTest {
             return null;
           });
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondActivityTaskCanceledByID(
+                  new RespondActivityTaskCanceledByIDRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1916,6 +2234,14 @@ public class WorkflowServiceTChannelTest {
             return null;
           });
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RequestCancelWorkflowExecution(
+                  new RequestCancelWorkflowExecutionRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -1962,6 +2288,14 @@ public class WorkflowServiceTChannelTest {
           () -> {
             service.SignalWorkflowExecution(new SignalWorkflowExecutionRequest());
             return null;
+          });
+    }
+
+    @Test
+    public void responseIsHandledCorrectlyWithCallback() throws Exception {
+      testHelperWithCallback(
+          callback -> {
+            service.SignalWorkflowExecution(new SignalWorkflowExecutionRequest(), callback);
           });
     }
   }
@@ -2018,6 +2352,14 @@ public class WorkflowServiceTChannelTest {
               service.SignalWithStartWorkflowExecution(
                   new SignalWithStartWorkflowExecutionRequest()));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.SignalWithStartWorkflowExecution(
+                  new SignalWithStartWorkflowExecutionRequest(), callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -2072,6 +2414,12 @@ public class WorkflowServiceTChannelTest {
             service.RefreshWorkflowTasks(new RefreshWorkflowTasksRequest());
             return null;
           });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertNoOpWithCallback(
+          callback -> service.RefreshWorkflowTasks(new RefreshWorkflowTasksRequest(), callback));
     }
   }
 
@@ -2129,6 +2477,16 @@ public class WorkflowServiceTChannelTest {
                   new SignalWithStartWorkflowExecutionAsyncRequest()
                       .setRequest(new SignalWithStartWorkflowExecutionRequest())));
     }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.SignalWithStartWorkflowExecutionAsync(
+                  new SignalWithStartWorkflowExecutionAsyncRequest()
+                      .setRequest(new SignalWithStartWorkflowExecutionRequest()),
+                  callback));
+    }
   }
 
   @RunWith(Parameterized.class)
@@ -2182,6 +2540,56 @@ public class WorkflowServiceTChannelTest {
       testHelper(
           () -> {
             service.RespondDecisionTaskFailed(new RespondDecisionTaskFailedRequest());
+            return null;
+          });
+    }
+
+    @Test
+    public void callbackIsNotSupported() {
+      assertUnimplementedWithCallback(
+          callback ->
+              service.RespondDecisionTaskFailed(new RespondDecisionTaskFailedRequest(), callback));
+    }
+  }
+
+  public static class ConstructorTest {
+    @Test
+    public void testDefault() {
+      IWorkflowService service = new WorkflowServiceTChannel(ClientOptions.newBuilder().build());
+      assertNotNull(service);
+    }
+  }
+
+  @RunWith(Parameterized.class)
+  public static class IsHealthyTest extends BaseTest<Meta.health_result, Boolean> {
+    @Parameterized.Parameters(name = "{index}: Response Code {0}, Response {1}")
+    public static Iterable<Object[]> data() {
+      return Arrays.asList(
+          new Object[][] {
+            {
+              ResponseCode.OK,
+              new Meta.health_result().setSuccess(new HealthStatus().setOk(true)),
+              null,
+              Boolean.TRUE
+            },
+            {
+              ResponseCode.OK,
+              new Meta.health_result().setSuccess(new HealthStatus().setOk(false)),
+              null,
+              Boolean.FALSE
+            },
+          });
+    }
+
+    @Test
+    public void testResult() throws TException, TChannelError {
+      testHelper(
+          () -> {
+            try {
+              return service.isHealthy().get();
+            } catch (Exception e) {
+              fail("should not throw exception: " + e);
+            }
             return null;
           });
     }
