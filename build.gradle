@@ -43,6 +43,8 @@ googleJavaFormat {
     exclude '**/generated-sources/*'
 }
 
+tasks.googleJavaFormat.dependsOn 'license'
+
 group = 'com.uber.cadence'
 version = '3.12.5'
 
