@@ -19,8 +19,10 @@ import com.google.common.collect.ImmutableMap;
 import com.uber.cadence.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class ThriftObjects {
   public static final WorkflowType WORKFLOW_TYPE =
@@ -76,6 +78,111 @@ public final class ThriftObjects {
       new ResetPoints().setPoints(Collections.singletonList(RESET_POINT_INFO));
   public static final ClusterReplicationConfiguration CLUSTER_REPLICATION_CONFIGURATION =
       new ClusterReplicationConfiguration().setClusterName("cluster");
+  public static final PollerInfo POLLER_INFO =
+      new PollerInfo().setIdentity("identity").setLastAccessTime(1).setRatePerSecond(2.0);
+  public static final TaskIDBlock TASK_ID_BLOCK = new TaskIDBlock().setStartID(1).setEndID(2);
+  public static final TaskListStatus TASK_LIST_STATUS =
+      new TaskListStatus()
+          .setTaskIDBlock(TASK_ID_BLOCK)
+          .setAckLevel(1)
+          .setBacklogCountHint(2)
+          .setReadLevel(3)
+          .setRatePerSecond(4.0);
+  public static final WorkflowExecutionConfiguration WORKFLOW_EXECUTION_CONFIGURATION =
+      new WorkflowExecutionConfiguration()
+          .setTaskList(TASK_LIST)
+          .setExecutionStartToCloseTimeoutSeconds(1)
+          .setTaskStartToCloseTimeoutSeconds(2);
+  public static final WorkflowExecutionInfo WORKFLOW_EXECUTION_INFO =
+      new WorkflowExecutionInfo()
+          .setExecution(WORKFLOW_EXECUTION)
+          .setType(WORKFLOW_TYPE)
+          .setStartTime(1)
+          .setCloseTime(2)
+          .setCloseStatus(WorkflowExecutionCloseStatus.FAILED)
+          .setHistoryLength(3)
+          .setParentDomainId("parentDomainId")
+          .setParentExecution(PARENT_WORKFLOW_EXECUTION)
+          .setExecutionTime(4)
+          .setMemo(MEMO)
+          .setSearchAttributes(SEARCH_ATTRIBUTES)
+          .setAutoResetPoints(RESET_POINTS)
+          .setTaskList(TASK_LIST.getName())
+          .setIsCron(true);
+  public static final PendingActivityInfo PENDING_ACTIVITY_INFO =
+      new PendingActivityInfo()
+          .setActivityID("activityId")
+          .setActivityType(ACTIVITY_TYPE)
+          .setState(PendingActivityState.STARTED)
+          .setHeartbeatDetails(utf8("heartbeatDetails"))
+          .setLastHeartbeatTimestamp(1)
+          .setLastStartedTimestamp(2)
+          .setAttempt(3)
+          .setMaximumAttempts(4)
+          .setScheduledTimestamp(5)
+          .setExpirationTimestamp(6)
+          .setLastWorkerIdentity("lastWorkerIdentity")
+          .setLastFailureReason("lastFailureReason")
+          .setLastFailureDetails(utf8("lastFailureDetails"));
+  public static final PendingChildExecutionInfo PENDING_CHILD_EXECUTION_INFO =
+      new PendingChildExecutionInfo()
+          .setWorkflowID(WORKFLOW_ID)
+          .setRunID(RUN_ID)
+          .setWorkflowTypName(WORKFLOW_TYPE.getName())
+          .setInitiatedID(1)
+          .setParentClosePolicy(ParentClosePolicy.REQUEST_CANCEL);
+  public static final PendingDecisionInfo PENDING_DECISION_INFO =
+      new PendingDecisionInfo()
+          .setState(PendingDecisionState.STARTED)
+          .setScheduledTimestamp(1)
+          .setStartedTimestamp(2)
+          .setAttempt(3)
+          .setOriginalScheduledTimestamp(4);
+  public static final SupportedClientVersions SUPPORTED_CLIENT_VERSIONS =
+      new SupportedClientVersions().setGoSdk("goSdk").setJavaSdk("javaSdk");
+  public static final Map<String, IndexedValueType> INDEXED_VALUES =
+      Arrays.stream(IndexedValueType.values()).collect(Collectors.toMap(Enum::name, v -> v));
+  public static final DataBlob DATA_BLOB =
+      new DataBlob().setData(utf8Bytes("data")).setEncodingType(EncodingType.JSON);
+  public static final TaskListPartitionMetadata TASK_LIST_PARTITION_METADATA =
+      new TaskListPartitionMetadata().setKey("key").setOwnerHostName("ownerHostName");
+  public static final ActivityLocalDispatchInfo ACTIVITY_LOCAL_DISPATCH_INFO =
+      new ActivityLocalDispatchInfo()
+          .setActivityId("activityId")
+          .setScheduledTimestamp(1)
+          .setStartedTimestamp(2)
+          .setScheduledTimestampOfThisAttempt(3)
+          .setTaskToken(utf8("taskToken"));
+  public static final DomainInfo DOMAIN_INFO =
+      new DomainInfo()
+          .setName("domain")
+          .setStatus(DomainStatus.DEPRECATED)
+          .setDescription("description")
+          .setOwnerEmail("email")
+          .setData(DATA)
+          .setUuid("uuid");
+  public static final DomainConfiguration DOMAIN_CONFIGURATION =
+      new DomainConfiguration()
+          .setWorkflowExecutionRetentionPeriodInDays(2)
+          .setBadBinaries(
+              new BadBinaries()
+                  .setBinaries(
+                      ImmutableMap.of(
+                          "badBinaryKey",
+                          new BadBinaryInfo()
+                              .setReason("reason")
+                              .setOperator("operator")
+                              .setCreatedTimeNano(3))))
+          .setHistoryArchivalStatus(ArchivalStatus.ENABLED)
+          .setHistoryArchivalURI("historyArchivalUri")
+          .setVisibilityArchivalStatus(ArchivalStatus.DISABLED)
+          .setVisibilityArchivalURI("visibilityArchivalUri")
+          .setEmitMetric(true);
+
+  public static final DomainReplicationConfiguration DOMAIN_REPLICATION_CONFIGURATION =
+      new DomainReplicationConfiguration()
+          .setActiveClusterName("activeCluster")
+          .setClusters(ImmutableList.of(CLUSTER_REPLICATION_CONFIGURATION));
 
   public static Decision DECISION_SCHEDULE_ACTIVITY_TASK =
       new Decision()
@@ -597,6 +704,17 @@ public final class ThriftObjects {
               .setWorkflowExecution(WORKFLOW_EXECUTION)
               .setControl(utf8("control"));
 
+  public static final HistoryEvent HISTORY_EVENT =
+      new HistoryEvent()
+          .setEventId(1)
+          .setTimestamp(2)
+          .setVersion(3)
+          .setTaskId(4)
+          .setEventType(EventType.WorkflowExecutionStarted)
+          .setWorkflowExecutionStartedEventAttributes(WORKFLOW_EXECUTION_STARTED_EVENT_ATTRIBUTES);
+
+  public static final History HISTORY = new History().setEvents(ImmutableList.of(HISTORY_EVENT));
+
   public static final CountWorkflowExecutionsRequest COUNT_WORKFLOW_EXECUTIONS_REQUEST =
       new CountWorkflowExecutionsRequest().setDomain("domain").setQuery("query");
   public static final DescribeTaskListRequest DESCRIBE_TASK_LIST_REQUEST =
@@ -863,26 +981,8 @@ public final class ThriftObjects {
                   .setData(DATA)
                   .setDescription("description")
                   .setOwnerEmail("ownerEmail"))
-          .setReplicationConfiguration(
-              new DomainReplicationConfiguration()
-                  .setActiveClusterName("activeCluster")
-                  .setClusters(ImmutableList.of(CLUSTER_REPLICATION_CONFIGURATION)))
-          .setConfiguration(
-              new DomainConfiguration()
-                  .setWorkflowExecutionRetentionPeriodInDays(2)
-                  .setBadBinaries(
-                      new BadBinaries()
-                          .setBinaries(
-                              ImmutableMap.of(
-                                  "badBinaryKey",
-                                  new BadBinaryInfo()
-                                      .setReason("reason")
-                                      .setOperator("operator")
-                                      .setCreatedTimeNano(3))))
-                  .setHistoryArchivalStatus(ArchivalStatus.ENABLED)
-                  .setHistoryArchivalURI("historyArchivalUri")
-                  .setVisibilityArchivalStatus(ArchivalStatus.DISABLED)
-                  .setVisibilityArchivalURI("visibilityArchivalUri"))
+          .setReplicationConfiguration(DOMAIN_REPLICATION_CONFIGURATION)
+          .setConfiguration(DOMAIN_CONFIGURATION)
           .setDeleteBadBinary("deleteBadBinary")
           .setFailoverTimeoutInSeconds(1);
 
@@ -906,6 +1006,135 @@ public final class ThriftObjects {
           .setTypeFilter(new WorkflowTypeFilter().setName(WORKFLOW_TYPE.getName()))
           .setNextPageToken(utf8("nextPageToken"))
           .setStartTimeFilter(new StartTimeFilter().setEarliestTime(2).setLatestTime(3));
+
+  public static final StartWorkflowExecutionResponse START_WORKFLOW_EXECUTION_RESPONSE =
+      new StartWorkflowExecutionResponse().setRunId(RUN_ID);
+  public static final StartWorkflowExecutionAsyncResponse START_WORKFLOW_EXECUTION_ASYNC_RESPONSE =
+      new StartWorkflowExecutionAsyncResponse();
+
+  public static final DescribeTaskListResponse DESCRIBE_TASK_LIST_RESPONSE =
+      new DescribeTaskListResponse()
+          .setPollers(ImmutableList.of(POLLER_INFO))
+          .setTaskListStatus(TASK_LIST_STATUS);
+
+  public static final DescribeWorkflowExecutionResponse DESCRIBE_WORKFLOW_EXECUTION_RESPONSE =
+      new DescribeWorkflowExecutionResponse()
+          .setExecutionConfiguration(WORKFLOW_EXECUTION_CONFIGURATION)
+          .setWorkflowExecutionInfo(WORKFLOW_EXECUTION_INFO)
+          .setPendingActivities(ImmutableList.of(PENDING_ACTIVITY_INFO))
+          .setPendingChildren(ImmutableList.of(PENDING_CHILD_EXECUTION_INFO))
+          .setPendingDecision(PENDING_DECISION_INFO);
+
+  public static final ClusterInfo CLUSTER_INFO =
+      new ClusterInfo().setSupportedClientVersions(SUPPORTED_CLIENT_VERSIONS);
+
+  public static final GetSearchAttributesResponse GET_SEARCH_ATTRIBUTES_RESPONSE =
+      new GetSearchAttributesResponse().setKeys(INDEXED_VALUES);
+  public static final GetWorkflowExecutionHistoryResponse GET_WORKFLOW_EXECUTION_HISTORY_RESPONSE =
+      new GetWorkflowExecutionHistoryResponse()
+          .setHistory(HISTORY)
+          .setRawHistory(ImmutableList.of(DATA_BLOB))
+          .setNextPageToken(utf8("nextPageToken"))
+          .setArchived(true);
+
+  public static final ListArchivedWorkflowExecutionsResponse
+      LIST_ARCHIVED_WORKFLOW_EXECUTIONS_RESPONSE =
+          new ListArchivedWorkflowExecutionsResponse()
+              .setExecutions(ImmutableList.of(WORKFLOW_EXECUTION_INFO))
+              .setNextPageToken(utf8("nextPageToken"));
+
+  public static final ListClosedWorkflowExecutionsResponse
+      LIST_CLOSED_WORKFLOW_EXECUTIONS_RESPONSE =
+          new ListClosedWorkflowExecutionsResponse()
+              .setExecutions(ImmutableList.of(WORKFLOW_EXECUTION_INFO))
+              .setNextPageToken(utf8("nextPageToken"));
+  public static final ListOpenWorkflowExecutionsResponse LIST_OPEN_WORKFLOW_EXECUTIONS_RESPONSE =
+      new ListOpenWorkflowExecutionsResponse()
+          .setExecutions(ImmutableList.of(WORKFLOW_EXECUTION_INFO))
+          .setNextPageToken(utf8("nextPageToken"));
+  public static final ListTaskListPartitionsResponse LIST_TASK_LIST_PARTITIONS_RESPONSE =
+      new ListTaskListPartitionsResponse()
+          .setActivityTaskListPartitions(ImmutableList.of(TASK_LIST_PARTITION_METADATA))
+          .setDecisionTaskListPartitions(ImmutableList.of(TASK_LIST_PARTITION_METADATA));
+  public static final ListWorkflowExecutionsResponse LIST_WORKFLOW_EXECUTIONS_RESPONSE =
+      new ListWorkflowExecutionsResponse()
+          .setExecutions(ImmutableList.of(WORKFLOW_EXECUTION_INFO))
+          .setNextPageToken(utf8("nextPageToken"));
+  public static final PollForActivityTaskResponse POLL_FOR_ACTIVITY_TASK_RESPONSE =
+      new PollForActivityTaskResponse()
+          .setTaskToken(utf8("taskToken"))
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setActivityId("activityId")
+          .setActivityType(ACTIVITY_TYPE)
+          .setInput(utf8("input"))
+          .setScheduledTimestamp(1)
+          .setStartedTimestamp(2)
+          .setScheduleToCloseTimeoutSeconds(3)
+          .setStartToCloseTimeoutSeconds(4)
+          .setHeartbeatTimeoutSeconds(5)
+          .setAttempt(6)
+          .setScheduledTimestampOfThisAttempt(7)
+          .setHeartbeatDetails(utf8("heartbeatDetails"))
+          .setWorkflowType(WORKFLOW_TYPE)
+          .setWorkflowDomain("domain")
+          .setHeader(HEADER);
+  public static final PollForDecisionTaskResponse POLL_FOR_DECISION_TASK_RESPONSE =
+      new PollForDecisionTaskResponse()
+          .setTaskToken(utf8("taskToken"))
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setWorkflowType(WORKFLOW_TYPE)
+          .setPreviousStartedEventId(1)
+          .setStartedEventId(2)
+          .setAttempt(3)
+          .setBacklogCountHint(4)
+          .setHistory(HISTORY)
+          .setNextPageToken(utf8("nextPageToken"))
+          .setQuery(WORKFLOW_QUERY)
+          .setWorkflowExecutionTaskList(TASK_LIST)
+          .setScheduledTimestamp(5)
+          .setStartedTimestamp(6)
+          .setQueries(ImmutableMap.of("query", WORKFLOW_QUERY))
+          .setNextEventId(7);
+
+  public static final QueryWorkflowResponse QUERY_WORKFLOW_RESPONSE =
+      new QueryWorkflowResponse()
+          .setQueryResult(utf8("result"))
+          .setQueryRejected(
+              new QueryRejected().setCloseStatus(WorkflowExecutionCloseStatus.FAILED));
+
+  public static final RecordActivityTaskHeartbeatResponse RECORD_ACTIVITY_TASK_HEARTBEAT_RESPONSE =
+      new RecordActivityTaskHeartbeatResponse().setCancelRequested(true);
+  public static final ResetWorkflowExecutionResponse RESET_WORKFLOW_EXECUTION_RESPONSE =
+      new ResetWorkflowExecutionResponse().setRunId(RUN_ID);
+  public static final RespondDecisionTaskCompletedResponse
+      RESPOND_DECISION_TASK_COMPLETED_RESPONSE =
+          new RespondDecisionTaskCompletedResponse()
+              .setDecisionTask(POLL_FOR_DECISION_TASK_RESPONSE)
+              .setActivitiesToDispatchLocally(
+                  ImmutableMap.of("activity", ACTIVITY_LOCAL_DISPATCH_INFO));
+  public static final CountWorkflowExecutionsResponse COUNT_WORKFLOW_EXECUTIONS_RESPONSE =
+      new CountWorkflowExecutionsResponse().setCount(1000);
+  public static final DescribeDomainResponse DESCRIBE_DOMAIN_RESPONSE =
+      new DescribeDomainResponse()
+          .setDomainInfo(DOMAIN_INFO)
+          .setConfiguration(DOMAIN_CONFIGURATION)
+          .setReplicationConfiguration(DOMAIN_REPLICATION_CONFIGURATION)
+          .setFailoverVersion(1)
+          .setIsGlobalDomain(true);
+  public static final ListDomainsResponse LIST_DOMAINS_RESPONSE =
+      new ListDomainsResponse()
+          .setDomains(ImmutableList.of(DESCRIBE_DOMAIN_RESPONSE))
+          .setNextPageToken(utf8("nextPageToken"));
+  public static final SignalWithStartWorkflowExecutionAsyncResponse
+      SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC_RESPONSE =
+          new SignalWithStartWorkflowExecutionAsyncResponse();
+  public static final UpdateDomainResponse UPDATE_DOMAIN_RESPONSE =
+      new UpdateDomainResponse()
+          .setDomainInfo(DOMAIN_INFO)
+          .setConfiguration(DOMAIN_CONFIGURATION)
+          .setReplicationConfiguration(DOMAIN_REPLICATION_CONFIGURATION)
+          .setFailoverVersion(1)
+          .setIsGlobalDomain(true);
 
   private ThriftObjects() {}
 
