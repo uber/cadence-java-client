@@ -500,7 +500,9 @@ class TypeMapper {
     domainInfo.setOwnerEmail(t.getOwnerEmail());
     domainInfo.setData(t.getDataMap());
     domainInfo.setUuid(t.getId());
+
     DomainConfiguration domainConfiguration = new DomainConfiguration();
+    res.setConfiguration(domainConfiguration);
 
     domainConfiguration.setWorkflowExecutionRetentionPeriodInDays(
         durationToDays(t.getWorkflowExecutionRetentionPeriod()));
@@ -511,8 +513,10 @@ class TypeMapper {
     domainConfiguration.setVisibilityArchivalStatus(
         archivalStatus(t.getVisibilityArchivalStatus()));
     domainConfiguration.setVisibilityArchivalURI(t.getVisibilityArchivalUri());
+
     DomainReplicationConfiguration domainReplicationConfiguration =
         new DomainReplicationConfiguration();
+    res.setReplicationConfiguration(domainReplicationConfiguration);
 
     domainReplicationConfiguration.setActiveClusterName(t.getActiveClusterName());
     domainReplicationConfiguration.setClusters(
