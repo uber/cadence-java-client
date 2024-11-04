@@ -7,11 +7,11 @@ This doc is intended for contributors to `cadence-java-client` (hopefully that's
 ## Development Environment
 
 * Java 11 (currently, we use Java 11 to compile Java 8 code).
-* Thrift 0.9.3 (use [homebrew](https://formulae.brew.sh/formula/thrift@0.9) or [distribution](https://downloads.apache.org/thrift/0.9.3/))
+* Thrift 0.19.0 (use [homebrew](https://formulae.brew.sh/formula/thrift@0.19) or [distribution](https://downloads.apache.org/thrift/0.19.0/))
 * Gradle build tool [6.x](https://github.com/uber/cadence-java-client/blob/master/gradle/wrapper/gradle-wrapper.properties)
 * Docker
 
-:warning: Note 1: You must install the 0.9.x version of Thrift. Otherwise compiling would fail at error `error: package org.apache.thrift.annotation does not exist`
+:warning: Note 1: You must install the 0.19.x version of Thrift. Otherwise compiling would fail at error `error: package org.apache.thrift.annotation does not exist`
 
 :warning: Note 2: It's currently compatible with Java 8 compiler but no guarantee in the future. 
 
