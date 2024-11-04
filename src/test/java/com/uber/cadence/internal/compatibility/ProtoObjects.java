@@ -20,6 +20,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.DoubleValue;
 import com.google.protobuf.Duration;
 import com.google.protobuf.FieldMask;
+import com.google.protobuf.Int64Value;
 import com.google.protobuf.Timestamp;
 import com.uber.cadence.api.v1.*;
 import java.util.Map;
@@ -90,6 +91,143 @@ public final class ProtoObjects {
       ResetPoints.newBuilder().addPoints(RESET_POINT_INFO).build();
   public static final ClusterReplicationConfiguration CLUSTER_REPLICATION_CONFIGURATION =
       ClusterReplicationConfiguration.newBuilder().setClusterName("cluster").build();
+  public static final PollerInfo POLLER_INFO =
+      PollerInfo.newBuilder()
+          .setIdentity("identity")
+          .setLastAccessTime(timestampNanos(1))
+          .setRatePerSecond(2.0)
+          .build();
+  public static final TaskIDBlock TASK_ID_BLOCK =
+      TaskIDBlock.newBuilder().setStartId(1).setEndId(2).build();
+  public static final TaskListStatus TASK_LIST_STATUS =
+      TaskListStatus.newBuilder()
+          .setTaskIdBlock(TASK_ID_BLOCK)
+          .setAckLevel(1)
+          .setBacklogCountHint(2)
+          .setReadLevel(3)
+          .setRatePerSecond(4.0)
+          .build();
+  public static final WorkflowExecutionConfiguration WORKFLOW_EXECUTION_CONFIGURATION =
+      WorkflowExecutionConfiguration.newBuilder()
+          .setTaskList(TASK_LIST)
+          .setExecutionStartToCloseTimeout(seconds(1))
+          .setTaskStartToCloseTimeout(seconds(2))
+          .build();
+  public static final WorkflowExecutionInfo WORKFLOW_EXECUTION_INFO =
+      WorkflowExecutionInfo.newBuilder()
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setType(WORKFLOW_TYPE)
+          .setStartTime(timestampNanos(1))
+          .setCloseTime(timestampNanos(2))
+          .setCloseStatus(WorkflowExecutionCloseStatus.WORKFLOW_EXECUTION_CLOSE_STATUS_FAILED)
+          .setHistoryLength(3)
+          .setParentExecutionInfo(
+              ParentExecutionInfo.newBuilder()
+                  .setDomainId("parentDomainId")
+                  .setWorkflowExecution(PARENT_WORKFLOW_EXECUTION)
+                  .setInitiatedId(1)
+                  .build())
+          .setExecutionTime(timestampNanos(4))
+          .setMemo(MEMO)
+          .setSearchAttributes(SEARCH_ATTRIBUTES)
+          .setAutoResetPoints(RESET_POINTS)
+          .setTaskList(TASK_LIST.getName())
+          .setIsCron(true)
+          .build();
+  public static final PendingActivityInfo PENDING_ACTIVITY_INFO =
+      PendingActivityInfo.newBuilder()
+          .setActivityId("activityId")
+          .setActivityType(ACTIVITY_TYPE)
+          .setState(PendingActivityState.PENDING_ACTIVITY_STATE_STARTED)
+          .setHeartbeatDetails(payload("heartbeatDetails"))
+          .setLastHeartbeatTime(timestampNanos(1))
+          .setLastStartedTime(timestampNanos(2))
+          .setAttempt(3)
+          .setMaximumAttempts(4)
+          .setScheduledTime(timestampNanos(5))
+          .setExpirationTime(timestampNanos(6))
+          .setLastWorkerIdentity("lastWorkerIdentity")
+          .setLastFailure(
+              Failure.newBuilder()
+                  .setReason("lastFailureReason")
+                  .setDetails(utf8("lastFailureDetails")))
+          .build();
+  public static final PendingChildExecutionInfo PENDING_CHILD_EXECUTION_INFO =
+      PendingChildExecutionInfo.newBuilder()
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setWorkflowTypeName(WORKFLOW_TYPE.getName())
+          .setInitiatedId(1)
+          .setParentClosePolicy(ParentClosePolicy.PARENT_CLOSE_POLICY_REQUEST_CANCEL)
+          .build();
+  public static final PendingDecisionInfo PENDING_DECISION_INFO =
+      PendingDecisionInfo.newBuilder()
+          .setState(PendingDecisionState.PENDING_DECISION_STATE_STARTED)
+          .setScheduledTime(timestampNanos(1))
+          .setStartedTime(timestampNanos(2))
+          .setAttempt(3)
+          .setOriginalScheduledTime(timestampNanos(4))
+          .build();
+  public static final SupportedClientVersions SUPPORTED_CLIENT_VERSIONS =
+      SupportedClientVersions.newBuilder().setGoSdk("goSdk").setJavaSdk("javaSdk").build();
+  public static final Map<String, IndexedValueType> INDEXED_VALUES =
+      ImmutableMap.of(
+          "STRING",
+          IndexedValueType.INDEXED_VALUE_TYPE_STRING,
+          "KEYWORD",
+          IndexedValueType.INDEXED_VALUE_TYPE_KEYWORD,
+          "INT",
+          IndexedValueType.INDEXED_VALUE_TYPE_INT,
+          "DOUBLE",
+          IndexedValueType.INDEXED_VALUE_TYPE_DOUBLE,
+          "BOOL",
+          IndexedValueType.INDEXED_VALUE_TYPE_BOOL,
+          "DATETIME",
+          IndexedValueType.INDEXED_VALUE_TYPE_DATETIME);
+  public static final DataBlob DATA_BLOB =
+      DataBlob.newBuilder()
+          .setData(utf8("data"))
+          .setEncodingType(EncodingType.ENCODING_TYPE_JSON)
+          .build();
+  public static final TaskListPartitionMetadata TASK_LIST_PARTITION_METADATA =
+      TaskListPartitionMetadata.newBuilder()
+          .setKey("key")
+          .setOwnerHostName("ownerHostName")
+          .build();
+  public static final ActivityLocalDispatchInfo ACTIVITY_LOCAL_DISPATCH_INFO =
+      ActivityLocalDispatchInfo.newBuilder()
+          .setActivityId("activityId")
+          .setScheduledTime(timestampNanos(1))
+          .setStartedTime(timestampNanos(2))
+          .setScheduledTimeOfThisAttempt(timestampNanos(3))
+          .setTaskToken(utf8("taskToken"))
+          .build();
+  public static final Domain DOMAIN =
+      Domain.newBuilder()
+          .setId("uuid")
+          .setName("domain")
+          .setStatus(DomainStatus.DOMAIN_STATUS_DEPRECATED)
+          .setDescription("description")
+          .setOwnerEmail("email")
+          .putAllData(DATA)
+          .setWorkflowExecutionRetentionPeriod(days(2))
+          .setBadBinaries(
+              BadBinaries.newBuilder()
+                  .putBinaries(
+                      "badBinaryKey",
+                      BadBinaryInfo.newBuilder()
+                          .setReason("reason")
+                          .setOperator("operator")
+                          .setCreatedTime(timestampNanos(3))
+                          .build()))
+          .setHistoryArchivalStatus(ArchivalStatus.ARCHIVAL_STATUS_ENABLED)
+          .setHistoryArchivalUri("historyArchivalUri")
+          .setVisibilityArchivalStatus(ArchivalStatus.ARCHIVAL_STATUS_DISABLED)
+          .setVisibilityArchivalUri("visibilityArchivalUri")
+          .setActiveClusterName("activeCluster")
+          .addClusters(CLUSTER_REPLICATION_CONFIGURATION)
+          .setFailoverVersion(1)
+          .setIsGlobalDomain(true)
+          .build();
 
   public static Decision DECISION_SCHEDULE_ACTIVITY_TASK =
       Decision.newBuilder()
@@ -669,6 +807,18 @@ public final class ProtoObjects {
               .setWorkflowExecution(WORKFLOW_EXECUTION)
               .setControl(utf8("control"))
               .build();
+
+  public static final HistoryEvent HISTORY_EVENT =
+      HistoryEvent.newBuilder()
+          .setEventId(1)
+          .setEventTime(timestampNanos(2))
+          .setVersion(3)
+          .setTaskId(4)
+          .setWorkflowExecutionStartedEventAttributes(WORKFLOW_EXECUTION_STARTED_EVENT_ATTRIBUTES)
+          .build();
+
+  public static final History HISTORY = History.newBuilder().addEvents(HISTORY_EVENT).build();
+
   public static final CountWorkflowExecutionsRequest COUNT_WORKFLOW_EXECUTIONS_REQUEST =
       CountWorkflowExecutionsRequest.newBuilder().setDomain("domain").setQuery("query").build();
   public static final DescribeTaskListRequest DESCRIBE_TASK_LIST_REQUEST =
@@ -1026,6 +1176,154 @@ public final class ProtoObjects {
                   .setLatestTime(timestampNanos(3)))
           .build();
 
+  public static final StartWorkflowExecutionResponse START_WORKFLOW_EXECUTION_RESPONSE =
+      StartWorkflowExecutionResponse.newBuilder().setRunId(WORKFLOW_EXECUTION.getRunId()).build();
+  public static final StartWorkflowExecutionAsyncResponse START_WORKFLOW_EXECUTION_ASYNC_RESPONSE =
+      StartWorkflowExecutionAsyncResponse.newBuilder().build();
+
+  public static final DescribeTaskListResponse DESCRIBE_TASK_LIST_RESPONSE =
+      DescribeTaskListResponse.newBuilder()
+          .addPollers(POLLER_INFO)
+          .setTaskListStatus(TASK_LIST_STATUS)
+          .build();
+
+  public static final DescribeWorkflowExecutionResponse DESCRIBE_WORKFLOW_EXECUTION_RESPONSE =
+      DescribeWorkflowExecutionResponse.newBuilder()
+          .setExecutionConfiguration(WORKFLOW_EXECUTION_CONFIGURATION)
+          .setWorkflowExecutionInfo(WORKFLOW_EXECUTION_INFO)
+          .addPendingActivities(PENDING_ACTIVITY_INFO)
+          .addPendingChildren(PENDING_CHILD_EXECUTION_INFO)
+          .setPendingDecision(PENDING_DECISION_INFO)
+          .build();
+
+  public static final GetClusterInfoResponse GET_CLUSTER_INFO_RESPONSE =
+      GetClusterInfoResponse.newBuilder()
+          .setSupportedClientVersions(SUPPORTED_CLIENT_VERSIONS)
+          .build();
+
+  public static final GetSearchAttributesResponse GET_SEARCH_ATTRIBUTES_RESPONSE =
+      GetSearchAttributesResponse.newBuilder().putAllKeys(INDEXED_VALUES).build();
+  public static final GetWorkflowExecutionHistoryResponse GET_WORKFLOW_EXECUTION_HISTORY_RESPONSE =
+      GetWorkflowExecutionHistoryResponse.newBuilder()
+          .setHistory(HISTORY)
+          .addRawHistory(DATA_BLOB)
+          .setNextPageToken(utf8("nextPageToken"))
+          .setArchived(true)
+          .build();
+
+  public static final ListArchivedWorkflowExecutionsResponse
+      LIST_ARCHIVED_WORKFLOW_EXECUTIONS_RESPONSE =
+          ListArchivedWorkflowExecutionsResponse.newBuilder()
+              .addExecutions(WORKFLOW_EXECUTION_INFO)
+              .setNextPageToken(utf8("nextPageToken"))
+              .build();
+
+  public static final ListClosedWorkflowExecutionsResponse
+      LIST_CLOSED_WORKFLOW_EXECUTIONS_RESPONSE =
+          ListClosedWorkflowExecutionsResponse.newBuilder()
+              .addExecutions(WORKFLOW_EXECUTION_INFO)
+              .setNextPageToken(utf8("nextPageToken"))
+              .build();
+  public static final ListOpenWorkflowExecutionsResponse LIST_OPEN_WORKFLOW_EXECUTIONS_RESPONSE =
+      ListOpenWorkflowExecutionsResponse.newBuilder()
+          .addExecutions(WORKFLOW_EXECUTION_INFO)
+          .setNextPageToken(utf8("nextPageToken"))
+          .build();
+  public static final ListTaskListPartitionsResponse LIST_TASK_LIST_PARTITIONS_RESPONSE =
+      ListTaskListPartitionsResponse.newBuilder()
+          .addActivityTaskListPartitions(TASK_LIST_PARTITION_METADATA)
+          .addDecisionTaskListPartitions(TASK_LIST_PARTITION_METADATA)
+          .build();
+  public static final ScanWorkflowExecutionsResponse SCAN_WORKFLOW_EXECUTIONS_RESPONSE =
+      ScanWorkflowExecutionsResponse.newBuilder()
+          .addExecutions(WORKFLOW_EXECUTION_INFO)
+          .setNextPageToken(utf8("nextPageToken"))
+          .build();
+  public static final ListWorkflowExecutionsResponse LIST_WORKFLOW_EXECUTIONS_RESPONSE =
+      ListWorkflowExecutionsResponse.newBuilder()
+          .addExecutions(WORKFLOW_EXECUTION_INFO)
+          .setNextPageToken(utf8("nextPageToken"))
+          .build();
+  public static final PollForActivityTaskResponse POLL_FOR_ACTIVITY_TASK_RESPONSE =
+      PollForActivityTaskResponse.newBuilder()
+          .setTaskToken(utf8("taskToken"))
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setActivityId("activityId")
+          .setActivityType(ACTIVITY_TYPE)
+          .setInput(payload("input"))
+          .setScheduledTime(timestampNanos(1))
+          .setStartedTime(timestampNanos(2))
+          .setScheduleToCloseTimeout(seconds(3))
+          .setStartToCloseTimeout(seconds(4))
+          .setHeartbeatTimeout(seconds(5))
+          .setAttempt(6)
+          .setScheduledTimeOfThisAttempt(timestampNanos(7))
+          .setHeartbeatDetails(payload("heartbeatDetails"))
+          .setWorkflowType(WORKFLOW_TYPE)
+          .setWorkflowDomain("domain")
+          .setHeader(HEADER)
+          .build();
+  public static final PollForDecisionTaskResponse POLL_FOR_DECISION_TASK_RESPONSE =
+      PollForDecisionTaskResponse.newBuilder()
+          .setTaskToken(utf8("taskToken"))
+          .setWorkflowExecution(WORKFLOW_EXECUTION)
+          .setWorkflowType(WORKFLOW_TYPE)
+          .setPreviousStartedEventId(int64(1))
+          .setStartedEventId(2)
+          .setAttempt(3)
+          .setBacklogCountHint(4)
+          .setHistory(HISTORY)
+          .setNextPageToken(utf8("nextPageToken"))
+          .setQuery(WORKFLOW_QUERY)
+          .setWorkflowExecutionTaskList(TASK_LIST)
+          .setScheduledTime(timestampNanos(5))
+          .setStartedTime(timestampNanos(6))
+          .putAllQueries(ImmutableMap.of("query", WORKFLOW_QUERY))
+          .setNextEventId(7)
+          .build();
+
+  public static final QueryWorkflowResponse QUERY_WORKFLOW_RESPONSE =
+      QueryWorkflowResponse.newBuilder()
+          .setQueryResult(payload("result"))
+          .setQueryRejected(
+              QueryRejected.newBuilder()
+                  .setCloseStatus(
+                      WorkflowExecutionCloseStatus.WORKFLOW_EXECUTION_CLOSE_STATUS_FAILED))
+          .build();
+
+  public static final RecordActivityTaskHeartbeatResponse RECORD_ACTIVITY_TASK_HEARTBEAT_RESPONSE =
+      RecordActivityTaskHeartbeatResponse.newBuilder().setCancelRequested(true).build();
+  public static final RecordActivityTaskHeartbeatByIDResponse
+      RECORD_ACTIVITY_TASK_HEARTBEAT_BY_ID_RESPONSE =
+          RecordActivityTaskHeartbeatByIDResponse.newBuilder().setCancelRequested(true).build();
+  public static final ResetWorkflowExecutionResponse RESET_WORKFLOW_EXECUTION_RESPONSE =
+      ResetWorkflowExecutionResponse.newBuilder().setRunId(WORKFLOW_EXECUTION.getRunId()).build();
+  public static final RespondDecisionTaskCompletedResponse
+      RESPOND_DECISION_TASK_COMPLETED_RESPONSE =
+          RespondDecisionTaskCompletedResponse.newBuilder()
+              .setDecisionTask(POLL_FOR_DECISION_TASK_RESPONSE)
+              .putActivitiesToDispatchLocally("activity", ACTIVITY_LOCAL_DISPATCH_INFO)
+              .build();
+  public static final CountWorkflowExecutionsResponse COUNT_WORKFLOW_EXECUTIONS_RESPONSE =
+      CountWorkflowExecutionsResponse.newBuilder().setCount(1000).build();
+  public static final DescribeDomainResponse DESCRIBE_DOMAIN_RESPONSE =
+      DescribeDomainResponse.newBuilder().setDomain(DOMAIN).build();
+  public static final ListDomainsResponse LIST_DOMAINS_RESPONSE =
+      ListDomainsResponse.newBuilder()
+          .addDomains(DOMAIN)
+          .setNextPageToken(utf8("nextPageToken"))
+          .build();
+  public static final SignalWithStartWorkflowExecutionResponse
+      SIGNAL_WITH_START_WORKFLOW_EXECUTION_RESPONSE =
+          SignalWithStartWorkflowExecutionResponse.newBuilder()
+              .setRunId(WORKFLOW_EXECUTION.getRunId())
+              .build();
+  public static final SignalWithStartWorkflowExecutionAsyncResponse
+      SIGNAL_WITH_START_WORKFLOW_EXECUTION_ASYNC_RESPONSE =
+          SignalWithStartWorkflowExecutionAsyncResponse.newBuilder().build();
+  public static final UpdateDomainResponse UPDATE_DOMAIN_RESPONSE =
+      UpdateDomainResponse.newBuilder().setDomain(DOMAIN).build();
+
   private ProtoObjects() {}
 
   private static Payload payload(String value) {
@@ -1046,5 +1344,9 @@ public final class ProtoObjects {
 
   private static ByteString utf8(String value) {
     return ByteString.copyFromUtf8(value);
+  }
+
+  private static Int64Value int64(long value) {
+    return Int64Value.newBuilder().setValue(value).build();
   }
 }
