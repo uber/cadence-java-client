@@ -524,7 +524,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       RestartWorkflowExecutionRequest restartRequest)
       throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
           EntityNotExistsError, ClientVersionNotSupportedError, TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   private void deprecateDomain(DeprecateDomainRequest deprecateRequest) throws TException {
@@ -775,6 +775,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("GetWorkflowExecutionHistory failed with unknown error:" + result);
     } finally {
@@ -2090,6 +2093,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();
       }
+      if (result.isSetServiceBusyError()) {
+        throw result.getServiceBusyError();
+      }
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
@@ -2265,6 +2271,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetServiceBusyError()) {
         throw result.getServiceBusyError();
       }
+      if (result.isSetInternalServiceError()) {
+        throw result.getInternalServiceError();
+      }
       throw new TException("GetClusterInfo failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -2295,6 +2304,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       response = doRemoteCall(request);
       WorkflowService.RefreshWorkflowTasks_result result =
           response.getBody(WorkflowService.RefreshWorkflowTasks_result.class);
+      if (response.getResponseCode() == ResponseCode.OK) {
+        return;
+      }
       if (result.isSetBadRequestError()) {
         throw result.getBadRequestError();
       }
@@ -2307,6 +2319,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetEntityNotExistError()) {
         throw result.getEntityNotExistError();
       }
+      throw new TException("RefreshWorkflowTasks failed with unknown error:" + result);
     } finally {
       if (response != null) {
         response.release();
@@ -2795,7 +2808,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
       AsyncMethodCallback resultHandler)
       throws TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override
@@ -2938,7 +2951,7 @@ public class WorkflowServiceTChannel implements IWorkflowService {
   public void RestartWorkflowExecution(
       RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override

@@ -17,12 +17,11 @@
 
 package com.uber.cadence.worker;
 
-import static com.uber.cadence.workflow.WorkflowTest.DOMAIN;
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -156,8 +155,8 @@ public class StickyWorkerTest {
             .build();
     Thread.sleep(600);
     verify(reporter, atLeastOnce())
-        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
-    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyLong());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyLong());
 
     // Finish Workflow
     wrapper.close();
@@ -269,8 +268,8 @@ public class StickyWorkerTest {
             .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
-        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
-    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyLong());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyLong());
 
     // Finish Workflow
     wrapper.close();
@@ -318,8 +317,8 @@ public class StickyWorkerTest {
             .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
-        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
-    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyLong());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyLong());
     // Finish Workflow
     wrapper.close();
   }
@@ -374,8 +373,8 @@ public class StickyWorkerTest {
             .put(MetricsTag.TASK_LIST, STICKY_TASK_LIST_METRIC_TAG)
             .build();
     verify(reporter, atLeastOnce())
-        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyInt());
-    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyInt());
+        .reportCounter(eq(MetricsType.STICKY_CACHE_HIT), eq(tags), anyLong());
+    verify(reporter, never()).reportCounter(eq(MetricsType.STICKY_CACHE_MISS), eq(tags), anyLong());
     // Finish Workflow
     wrapper.close();
   }

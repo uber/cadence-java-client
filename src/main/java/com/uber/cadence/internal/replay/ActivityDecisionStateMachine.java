@@ -33,15 +33,6 @@ final class ActivityDecisionStateMachine extends DecisionStateMachineBase {
     this.scheduleAttributes = scheduleAttributes;
   }
 
-  /** Used for unit testing */
-  ActivityDecisionStateMachine(
-      DecisionId id,
-      ScheduleActivityTaskDecisionAttributes scheduleAttributes,
-      DecisionState state) {
-    super(id, state);
-    this.scheduleAttributes = scheduleAttributes;
-  }
-
   @Override
   public Decision getDecision() {
     switch (state) {

@@ -27,6 +27,7 @@ import static org.junit.Assert.fail;
 import com.uber.cadence.workflow.CompletablePromise;
 import com.uber.cadence.workflow.Promise;
 import com.uber.cadence.workflow.Workflow;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.IllegalFormatCodePointException;
 import java.util.List;
@@ -80,6 +81,122 @@ public class PromiseTest {
     String[] expected =
         new String[] {
           "root begin", "root done", "thread1 get failure",
+        };
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testTimedFailure() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> {
+              CompletablePromise<Boolean> f = Workflow.newPromise();
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false, () -> f.completeExceptionally(new IllegalArgumentException("foo")))
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          f.get(10, TimeUnit.DAYS);
+                          trace.add("thread1 get success");
+                          fail("failure expected");
+                        } catch (Exception e) {
+                          assertEquals(IllegalArgumentException.class, e.getClass());
+                          trace.add("thread1 get failure");
+                        }
+                      })
+                  .start();
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected =
+        new String[] {
+          "root begin", "root done", "thread1 get failure",
+        };
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testGetFailure() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> {
+              CompletablePromise<Boolean> f = Workflow.newPromise();
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertEquals(IllegalArgumentException.class, f.getFailure().getClass());
+                        trace.add("thread1 done");
+                      })
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        f.completeExceptionally(new IllegalArgumentException("foo"));
+                        trace.add("thread2 done");
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected =
+        new String[] {"root begin", "root done", "thread1 begin", "thread2 done", "thread1 done"};
+    trace.setExpected(expected);
+  }
+
+  @Test
+  public void testGetFailureWithTimeout() throws Throwable {
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            () -> currentTime,
+            () -> {
+              CompletablePromise<Boolean> f = Workflow.newPromise();
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        try {
+                          trace.add("thread1 begin");
+                          f.get(1, TimeUnit.MINUTES);
+                          trace.add("thread1 get success");
+                          fail("failure expected");
+                        } catch (Exception e) {
+                          assertEquals(IllegalArgumentException.class, e.getClass());
+                          trace.add("thread1 get failure");
+                        }
+                      })
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        Workflow.sleep(Duration.ofSeconds(30));
+                        trace.add("thread2 awake");
+                        f.completeExceptionally(new IllegalArgumentException("foo"));
+                        trace.add("thread2 done");
+                      })
+                  .start();
+
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected = new String[] {"root begin", "root done", "thread1 begin"};
+    trace.setExpected(expected);
+
+    currentTime += Duration.ofSeconds(31).toMillis();
+    r.runUntilAllBlocked();
+    expected =
+        new String[] {
+          "root begin",
+          "root done",
+          "thread1 begin",
+          "thread2 awake",
+          "thread2 done",
+          "thread1 get failure"
         };
     trace.setExpected(expected);
   }
@@ -243,6 +360,46 @@ public class PromiseTest {
     String[] expected =
         new String[] {
           "root begin", "root done", "thread1 begin", "thread1 get success",
+        };
+    trace.setExpected(expected);
+    threadPool.shutdown();
+    threadPool.awaitTermination(1, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testGetDefault_success() throws Throwable {
+    ExecutorService threadPool =
+        new ThreadPoolExecutor(1, 1000, 1, TimeUnit.SECONDS, new SynchronousQueue<>());
+
+    DeterministicRunner r =
+        DeterministicRunner.newRunner(
+            threadPool,
+            null,
+            () -> currentTime,
+            () -> {
+              CompletablePromise<String> f = Workflow.newPromise();
+              trace.add("root begin");
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread1 begin");
+                        assertEquals("success", f.get("default"));
+                        trace.add("thread1 get success");
+                      })
+                  .start();
+              WorkflowInternal.newThread(
+                      false,
+                      () -> {
+                        trace.add("thread2 begin");
+                        f.complete("success");
+                      })
+                  .start();
+              trace.add("root done");
+            });
+    r.runUntilAllBlocked();
+    String[] expected =
+        new String[] {
+          "root begin", "root done", "thread1 begin", "thread2 begin", "thread1 get success",
         };
     trace.setExpected(expected);
     threadPool.shutdown();

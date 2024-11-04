@@ -27,7 +27,6 @@ import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 public class MigrationIWorkflowServiceTest {
 
@@ -38,7 +37,8 @@ public class MigrationIWorkflowServiceTest {
 
   @Before
   public void setUp() {
-    MockitoAnnotations.initMocks(this);
+    serviceOld = mock(IWorkflowService.class);
+    serviceNew = mock(IWorkflowService.class);
     migrationService =
         new MigrationIWorkflowService(serviceOld, "domainOld", serviceNew, "domainNew");
   }

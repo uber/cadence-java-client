@@ -27,6 +27,7 @@ import com.uber.cadence.client.WorkflowClient;
 import com.uber.cadence.client.WorkflowClientOptions;
 import com.uber.cadence.client.WorkflowOptions;
 import com.uber.cadence.internal.logging.LoggerTag;
+import com.uber.cadence.testUtils.TestEnvironment;
 import com.uber.cadence.testing.TestEnvironmentOptions;
 import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
@@ -90,7 +91,7 @@ public class LoggerTest {
   @Test
   public void testWorkflowLogger() {
     WorkflowClientOptions clientOptions =
-        WorkflowClientOptions.newBuilder().setDomain(WorkflowTest.DOMAIN).build();
+        WorkflowClientOptions.newBuilder().setDomain(TestEnvironment.DOMAIN).build();
     TestEnvironmentOptions testOptions =
         new TestEnvironmentOptions.Builder()
             .setWorkflowClientOptions(clientOptions)

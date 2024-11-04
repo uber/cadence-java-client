@@ -18,7 +18,6 @@
 package com.uber.cadence.internal.worker;
 
 import static junit.framework.TestCase.*;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 import ch.qos.logback.classic.Level;

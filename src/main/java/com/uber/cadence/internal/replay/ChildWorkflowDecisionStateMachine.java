@@ -33,15 +33,6 @@ final class ChildWorkflowDecisionStateMachine extends DecisionStateMachineBase {
     this.startAttributes = startAttributes;
   }
 
-  /** Used for unit testing */
-  ChildWorkflowDecisionStateMachine(
-      DecisionId id,
-      StartChildWorkflowExecutionDecisionAttributes startAttributes,
-      DecisionState state) {
-    super(id, state);
-    this.startAttributes = startAttributes;
-  }
-
   @Override
   public Decision getDecision() {
     switch (state) {

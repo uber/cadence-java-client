@@ -18,6 +18,7 @@
 package com.uber.cadence.internal.worker;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.uber.cadence.client.WorkflowClient;
@@ -28,11 +29,8 @@ import com.uber.cadence.worker.WorkerFactory;
 import com.uber.m3.tally.NoopScope;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class WorkerShutDownHandlerTest {
 
   @Mock private WorkflowClient mockClient;
@@ -41,6 +39,8 @@ public class WorkerShutDownHandlerTest {
 
   @Before
   public void setup() {
+    mockClient = mock(WorkflowClient.class);
+    mockService = mock(IWorkflowService.class);
     WorkflowClientOptions clientOptions =
         WorkflowClientOptions.newBuilder().setMetricsScope(new NoopScope()).build();
     when(mockClient.getOptions()).thenReturn(clientOptions);

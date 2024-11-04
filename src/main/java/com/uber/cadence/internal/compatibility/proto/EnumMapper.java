@@ -56,9 +56,11 @@ import com.uber.cadence.api.v1.TaskListType;
 import com.uber.cadence.api.v1.WorkflowExecutionCloseStatus;
 import com.uber.cadence.api.v1.WorkflowIdReusePolicy;
 
-class EnumMapper {
+public final class EnumMapper {
 
-  static TaskListKind taskListKind(com.uber.cadence.TaskListKind t) {
+  private EnumMapper() {}
+
+  public static TaskListKind taskListKind(com.uber.cadence.TaskListKind t) {
     if (t == null) {
       return TaskListKind.TASK_LIST_KIND_INVALID;
     }
@@ -71,7 +73,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static TaskListType taskListType(com.uber.cadence.TaskListType t) {
+  public static TaskListType taskListType(com.uber.cadence.TaskListType t) {
     if (t == null) {
       return TaskListType.TASK_LIST_TYPE_INVALID;
     }
@@ -84,7 +86,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static EventFilterType eventFilterType(com.uber.cadence.HistoryEventFilterType t) {
+  public static EventFilterType eventFilterType(com.uber.cadence.HistoryEventFilterType t) {
     if (t == null) {
       return EventFilterType.EVENT_FILTER_TYPE_INVALID;
     }
@@ -97,7 +99,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static QueryRejectCondition queryRejectCondition(com.uber.cadence.QueryRejectCondition t) {
+  public static QueryRejectCondition queryRejectCondition(com.uber.cadence.QueryRejectCondition t) {
     if (t == null) {
       return QueryRejectCondition.QUERY_REJECT_CONDITION_INVALID;
     }
@@ -110,7 +112,8 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static QueryConsistencyLevel queryConsistencyLevel(com.uber.cadence.QueryConsistencyLevel t) {
+  public static QueryConsistencyLevel queryConsistencyLevel(
+      com.uber.cadence.QueryConsistencyLevel t) {
     if (t == null) {
       return QueryConsistencyLevel.QUERY_CONSISTENCY_LEVEL_INVALID;
     }
@@ -123,7 +126,8 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static ContinueAsNewInitiator continueAsNewInitiator(com.uber.cadence.ContinueAsNewInitiator t) {
+  public static ContinueAsNewInitiator continueAsNewInitiator(
+      com.uber.cadence.ContinueAsNewInitiator t) {
     if (t == null) {
       return ContinueAsNewInitiator.CONTINUE_AS_NEW_INITIATOR_INVALID;
     }
@@ -138,7 +142,8 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static WorkflowIdReusePolicy workflowIdReusePolicy(com.uber.cadence.WorkflowIdReusePolicy t) {
+  public static WorkflowIdReusePolicy workflowIdReusePolicy(
+      com.uber.cadence.WorkflowIdReusePolicy t) {
     if (t == null) {
       return WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_INVALID;
     }
@@ -155,7 +160,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static QueryResultType queryResultType(com.uber.cadence.QueryResultType t) {
+  public static QueryResultType queryResultType(com.uber.cadence.QueryResultType t) {
     if (t == null) {
       return QUERY_RESULT_TYPE_INVALID;
     }
@@ -168,7 +173,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static ArchivalStatus archivalStatus(com.uber.cadence.ArchivalStatus t) {
+  public static ArchivalStatus archivalStatus(com.uber.cadence.ArchivalStatus t) {
     if (t == null) {
       return ArchivalStatus.ARCHIVAL_STATUS_INVALID;
     }
@@ -181,7 +186,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static ParentClosePolicy parentClosePolicy(com.uber.cadence.ParentClosePolicy t) {
+  public static ParentClosePolicy parentClosePolicy(com.uber.cadence.ParentClosePolicy t) {
     if (t == null) {
       return ParentClosePolicy.PARENT_CLOSE_POLICY_INVALID;
     }
@@ -196,7 +201,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static DecisionTaskFailedCause decisionTaskFailedCause(
+  public static DecisionTaskFailedCause decisionTaskFailedCause(
       com.uber.cadence.DecisionTaskFailedCause t) {
     if (t == null) {
       return DECISION_TASK_FAILED_CAUSE_INVALID;
@@ -252,7 +257,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static WorkflowExecutionCloseStatus workflowExecutionCloseStatus(
+  public static WorkflowExecutionCloseStatus workflowExecutionCloseStatus(
       com.uber.cadence.WorkflowExecutionCloseStatus t) {
     if (t == null) {
       return WorkflowExecutionCloseStatus.WORKFLOW_EXECUTION_CLOSE_STATUS_INVALID;
@@ -274,7 +279,7 @@ class EnumMapper {
     throw new IllegalArgumentException("unexpected enum value");
   }
 
-  static QueryResultType queryTaskCompletedType(com.uber.cadence.QueryTaskCompletedType t) {
+  public static QueryResultType queryTaskCompletedType(com.uber.cadence.QueryTaskCompletedType t) {
     if (t == null) {
       return QUERY_RESULT_TYPE_INVALID;
     }

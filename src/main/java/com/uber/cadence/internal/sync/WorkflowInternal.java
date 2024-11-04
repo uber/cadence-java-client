@@ -70,14 +70,6 @@ public final class WorkflowInternal {
     return WorkflowThread.newThread(runnable, ignoreParentCancellation);
   }
 
-  public static WorkflowThread newThread(
-      boolean ignoreParentCancellation, String name, Runnable runnable) {
-    if (name == null) {
-      throw new NullPointerException("name cannot be null");
-    }
-    return WorkflowThread.newThread(runnable, ignoreParentCancellation, name);
-  }
-
   public static Promise<Void> newTimer(Duration duration) {
     return getWorkflowInterceptor().newTimer(duration);
   }
@@ -228,26 +220,6 @@ public final class WorkflowInternal {
             new ContinueAsNewWorkflowInvocationHandler(options, getWorkflowInterceptor()));
   }
 
-  /**
-   * Execute activity by name.
-   *
-   * @param name name of the activity
-   * @param resultClass activity return type
-   * @param args list of activity arguments
-   * @param <R> activity return type
-   * @return activity result
-   */
-  public static <R> R executeActivity(
-      String name, ActivityOptions options, Class<R> resultClass, Type resultType, Object... args) {
-    Promise<R> result =
-        getWorkflowInterceptor().executeActivity(name, resultClass, resultType, args, options);
-    if (AsyncInternal.isAsync()) {
-      AsyncInternal.setAsyncResult(result);
-      return null; // ignored
-    }
-    return result.get();
-  }
-
   private static WorkflowInterceptor getWorkflowInterceptor() {
     return DeterministicRunnerImpl.currentThreadInternal()
         .getDecisionContext()
@@ -345,10 +317,6 @@ public final class WorkflowInternal {
       Object[] args,
       WorkflowInterceptor decisionContext) {
     decisionContext.continueAsNew(workflowType, options, args);
-  }
-
-  public static Promise<Void> cancelWorkflow(WorkflowExecution execution) {
-    return getWorkflowInterceptor().cancelWorkflow(execution);
   }
 
   public static void sleep(Duration duration) {

@@ -17,9 +17,8 @@
 
 package com.uber.cadence.workflow;
 
+import static com.uber.cadence.testUtils.TestEnvironment.DOMAIN;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.activity.ActivityOptions;
@@ -197,10 +196,7 @@ public class MetricsTest {
     Scope scope = new RootScopeBuilder().reporter(reporter).reportEvery(reportingFrequecy);
 
     WorkflowClientOptions clientOptions =
-        WorkflowClientOptions.newBuilder()
-            .setDomain(WorkflowTest.DOMAIN)
-            .setMetricsScope(scope)
-            .build();
+        WorkflowClientOptions.newBuilder().setDomain(DOMAIN).setMetricsScope(scope).build();
     TestEnvironmentOptions testOptions =
         new TestEnvironmentOptions.Builder().setWorkflowClientOptions(clientOptions).build();
     testEnvironment = TestWorkflowEnvironment.newInstance(testOptions);
@@ -229,7 +225,7 @@ public class MetricsTest {
 
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
-            .put(MetricsTag.DOMAIN, WorkflowTest.DOMAIN)
+            .put(MetricsTag.DOMAIN, DOMAIN)
             .put(MetricsTag.TASK_LIST, taskList)
             .build();
 
@@ -252,7 +248,7 @@ public class MetricsTest {
 
     Map<String, String> activityCompletionTags =
         new ImmutableMap.Builder<String, String>(3)
-            .put(MetricsTag.DOMAIN, WorkflowTest.DOMAIN)
+            .put(MetricsTag.DOMAIN, DOMAIN)
             .put(MetricsTag.TASK_LIST, taskList)
             .put(MetricsTag.ACTIVITY_TYPE, "TestActivity::runActivity")
             .put(MetricsTag.WORKFLOW_TYPE, "TestWorkflow::execute")
@@ -293,7 +289,7 @@ public class MetricsTest {
 
     Map<String, String> tags =
         new ImmutableMap.Builder<String, String>(2)
-            .put(MetricsTag.DOMAIN, WorkflowTest.DOMAIN)
+            .put(MetricsTag.DOMAIN, DOMAIN)
             .put(MetricsTag.TASK_LIST, taskList)
             .build();
     verify(reporter, times(1)).reportCounter(MetricsType.CORRUPTED_SIGNALS_COUNTER, tags, 1);

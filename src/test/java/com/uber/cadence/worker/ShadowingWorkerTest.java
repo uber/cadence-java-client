@@ -16,8 +16,8 @@
  */
 package com.uber.cadence.worker;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -103,7 +103,7 @@ public class ShadowingWorkerTest {
   }
 
   private class StartWorkflowExecutionRequestMatcher
-      extends ArgumentMatcher<StartWorkflowExecutionRequest> {
+      implements ArgumentMatcher<StartWorkflowExecutionRequest> {
     StartWorkflowExecutionRequest request;
 
     public StartWorkflowExecutionRequestMatcher(StartWorkflowExecutionRequest request) {
@@ -111,7 +111,7 @@ public class ShadowingWorkerTest {
     }
 
     @Override
-    public boolean matches(Object argument) {
+    public boolean matches(StartWorkflowExecutionRequest argument) {
       StartWorkflowExecutionRequest newRequest = (StartWorkflowExecutionRequest) argument;
       return request.getDomain().equals(newRequest.getDomain())
           && request.getTaskList().equals(newRequest.getTaskList())
