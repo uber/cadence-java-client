@@ -142,7 +142,7 @@ public class StartChildWorkflowExecutionParametersTest {
             .setParentClosePolicy(ParentClosePolicy.TERMINATE)
             .build();
 
-    assertTrue(parameters1.equals(parameters2));
+    assertEquals(parameters1, parameters2);
     assertEquals(parameters1.hashCode(), parameters2.hashCode());
   }
 
