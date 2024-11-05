@@ -94,10 +94,20 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
 
   @Override
   public String toString() {
+
+    String inputStr;
+    if (input == null) {
+      inputStr = "";
+    } else if (input.length > 512) {
+      inputStr = new String(input, 0, 512, StandardCharsets.UTF_8);
+    } else {
+      inputStr = new String(input, StandardCharsets.UTF_8);
+    }
+
     StringBuilder sb = new StringBuilder();
     sb.append("{");
     sb.append("SignalName: " + signalName + ", ");
-    sb.append("Input: " + new String(input, 0, 512, StandardCharsets.UTF_8) + ", ");
+    sb.append("Input: " + inputStr + ", ");
     sb.append("WorkflowId: " + workflowId + ", ");
     sb.append("RunId: " + runId + ", ");
     sb.append("}");
@@ -108,6 +118,7 @@ public final class SignalExternalWorkflowParameters implements Cloneable {
     SignalExternalWorkflowParameters result = new SignalExternalWorkflowParameters();
     result.setInput(input);
     result.setRunId(runId);
+    result.setDomain(domain);
     result.setSignalName(signalName);
     result.setWorkflowId(workflowId);
     return result;
