@@ -1120,7 +1120,9 @@ public final class TestWorkflowService implements IWorkflowService {
   @Override
   public void ListArchivedWorkflowExecutions(
       ListArchivedWorkflowExecutionsRequest listRequest, AsyncMethodCallback resultHandler)
-      throws TException {}
+      throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void ScanWorkflowExecutions(
@@ -1175,15 +1177,21 @@ public final class TestWorkflowService implements IWorkflowService {
   }
 
   @Override
-  public void GetClusterInfo(AsyncMethodCallback resultHandler) throws TException {}
+  public void GetClusterInfo(AsyncMethodCallback resultHandler) throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void ListTaskListPartitions(
-      ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {}
+      ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler) throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   @Override
   public void RefreshWorkflowTasks(
-      RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
+      RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {
+    throw new UnsupportedOperationException("not implemented");
+  }
 
   private <R> R requireNotNull(String fieldName, R value) throws BadRequestError {
     if (value == null) {
