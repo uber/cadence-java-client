@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-package com.uber.cadence.internal.replay;
-
-=======
 /**
  * Copyright 2012-2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
@@ -20,14 +16,9 @@ package com.uber.cadence.internal.replay;
 
 import com.uber.cadence.QueryConsistencyLevel;
 import com.uber.cadence.QueryRejectCondition;
->>>>>>> Stashed changes
 import junit.framework.TestCase;
 
 public class QueryWorkflowParametersTest extends TestCase {
-
-<<<<<<< Updated upstream
-}
-=======
   QueryWorkflowParameters p;
 
   public void setUp() throws Exception {
@@ -45,4 +36,3 @@ public class QueryWorkflowParametersTest extends TestCase {
     assertEquals(copied.toString(), p.toString());
   }
 }
->>>>>>> Stashed changes
