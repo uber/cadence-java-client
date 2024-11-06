@@ -45,22 +45,12 @@ public class QueryWorkflowParameters implements Cloneable {
     this.input = input;
   }
 
-  public QueryWorkflowParameters withInput(byte[] input) {
-    this.input = input;
-    return this;
-  }
-
   public String getRunId() {
     return runId;
   }
 
   public void setRunId(String runId) {
     this.runId = runId;
-  }
-
-  public QueryWorkflowParameters withRunId(String runId) {
-    this.runId = runId;
-    return this;
   }
 
   public String getQueryType() {
@@ -71,22 +61,12 @@ public class QueryWorkflowParameters implements Cloneable {
     this.queryType = queryType;
   }
 
-  public QueryWorkflowParameters withQueryType(String queryType) {
-    this.queryType = queryType;
-    return this;
-  }
-
   public String getWorkflowId() {
     return workflowId;
   }
 
   public void setWorkflowId(String workflowId) {
     this.workflowId = workflowId;
-  }
-
-  public QueryWorkflowParameters withWorkflowId(String workflowId) {
-    this.workflowId = workflowId;
-    return this;
   }
 
   public QueryRejectCondition getQueryRejectCondition() {
@@ -97,12 +77,6 @@ public class QueryWorkflowParameters implements Cloneable {
     this.queryRejectCondition = queryRejectCondition;
   }
 
-  public QueryWorkflowParameters withQueryRejectCondition(
-      QueryRejectCondition queryRejectCondition) {
-    this.queryRejectCondition = queryRejectCondition;
-    return this;
-  }
-
   public QueryConsistencyLevel getQueryConsistencyLevel() {
     return queryConsistencyLevel;
   }
@@ -111,18 +85,15 @@ public class QueryWorkflowParameters implements Cloneable {
     this.queryConsistencyLevel = queryConsistencyLevel;
   }
 
-  public QueryWorkflowParameters withQueryConsistencyLevel(
-      QueryConsistencyLevel queryConsistencyLevel) {
-    this.queryConsistencyLevel = queryConsistencyLevel;
-    return this;
-  }
-
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
     sb.append("QueryName: " + queryType + ", ");
-    sb.append("Input: " + new String(input, 0, 512, StandardCharsets.UTF_8) + ", ");
+    sb.append(
+        "Input: "
+            + new String(input, 0, Math.min(512, input.length), StandardCharsets.UTF_8)
+            + ", ");
     sb.append("WorkflowId: " + workflowId + ", ");
     sb.append("RunId: " + runId + ", ");
     sb.append("QueryRejectCondition: " + queryRejectCondition + ", ");
