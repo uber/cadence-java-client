@@ -97,6 +97,7 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     sb.append("ExecutionStartToCloseTimeout: " + executionStartToCloseTimeoutSeconds + ", ");
     sb.append("TaskStartToCloseTimeout: " + taskStartToCloseTimeoutSeconds + ", ");
     sb.append("TaskList: " + taskList + ", ");
+    sb.append("WorkflowType: " + workflowType + ", ");
     sb.append("}");
     return sb.toString();
   }
@@ -105,9 +106,10 @@ public final class ContinueAsNewWorkflowExecutionParameters {
     ContinueAsNewWorkflowExecutionParameters result =
         new ContinueAsNewWorkflowExecutionParameters();
     result.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
-    result.setInput(input);
+    result.setInput(input.clone());
     result.setTaskList(taskList);
     result.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
+    result.setWorkflowType(workflowType);
     return result;
   }
 }
