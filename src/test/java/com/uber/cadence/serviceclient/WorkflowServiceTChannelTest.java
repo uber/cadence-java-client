@@ -279,6 +279,13 @@ public class WorkflowServiceTChannelTest {
             {
               ResponseCode.Error,
               new WorkflowService.ListDomains_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null,
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListDomains_result()
                   .setServiceBusyError(new ServiceBusyError("")),
               ServiceBusyError.class,
               null
@@ -885,6 +892,20 @@ public class WorkflowServiceTChannelTest {
               null
             },
             {
+              ResponseCode.Error,
+              new WorkflowService.QueryWorkflow_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.QueryWorkflow_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
               ResponseCode.Error, new WorkflowService.QueryWorkflow_result(), TException.class, null
             },
           });
@@ -929,6 +950,27 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.DescribeWorkflowExecution_result()
                   .setServiceBusyError(new ServiceBusyError("")),
               ServiceBusyError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.DescribeWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.DescribeWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.DescribeWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
             {
@@ -979,6 +1021,20 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.DescribeTaskList_result()
                   .setServiceBusyError(new ServiceBusyError("")),
               ServiceBusyError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.DescribeTaskList_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.DescribeTaskList_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
             {
@@ -1080,6 +1136,13 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.ListTaskListPartitions_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.ListTaskListPartitions_result(),
               TException.class,
               null
@@ -1140,6 +1203,13 @@ public class WorkflowServiceTChannelTest {
               DomainNotActiveError.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.UpdateDomain_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
             {ResponseCode.Error, new WorkflowService.UpdateDomain_result(), TException.class, null},
           });
     }
@@ -1157,7 +1227,7 @@ public class WorkflowServiceTChannelTest {
   }
 
   @RunWith(Parameterized.class)
-  public static class GetWorkflowExecutionHistoryWithTimeoutTest
+  public static class GetWorkflowExecutionHistoryTest
       extends BaseTest<
           WorkflowService.GetWorkflowExecutionHistory_result, GetWorkflowExecutionHistoryResponse> {
     @Parameterized.Parameters(name = "{index}: Response Code {0}, Response {1}")
@@ -1201,6 +1271,13 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.GetWorkflowExecutionHistory_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.GetWorkflowExecutionHistory_result(),
               TException.class,
               null
@@ -1211,9 +1288,7 @@ public class WorkflowServiceTChannelTest {
     @Test
     public void responseIsHandledCorrectly() throws Exception {
       testHelper(
-          () ->
-              service.GetWorkflowExecutionHistoryWithTimeout(
-                  new GetWorkflowExecutionHistoryRequest(), 1000L));
+          () -> service.GetWorkflowExecutionHistory(new GetWorkflowExecutionHistoryRequest()));
     }
 
     @Test
@@ -1222,6 +1297,14 @@ public class WorkflowServiceTChannelTest {
           callback ->
               service.GetWorkflowExecutionHistoryWithTimeout(
                   new GetWorkflowExecutionHistoryRequest(), callback, 1000L));
+    }
+
+    @Test
+    public void responseIsHandledCorrectlyWithTimeout() throws Exception {
+      testHelper(
+          () ->
+              service.GetWorkflowExecutionHistoryWithTimeout(
+                  new GetWorkflowExecutionHistoryRequest(), 1000L));
     }
   }
 
@@ -1280,6 +1363,27 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.StartWorkflowExecutionAsync_result()
                   .setEntityNotExistError(new EntityNotExistsError("")),
               EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecutionAsync_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecutionAsync_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecutionAsync_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
               null
             },
             {
@@ -1384,6 +1488,27 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.StartWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.StartWorkflowExecution_result(),
               TException.class,
               null
@@ -1455,6 +1580,20 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.GetTaskListsByDomain_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.GetTaskListsByDomain_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.GetTaskListsByDomain_result(),
               TException.class,
               null
@@ -1512,6 +1651,13 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.DeprecateDomain_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.DeprecateDomain_result(),
               TException.class,
               null
@@ -1561,6 +1707,27 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.PollForDecisionTask_result()
                   .setServiceBusyError(new ServiceBusyError("")),
               ServiceBusyError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.PollForDecisionTask_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.PollForDecisionTask_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.PollForDecisionTask_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
             {
@@ -1630,6 +1797,35 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskCompleted_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskCompleted_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskCompleted_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskCompleted_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.RespondDecisionTaskCompleted_result(),
               TException.class,
               null
@@ -1689,6 +1885,27 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.PollForActivityTask_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.PollForActivityTask_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.PollForActivityTask_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.PollForActivityTask_result(),
               TException.class,
               null
@@ -1742,6 +1959,35 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.RecordActivityTaskHeartbeat_result()
                   .setEntityNotExistError(new EntityNotExistsError("")),
               EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeat_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeat_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeat_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeat_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError()),
+              WorkflowExecutionAlreadyCompletedError.class,
               null
             },
             {
@@ -1807,6 +2053,35 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeatByID_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeatByID_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeatByID_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RecordActivityTaskHeartbeatByID_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError()),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.RecordActivityTaskHeartbeatByID_result(),
               TException.class,
               null
@@ -1860,6 +2135,35 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.RespondActivityTaskCompleted_result()
                   .setEntityNotExistError(new EntityNotExistsError("")),
               EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompleted_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompleted_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompleted_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompleted_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
             {
@@ -1925,6 +2229,35 @@ public class WorkflowServiceTChannelTest {
             },
             {
               ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompletedByID_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompletedByID_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompletedByID_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCompletedByID_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
               new WorkflowService.RespondActivityTaskCompletedByID_result(),
               TException.class,
               null
@@ -1977,6 +2310,35 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.RespondActivityTaskFailed_result()
                   .setEntityNotExistError(new EntityNotExistsError("")),
               EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailed_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailed_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailed_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailed_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
             {
@@ -2043,6 +2405,35 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.RespondActivityTaskFailedByID_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailedByID_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailedByID_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailedByID_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskFailedByID_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
               null
             },
           });
@@ -2524,6 +2915,27 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.RespondDecisionTaskFailed_result()
                   .setServiceBusyError(new ServiceBusyError("")),
               ServiceBusyError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskFailed_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskFailed_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondDecisionTaskFailed_result()
+                  .setLimitExceededError(new LimitExceededError()),
+              LimitExceededError.class,
               null
             },
             {
