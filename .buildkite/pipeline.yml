@@ -52,7 +52,8 @@ steps:
 
   - label: ":java: Unit test with test services"
     artifact_paths:
-      - "build/reports/jacoco/test/*.xml"
+      - "build/reports/jacoco/test/jacocoTestReport.xml"
+      - "build/reports/metadata.txt"
     timeout_in_minutes: 30
     retry:
       automatic:
@@ -68,6 +69,7 @@ steps:
                 command:
                 - |-
                   ./gradlew --no-daemon test jacocoTestReport
+                  .buildkite/scripts/coverage_metadata.sh build/reports/metadata.txt
       - docker-compose#v3.0.0:
           run: unit-test-test-service
           config: docker/buildkite/docker-compose.yaml
@@ -110,25 +112,4 @@ steps:
                   ./gradlew --no-daemon test
       - docker-compose#v3.0.0:
           run: unit-test-docker-sticky-off
-          config: docker/buildkite/docker-compose.yaml
-
-  - wait
-
-  - label: ":java: Report test coverage"
-    retry:
-      automatic:
-        - exit_status: "*"
-          limit: 3
-    plugins:
-      - kubernetes:
-          <<: *kubernetes
-          podSpec:
-            <<: *podSpec
-            containers:
-              - <<: *commandContainer
-                command:
-                - |-
-                  .buildkite/scripts/coverage.sh
-      - docker-compose#v3.0.0:
-          run: test-coverage-report
           config: docker/buildkite/docker-compose.yaml
