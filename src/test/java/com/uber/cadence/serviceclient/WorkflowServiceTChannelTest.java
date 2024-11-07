@@ -341,6 +341,34 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetWorkflowExecution_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
           });
     }
 
@@ -382,6 +410,42 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.TerminateWorkflowExecution_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.TerminateWorkflowExecution_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.TerminateWorkflowExecution_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.TerminateWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.TerminateWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.TerminateWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
           });
@@ -440,6 +504,27 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListOpenWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListOpenWorkflowExecutions_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListOpenWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
           });
     }
 
@@ -491,6 +576,20 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.ListClosedWorkflowExecutions_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListClosedWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListClosedWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
           });
@@ -546,6 +645,20 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
           });
     }
 
@@ -596,6 +709,20 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.ListArchivedWorkflowExecutions_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListArchivedWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListArchivedWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
           });
@@ -652,6 +779,20 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ScanWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ScanWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
           });
     }
 
@@ -701,6 +842,20 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.CountWorkflowExecutions_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.CountWorkflowExecutions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.CountWorkflowExecutions_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
           });
@@ -849,6 +1004,50 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError()),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError()),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ResetStickyTaskList_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
           });
     }
 
@@ -906,6 +1105,16 @@ public class WorkflowServiceTChannelTest {
               null
             },
             {
+              ResponseCode.Error,
+              new WorkflowService.QueryWorkflow_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error, new WorkflowService.QueryWorkflow_result(), TException.class, null
+            },
+            {
               ResponseCode.Error, new WorkflowService.QueryWorkflow_result(), TException.class, null
             },
           });
@@ -955,8 +1164,8 @@ public class WorkflowServiceTChannelTest {
             {
               ResponseCode.Error,
               new WorkflowService.DescribeWorkflowExecution_result()
-                  .setLimitExceededError(new LimitExceededError("")),
-              LimitExceededError.class,
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
               null
             },
             {
@@ -1137,6 +1346,13 @@ public class WorkflowServiceTChannelTest {
             {
               ResponseCode.Error,
               new WorkflowService.ListTaskListPartitions_result()
+                  .setEntityNotExistError(new EntityNotExistsError("")),
+              EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.ListTaskListPartitions_result()
                   .setLimitExceededError(new LimitExceededError("")),
               LimitExceededError.class,
               null
@@ -1295,6 +1511,10 @@ public class WorkflowServiceTChannelTest {
     public void responseIsHandledCorrectlyWithCallback() throws Exception {
       testHelperWithCallback(
           callback ->
+              service.GetWorkflowExecutionHistory(
+                  new GetWorkflowExecutionHistoryRequest(), callback));
+      testHelperWithCallback(
+          callback ->
               service.GetWorkflowExecutionHistoryWithTimeout(
                   new GetWorkflowExecutionHistoryRequest(), callback, 1000L));
     }
@@ -1419,6 +1639,13 @@ public class WorkflowServiceTChannelTest {
                   new StartWorkflowExecutionAsyncRequest()
                       .setRequest(new StartWorkflowExecutionRequest()),
                   callback));
+      testHelperWithCallback(
+          callback ->
+              service.StartWorkflowExecutionAsyncWithTimeout(
+                  new StartWorkflowExecutionAsyncRequest()
+                      .setRequest(new StartWorkflowExecutionRequest()),
+                  callback,
+                  1000L));
     }
   }
 
@@ -1526,6 +1753,10 @@ public class WorkflowServiceTChannelTest {
       testHelperWithCallback(
           callback ->
               service.StartWorkflowExecution(new StartWorkflowExecutionRequest(), callback));
+      testHelperWithCallback(
+          callback ->
+              service.StartWorkflowExecutionWithTimeout(
+                  new StartWorkflowExecutionRequest(), callback, 1000L));
     }
   }
 
@@ -2492,6 +2723,41 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceled_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceled_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceled_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceled_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceled_result(),
+              TException.class,
+              null
+            }
           });
     }
 
@@ -2551,6 +2817,35 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.RespondActivityTaskCanceledByID_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceledByID_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceledByID_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceledByID_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RespondActivityTaskCanceledByID_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
               null
             },
           });
@@ -2614,6 +2909,35 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RequestCancelWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RequestCancelWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RequestCancelWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.RequestCancelWorkflowExecution_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
+              null
+            },
           });
     }
 
@@ -2662,6 +2986,41 @@ public class WorkflowServiceTChannelTest {
               new WorkflowService.SignalWorkflowExecution_result()
                   .setEntityNotExistError(new EntityNotExistsError("")),
               EntityNotExistsError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWorkflowExecution_result(),
+              TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWorkflowExecution_result()
+                  .setWorkflowExecutionAlreadyCompletedError(
+                      new WorkflowExecutionAlreadyCompletedError("")),
+              WorkflowExecutionAlreadyCompletedError.class,
               null
             },
             {
@@ -2731,6 +3090,27 @@ public class WorkflowServiceTChannelTest {
               ResponseCode.Error,
               new WorkflowService.SignalWithStartWorkflowExecution_result(),
               TException.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecution_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecution_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecution_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
               null
             },
           });
@@ -2857,6 +3237,27 @@ public class WorkflowServiceTChannelTest {
               TException.class,
               null
             },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
+                  .setDomainNotActiveError(new DomainNotActiveError()),
+              DomainNotActiveError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
+                  .setLimitExceededError(new LimitExceededError("")),
+              LimitExceededError.class,
+              null
+            },
+            {
+              ResponseCode.Error,
+              new WorkflowService.SignalWithStartWorkflowExecutionAsync_result()
+                  .setClientVersionNotSupportedError(new ClientVersionNotSupportedError()),
+              ClientVersionNotSupportedError.class,
+              null
+            }
           });
     }
 
