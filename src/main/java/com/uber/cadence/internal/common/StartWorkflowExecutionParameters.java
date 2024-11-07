@@ -438,4 +438,24 @@ public final class StartWorkflowExecutionParameters {
     result = 31 * result + Arrays.hashCode(input);
     return result;
   }
+
+  public StartWorkflowExecutionParameters copy() {
+    StartWorkflowExecutionParameters result = new StartWorkflowExecutionParameters();
+    result.setWorkflowId(workflowId);
+    result.setWorkflowType(workflowType);
+    result.setTaskList(taskList);
+    result.setInput(input);
+    result.setExecutionStartToCloseTimeoutSeconds(executionStartToCloseTimeoutSeconds);
+    result.setTaskStartToCloseTimeoutSeconds(taskStartToCloseTimeoutSeconds);
+    result.setWorkflowIdReusePolicy(workflowIdReusePolicy);
+    if (retryParameters != null) {
+      result.setRetryParameters(retryParameters.copy());
+    }
+    result.setCronSchedule(cronSchedule);
+    result.setMemo(memo);
+    result.setSearchAttributes(searchAttributes);
+    result.setContext(context);
+    result.setDelayStart(delayStart);
+    return result;
+  }
 }
