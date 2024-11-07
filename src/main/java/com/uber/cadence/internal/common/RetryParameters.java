@@ -94,7 +94,11 @@ public final class RetryParameters {
   }
 
   public void setNonRetriableErrorReasons(List<String> nonRetriableErrorReasons) {
-    this.nonRetriableErrorReasons = nonRetriableErrorReasons;
+    if (nonRetriableErrorReasons == null) {
+      this.nonRetriableErrorReasons = null;
+    } else {
+      this.nonRetriableErrorReasons = nonRetriableErrorReasons;
+    }
   }
 
   public int getExpirationIntervalInSeconds() {
@@ -108,7 +112,11 @@ public final class RetryParameters {
   public RetryParameters copy() {
     RetryParameters result = new RetryParameters();
     result.setMaximumIntervalInSeconds(maximumIntervalInSeconds);
-    result.setNonRetriableErrorReasons(new ImmutableList<>(nonRetriableErrorReasons));
+    if (nonRetriableErrorReasons != null) {
+      result.setNonRetriableErrorReasons(new ImmutableList<>(nonRetriableErrorReasons));
+    } else {
+      result.setNonRetriableErrorReasons(null);
+    }
     result.setInitialIntervalInSeconds(initialIntervalInSeconds);
     result.setMaximumAttempts(maximumAttempts);
     result.setExpirationIntervalInSeconds(expirationIntervalInSeconds);
