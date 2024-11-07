@@ -33,6 +33,8 @@ import com.uber.cadence.migration.MigrationInterceptorFactory;
 import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
+import com.uber.cadence.testUtils.CadenceTestRule;
+import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerFactory;
 import com.uber.cadence.worker.WorkerFactoryOptions;
@@ -41,10 +43,7 @@ import com.uber.cadence.workflow.interceptors.TracingWorkflowInterceptorFactory;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 public class WorkflowMigrationTest {
   private WorkflowClient migrationWorkflowClient, workflowClientCurr, workflowClientNew;
@@ -54,24 +53,49 @@ public class WorkflowMigrationTest {
   WorkerFactory factoryCurr, factoryNew;
   Worker workerCurr, workerNew;
 
+  @Rule
+  public CadenceTestRule testRuleCur =
+      CadenceTestRule.builder()
+          .withDomain(DOMAIN)
+          .withWorkflowTypes(CrossDomainWorkflowTest.TestWorkflowCrossDomainImpl.class)
+          .startWorkersAutomatically()
+          .withTestEnvironmentProvider(TestWorkflowEnvironment::newInstance)
+          .build();
+
+  @Rule
+  public CadenceTestRule testRuleNew =
+      CadenceTestRule.builder()
+          .withDomain(DOMAIN2)
+          .withWorkflowTypes(WorkflowTest.TestWorkflowSignaledSimple.class)
+          .startWorkersAutomatically()
+          .withTestEnvironmentProvider(TestWorkflowEnvironment::newInstance)
+          .build();
+
   @Before
   public void setUp() {
-    IWorkflowService service =
-        new WorkflowServiceTChannel(
-            ClientOptions.newBuilder()
-                .setFeatureFlags(
-                    new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
-                .build());
+    IWorkflowService serviceNew, serviceCur;
+    if (useDockerService) {
+      serviceCur =
+          new WorkflowServiceTChannel(
+              ClientOptions.newBuilder()
+                  .setFeatureFlags(
+                      new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
+                  .build());
+      serviceNew = serviceCur; // docker only starts one server so share the same service
+    } else {
+      serviceCur = testRuleCur.getWorkflowClient().getService();
+      serviceNew = testRuleNew.getWorkflowClient().getService();
+    }
     workflowClientCurr =
         WorkflowClient.newInstance(
-            service, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
+            serviceCur, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
     workflowClientNew =
         WorkflowClient.newInstance(
-            service, WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build());
+            serviceNew, WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build());
     MigrationIWorkflowService migrationService =
         new MigrationIWorkflowService(
-            service, DOMAIN,
-            service, DOMAIN2);
+            serviceCur, DOMAIN,
+            serviceNew, DOMAIN2);
     migrationWorkflowClient =
         WorkflowClient.newInstance(
             migrationService, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
@@ -155,7 +179,7 @@ public class WorkflowMigrationTest {
 
   @Test
   public void whenUseDockerService_cronWorkflowMigration() {
-    Assume.assumeTrue(useDockerService);
+    //    Assume.assumeTrue(useDockerService);
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
@@ -164,7 +188,7 @@ public class WorkflowMigrationTest {
           .execute("for test");
     } catch (CancellationException e) {
       try {
-        describeWorkflowExecution(workflowClientNew, workflowID);
+        getWorkflowHistory(workflowClientNew, workflowID);
       } catch (Exception eDesc) {
         fail("fail to describe workflow execution in new domain: " + eDesc);
       }
@@ -173,7 +197,6 @@ public class WorkflowMigrationTest {
 
   @Test
   public void whenUseDockerService_continueAsNewWorkflowMigration() {
-    Assume.assumeTrue(useDockerService);
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
@@ -183,18 +206,18 @@ public class WorkflowMigrationTest {
           .execute(0);
     } catch (CancellationException e) {
       try {
-        describeWorkflowExecution(workflowClientNew, workflowID);
+        getWorkflowHistory(workflowClientNew, workflowID);
       } catch (Exception eDesc) {
         fail("fail to describe workflow execution in new domain: " + eDesc);
       }
     }
   }
 
-  private DescribeWorkflowExecutionResponse describeWorkflowExecution(
+  private GetWorkflowExecutionHistoryResponse getWorkflowHistory(
       WorkflowClient wc, String workflowID) throws TException {
     return wc.getService()
-        .DescribeWorkflowExecution(
-            new DescribeWorkflowExecutionRequest()
+        .GetWorkflowExecutionHistory(
+            new GetWorkflowExecutionHistoryRequest()
                 .setExecution(new WorkflowExecution().setWorkflowId(workflowID))
                 .setDomain(wc.getOptions().getDomain()));
   }

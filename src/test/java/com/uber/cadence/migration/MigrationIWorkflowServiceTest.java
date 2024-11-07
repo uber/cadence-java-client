@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import com.uber.cadence.*;
+import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import java.util.ArrayList;
 import org.apache.thrift.TException;
@@ -1217,5 +1218,13 @@ public class MigrationIWorkflowServiceTest {
 
     verifyNoMoreInteractions(serviceNew);
     verifyNoMoreInteractions(serviceOld);
+  }
+
+  @Test
+  public void testGetOptions() {
+    when(serviceOld.getOptions())
+        .thenReturn(ClientOptions.newBuilder().setServiceName("serviceName").build());
+    ClientOptions options = migrationService.getOptions();
+    assertEquals("serviceName", options.getServiceName());
   }
 }
