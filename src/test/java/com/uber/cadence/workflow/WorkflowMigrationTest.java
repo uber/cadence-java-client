@@ -34,7 +34,6 @@ import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
 import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testUtils.CadenceTestRule;
-import com.uber.cadence.testing.TestWorkflowEnvironment;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerFactory;
 import com.uber.cadence.worker.WorkerFactoryOptions;
@@ -53,27 +52,14 @@ public class WorkflowMigrationTest {
   WorkerFactory factoryCurr, factoryNew;
   Worker workerCurr, workerNew;
 
-  @Rule
-  public CadenceTestRule testRuleCur =
-      CadenceTestRule.builder()
-          .withDomain(DOMAIN)
-          .withWorkflowTypes(CrossDomainWorkflowTest.TestWorkflowCrossDomainImpl.class)
-          .startWorkersAutomatically()
-          .withTestEnvironmentProvider(TestWorkflowEnvironment::newInstance)
-          .build();
+  @Rule public CadenceTestRule testRuleCur = CadenceTestRule.builder().withDomain(DOMAIN).build();
 
-  @Rule
-  public CadenceTestRule testRuleNew =
-      CadenceTestRule.builder()
-          .withDomain(DOMAIN2)
-          .withWorkflowTypes(WorkflowTest.TestWorkflowSignaledSimple.class)
-          .startWorkersAutomatically()
-          .withTestEnvironmentProvider(TestWorkflowEnvironment::newInstance)
-          .build();
+  @Rule public CadenceTestRule testRuleNew = CadenceTestRule.builder().withDomain(DOMAIN2).build();
 
   @Before
   public void setUp() {
-    IWorkflowService serviceNew, serviceCur;
+    IWorkflowService serviceCur = testRuleCur.getWorkflowClient().getService();
+    IWorkflowService serviceNew = testRuleNew.getWorkflowClient().getService();
     if (useDockerService) {
       serviceCur =
           new WorkflowServiceTChannel(
@@ -82,9 +68,6 @@ public class WorkflowMigrationTest {
                       new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
                   .build());
       serviceNew = serviceCur; // docker only starts one server so share the same service
-    } else {
-      serviceCur = testRuleCur.getWorkflowClient().getService();
-      serviceNew = testRuleNew.getWorkflowClient().getService();
     }
     workflowClientCurr =
         WorkflowClient.newInstance(
@@ -179,7 +162,6 @@ public class WorkflowMigrationTest {
 
   @Test
   public void whenUseDockerService_cronWorkflowMigration() {
-    //    Assume.assumeTrue(useDockerService);
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
