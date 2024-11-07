@@ -7,7 +7,6 @@ buildscript {
 
 plugins {
     id "com.github.hierynomus.license" version"0.15.0"
-    id 'com.github.nbaztec.coveralls-jacoco' version '1.2.15'
     id 'com.github.sherter.google-java-format' version '0.9'
     id 'net.ltgt.errorprone' version  '1.1.1'
     id 'java-library'
@@ -362,7 +361,7 @@ jacoco {
 jacocoTestReport {
     dependsOn test
     reports {
-        xml.enabled = true // coveralls plugin depends on xml format report
+        xml.enabled = true
         html.enabled = true
     }
 
