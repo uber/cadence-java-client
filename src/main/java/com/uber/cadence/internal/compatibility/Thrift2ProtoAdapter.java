@@ -109,6 +109,7 @@ import io.grpc.Deadline;
 import io.grpc.StatusRuntimeException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TException;
@@ -203,7 +204,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       RestartWorkflowExecutionRequest restartRequest)
       throws BadRequestError, ServiceBusyError, DomainNotActiveError, LimitExceededError,
           EntityNotExistsError, ClientVersionNotSupportedError, TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override
@@ -851,7 +852,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
   public void RestartWorkflowExecution(
       RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
       throws TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override
@@ -880,7 +881,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               resultHandler.onComplete(
                   ResponseMapper.startWorkflowExecutionAsyncResponse(response));
             } catch (Exception e) {
-              resultHandler.onError(e);
+              handleAsyncException(resultHandler, e);
             }
           },
           ForkJoinPool.commonPool());
@@ -1003,7 +1004,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               com.uber.cadence.api.v1.SignalWorkflowExecutionResponse response = resultFuture.get();
               resultHandler.onComplete(null);
             } catch (Exception e) {
-              resultHandler.onError(e);
+              handleAsyncException(resultHandler, e);
             }
           },
           ForkJoinPool.commonPool());
@@ -1025,7 +1026,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       SignalWithStartWorkflowExecutionAsyncRequest signalWithStartRequest,
       AsyncMethodCallback resultHandler)
       throws TException {
-    throw new IllegalArgumentException("unimplemented");
+    throw new UnsupportedOperationException("unimplemented");
   }
 
   @Override
@@ -1199,7 +1200,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               com.uber.cadence.api.v1.StartWorkflowExecutionResponse response = resultFuture.get();
               resultHandler.onComplete(ResponseMapper.startWorkflowExecutionResponse(response));
             } catch (Exception e) {
-              resultHandler.onError(e);
+              handleAsyncException(resultHandler, e);
             }
           },
           ForkJoinPool.commonPool());
@@ -1230,7 +1231,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               resultHandler.onComplete(
                   ResponseMapper.startWorkflowExecutionAsyncResponse(response));
             } catch (Exception e) {
-              resultHandler.onError(e);
+              handleAsyncException(resultHandler, e);
             }
           },
           ForkJoinPool.commonPool());
@@ -1276,7 +1277,7 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
               resultHandler.onComplete(
                   ResponseMapper.getWorkflowExecutionHistoryResponse(response));
             } catch (Exception e) {
-              resultHandler.onError(e);
+              handleAsyncException(resultHandler, e);
             }
           },
           ForkJoinPool.commonPool());
@@ -1292,5 +1293,14 @@ public class Thrift2ProtoAdapter implements IWorkflowService {
       Long timeoutInMillis)
       throws TException {
     throw new UnsupportedOperationException("not implemented");
+  }
+
+  private void handleAsyncException(AsyncMethodCallback callback, Exception exception) {
+    if (exception instanceof ExecutionException
+        && exception.getCause() instanceof StatusRuntimeException) {
+      callback.onError(ErrorMapper.Error(((StatusRuntimeException) exception.getCause())));
+    } else {
+      callback.onError(exception);
+    }
   }
 }
