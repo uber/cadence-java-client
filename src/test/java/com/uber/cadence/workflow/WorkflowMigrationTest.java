@@ -30,9 +30,7 @@ import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.migration.MigrationActivitiesImpl;
 import com.uber.cadence.migration.MigrationIWorkflowService;
 import com.uber.cadence.migration.MigrationInterceptorFactory;
-import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
 import com.uber.cadence.testUtils.CadenceTestRule;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerFactory;
@@ -46,7 +44,6 @@ import org.junit.*;
 
 public class WorkflowMigrationTest {
   private WorkflowClient migrationWorkflowClient, workflowClientCurr, workflowClientNew;
-  private boolean useDockerService = Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
   private static final String TASKLIST = "TASKLIST";
   private TracingWorkflowInterceptorFactory tracer;
   WorkerFactory factoryCurr, factoryNew;
@@ -60,15 +57,6 @@ public class WorkflowMigrationTest {
   public void setUp() {
     IWorkflowService serviceCur = testRuleCur.getWorkflowClient().getService();
     IWorkflowService serviceNew = testRuleNew.getWorkflowClient().getService();
-    if (useDockerService) {
-      serviceCur =
-          new WorkflowServiceTChannel(
-              ClientOptions.newBuilder()
-                  .setFeatureFlags(
-                      new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
-                  .build());
-      serviceNew = serviceCur; // docker only starts one server so share the same service
-    }
     workflowClientCurr =
         WorkflowClient.newInstance(
             serviceCur, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
@@ -161,7 +149,7 @@ public class WorkflowMigrationTest {
   }
 
   @Test
-  public void whenUseDockerService_cronWorkflowMigration() {
+  public void cronWorkflowMigration() {
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
@@ -178,7 +166,7 @@ public class WorkflowMigrationTest {
   }
 
   @Test
-  public void whenUseDockerService_continueAsNewWorkflowMigration() {
+  public void continueAsNewWorkflowMigration() {
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
