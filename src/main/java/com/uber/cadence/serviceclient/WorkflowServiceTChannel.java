@@ -506,6 +506,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       if (result.isSetDomainNotActiveError()) {
         throw result.getDomainNotActiveError();
       }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
+      }
       throw new TException("UpdateDomain failed with unknown error:" + result);
     } finally {
       if (response != null) {
@@ -550,6 +553,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetDomainNotActiveError()) {
         throw result.getDomainNotActiveError();
+      }
+      if (result.isSetClientVersionNotSupportedError()) {
+        throw result.getClientVersionNotSupportedError();
       }
       throw new TException("DeprecateDomain failed with unknown error:" + result);
     } finally {
@@ -2101,6 +2107,9 @@ public class WorkflowServiceTChannel implements IWorkflowService {
       }
       if (result.isSetQueryFailedError()) {
         throw result.getQueryFailedError();
+      }
+      if (result.isSetLimitExceededError()) {
+        throw result.getLimitExceededError();
       }
       if (result.isSetClientVersionNotSupportedError()) {
         throw result.getClientVersionNotSupportedError();
