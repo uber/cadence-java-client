@@ -1324,6 +1324,65 @@ public final class ProtoObjects {
   public static final UpdateDomainResponse UPDATE_DOMAIN_RESPONSE =
       UpdateDomainResponse.newBuilder().setDomain(DOMAIN).build();
 
+  public static final GetSearchAttributesRequest GET_SEARCH_ATTRIBUTES_REQUEST =
+      GetSearchAttributesRequest.getDefaultInstance();
+
+  public static final RegisterDomainResponse REGISTER_DOMAIN_RESPONSE =
+      RegisterDomainResponse.getDefaultInstance();
+
+  public static final DeprecateDomainResponse DEPRECATE_DOMAIN_RESPONSE =
+      DeprecateDomainResponse.getDefaultInstance();
+
+  public static final SignalWorkflowExecutionResponse SIGNAL_WORKFLOW_EXECUTION_RESPONSE =
+      SignalWorkflowExecutionResponse.getDefaultInstance();
+
+  public static final RequestCancelWorkflowExecutionResponse
+      REQUEST_CANCEL_WORKFLOW_EXECUTION_RESPONSE =
+          RequestCancelWorkflowExecutionResponse.getDefaultInstance();
+
+  public static final TerminateWorkflowExecutionResponse TERMINATE_WORKFLOW_EXECUTION_RESPONSE =
+      TerminateWorkflowExecutionResponse.getDefaultInstance();
+
+  public static final GetClusterInfoRequest GET_CLUSTER_INFO_REQUEST =
+      GetClusterInfoRequest.getDefaultInstance();
+
+  public static final RespondDecisionTaskFailedResponse RESPOND_DECISION_TASK_FAILED_RESPONSE =
+      RespondDecisionTaskFailedResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskCompletedResponse
+      RESPOND_ACTIVITY_TASK_COMPLETED_RESPONSE =
+          RespondActivityTaskCompletedResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskCompletedByIDResponse
+      RESPOND_ACTIVITY_TASK_COMPLETED_BY_ID_RESPONSE =
+          RespondActivityTaskCompletedByIDResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskFailedResponse RESPOND_ACTIVITY_TASK_FAILED_RESPONSE =
+      RespondActivityTaskFailedResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskFailedByIDResponse
+      RESPOND_ACTIVITY_TASK_FAILED_BY_ID_RESPONSE =
+          RespondActivityTaskFailedByIDResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskCanceledResponse RESPOND_ACTIVITY_TASK_CANCELED_RESPONSE =
+      RespondActivityTaskCanceledResponse.getDefaultInstance();
+
+  public static final RespondActivityTaskCanceledByIDResponse
+      RESPOND_ACTIVITY_TASK_CANCELED_BY_ID_RESPONSE =
+          RespondActivityTaskCanceledByIDResponse.getDefaultInstance();
+
+  public static final RespondQueryTaskCompletedResponse RESPOND_QUERY_TASK_COMPLETED_RESPONSE =
+      RespondQueryTaskCompletedResponse.getDefaultInstance();
+
+  public static final ResetStickyTaskListResponse RESET_STICKY_TASK_LIST_RESPONSE =
+      ResetStickyTaskListResponse.getDefaultInstance();
+
+  public static final RefreshWorkflowTasksRequest REFRESH_WORKFLOW_TASKS_REQUEST =
+      RefreshWorkflowTasksRequest.getDefaultInstance();
+
+  public static final RefreshWorkflowTasksResponse REFRESH_WORKFLOW_TASKS_RESPONSE =
+      RefreshWorkflowTasksResponse.getDefaultInstance();
+
   private ProtoObjects() {}
 
   private static Payload payload(String value) {
