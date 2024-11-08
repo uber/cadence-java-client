@@ -30,9 +30,8 @@ import com.uber.cadence.internal.worker.PollerOptions;
 import com.uber.cadence.migration.MigrationActivitiesImpl;
 import com.uber.cadence.migration.MigrationIWorkflowService;
 import com.uber.cadence.migration.MigrationInterceptorFactory;
-import com.uber.cadence.serviceclient.ClientOptions;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import com.uber.cadence.serviceclient.WorkflowServiceTChannel;
+import com.uber.cadence.testUtils.CadenceTestRule;
 import com.uber.cadence.worker.Worker;
 import com.uber.cadence.worker.WorkerFactory;
 import com.uber.cadence.worker.WorkerFactoryOptions;
@@ -41,37 +40,33 @@ import com.uber.cadence.workflow.interceptors.TracingWorkflowInterceptorFactory;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 public class WorkflowMigrationTest {
   private WorkflowClient migrationWorkflowClient, workflowClientCurr, workflowClientNew;
-  private boolean useDockerService = Boolean.parseBoolean(System.getenv("USE_DOCKER_SERVICE"));
   private static final String TASKLIST = "TASKLIST";
   private TracingWorkflowInterceptorFactory tracer;
   WorkerFactory factoryCurr, factoryNew;
   Worker workerCurr, workerNew;
 
+  @Rule public CadenceTestRule testRuleCur = CadenceTestRule.builder().withDomain(DOMAIN).build();
+
+  @Rule public CadenceTestRule testRuleNew = CadenceTestRule.builder().withDomain(DOMAIN2).build();
+
   @Before
   public void setUp() {
-    IWorkflowService service =
-        new WorkflowServiceTChannel(
-            ClientOptions.newBuilder()
-                .setFeatureFlags(
-                    new FeatureFlags().setWorkflowExecutionAlreadyCompletedErrorEnabled(true))
-                .build());
+    IWorkflowService serviceCur = testRuleCur.getWorkflowClient().getService();
+    IWorkflowService serviceNew = testRuleNew.getWorkflowClient().getService();
     workflowClientCurr =
         WorkflowClient.newInstance(
-            service, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
+            serviceCur, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
     workflowClientNew =
         WorkflowClient.newInstance(
-            service, WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build());
+            serviceNew, WorkflowClientOptions.newBuilder().setDomain(DOMAIN2).build());
     MigrationIWorkflowService migrationService =
         new MigrationIWorkflowService(
-            service, DOMAIN,
-            service, DOMAIN2);
+            serviceCur, DOMAIN,
+            serviceNew, DOMAIN2);
     migrationWorkflowClient =
         WorkflowClient.newInstance(
             migrationService, WorkflowClientOptions.newBuilder().setDomain(DOMAIN).build());
@@ -154,8 +149,7 @@ public class WorkflowMigrationTest {
   }
 
   @Test
-  public void whenUseDockerService_cronWorkflowMigration() {
-    Assume.assumeTrue(useDockerService);
+  public void cronWorkflowMigration() {
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
@@ -164,7 +158,7 @@ public class WorkflowMigrationTest {
           .execute("for test");
     } catch (CancellationException e) {
       try {
-        describeWorkflowExecution(workflowClientNew, workflowID);
+        getWorkflowHistory(workflowClientNew, workflowID);
       } catch (Exception eDesc) {
         fail("fail to describe workflow execution in new domain: " + eDesc);
       }
@@ -172,8 +166,7 @@ public class WorkflowMigrationTest {
   }
 
   @Test
-  public void whenUseDockerService_continueAsNewWorkflowMigration() {
-    Assume.assumeTrue(useDockerService);
+  public void continueAsNewWorkflowMigration() {
     String workflowID = UUID.randomUUID().toString();
     try {
       workflowClientCurr
@@ -183,18 +176,18 @@ public class WorkflowMigrationTest {
           .execute(0);
     } catch (CancellationException e) {
       try {
-        describeWorkflowExecution(workflowClientNew, workflowID);
+        getWorkflowHistory(workflowClientNew, workflowID);
       } catch (Exception eDesc) {
         fail("fail to describe workflow execution in new domain: " + eDesc);
       }
     }
   }
 
-  private DescribeWorkflowExecutionResponse describeWorkflowExecution(
+  private GetWorkflowExecutionHistoryResponse getWorkflowHistory(
       WorkflowClient wc, String workflowID) throws TException {
     return wc.getService()
-        .DescribeWorkflowExecution(
-            new DescribeWorkflowExecutionRequest()
+        .GetWorkflowExecutionHistory(
+            new GetWorkflowExecutionHistoryRequest()
                 .setExecution(new WorkflowExecution().setWorkflowId(workflowID))
                 .setDomain(wc.getOptions().getDomain()));
   }
