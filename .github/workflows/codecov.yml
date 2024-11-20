@@ -14,4 +14,4 @@ jobs:
         uses: codecov/codecov-action@v4
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          slug: uber/cadence-java-client
+          slug: cadence-workflow/cadence-java-client
