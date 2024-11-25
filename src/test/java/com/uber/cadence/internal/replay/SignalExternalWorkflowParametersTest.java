@@ -178,9 +178,10 @@ public class SignalExternalWorkflowParametersTest {
       Field[] fields = clazz.getDeclaredFields();
 
       for (Field field : fields) {
-        if (!field.getName().equals("$jacocoData")) {
-          count++;
+        if (field.getName().equals("$jacocoData") || field.getName().equals("__$hits$__")) {
+          continue;
         }
+        count++;
       }
       clazz = clazz.getSuperclass();
     }
