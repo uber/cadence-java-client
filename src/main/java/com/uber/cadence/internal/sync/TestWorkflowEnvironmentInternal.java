@@ -498,7 +498,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
     public void RestartWorkflowExecution(
         RestartWorkflowExecutionRequest restartRequest, AsyncMethodCallback resultHandler)
         throws TException {
-      impl.RestartWorkflowExecution(restartRequest);
+      impl.RestartWorkflowExecution(restartRequest, resultHandler);
     }
 
     @Override
@@ -743,7 +743,7 @@ public final class TestWorkflowEnvironmentInternal implements TestWorkflowEnviro
 
     @Override
     public void GetSearchAttributes(AsyncMethodCallback resultHandler) throws TException {
-      impl.GetSearchAttributes();
+      impl.GetSearchAttributes(resultHandler);
     }
 
     @Override
