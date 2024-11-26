@@ -57,13 +57,8 @@ import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -506,24 +501,6 @@ public class WorkflowExecutionUtils {
     return result.toString();
   }
 
-  public static String prettyPrintDecisions(Iterable<Decision> decisions) {
-    StringBuilder result = new StringBuilder();
-    result.append("{");
-    boolean first = true;
-    for (Decision decision : decisions) {
-      if (first) {
-        first = false;
-      } else {
-        result.append(",");
-      }
-      result.append("\n");
-      result.append(INDENTATION);
-      result.append(prettyPrintDecision(decision));
-    }
-    result.append("\n}");
-    return result.toString();
-  }
-
   /**
    * Returns single event in a human readable format
    *
@@ -559,6 +536,29 @@ public class WorkflowExecutionUtils {
     } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
       return event;
     }
+  }
+
+  /**
+   * Returns decisions in a human readable format
+   *
+   * @param decisions decisions to pretty print
+   */
+  public static String prettyPrintDecisions(Iterable<Decision> decisions) {
+    StringBuilder result = new StringBuilder();
+    result.append("{");
+    boolean first = true;
+    for (Decision decision : decisions) {
+      if (first) {
+        first = false;
+      } else {
+        result.append(",");
+      }
+      result.append("\n");
+      result.append(INDENTATION);
+      result.append(prettyPrintDecision(decision));
+    }
+    result.append("\n}");
+    return result.toString();
   }
 
   /**
@@ -638,7 +638,8 @@ public class WorkflowExecutionUtils {
       result.append("{ ");
 
       String prefix = "";
-      for (Object entry : ((Map) object).entrySet()) {
+      Map<?, ?> sortedMap = new TreeMap<>((Map<?, ?>) object); // Automatically sorts by keys
+      for (Map.Entry<?, ?> entry : sortedMap.entrySet()) {
         result.append(prefix);
         prefix = ", ";
         result.append(
@@ -652,6 +653,7 @@ public class WorkflowExecutionUtils {
     if (Collection.class.isAssignableFrom(clz)) {
       return String.valueOf(object);
     }
+
     if (!skipLevel) {
       if (printTypeName) {
         result.append(object.getClass().getSimpleName());
@@ -659,7 +661,13 @@ public class WorkflowExecutionUtils {
       }
       result.append("{");
     }
+
+    // walk through getter methods without params and dump them as
+    // key (method-name) = value (getter-result)
+
     Method[] eventMethods = object.getClass().getDeclaredMethods();
+    Arrays.sort(eventMethods, Comparator.comparing(Method::getName));
+
     boolean first = true;
     for (Method method : eventMethods) {
       String name = method.getName();

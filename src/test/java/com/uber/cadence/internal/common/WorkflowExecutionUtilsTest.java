@@ -17,20 +17,13 @@ package com.uber.cadence.internal.common;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-import com.uber.cadence.EventType;
-import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
-import com.uber.cadence.History;
-import com.uber.cadence.HistoryEvent;
-import com.uber.cadence.StartChildWorkflowExecutionFailedEventAttributes;
-import com.uber.cadence.WorkflowExecution;
-import com.uber.cadence.WorkflowExecutionCloseStatus;
+import com.google.common.collect.ImmutableMap;
+import com.uber.cadence.*;
 import com.uber.cadence.client.WorkflowTerminatedException;
 import com.uber.cadence.client.WorkflowTimedOutException;
+import com.uber.cadence.internal.compatibility.ThriftObjects;
 import com.uber.cadence.serviceclient.IWorkflowService;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -42,6 +35,33 @@ public class WorkflowExecutionUtilsTest {
 
   private IWorkflowService mockService;
   private WorkflowExecution workflowExecution;
+  private final String DECISIONS_PRETTY_PRINT =
+      "{\n"
+          + "  ScheduleActivityTaskDecisionAttributes {\n"
+          + "    ActivityId = activityId;\n"
+          + "    ActivityType = activityName;\n"
+          + "    Domain = domain;\n"
+          + "    Header = {\n"
+          + "      Fields = { key1=value1, key2=value2 };\n"
+          + "      FieldsSize = 2\n"
+          + "    };\n"
+          + "    HeartbeatTimeoutSeconds = 4;\n"
+          + "    Input = input;\n"
+          + "    ScheduleToCloseTimeoutSeconds = 1;\n"
+          + "    ScheduleToStartTimeoutSeconds = 2;\n"
+          + "    StartToCloseTimeoutSeconds = 3;\n"
+          + "    TaskList = taskList\n"
+          + "  },\n"
+          + "  FailWorkflowExecutionDecisionAttributes {\n"
+          + "    Details = {\n"
+          + "      \"error\": \"panic\",\n"
+          + "      \"stackTrace\": \"fn()\n"
+          + "        main()\"\n"
+          + "    };\n"
+          + "    Reason = failure reason\n"
+          + "  },\n"
+          + "  null\n"
+          + "}";
 
   @Before
   public void setUp() {
@@ -399,5 +419,54 @@ public class WorkflowExecutionUtilsTest {
             });
 
     assertTrue(exception.getMessage().contains(errMessage));
+  }
+
+  @Test
+  public void testPrettyPrintDecisions() throws Exception {
+    final TaskList taskList =
+        new com.uber.cadence.TaskList()
+            .setName("taskList")
+            .setKind(com.uber.cadence.TaskListKind.NORMAL);
+
+    final ActivityType activityType = new ActivityType().setName("activityName");
+    final Header activityHeader =
+        new Header()
+            .setFields(
+                ImmutableMap.of(
+                    "key1", ThriftObjects.utf8("value1"),
+                    "key2", ThriftObjects.utf8("value2")));
+
+    final Decision decisionScheduleActivity =
+        new Decision()
+            .setDecisionType(DecisionType.ScheduleActivityTask)
+            .setScheduleActivityTaskDecisionAttributes(
+                new ScheduleActivityTaskDecisionAttributes()
+                    .setActivityId("activityId")
+                    .setActivityType(activityType)
+                    .setTaskList(taskList)
+                    .setInput(ThriftObjects.utf8("input"))
+                    .setScheduleToCloseTimeoutSeconds(1)
+                    .setScheduleToStartTimeoutSeconds(2)
+                    .setStartToCloseTimeoutSeconds(3)
+                    .setHeartbeatTimeoutSeconds(4)
+                    .setHeader(activityHeader)
+                    .setRequestLocalDispatch(true)
+                    .setDomain("domain"));
+
+    final Decision decisionFailWorkflow =
+        new Decision()
+            .setDecisionType(DecisionType.FailWorkflowExecution)
+            .setFailWorkflowExecutionDecisionAttributes(
+                new FailWorkflowExecutionDecisionAttributes()
+                    .setReason("failure reason")
+                    .setDetails(
+                        ThriftObjects.utf8(
+                            "{\"error\":\"panic\", \"stackTrace\":\"fn()\\nmain()\"}")));
+
+    ArrayList<Decision> decisions =
+        new ArrayList<>(Arrays.asList(decisionScheduleActivity, decisionFailWorkflow, null));
+
+    String result = WorkflowExecutionUtils.prettyPrintDecisions(decisions);
+    assertEquals(DECISIONS_PRETTY_PRINT, result);
   }
 }
