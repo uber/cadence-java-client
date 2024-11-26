@@ -44,17 +44,6 @@ public class TestActivityEnvironmentInternalTest {
 
   private Object testActivityExecutor;
 
-  // Functional interfaces matching the exact method signatures
-  @FunctionalInterface
-  interface Func<R> {
-    R get() throws Exception; // Changed back to get() to match original signature
-  }
-
-  @FunctionalInterface
-  interface Func1<T, R> {
-    R apply(T arg) throws Exception; // Kept as is
-  }
-
   // Helper method to find the inner class
   private Class<?> findTestActivityExecutorClass() {
     for (Class<?> declaredClass : TestActivityEnvironmentInternal.class.getDeclaredClasses()) {
@@ -75,7 +64,7 @@ public class TestActivityEnvironmentInternalTest {
 
   @Before
   public void setUp() {
-    MockitoAnnotations.initMocks(this);
+    MockitoAnnotations.openMocks(this);
 
     try {
       // Find the inner class first
