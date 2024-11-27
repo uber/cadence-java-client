@@ -54,6 +54,7 @@ import com.uber.cadence.SearchAttributes;
 import com.uber.cadence.SupportedClientVersions;
 import com.uber.cadence.TaskIDBlock;
 import com.uber.cadence.TaskList;
+import com.uber.cadence.TaskListMetadata;
 import com.uber.cadence.TaskListPartitionMetadata;
 import com.uber.cadence.TaskListStatus;
 import com.uber.cadence.WorkflowExecution;
@@ -374,6 +375,7 @@ class TypeMapper {
     res.setCloseTime(timeToUnixNano(t.getCloseTime()));
     res.setCloseStatus(workflowExecutionCloseStatus(t.getCloseStatus()));
     res.setHistoryLength(t.getHistoryLength());
+    res.setParentDomainName(parentDomainName(t.getParentExecutionInfo()));
     res.setParentDomainId(parentDomainId(t.getParentExecutionInfo()));
     res.setParentExecution(parentWorkflowExecution(t.getParentExecutionInfo()));
     res.setExecutionTime(timeToUnixNano(t.getExecutionTime()));
@@ -527,6 +529,15 @@ class TypeMapper {
     return res;
   }
 
+  static TaskListMetadata taskListMetadata(com.uber.cadence.api.v1.TaskListMetadata t) {
+    if (t == null) {
+      return null;
+    }
+    TaskListMetadata res = new TaskListMetadata();
+    res.setMaxTasksPerSecond(t.getMaxTasksPerSecond().getValue());
+    return res;
+  }
+
   static TaskListPartitionMetadata taskListPartitionMetadata(
       com.uber.cadence.api.v1.TaskListPartitionMetadata t) {
     if (t == null || t == com.uber.cadence.api.v1.TaskListPartitionMetadata.getDefaultInstance()) {
@@ -552,8 +563,8 @@ class TypeMapper {
       return null;
     }
     List<PollerInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(pollerInfo(t.get(i)));
+    for (com.uber.cadence.api.v1.PollerInfo pollerInfo : t) {
+      v.add(pollerInfo(pollerInfo));
     }
     return v;
   }
@@ -563,8 +574,8 @@ class TypeMapper {
       return null;
     }
     List<ResetPointInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(resetPointInfo(t.get(i)));
+    for (com.uber.cadence.api.v1.ResetPointInfo resetPointInfo : t) {
+      v.add(resetPointInfo(resetPointInfo));
     }
     return v;
   }
@@ -575,8 +586,8 @@ class TypeMapper {
       return null;
     }
     List<PendingActivityInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(pendingActivityInfo(t.get(i)));
+    for (com.uber.cadence.api.v1.PendingActivityInfo pendingActivityInfo : t) {
+      v.add(pendingActivityInfo(pendingActivityInfo));
     }
     return v;
   }
@@ -587,8 +598,8 @@ class TypeMapper {
       return null;
     }
     List<PendingChildExecutionInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(pendingChildExecutionInfo(t.get(i)));
+    for (com.uber.cadence.api.v1.PendingChildExecutionInfo pendingChildExecutionInfo : t) {
+      v.add(pendingChildExecutionInfo(pendingChildExecutionInfo));
     }
     return v;
   }
@@ -610,8 +621,8 @@ class TypeMapper {
       return null;
     }
     List<DataBlob> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(dataBlob(t.get(i)));
+    for (com.uber.cadence.api.v1.DataBlob dataBlob : t) {
+      v.add(dataBlob(dataBlob));
     }
     return v;
   }
@@ -622,8 +633,8 @@ class TypeMapper {
       return null;
     }
     List<WorkflowExecutionInfo> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(workflowExecutionInfo(t.get(i)));
+    for (com.uber.cadence.api.v1.WorkflowExecutionInfo workflowExecutionInfo : t) {
+      v.add(workflowExecutionInfo(workflowExecutionInfo));
     }
     return v;
   }
@@ -634,8 +645,8 @@ class TypeMapper {
       return null;
     }
     List<DescribeDomainResponse> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(describeDomainResponseDomain(t.get(i)));
+    for (com.uber.cadence.api.v1.Domain domain : t) {
+      v.add(describeDomainResponseDomain(domain));
     }
     return v;
   }
@@ -646,8 +657,8 @@ class TypeMapper {
       return null;
     }
     List<TaskListPartitionMetadata> v = new ArrayList<>();
-    for (int i = 0; i < t.size(); i++) {
-      v.add(taskListPartitionMetadata(t.get(i)));
+    for (com.uber.cadence.api.v1.TaskListPartitionMetadata taskListPartitionMetadata : t) {
+      v.add(taskListPartitionMetadata(taskListPartitionMetadata));
     }
     return v;
   }

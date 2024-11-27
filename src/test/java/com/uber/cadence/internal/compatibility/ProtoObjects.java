@@ -48,6 +48,11 @@ public final class ProtoObjects {
   public static final String WORKFLOW_ID = "workflowId";
   public static final WorkflowExecution WORKFLOW_EXECUTION =
       WorkflowExecution.newBuilder().setWorkflowId("workflowId").setRunId("runId").build();
+  public static final WorkflowExecution EXTERNAL_WORKFLOW_EXECUTION =
+      WorkflowExecution.newBuilder()
+          .setWorkflowId("externalWorkflowId")
+          .setRunId("externalRunId")
+          .build();
   public static final WorkflowExecution PARENT_WORKFLOW_EXECUTION =
       WorkflowExecution.newBuilder()
           .setWorkflowId("parentWorkflowId")
@@ -123,6 +128,7 @@ public final class ProtoObjects {
           .setHistoryLength(3)
           .setParentExecutionInfo(
               ParentExecutionInfo.newBuilder()
+                  .setDomainName("parentDomainName")
                   .setDomainId("parentDomainId")
                   .setWorkflowExecution(PARENT_WORKFLOW_EXECUTION)
                   .setInitiatedId(1)
@@ -710,6 +716,12 @@ public final class ProtoObjects {
               .setDetails(payload("details"))
               .setIdentity("identity")
               .build();
+
+  public static final ExternalExecutionInfo EXTERNAL_WORKFLOW_EXECUTION_INFO =
+      ExternalExecutionInfo.newBuilder()
+          .setInitiatedId(1)
+          .setWorkflowExecution(EXTERNAL_WORKFLOW_EXECUTION)
+          .build();
 
   public static final WorkflowExecutionCancelRequestedEventAttributes
       WORKFLOW_EXECUTION_CANCEL_REQUESTED_EVENT_ATTRIBUTES =
