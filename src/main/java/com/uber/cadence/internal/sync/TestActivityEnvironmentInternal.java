@@ -621,8 +621,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
 
     @Override
     public void GetTaskListsByDomain(
-        GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler)
-        throws org.apache.thrift.TException {
+        GetTaskListsByDomainRequest request, AsyncMethodCallback resultHandler) throws TException {
       impl.GetTaskListsByDomain(request, resultHandler);
     }
 
@@ -893,16 +892,22 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     }
 
     @Override
-    public void GetClusterInfo(AsyncMethodCallback resultHandler) throws TException {}
+    public void GetClusterInfo(AsyncMethodCallback resultHandler) throws TException {
+      impl.GetClusterInfo(resultHandler);
+    }
 
     @Override
     public void ListTaskListPartitions(
         ListTaskListPartitionsRequest request, AsyncMethodCallback resultHandler)
-        throws TException {}
+        throws TException {
+      impl.ListTaskListPartitions(request, resultHandler);
+    }
 
     @Override
     public void RefreshWorkflowTasks(
-        RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {}
+        RefreshWorkflowTasksRequest request, AsyncMethodCallback resultHandler) throws TException {
+      impl.RefreshWorkflowTasks(request, resultHandler);
+    }
 
     @Override
     public void RegisterDomain(RegisterDomainRequest registerRequest)
