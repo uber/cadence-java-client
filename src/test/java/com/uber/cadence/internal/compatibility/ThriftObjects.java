@@ -50,6 +50,10 @@ public final class ThriftObjects {
   public static final String PARENT_RUN_ID = "parentRunId";
   public static final WorkflowExecution PARENT_WORKFLOW_EXECUTION =
       new WorkflowExecution().setWorkflowId(PARENT_WORkFLOW_ID).setRunId(PARENT_RUN_ID);
+  public static final String EXTERNAL_WORKFLOW_ID = "externalWorkflowId";
+  public static final String EXTERNAL_RUN_ID = "externalRunId";
+  public static final WorkflowExecution EXTERNAL_WORKFLOW_EXECUTION =
+      new WorkflowExecution().setWorkflowId(EXTERNAL_WORKFLOW_ID).setRunId(EXTERNAL_RUN_ID);
   public static final StickyExecutionAttributes STICKY_EXECUTION_ATTRIBUTES =
       new StickyExecutionAttributes()
           .setWorkerTaskList(TASK_LIST)
@@ -101,6 +105,7 @@ public final class ThriftObjects {
           .setCloseTime(2)
           .setCloseStatus(WorkflowExecutionCloseStatus.FAILED)
           .setHistoryLength(3)
+          .setParentDomainName("parentDomainName")
           .setParentDomainId("parentDomainId")
           .setParentExecution(PARENT_WORKFLOW_EXECUTION)
           .setExecutionTime(4)
