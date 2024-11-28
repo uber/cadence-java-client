@@ -231,14 +231,8 @@ class HistoryHelper {
         }
         decisionEvents.add(events.next());
       }
-      DecisionEvents result =
-          new DecisionEvents(
-              newEvents,
-              decisionEvents,
-              replay,
-              replayCurrentTimeMilliseconds,
-              nextDecisionEventId);
-      return result;
+      return new DecisionEvents(
+          newEvents, decisionEvents, replay, replayCurrentTimeMilliseconds, nextDecisionEventId);
     }
   }
 

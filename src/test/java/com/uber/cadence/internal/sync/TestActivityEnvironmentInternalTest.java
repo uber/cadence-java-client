@@ -126,8 +126,6 @@ public class TestActivityEnvironmentInternalTest {
     // Prepare test cases
     List<MethodTestCase> testCases = prepareMethodTestCases();
 
-    System.out.println(testCases);
-
     // Test each method
     for (MethodTestCase testCase : testCases) {
       try {
