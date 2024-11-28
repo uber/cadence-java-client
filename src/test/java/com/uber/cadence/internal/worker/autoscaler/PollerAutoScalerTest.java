@@ -16,8 +16,11 @@
 package com.uber.cadence.internal.worker.autoscaler;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
 import org.junit.Test;
 
 public class PollerAutoScalerTest {
@@ -41,5 +44,74 @@ public class PollerAutoScalerTest {
     pollerAutoScaler.resizePollers();
 
     assertEquals(10, pollerAutoScaler.getSemaphoreSize());
+  }
+
+  @Test
+  public void testStart() throws Exception {
+    // Get a partial mock of PollerAutoScaler
+    PollerAutoScaler pollerAutoScaler =
+        spy(new PollerAutoScaler(Duration.ofSeconds(10), null, new Recommender(0.5f, 100, 10)));
+
+    // We want to test what resizePollers() is called, we don't want to test
+    // the implementation of the resizePollers() method
+    doNothing().when(pollerAutoScaler).resizePollers();
+
+    // We let the loop run 3 times on the 3rd iteration we stop the pollerAutoScaler
+    // so we expect resizePollers() to be called 2 times and stop() to be called once
+    CountDownLatch latch = new CountDownLatch(3);
+    doAnswer(
+            invocation -> {
+              latch.countDown();
+              if (latch.getCount() == 0) {
+                pollerAutoScaler.stop();
+              }
+              return null;
+            })
+        .when(pollerAutoScaler)
+        .sleep(anyLong());
+
+    pollerAutoScaler.start();
+
+    // Wait for the latch to be 0
+    latch.await();
+    assertEquals(0, latch.getCount());
+
+    // Verify that resizePollers() was called 2 times and stop() was called once
+    verify(pollerAutoScaler, times(2)).resizePollers();
+    verify(pollerAutoScaler, times(1)).stop();
+  }
+
+  @Test
+  public void testAquireRelease() throws Exception {
+    PollerAutoScaler pollerAutoScaler =
+        new PollerAutoScaler(Duration.ofSeconds(10), null, new Recommender(0.5f, 100, 10));
+
+    // access the private semaphore field
+    Field semaphoreField = PollerAutoScaler.class.getDeclaredField("semaphore");
+    semaphoreField.setAccessible(true);
+    ResizableSemaphore semaphore = (ResizableSemaphore) semaphoreField.get(pollerAutoScaler);
+
+    assertEquals(100, semaphore.availablePermits());
+
+    pollerAutoScaler.acquire();
+    assertEquals(99, semaphore.availablePermits());
+
+    pollerAutoScaler.release();
+    assertEquals(100, semaphore.availablePermits());
+  }
+
+  @Test
+  public void testPollerIndirection() throws Exception {
+    PollerUsageEstimator pollerUsageEstimator = mock(PollerUsageEstimator.class);
+
+    PollerAutoScaler pollerAutoScaler =
+        new PollerAutoScaler(
+            Duration.ofSeconds(10), pollerUsageEstimator, new Recommender(0.5f, 100, 10));
+
+    pollerAutoScaler.increaseNoopPollCount();
+    verify(pollerUsageEstimator, times(1)).increaseNoopTaskCount();
+
+    pollerAutoScaler.increaseActionablePollCount();
+    verify(pollerUsageEstimator, times(1)).increaseActionableTaskCount();
   }
 }

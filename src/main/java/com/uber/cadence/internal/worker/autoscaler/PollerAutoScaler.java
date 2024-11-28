@@ -40,6 +40,11 @@ public class PollerAutoScaler implements AutoScaler {
     this.semaphoreSize = recommender.getUpperValue();
   }
 
+  // Sleep method which can be mocked in tests
+  void sleep(long millis) throws InterruptedException {
+    Thread.sleep(millis);
+  }
+
   public void start() {
     Executors.newSingleThreadExecutor()
         .submit(
@@ -48,7 +53,7 @@ public class PollerAutoScaler implements AutoScaler {
               public void run() {
                 while (!shuttingDown) {
                   try {
-                    Thread.sleep(coolDownTime.toMillis());
+                    sleep(coolDownTime.toMillis());
                     if (!shuttingDown) {
                       resizePollers();
                     }
