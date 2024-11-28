@@ -86,7 +86,6 @@ public class TestActivityEnvironmentInternalTest {
               TestActivityEnvironmentInternal.class,
               IWorkflowService.class,
               WorkflowInterceptorBase.class);
-      constructor.setAccessible(true);
 
       // Create an instance of the outer class
       TestActivityEnvironmentInternal outerInstance = mock(TestActivityEnvironmentInternal.class);
@@ -108,7 +107,6 @@ public class TestActivityEnvironmentInternalTest {
       Constructor<?> constructor =
           innerClass.getDeclaredConstructor(
               TestActivityEnvironmentInternal.class, IWorkflowService.class);
-      constructor.setAccessible(true);
 
       // Create an instance of the outer class
       TestActivityEnvironmentInternal outerInstance = mock(TestActivityEnvironmentInternal.class);
@@ -125,8 +123,6 @@ public class TestActivityEnvironmentInternalTest {
   public void testWorkflowServiceWrapperMethodDelegation() throws Exception {
     // Prepare test cases
     List<MethodTestCase> testCases = prepareMethodTestCases();
-
-    System.out.println(testCases);
 
     // Test each method
     for (MethodTestCase testCase : testCases) {

@@ -17,6 +17,7 @@
 
 package com.uber.cadence.internal.sync;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Defaults;
 import com.uber.cadence.*;
 import com.uber.cadence.GetTaskListsByDomainRequest;
@@ -133,6 +134,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
     @SuppressWarnings("UnusedVariable")
     private final IWorkflowService workflowService;
 
+    @VisibleForTesting
     TestActivityExecutor(IWorkflowService workflowService, WorkflowInterceptorBase next) {
       super(next);
       this.workflowService = workflowService;
@@ -334,6 +336,7 @@ public final class TestActivityEnvironmentInternal implements TestActivityEnviro
       return impl.isHealthy();
     }
 
+    @VisibleForTesting
     private WorkflowServiceWrapper(IWorkflowService impl) {
       if (impl == null) {
         // Create empty implementation that just ignores all requests.

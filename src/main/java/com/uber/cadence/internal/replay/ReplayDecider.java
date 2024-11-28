@@ -19,6 +19,7 @@ package com.uber.cadence.internal.replay;
 
 import static com.uber.cadence.worker.NonDeterministicWorkflowPolicy.FailWorkflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.uber.cadence.EventType;
 import com.uber.cadence.GetWorkflowExecutionHistoryRequest;
 import com.uber.cadence.GetWorkflowExecutionHistoryResponse;
@@ -634,6 +635,7 @@ class ReplayDecider implements Decider {
     private Iterator<HistoryEvent> current;
     private byte[] nextPageToken;
 
+    @VisibleForTesting
     DecisionTaskWithHistoryIteratorImpl(
         PollForDecisionTaskResponse task, Duration decisionTaskStartToCloseTimeout) {
       this.task = Objects.requireNonNull(task);
