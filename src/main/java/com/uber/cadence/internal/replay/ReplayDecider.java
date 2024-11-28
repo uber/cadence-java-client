@@ -685,8 +685,7 @@ class ReplayDecider implements Decider {
                   .setExpiration(decisionTaskRemainingTime)
                   .setInitialInterval(retryServiceOperationInitialInterval)
                   .setMaximumInterval(retryServiceOperationMaxInterval)
-                  .setBackoffCoefficient(2)
-                  .build();
+                  .validateBuildWithDefaults();
 
           GetWorkflowExecutionHistoryRequest request = new GetWorkflowExecutionHistoryRequest();
           request
