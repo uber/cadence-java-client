@@ -180,9 +180,9 @@ class ReplayDecider implements Decider {
         context.handleChildWorkflowExecutionTimedOut(event);
         break;
       case DecisionTaskCompleted:
-        // NOOP
-        break;
       case DecisionTaskScheduled:
+      case WorkflowExecutionTimedOut:
+      case WorkflowExecutionTerminated:
         // NOOP
         break;
       case DecisionTaskStarted:
@@ -208,12 +208,6 @@ class ReplayDecider implements Decider {
       case WorkflowExecutionStarted:
         handleWorkflowExecutionStarted(event);
         break;
-      case WorkflowExecutionTerminated:
-        // NOOP
-        break;
-      case WorkflowExecutionTimedOut:
-        // NOOP
-        break;
       case ActivityTaskScheduled:
         decisionsHelper.handleActivityTaskScheduled(event);
         break;
@@ -227,11 +221,8 @@ class ReplayDecider implements Decider {
         context.handleMarkerRecorded(event);
         break;
       case WorkflowExecutionCompleted:
-        break;
       case WorkflowExecutionFailed:
-        break;
       case WorkflowExecutionCanceled:
-        break;
       case WorkflowExecutionContinuedAsNew:
         break;
       case TimerStarted:
@@ -410,7 +401,7 @@ class ReplayDecider implements Decider {
     return queries
         .entrySet()
         .stream()
-        .collect(Collectors.toMap(q -> q.getKey(), q -> queryWorkflow(q.getValue())));
+        .collect(Collectors.toMap(Map.Entry::getKey, q -> queryWorkflow(q.getValue())));
   }
 
   private WorkflowQueryResult queryWorkflow(WorkflowQuery query) {
@@ -632,9 +623,9 @@ class ReplayDecider implements Decider {
     private final Duration retryServiceOperationInitialInterval = Duration.ofMillis(200);
     private final Duration retryServiceOperationMaxInterval = Duration.ofSeconds(4);
     private final Duration paginationStart = Duration.ofMillis(System.currentTimeMillis());
-    private Duration decisionTaskStartToCloseTimeout;
+    private final Duration decisionTaskStartToCloseTimeout;
 
-    private final Duration decisionTaskRemainingTime() {
+    private Duration decisionTaskRemainingTime() {
       Duration passed = Duration.ofMillis(System.currentTimeMillis()).minus(paginationStart);
       return decisionTaskStartToCloseTimeout.minus(passed);
     }
@@ -715,14 +706,11 @@ class ReplayDecider implements Decider {
           }
           if (!current.hasNext()) {
             log.error(
-                "GetWorkflowExecutionHistory returns an empty history, maybe a bug in server, workflowID:"
-                    + request.execution.workflowId
-                    + ", runID:"
-                    + request.execution.runId
-                    + ", domain:"
-                    + request.domain
-                    + " token:"
-                    + Arrays.toString(request.getNextPageToken()));
+                "GetWorkflowExecutionHistory returns an empty history, maybe a bug in server, workflowID:{}, runID:{}, domain:{} token:{}",
+                request.execution.workflowId,
+                request.execution.runId,
+                request.domain,
+                Arrays.toString(request.getNextPageToken()));
             throw new Error(
                 "GetWorkflowExecutionHistory return empty history, maybe a bug in server");
           }
