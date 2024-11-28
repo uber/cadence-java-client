@@ -17,6 +17,8 @@
 
 package com.uber.cadence.internal.testservice;
 
+import static com.uber.cadence.internal.testservice.TestWorkflowMutableStateAttrUtil.*;
+
 import com.cronutils.model.Cron;
 import com.cronutils.model.CronType;
 import com.cronutils.model.definition.CronDefinition;
@@ -72,7 +74,6 @@ import com.uber.cadence.RespondActivityTaskFailedRequest;
 import com.uber.cadence.RespondDecisionTaskCompletedRequest;
 import com.uber.cadence.RespondDecisionTaskFailedRequest;
 import com.uber.cadence.RespondQueryTaskCompletedRequest;
-import com.uber.cadence.RetryPolicy;
 import com.uber.cadence.ScheduleActivityTaskDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionDecisionAttributes;
 import com.uber.cadence.SignalExternalWorkflowExecutionFailedCause;
@@ -592,85 +593,17 @@ class TestWorkflowMutableStateImpl implements TestWorkflowMutableState {
     ctx.lockTimer();
   }
 
-  private void validateScheduleActivityTask(ScheduleActivityTaskDecisionAttributes a)
-      throws BadRequestError {
-    if (a == null) {
-      throw new BadRequestError("ScheduleActivityTaskDecisionAttributes is not set on decision.");
-    }
-
-    if (a.getTaskList() == null || a.getTaskList().getName().isEmpty()) {
-      throw new BadRequestError("TaskList is not set on decision.");
-    }
-    if (a.getActivityId() == null || a.getActivityId().isEmpty()) {
-      throw new BadRequestError("ActivityId is not set on decision.");
-    }
-    if (a.getActivityType() == null
-        || a.getActivityType().getName() == null
-        || a.getActivityType().getName().isEmpty()) {
-      throw new BadRequestError("ActivityType is not set on decision.");
-    }
-    if (a.getStartToCloseTimeoutSeconds() <= 0) {
-      throw new BadRequestError("A valid StartToCloseTimeoutSeconds is not set on decision.");
-    }
-    if (a.getScheduleToStartTimeoutSeconds() <= 0) {
-      throw new BadRequestError("A valid ScheduleToStartTimeoutSeconds is not set on decision.");
-    }
-    if (a.getScheduleToCloseTimeoutSeconds() <= 0) {
-      throw new BadRequestError("A valid ScheduleToCloseTimeoutSeconds is not set on decision.");
-    }
-    if (a.getHeartbeatTimeoutSeconds() < 0) {
-      throw new BadRequestError("Ac valid HeartbeatTimeoutSeconds is not set on decision.");
-    }
-  }
-
   private void processStartChildWorkflow(
       RequestContext ctx,
       StartChildWorkflowExecutionDecisionAttributes a,
       long decisionTaskCompletedId)
       throws BadRequestError, InternalServiceError {
     validateStartChildExecutionAttributes(a);
+    inheritUnsetPropertiesFromParentWorkflow(startRequest, a);
     StateMachine<ChildWorkflowData> child = StateMachines.newChildWorkflowStateMachine(service);
     childWorkflows.put(ctx.getNextEventId(), child);
     child.action(StateMachines.Action.INITIATE, ctx, a, decisionTaskCompletedId);
     ctx.lockTimer();
-  }
-
-  /** Clone of the validateStartChildExecutionAttributes from historyEngine.go */
-  private void validateStartChildExecutionAttributes(
-      StartChildWorkflowExecutionDecisionAttributes a) throws BadRequestError {
-    if (a == null) {
-      throw new BadRequestError(
-          "StartChildWorkflowExecutionDecisionAttributes is not set on decision.");
-    }
-
-    if (a.getWorkflowId().isEmpty()) {
-      throw new BadRequestError("Required field WorkflowID is not set on decision.");
-    }
-
-    if (a.getWorkflowType() == null || a.getWorkflowType().getName().isEmpty()) {
-      throw new BadRequestError("Required field WorkflowType is not set on decision.");
-    }
-
-    // Inherit tasklist from parent workflow execution if not provided on decision
-    if (a.getTaskList() == null || a.getTaskList().getName().isEmpty()) {
-      a.setTaskList(startRequest.getTaskList());
-    }
-
-    // Inherit workflow timeout from parent workflow execution if not provided on decision
-    if (a.getExecutionStartToCloseTimeoutSeconds() <= 0) {
-      a.setExecutionStartToCloseTimeoutSeconds(
-          startRequest.getExecutionStartToCloseTimeoutSeconds());
-    }
-
-    // Inherit decision task timeout from parent workflow execution if not provided on decision
-    if (a.getTaskStartToCloseTimeoutSeconds() <= 0) {
-      a.setTaskStartToCloseTimeoutSeconds(startRequest.getTaskStartToCloseTimeoutSeconds());
-    }
-
-    RetryPolicy retryPolicy = a.getRetryPolicy();
-    if (retryPolicy != null) {
-      RetryState.validateRetryPolicy(retryPolicy);
-    }
   }
 
   private void processSignalExternalWorkflowExecution(
