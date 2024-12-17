@@ -226,7 +226,8 @@ public class WorkflowExecutionUtils {
 
       pageToken = response.getNextPageToken();
       History history = response.getHistory();
-      if (history != null && history.getEvents().size() > 0) {
+
+      if (history != null && history.getEvents() != null && history.getEvents().size() > 0) {
         event = history.getEvents().get(0);
         if (!isWorkflowExecutionCompletedEvent(event)) {
           throw new RuntimeException("Last history event is not completion event: " + event);
